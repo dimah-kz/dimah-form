@@ -72,13 +72,16 @@ describe("formDefinitionSchema", () => {
     ).toBe(false);
   });
 
-  it("rejects unknown field types", () => {
+  it("keeps unknown field types on the document", () => {
     expect(
-      formDefinitionSchema.safeParse({
+      formDefinitionSchema.parse({
         title: "X",
-        fields: [{ id: "n", type: "file" }],
-      }).success,
-    ).toBe(false);
+        fields: [{ id: "n", type: "file", pattern: ".+" }],
+      }),
+    ).toMatchObject({
+      title: "X",
+      fields: [{ id: "n", type: "file", pattern: ".+" }],
+    });
   });
 });
 
@@ -88,5 +91,18 @@ describe("formSnapshotSchema", () => {
     expect(
       formSnapshotSchema.parse({ id: "contact", ...contact }),
     ).toMatchObject({ id: "contact", title: "Contact" });
+  });
+
+  it("round-trips a custom field type", () => {
+    expect(
+      formSnapshotSchema.parse({
+        id: "intake",
+        title: "Intake",
+        fields: [{ id: "email", type: "email", required: true }],
+      }),
+    ).toMatchObject({
+      id: "intake",
+      fields: [{ id: "email", type: "email", required: true }],
+    });
   });
 });

@@ -26,6 +26,16 @@ New HTTP adapter: add it next to existing files in `packages/server/src/adapters
 
 First-class `database` on `dimahForm()`. Official adapters: `memoryAdapter()` in `@dimah-form/server`, `db()` in `@dimah-form/db`. A custom `ResponseStore` is allowed. Do not inject persistence through plugins.
 
+Starting a response inserts the parent questionnaire row if it is missing and never overwrites the live definition.
+
+## Field types
+
+`defineFieldType` lives in `@dimah-form/core`. Register extra types on `dimahForm({ fieldTypes })` — that instance is the registry. Built-ins are field types too; duplicate `type` strings throw at init.
+
+`defineForm` does not take `fieldTypes`. Unknown types are allowed in the document and rejected at `dimahForm()` if unregistered.
+
+Draft is a patch (`null` deletes a key). Submit is a full replace.
+
 ## Plugin
 
 Feature plugins live in their own package and peer-depend on server.

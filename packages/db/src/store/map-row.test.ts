@@ -24,8 +24,6 @@ describe("map-row", () => {
         id: record.id,
         questionnaireId: record.formId,
         status: record.status,
-        respondentId: null,
-        scope: null,
         definition: record.definition,
         answers: record.answers,
         submittedAt: null,
@@ -33,6 +31,25 @@ describe("map-row", () => {
         updatedAt: new Date(record.updatedAt),
       }),
     ).toEqual(record);
+  });
+
+  it("round-trips a custom field type on the snapshot", () => {
+    expect(
+      toResponseRecord({
+        id: "resp-2",
+        questionnaireId: "intake",
+        status: "draft",
+        definition: {
+          id: "intake",
+          title: "Intake",
+          fields: [{ id: "email", type: "email", required: true }],
+        },
+        answers: {},
+        submittedAt: null,
+        createdAt: new Date("2026-01-01T00:00:00.000Z"),
+        updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+      }).definition.fields,
+    ).toEqual([{ id: "email", type: "email", required: true }]);
   });
 
   it("maps the parent questionnaire from the snapshot", () => {

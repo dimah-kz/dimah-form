@@ -28,7 +28,7 @@ export function resolveResponseStore(
   return isResponseStore(client) ? client : createDbResponseStore(client);
 }
 
-/** Persist responses (and upsert the parent questionnaire for the FK). */
+/** Persist responses. Inserts the parent questionnaire only if it is missing. */
 export function createDbResponseStore(db: DimahFormDbClient): ResponseStore {
   const orm = db.orm("1.0.0");
 
@@ -44,24 +44,21 @@ export function createDbResponseStore(db: DimahFormDbClient): ResponseStore {
       .forceReturning();
   }
 
-  async function upsertQuestionnaire(row: ResponseRecord) {
+  async function insertQuestionnaireIfMissing(row: ResponseRecord) {
+    const existing = await orm.findFirst("questionnaire", {
+      where: (b) => b("id", "=", row.formId),
+    });
+    if (existing) return;
     const columns = toQuestionnaireColumns(row);
-    const { id: _id, ...update } = columns;
-    await orm
-      .upsert("questionnaire", {
-        where: (b) => b("id", "=", row.formId),
-        update,
-        create: {
-          ...columns,
-          createdAt: new Date(row.createdAt),
-        },
-      })
-      .forceReturning();
+    await orm.create("questionnaire", {
+      ...columns,
+      createdAt: new Date(row.createdAt),
+    });
   }
 
   return {
     async create(row) {
-      await upsertQuestionnaire(row);
+      await insertQuestionnaireIfMissing(row);
       await upsertResponse(row);
     },
     async get(id) {

@@ -9,8 +9,6 @@ function row(overrides: Partial<ResponseRow> = {}): ResponseRow {
     id: "resp-1",
     questionnaireId: "onboarding",
     status: "draft",
-    respondentId: null,
-    scope: null,
     definition: {
       id: "onboarding",
       title: "Onboarding",
@@ -24,15 +22,26 @@ function row(overrides: Partial<ResponseRow> = {}): ResponseRow {
   };
 }
 
-function createOrm(overrides: { findFirst?: ResponseRow | null } = {}) {
+function createOrm(
+  overrides: {
+    questionnaire?: { id: string } | null;
+    response?: ResponseRow | null;
+  } = {},
+) {
   const forceReturning = vi.fn(async () => row());
   const upsert = vi.fn(() => ({ forceReturning }));
-  const findFirst = vi.fn(async () =>
-    overrides.findFirst === undefined ? row() : overrides.findFirst,
-  );
-  const orm = { upsert, findFirst };
+  const create = vi.fn(async () => ({ id: "onboarding" }));
+  const findFirst = vi.fn(async (table: string) => {
+    if (table === "questionnaire") {
+      return overrides.questionnaire === undefined
+        ? { id: "onboarding" }
+        : overrides.questionnaire;
+    }
+    return overrides.response === undefined ? row() : overrides.response;
+  });
+  const orm = { upsert, findFirst, create };
   const db = { orm: () => orm } as unknown as DimahFormDbClient;
-  return { store: createDbResponseStore(db), upsert, findFirst };
+  return { store: createDbResponseStore(db), upsert, findFirst, create };
 }
 
 const record = {
@@ -51,15 +60,29 @@ const record = {
 };
 
 describe("createDbResponseStore", () => {
-  it("upserts questionnaire then response on create", async () => {
-    const { store, upsert } = createOrm();
+  it("inserts questionnaire only when it is missing", async () => {
+    const { store, create, upsert, findFirst } = createOrm({
+      questionnaire: null,
+    });
     await store.create(record);
-    expect(upsert).toHaveBeenNthCalledWith(
-      1,
+    expect(findFirst).toHaveBeenCalledWith(
       "questionnaire",
       expect.any(Object),
     );
-    expect(upsert).toHaveBeenNthCalledWith(2, "response", expect.any(Object));
+    expect(create).toHaveBeenCalledWith(
+      "questionnaire",
+      expect.objectContaining({ id: "onboarding" }),
+    );
+    expect(upsert).toHaveBeenCalledWith("response", expect.any(Object));
+  });
+
+  it("does not rewrite an existing questionnaire", async () => {
+    const { store, create, upsert } = createOrm({
+      questionnaire: { id: "onboarding" },
+    });
+    await store.create(record);
+    expect(create).not.toHaveBeenCalled();
+    expect(upsert).toHaveBeenCalledWith("response", expect.any(Object));
   });
 
   it("loads a mapped record by id", async () => {
@@ -72,13 +95,14 @@ describe("createDbResponseStore", () => {
   });
 
   it("returns undefined when missing", async () => {
-    const { store } = createOrm({ findFirst: null });
+    const { store } = createOrm({ response: null });
     await expect(store.get("missing")).resolves.toBeUndefined();
   });
 
   it("does not touch questionnaire on save", async () => {
-    const { store, upsert } = createOrm();
+    const { store, upsert, create } = createOrm();
     await store.save(record);
+    expect(create).not.toHaveBeenCalled();
     expect(upsert).toHaveBeenCalledTimes(1);
     expect(upsert).toHaveBeenCalledWith("response", expect.any(Object));
   });

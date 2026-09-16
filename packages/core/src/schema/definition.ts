@@ -55,6 +55,7 @@ export const selectFieldSchema = z.strictObject({
     }),
 });
 
+/** Built-in field documents only. Custom types use {@link storedFieldSchema}. */
 export const fieldSchema = z.discriminatedUnion("type", [
   textFieldSchema,
   numberFieldSchema,
@@ -62,7 +63,39 @@ export const fieldSchema = z.discriminatedUnion("type", [
   selectFieldSchema,
 ]);
 
-export const formFieldsSchema = z.array(fieldSchema).check((ctx) => {
+const builtinFieldByType = {
+  text: textFieldSchema,
+  number: numberFieldSchema,
+  boolean: booleanFieldSchema,
+  select: selectFieldSchema,
+} as const;
+
+/**
+ * Snapshot / document field — builtins stay strict; unknown `type` values
+ * pass through so custom field types can round-trip.
+ */
+export const storedFieldSchema = z
+  .looseObject({
+    id: fieldIdSchema,
+    type: trimmedString,
+    required: fieldRequiredSchema,
+    label: fieldLabelSchema,
+  })
+  .check((ctx) => {
+    const builtin =
+      builtinFieldByType[ctx.value.type as keyof typeof builtinFieldByType];
+    if (!builtin) return;
+    const parsed = builtin.safeParse(ctx.value);
+    if (parsed.success) return;
+    ctx.issues.push({
+      code: "custom",
+      message:
+        parsed.error.issues[0]?.message ?? `Invalid "${ctx.value.type}" field`,
+      input: ctx.value,
+    });
+  });
+
+export const formFieldsSchema = z.array(storedFieldSchema).check((ctx) => {
   const seen = new Set<string>();
   for (const field of ctx.value) {
     if (seen.has(field.id)) {
@@ -90,6 +123,20 @@ export const formSnapshotSchema = z.strictObject({
   fields: formFieldsSchema,
 });
 
-export type FormField = z.output<typeof fieldSchema>;
-export type FormDefinition = z.output<typeof formDefinitionSchema>;
-export type FormSnapshot = z.output<typeof formSnapshotSchema>;
+export type FormField = {
+  id: string;
+  type: string;
+  required?: boolean;
+  label?: string;
+} & Record<string, unknown>;
+
+export type FormDefinition = {
+  title: string;
+  fields: readonly FormField[];
+};
+
+export type FormSnapshot = {
+  id: string;
+  title: string;
+  fields: readonly FormField[];
+};

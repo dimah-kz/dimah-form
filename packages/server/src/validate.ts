@@ -1,12 +1,16 @@
-import type {
-  FormField,
-  FormSnapshot,
-  ValidationIssue,
+import {
+  createFieldTypeRegistry,
+  type FieldTypeDefinition,
+  type FormField,
+  type FormSnapshot,
+  type ValidationIssue,
 } from "@dimah-form/core";
 
 import { errors } from "./errors";
 
 export type AnswerValidationMode = "draft" | "submit";
+
+const builtinRegistry = createFieldTypeRegistry();
 
 function isAbsent(value: unknown): boolean {
   return value === undefined || value === null;
@@ -20,30 +24,21 @@ function isRequiredPresent(field: FormField, value: unknown): boolean {
   return true;
 }
 
-function typeMessage(field: FormField, value: unknown): string | undefined {
-  switch (field.type) {
-    case "text":
-      return typeof value === "string" ? undefined : "Expected a string";
-    case "number":
-      return typeof value === "number" && Number.isFinite(value)
-        ? undefined
-        : "Expected a number";
-    case "boolean":
-      return typeof value === "boolean" ? undefined : "Expected a boolean";
-    case "select": {
-      if (typeof value !== "string") return "Expected a string";
-      const allowed = new Set(field.options.map((option) => option.value));
-      return allowed.has(value) ? undefined : "Invalid option";
-    }
-    default:
-      return "Unknown field type";
-  }
+function typeMessage(
+  field: FormField,
+  value: unknown,
+  fieldTypes: ReadonlyMap<string, FieldTypeDefinition>,
+): string | undefined {
+  const fieldType = fieldTypes.get(field.type);
+  if (!fieldType) return "Unknown field type";
+  return fieldType.validate(value, field);
 }
 
 export function collectAnswerIssues(
   definition: FormSnapshot,
   answers: Record<string, unknown>,
   mode: AnswerValidationMode,
+  fieldTypes: ReadonlyMap<string, FieldTypeDefinition> = builtinRegistry,
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const fieldById = new Map(
@@ -58,7 +53,7 @@ export function collectAnswerIssues(
     }
     const value = answers[key];
     if (isAbsent(value)) continue;
-    const message = typeMessage(field, value);
+    const message = typeMessage(field, value, fieldTypes);
     if (message) issues.push({ field: key, message });
   }
 
@@ -82,8 +77,14 @@ export function parseAnswers(
   definition: FormSnapshot,
   answers: Record<string, unknown>,
   mode: AnswerValidationMode,
+  fieldTypes?: ReadonlyMap<string, FieldTypeDefinition>,
 ): Record<string, unknown> {
-  const issues = collectAnswerIssues(definition, answers, mode);
+  const issues = collectAnswerIssues(
+    definition,
+    answers,
+    mode,
+    fieldTypes,
+  );
   if (issues.length > 0) {
     throw errors.validationError(issues);
   }
@@ -92,6 +93,22 @@ export function parseAnswers(
   for (const [key, value] of Object.entries(answers)) {
     if (isAbsent(value)) continue;
     next[key] = value;
+  }
+  return next;
+}
+
+/** Merge a draft patch into stored answers. `null` / `undefined` deletes a key. */
+export function applyAnswerPatch(
+  existing: Record<string, unknown>,
+  patch: Record<string, unknown>,
+): Record<string, unknown> {
+  const next = { ...existing };
+  for (const [key, value] of Object.entries(patch)) {
+    if (isAbsent(value)) {
+      delete next[key];
+    } else {
+      next[key] = value;
+    }
   }
   return next;
 }

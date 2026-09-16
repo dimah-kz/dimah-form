@@ -14,6 +14,7 @@ export const startResponse = createFormEndpoint(
     const definition = resolveLiveForm(
       ctx.context.config.forms,
       ctx.body.formId,
+      ctx.context.config.fieldTypes,
     );
     const now = new Date().toISOString();
     const row: ResponseRecord = {

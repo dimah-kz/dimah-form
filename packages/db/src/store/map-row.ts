@@ -18,8 +18,6 @@ export type ResponseRow = {
   id: string;
   questionnaireId: string;
   status: string;
-  respondentId: string | null;
-  scope: string | null;
   definition: unknown;
   answers: unknown;
   submittedAt: Date | string | null;
@@ -45,8 +43,6 @@ export function toResponseColumns(row: ResponseRecord) {
     id: row.id,
     questionnaireId: row.formId,
     status: row.status,
-    respondentId: null as string | null,
-    scope: null as string | null,
     definition: row.definition,
     answers: row.answers,
     submittedAt: toDate(row.submittedAt),
@@ -65,7 +61,6 @@ export function toQuestionnaireColumns(row: ResponseRecord) {
       fields: row.definition.fields,
     },
     status: "active",
-    scope: null as string | null,
     updatedAt: new Date(row.updatedAt),
   };
 }

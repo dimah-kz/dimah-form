@@ -7,6 +7,7 @@ export {
   numberFieldSchema,
   selectFieldSchema,
   selectOptionSchema,
+  storedFieldSchema,
   textFieldSchema,
   type FormDefinition,
   type FormField,

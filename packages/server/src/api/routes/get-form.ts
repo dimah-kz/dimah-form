@@ -11,6 +11,10 @@ export const getForm = createFormEndpoint(
   FORM_API_ROUTES.form,
   { method: "GET", query: getFormQuerySchema },
   async (ctx): Promise<FormSnapshot> => {
-    return resolveLiveForm(ctx.context.config.forms, ctx.query.formId);
+    return resolveLiveForm(
+      ctx.context.config.forms,
+      ctx.query.formId,
+      ctx.context.config.fieldTypes,
+    );
   },
 );

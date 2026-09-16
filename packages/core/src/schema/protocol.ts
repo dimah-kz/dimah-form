@@ -1,6 +1,6 @@
 import * as z from "zod";
 
-import { formSnapshotSchema } from "./definition";
+import { formSnapshotSchema, type FormSnapshot } from "./definition";
 import { formIdSchema, responseIdSchema } from "./shared";
 
 export const answersSchema = z.record(z.string(), z.unknown());
@@ -42,4 +42,9 @@ export const responseRecordSchema = z.strictObject({
 
 export type FormAnswers = z.output<typeof answersSchema>;
 export type ResponseStatus = z.output<typeof responseStatusSchema>;
-export type ResponseRecord = z.output<typeof responseRecordSchema>;
+export type ResponseRecord = Omit<
+  z.output<typeof responseRecordSchema>,
+  "definition"
+> & {
+  definition: FormSnapshot;
+};

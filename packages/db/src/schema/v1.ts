@@ -10,7 +10,6 @@ const questionnaire = table("questionnaire", {
   title: column("title", "string"),
   definition: column("definition", "json"),
   status: column("status", "string"),
-  scope: column("scope", "string").nullable(),
   createdAt: column("created_at", "timestamp").defaultTo$("now"),
   updatedAt: column("updated_at", "timestamp").defaultTo$("now"),
 });
@@ -19,8 +18,6 @@ const response = table("response", {
   id: idColumn("id", "varchar(255)").defaultTo$("auto"),
   questionnaireId: column("questionnaire_id", "varchar(255)"),
   status: column("status", "string"),
-  respondentId: column("respondent_id", "varchar(255)").nullable(),
-  scope: column("scope", "string").nullable(),
   /** Definition copy at start — submit validates against this, not live. */
   definition: column("definition", "json"),
   answers: column("answers", "json"),

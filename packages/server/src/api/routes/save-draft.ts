@@ -6,7 +6,7 @@ import {
 
 import { createFormEndpoint } from "@/api/create-form-endpoint";
 import { errors } from "@/errors";
-import { parseAnswers, requireDraft } from "@/validate";
+import { applyAnswerPatch, parseAnswers, requireDraft } from "@/validate";
 
 export const saveDraft = createFormEndpoint(
   FORM_API_ROUTES.saveDraft,
@@ -17,11 +17,13 @@ export const saveDraft = createFormEndpoint(
       throw errors.unknownResponse(ctx.body.responseId);
     }
     requireDraft(existing.status);
-    const answers = parseAnswers(
+    parseAnswers(
       existing.definition,
       ctx.body.answers,
       "draft",
+      ctx.context.config.fieldTypes,
     );
+    const answers = applyAnswerPatch(existing.answers, ctx.body.answers);
     const row: ResponseRecord = {
       ...existing,
       answers,

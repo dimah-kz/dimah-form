@@ -1,7 +1,10 @@
 import {
+  createFieldTypeRegistry,
   FORM_API_BASE_PATH,
   FORM_ERROR_CODES,
   normalizeFormApiBasePath,
+  type FieldTypeDefinition,
+  type InferAnswersMap,
 } from "@dimah-form/core";
 
 import { coreEndpoints, type CoreEndpoints } from "./api/routes";
@@ -20,6 +23,7 @@ export type { DimahFormGuard, DimahFormPlugin };
 export type DimahFormConfig<
   TPlugins extends readonly DimahFormPlugin[] = readonly DimahFormPlugin[],
   TForms extends Record<string, unknown> = Record<string, unknown>,
+  TFieldTypes extends readonly FieldTypeDefinition[] = readonly FieldTypeDefinition[],
 > = {
   /** API path prefix for the HTTP `handler`. @default "/api/form" */
   basePath?: string;
@@ -30,8 +34,8 @@ export type DimahFormConfig<
   database: ResponseStore;
   /** Additive feature plugins. Persistence is `database`, not a plugin. */
   plugins?: TPlugins;
-  /** Custom field types — validators only, not UI. */
-  fieldTypes?: readonly { type: string }[];
+  /** Custom field types — validators only, not UI. Registered on this instance. */
+  fieldTypes?: TFieldTypes;
   /** Code-authored forms. Dynamic forms live in the database. */
   forms?: TForms;
   /** Runs before every operation. Throw to reject. */
@@ -41,12 +45,14 @@ export type DimahFormConfig<
 export type DimahForm<
   TPlugins extends readonly DimahFormPlugin[] = readonly DimahFormPlugin[],
   TForms extends Record<string, unknown> = Record<string, unknown>,
+  TFieldTypes extends readonly FieldTypeDefinition[] = readonly FieldTypeDefinition[],
 > = {
   handler: (request: Request) => Promise<Response>;
   api: CoreEndpoints;
   $ERROR_CODES: typeof FORM_ERROR_CODES;
   $Infer: {
     forms: TForms;
+    answers: InferAnswersMap<TForms, TFieldTypes>;
     plugins: TPlugins;
   };
 };
@@ -60,15 +66,19 @@ export type DimahForm<
 export function dimahForm<
   const TPlugins extends readonly DimahFormPlugin[] = [],
   const TForms extends Record<string, unknown> = Record<string, unknown>,
->(config: DimahFormConfig<TPlugins, TForms>): DimahForm<TPlugins, TForms> {
+  const TFieldTypes extends readonly FieldTypeDefinition[] = [],
+>(
+  config: DimahFormConfig<TPlugins, TForms, TFieldTypes>,
+): DimahForm<TPlugins, TForms, TFieldTypes> {
   if (config.database == null) {
     throw new Error(
       "`dimahForm()` requires `database`. Use `memoryAdapter()` from `@dimah-form/server` for tests, or `db()` from `@dimah-form/db` for persistence.",
     );
   }
 
+  const fieldTypes = createFieldTypeRegistry(config.fieldTypes);
   const forms = (config.forms ?? {}) as Record<string, unknown>;
-  assertFormsConfig(forms);
+  assertFormsConfig(forms, fieldTypes);
   applyPlugins(config.plugins);
 
   const resolved: ResolvedDimahFormConfig = {
@@ -76,6 +86,7 @@ export function dimahForm<
     forms,
     guard: config.guard,
     database: config.database,
+    fieldTypes,
   };
 
   const { handler, endpoints } = createFormRouter(coreEndpoints, {
@@ -86,6 +97,10 @@ export function dimahForm<
     handler,
     api: endpoints,
     $ERROR_CODES: FORM_ERROR_CODES,
-    $Infer: undefined as unknown as DimahForm<TPlugins, TForms>["$Infer"],
+    $Infer: undefined as unknown as DimahForm<
+      TPlugins,
+      TForms,
+      TFieldTypes
+    >["$Infer"],
   };
 }

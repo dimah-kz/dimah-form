@@ -1,3 +1,5 @@
+import type { FieldTypeDefinition } from "@dimah-form/core";
+
 import type { ResponseStore } from "./store";
 
 export type DimahFormGuard = (context: {
@@ -15,4 +17,5 @@ export type ResolvedDimahFormConfig = {
   forms: Record<string, unknown>;
   guard?: DimahFormGuard;
   database: ResponseStore;
+  fieldTypes: ReadonlyMap<string, FieldTypeDefinition>;
 };

@@ -21,6 +21,7 @@ export const submitResponse = createFormEndpoint(
       existing.definition,
       ctx.body.answers,
       "submit",
+      ctx.context.config.fieldTypes,
     );
     const now = new Date().toISOString();
     const row: ResponseRecord = {

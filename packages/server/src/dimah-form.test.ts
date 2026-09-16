@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 
 import { defineForm, isFormErrorCode } from "@dimah-form/core";
 
@@ -56,6 +56,32 @@ describe("dimahForm instance", () => {
         forms: { bad: { title: "", fields: [] } },
       }),
     ).toThrow(/Invalid form "bad"/);
+  });
+
+  it("throws when a form uses an unregistered field type", () => {
+    expect(() =>
+      createInstance({
+        forms: {
+          intake: defineForm({
+            title: "Intake",
+            fields: [{ id: "email", type: "email", required: true }],
+          }),
+        },
+      }),
+    ).toThrow(/unknown field type "email"/);
+  });
+
+  it("throws when a field type is registered twice", () => {
+    expect(() =>
+      createInstance({
+        fieldTypes: [
+          {
+            type: "text",
+            validate: () => undefined,
+          },
+        ],
+      }),
+    ).toThrow(/Duplicate dimah-form field type "text"/);
   });
 });
 
@@ -152,7 +178,7 @@ describe("start / draft / submit", () => {
   });
 
   it("submits against the start snapshot after the live form changes", async () => {
-    const forms = { onboarding };
+    const forms: Record<string, unknown> = { onboarding };
     const form = createInstance({ forms });
     const started = await form.api.startResponse({
       body: { formId: "onboarding" },
@@ -199,5 +225,69 @@ describe("start / draft / submit", () => {
       }),
     );
     await expectErrorCode(res, 409, FORM_ERROR_CODES.CONFLICT);
+  });
+
+  it("patches draft answers and deletes keys set to null", async () => {
+    const form = createInstance();
+    const started = await form.api.startResponse({
+      body: { formId: "onboarding" },
+    });
+    await form.api.saveDraft({
+      body: { responseId: started.id, answers: { name: "Ada" } },
+    });
+    const merged = await form.api.saveDraft({
+      body: { responseId: started.id, answers: { ok: true } },
+    });
+    expect(merged.answers).toEqual({ name: "Ada", ok: true });
+
+    const cleared = await form.api.saveDraft({
+      body: { responseId: started.id, answers: { name: null } },
+    });
+    expect(cleared.answers).toEqual({ ok: true });
+  });
+});
+
+describe("custom field types", () => {
+  const email = {
+    type: "email" as const,
+    validate: (value: unknown) =>
+      typeof value === "string" && value.includes("@")
+        ? undefined
+        : "Expected an email",
+    $Infer: "" as string,
+  };
+
+  it("validates submit against the registered type", async () => {
+    const form = dimahForm({
+      database: memoryAdapter(),
+      fieldTypes: [email],
+      forms: {
+        intake: defineForm({
+          title: "Intake",
+          fields: [{ id: "email", type: "email", required: true }],
+        }),
+      },
+    });
+
+    const started = await form.api.startResponse({
+      body: { formId: "intake" },
+    });
+    await expect(
+      form.api.submitResponse({
+        body: { responseId: started.id, answers: { email: "nope" } },
+      }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "VALIDATION_ERROR"),
+    );
+
+    const submitted = await form.api.submitResponse({
+      body: { responseId: started.id, answers: { email: "ada@n" } },
+    });
+    expect(submitted.status).toBe("submitted");
+    expect(submitted.answers).toEqual({ email: "ada@n" });
+    expect(submitted.definition.fields[0]?.type).toBe("email");
+    expectTypeOf<
+      typeof form.$Infer.answers.intake.email
+    >().toEqualTypeOf<string>();
   });
 });

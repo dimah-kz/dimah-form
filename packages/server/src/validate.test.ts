@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { defineForm } from "@dimah-form/core";
+import { createFieldTypeRegistry, defineForm } from "@dimah-form/core";
 
-import { collectAnswerIssues } from "./validate";
+import { applyAnswerPatch, collectAnswerIssues } from "./validate";
 
 const snapshot = {
   id: "onboarding",
@@ -50,5 +50,33 @@ describe("collectAnswerIssues", () => {
       { field: "extra", message: "Unknown field" },
       { field: "role", message: "Invalid option" },
     ]);
+  });
+
+  it("uses a custom field type from the registry", () => {
+    const registry = createFieldTypeRegistry([
+      {
+        type: "email",
+        validate: (value) =>
+          typeof value === "string" && value.includes("@")
+            ? undefined
+            : "Expected an email",
+      },
+    ]);
+    const intake = {
+      id: "intake",
+      title: "Intake",
+      fields: [{ id: "email", type: "email", required: true }],
+    };
+    expect(
+      collectAnswerIssues(intake, { email: "nope" }, "draft", registry),
+    ).toEqual([{ field: "email", message: "Expected an email" }]);
+  });
+});
+
+describe("applyAnswerPatch", () => {
+  it("merges keys and deletes nulls", () => {
+    expect(
+      applyAnswerPatch({ name: "Ada", ok: true }, { ok: null, age: 1 }),
+    ).toEqual({ name: "Ada", age: 1 });
   });
 });

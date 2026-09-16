@@ -17,7 +17,21 @@ export {
   FORM_API_ROUTES,
   normalizeFormApiBasePath,
 } from "./routes";
-export { defineFieldType, defineForm } from "./define";
+export {
+  defineFieldType,
+  defineForm,
+  type FieldTypeDefinition,
+  type FormDefinitionInput,
+} from "./define";
+export {
+  booleanFieldType,
+  builtinFieldTypes,
+  createFieldTypeRegistry,
+  numberFieldType,
+  selectFieldType,
+  textFieldType,
+} from "./field-types";
+export type { InferAnswersMap, InferFormAnswers } from "./infer";
 export type { ValidationIssue } from "./schema/error";
 export {
   answersSchema,
@@ -34,6 +48,7 @@ export {
   responseRecordSchema,
   saveDraftBodySchema,
   startResponseBodySchema,
+  storedFieldSchema,
   submitResponseBodySchema,
   type FormAnswers,
   type FormDefinition,
