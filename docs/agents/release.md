@@ -1,5 +1,7 @@
 # Release & Tegami
 
+> **Not published yet.** `@dimah-form/*` is still being built. Do **not** add `.tegami/` changelogs, bump versions, or treat API changes as breaking. Rewrite this file at first npm publish.
+
 All `@dimah-form/*` published packages version **together** (`group: dimah-form` with `syncBump` / `syncGitTag` in `scripts/tegami.mts`).
 
 Format details: [Tegami changelogs](https://tegami.fuma-nama.dev/changelog). Do not edit `.tegami/publish-lock.yaml` or package `CHANGELOG.md` files directly.

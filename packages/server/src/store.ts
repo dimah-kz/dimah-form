@@ -1,9 +1,11 @@
 import type { ResponseRecord } from "@dimah-form/core";
 
 export type ResponseStore = {
-  create: (row: ResponseRecord) => void;
-  get: (id: string) => ResponseRecord | undefined;
-  save: (row: ResponseRecord) => void;
+  create: (row: ResponseRecord) => void | Promise<void>;
+  get: (
+    id: string,
+  ) => ResponseRecord | undefined | Promise<ResponseRecord | undefined>;
+  save: (row: ResponseRecord) => void | Promise<void>;
 };
 
 /** Per-instance in-memory responses. Isolated across `dimahForm()` calls. */

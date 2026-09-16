@@ -39,6 +39,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@dimah-form/core": "workspace:*",
     "fumadb": "catalog:",
     "zod": "catalog:"
   },

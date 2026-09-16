@@ -34,12 +34,11 @@ pnpm --filter @dimah-form/core check-types
 1. Fork the repository and create a branch from `main`.
 2. Make your changes with focused commits.
 3. Add or update tests/docs where needed.
-4. Add a Tegami changelog for user-facing package changes.
-5. Open a Pull Request.
+4. Open a Pull Request.
 
-## Changelogs (required for package changes)
+## Changelogs
 
-When your PR changes behavior, API, or package output, add a changelog:
+Packages are **not published yet**. Skip Tegami changelogs and version bumps until the first npm release (see `AGENTS.md`). The rest of this section applies after that.
 
 ```bash
 pnpm tegami
@@ -60,7 +59,6 @@ A changelog file is created in `.tegami/` and must be committed with your PR.
 - [ ] Lint passes (`pnpm lint`)
 - [ ] Tests pass (`pnpm test`)
 - [ ] Docs updated (if needed)
-- [ ] Changelog added (if package behavior changed)
 
 ## Code of Conduct
 

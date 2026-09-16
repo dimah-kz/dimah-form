@@ -11,7 +11,7 @@ export const getResponse = createFormEndpoint(
   FORM_API_ROUTES.getResponse,
   { method: "GET", query: getResponseQuerySchema },
   async (ctx): Promise<ResponseRecord> => {
-    const row = ctx.context.config.store.get(ctx.query.responseId);
+    const row = await ctx.context.config.store.get(ctx.query.responseId);
     if (!row) {
       throw errors.unknownResponse(ctx.query.responseId);
     }

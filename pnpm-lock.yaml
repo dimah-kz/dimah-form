@@ -302,6 +302,9 @@ importers:
 
   packages/db:
     dependencies:
+      '@dimah-form/core':
+        specifier: workspace:*
+        version: link:../core
       fumadb:
         specifier: 'catalog:'
         version: 0.6.0

@@ -26,7 +26,7 @@ export const startResponse = createFormEndpoint(
       createdAt: now,
       updatedAt: now,
     };
-    ctx.context.config.store.create(row);
+    await ctx.context.config.store.create(row);
     return row;
   },
 );

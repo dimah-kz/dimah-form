@@ -1,5 +1,5 @@
 ---
-description: dimah-form library monorepo — invariants only; explore src, open docs/agents to change published behavior
+description: dimah-form library monorepo — invariants only; explore src. Packages are unpublished WIP.
 alwaysApply: true
 ---
 
@@ -7,9 +7,21 @@ alwaysApply: true
 
 This repository **is the library**, not an app.
 
-Explore `packages/*/src` for how things work. [docs/agents/](docs/agents/) is **checklists for changing published behavior** — not a map of the repo, and not a substitute for reading the code.
+Explore `packages/*/src` for how things work. [docs/agents/](docs/agents/) is **checklists** — not a map of the repo, and not a substitute for reading the code.
 
 pnpm + Turbo. From the root: `pnpm lint`, `pnpm check-types`, `pnpm test`.
+
+## Not published (edit at first npm release)
+
+`@dimah-form/*` is **not on npm**. The library is still being built.
+
+Until the first publish:
+
+- Do **not** add Tegami changelogs or version bumps.
+- Do **not** treat API, schema, or package-export changes as breaking-change work. Reshape freely; match the surrounding code.
+- Skip [release.md](docs/agents/release.md).
+
+This section will be rewritten when packages are published.
 
 ## Invariants
 
@@ -20,17 +32,15 @@ pnpm + Turbo. From the root: `pnpm lint`, `pnpm check-types`, `pnpm test`.
 - Custom field types are server validators (`defineFieldType`) that feed `$Infer`. They are not React components.
 - API errors: stable `code` + English `message`.
 - Deps: `core` ← `server` | `react`; `db` → `server` (peer).
-- Published `@dimah-form/*` behavior, API, or build output change → changelog under `.tegami/` ([release.md](docs/agents/release.md)). Do not edit `.tegami/publish-lock.yaml` or package `CHANGELOG.md` files.
 - Commit when asked. Never `git push` (or force-push) unless the human explicitly asks.
 
 `examples/` = workspace demos (when added). `apps/` = product docs (when added). `docs/agents/` = maintainer checklists. `tooling/` = private ESLint / TS / Vitest configs.
 
 ## Checklists
 
-Read the matching file **when changing published behavior**. Skip it for a local fix — match the surrounding code.
+Read the matching file when the change matches. Skip it for a local fix — match the surrounding code. **Do not** follow [release.md](docs/agents/release.md) until first publish.
 
 | File                                           | Read when                                       |
 | ---------------------------------------------- | ----------------------------------------------- |
 | [architecture.md](docs/agents/architecture.md) | New package, or moving behavior across packages |
 | [packages.md](docs/agents/packages.md)         | Protocol, endpoint, plugin, or hook             |
-| [release.md](docs/agents/release.md)           | Tegami changelog / version bump                 |

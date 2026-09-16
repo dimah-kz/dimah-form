@@ -30,6 +30,7 @@ Shared protocol changes start in `core`, then wire `server` and `react`. Do not 
 ## Product shape
 
 - Config is instance-based: `dimahForm({ fieldTypes, forms, plugins, db })`.
+- Plugins merge once in `dimahForm()`. `db()` may replace the in-memory response store (one store plugin).
 - Code-authored `forms` feed `$Infer`. Dynamic (DB-only) forms are runtime-validated.
 - Each response stores the definition it was started with. Live questionnaire updates do not rewrite old answers.
 - Custom fields are `defineFieldType` validators, not components.

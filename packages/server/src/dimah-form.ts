@@ -7,12 +7,14 @@ import {
 import { coreEndpoints, type CoreEndpoints } from "./api/routes";
 import { createFormRouter } from "./api/router";
 import { assertFormsConfig } from "./forms";
-import { createMemoryResponseStore } from "./store";
-import type { DimahFormGuard, ResolvedDimahFormConfig } from "./types";
+import { applyPlugins } from "./plugin/apply-plugins";
+import type {
+  DimahFormGuard,
+  DimahFormPlugin,
+  ResolvedDimahFormConfig,
+} from "./types";
 
-export type DimahFormPlugin = {
-  readonly id: string;
-};
+export type { DimahFormGuard, DimahFormPlugin };
 
 export type DimahFormConfig<
   TPlugins extends readonly DimahFormPlugin[] = readonly DimahFormPlugin[],
@@ -56,11 +58,13 @@ export function dimahForm<
   const forms = (config.forms ?? {}) as Record<string, unknown>;
   assertFormsConfig(forms);
 
+  const { store } = applyPlugins(config.plugins);
+
   const resolved: ResolvedDimahFormConfig = {
     basePath: normalizeFormApiBasePath(config.basePath ?? FORM_API_BASE_PATH),
     forms,
     guard: config.guard,
-    store: createMemoryResponseStore(),
+    store,
   };
 
   const { handler, endpoints } = createFormRouter(coreEndpoints, {

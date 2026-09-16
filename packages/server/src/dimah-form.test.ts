@@ -13,6 +13,7 @@ import {
   jsonRequest,
   onboarding,
 } from "./test/harness";
+import { createMemoryResponseStore } from "./store";
 
 describe("dimahForm instance", () => {
   it("exposes handler, api, and the error catalog", () => {
@@ -20,6 +21,30 @@ describe("dimahForm instance", () => {
     expect(typeof form.handler).toBe("function");
     expect(form.api.startResponse).toBeTypeOf("function");
     expect(form.$ERROR_CODES).toBe(FORM_ERROR_CODES);
+  });
+
+  it("uses a plugin-provided response store", async () => {
+    const created: string[] = [];
+    const memory = createMemoryResponseStore();
+    const form = createInstance({
+      plugins: [
+        {
+          id: "db",
+          store: {
+            create(row) {
+              created.push(row.id);
+              return memory.create(row);
+            },
+            get: (id) => memory.get(id),
+            save: (row) => memory.save(row),
+          },
+        },
+      ],
+    });
+    const started = await form.api.startResponse({
+      body: { formId: "onboarding" },
+    });
+    expect(created).toEqual([started.id]);
   });
 
   it("throws when a configured form is invalid", () => {

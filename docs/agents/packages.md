@@ -12,7 +12,7 @@ Keep these in lockstep (same paths, same payloads — no duplicate route strings
 
 Browser client uses object args; server `form.api` is the better-call map. Match existing call sites.
 
-Changelog: [release.md](./release.md).
+Packages are unpublished — no changelog until first npm release ([AGENTS.md](../../AGENTS.md)).
 
 ## Endpoint
 
