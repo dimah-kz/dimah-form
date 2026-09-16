@@ -10,11 +10,33 @@ export const formStatusSchema = z.enum(["draft", "active", "archived"]);
 
 export type FormStatus = z.output<typeof formStatusSchema>;
 
+/** Sibling visibility — field is skipped when the rule does not match. */
+export const showWhenSchema = z
+  .looseObject({
+    field: fieldIdSchema,
+    equals: z.unknown().optional(),
+    includes: z.unknown().optional(),
+  })
+  .check((ctx) => {
+    if (ctx.value.equals === undefined && ctx.value.includes === undefined) {
+      ctx.issues.push({
+        code: "custom",
+        message: "showWhen requires equals or includes",
+        input: ctx.value,
+      });
+    }
+  });
+
+export type FieldShowWhen = z.output<typeof showWhenSchema>;
+
 /** Shared keys on every field document. Extra keys stay for consumer UI. */
 const fieldDocument = {
   id: fieldIdSchema,
   required: fieldRequiredSchema,
   label: fieldLabelSchema,
+  description: z.string().optional(),
+  defaultValue: z.unknown().optional(),
+  showWhen: showWhenSchema.optional(),
 };
 
 export const textFieldSchema = z
@@ -106,6 +128,16 @@ export const multiSelectFieldSchema = z.looseObject({
   options: fieldOptionsSchema,
 });
 
+export const emailFieldSchema = z.looseObject({
+  ...fieldDocument,
+  type: z.literal("email"),
+});
+
+export const dateFieldSchema = z.looseObject({
+  ...fieldDocument,
+  type: z.literal("date"),
+});
+
 /** Built-in field documents only. Custom types use {@link storedFieldSchema}. */
 export const fieldSchema = z.discriminatedUnion("type", [
   textFieldSchema,
@@ -113,6 +145,8 @@ export const fieldSchema = z.discriminatedUnion("type", [
   booleanFieldSchema,
   selectFieldSchema,
   multiSelectFieldSchema,
+  emailFieldSchema,
+  dateFieldSchema,
 ]);
 
 const builtinFieldByType = {
@@ -121,6 +155,8 @@ const builtinFieldByType = {
   boolean: booleanFieldSchema,
   select: selectFieldSchema,
   multiSelect: multiSelectFieldSchema,
+  email: emailFieldSchema,
+  date: dateFieldSchema,
 } as const;
 
 /**
@@ -188,6 +224,9 @@ export type FormField = {
   type: string;
   required?: boolean;
   label?: string;
+  description?: string;
+  defaultValue?: unknown;
+  showWhen?: FieldShowWhen;
 } & Record<string, unknown>;
 
 export type FormDefinition = {

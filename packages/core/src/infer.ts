@@ -1,12 +1,5 @@
 import type { FieldTypeDefinition } from "./define";
-
-type BuiltinAnswerMap = {
-  text: string;
-  number: number;
-  boolean: boolean;
-  select: string;
-  multiSelect: string[];
-};
+import type { BuiltinAnswerMap } from "./field-types";
 
 type InferFieldAnswer<
   TType extends string,

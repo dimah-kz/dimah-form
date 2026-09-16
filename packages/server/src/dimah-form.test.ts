@@ -65,11 +65,11 @@ describe("dimahForm instance", () => {
         forms: {
           intake: defineForm({
             title: "Intake",
-            fields: [{ id: "email", type: "email", required: true }],
+            fields: [{ id: "file", type: "file", required: true }],
           }),
         },
       }),
-    ).toThrow(/Unknown field type "email"/);
+    ).toThrow(/Unknown field type "file"/);
   });
 
   it("throws when a field type is registered twice", () => {
@@ -215,7 +215,7 @@ describe("start / draft / submit", () => {
     ).toBe(false);
   });
 
-  it("rejects a second submit with CONFLICT", async () => {
+  it("rejects a second submit with RESPONSE_NOT_DRAFT", async () => {
     const form = createInstance();
     const started = await form.api.startResponse({
       body: { formId: "onboarding" },
@@ -230,7 +230,7 @@ describe("start / draft / submit", () => {
         body: { responseId: started.id, answers },
       }),
     );
-    await expectErrorCode(res, 409, FORM_ERROR_CODES.CONFLICT);
+    await expectErrorCode(res, 409, FORM_ERROR_CODES.RESPONSE_NOT_DRAFT);
   });
 
   it("patches draft answers and deletes keys set to null", async () => {
@@ -254,23 +254,23 @@ describe("start / draft / submit", () => {
 });
 
 describe("custom field types", () => {
-  const email = {
-    type: "email" as const,
+  const handle = {
+    type: "handle" as const,
     validate: (value: unknown) =>
-      typeof value === "string" && value.includes("@")
+      typeof value === "string" && value.startsWith("@")
         ? undefined
-        : "Expected an email",
+        : "Expected a handle",
     $Infer: "" as string,
   };
 
   it("validates submit against the registered type", async () => {
     const form = dimahForm({
       database: memoryAdapter(),
-      fieldTypes: [email],
+      fieldTypes: [handle],
       forms: {
         intake: defineForm({
           title: "Intake",
-          fields: [{ id: "email", type: "email", required: true }],
+          fields: [{ id: "handle", type: "handle", required: true }],
         }),
       },
     });
@@ -280,20 +280,20 @@ describe("custom field types", () => {
     });
     await expect(
       form.api.submitResponse({
-        body: { responseId: started.id, answers: { email: "nope" } },
+        body: { responseId: started.id, answers: { handle: "nope" } },
       }),
     ).rejects.toSatisfy((error: unknown) =>
       isFormErrorCode(error, "VALIDATION_ERROR"),
     );
 
     const submitted = await form.api.submitResponse({
-      body: { responseId: started.id, answers: { email: "ada@n" } },
+      body: { responseId: started.id, answers: { handle: "@ada" } },
     });
     expect(submitted.status).toBe("submitted");
-    expect(submitted.answers).toEqual({ email: "ada@n" });
-    expect(submitted.definition.fields[0]?.type).toBe("email");
+    expect(submitted.answers).toEqual({ handle: "@ada" });
+    expect(submitted.definition.fields[0]?.type).toBe("handle");
     expectTypeOf<
-      typeof form.$Infer.answers.intake.email
+      typeof form.$Infer.answers.intake.handle
     >().toEqualTypeOf<string>();
   });
 });
@@ -422,7 +422,7 @@ describe("live catalog", () => {
         body: { id: "onboarding", title: "Nope", fields: [] },
       }),
     );
-    await expectErrorCode(res, 409, FORM_ERROR_CODES.CONFLICT);
+    await expectErrorCode(res, 409, FORM_ERROR_CODES.CODE_AUTHORED_FORM);
   });
 
   it("does not rewrite a stored live form when starting a code-authored response", async () => {
@@ -487,9 +487,9 @@ describe("hooks and plugins", () => {
       },
       fieldTypes: [
         {
-          type: "email" as const,
+          type: "rating" as const,
           validate: () => undefined,
-          $Infer: "" as string,
+          $Infer: 0 as number,
         },
       ],
       hooks: {
@@ -509,7 +509,7 @@ describe("hooks and plugins", () => {
       forms: {
         intake: defineForm({
           title: "Intake",
-          fields: [{ id: "email", type: "email", required: true }],
+          fields: [{ id: "score", type: "rating", required: true }],
         }),
       },
     });
@@ -518,8 +518,8 @@ describe("hooks and plugins", () => {
     await form.api.startResponse({ body: { formId: "intake" } });
     expect(order).toEqual(["plugin", "user"]);
     expectTypeOf<
-      typeof form.$Infer.answers.intake.email
-    >().toEqualTypeOf<string>();
+      typeof form.$Infer.answers.intake.score
+    >().toEqualTypeOf<number>();
   });
 
   it("runs after-persist hooks after the row is stored", async () => {
@@ -578,7 +578,9 @@ describe("hooks and plugins", () => {
       form.api.saveDraft({
         body: { responseId: started.id, answers: { name: "Ada" } },
       }),
-    ).rejects.toSatisfy((error: unknown) => isFormErrorCode(error, "CONFLICT"));
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "RESPONSE_NOT_DRAFT"),
+    );
   });
 
   it("rejects stale draft updates", async () => {
@@ -721,5 +723,225 @@ describe("hooks and plugins", () => {
     });
     await form.api.ping({});
     expect(operations).toEqual(["ping"]);
+  });
+});
+
+describe("v1 protocol freeze", () => {
+  it("validates draft against merged sibling answers", async () => {
+    const confirm = {
+      type: "confirm" as const,
+      validate: (
+        value: unknown,
+        _field: { type: string },
+        context?: { answers: Record<string, unknown> },
+      ) => (value === context?.answers.password ? undefined : "Must match"),
+    };
+    const form = dimahForm({
+      database: memoryAdapter(),
+      fieldTypes: [confirm],
+      forms: {
+        signup: defineForm({
+          title: "Signup",
+          fields: [
+            { id: "password", type: "text", required: true },
+            { id: "confirm", type: "confirm", required: true },
+          ],
+        }),
+      },
+    });
+    const started = await form.api.startResponse({
+      body: { formId: "signup" },
+    });
+    await form.api.saveDraft({
+      body: { responseId: started.id, answers: { password: "secret" } },
+    });
+    await expect(
+      form.api.saveDraft({
+        body: { responseId: started.id, answers: { confirm: "nope" } },
+      }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "VALIDATION_ERROR"),
+    );
+    const saved = await form.api.saveDraft({
+      body: { responseId: started.id, answers: { confirm: "secret" } },
+    });
+    expect(saved.answers).toEqual({ password: "secret", confirm: "secret" });
+  });
+
+  it("seeds defaultValue and strips hidden fields on start and submit", async () => {
+    const form = dimahForm({
+      database: memoryAdapter(),
+      forms: {
+        job: defineForm({
+          title: "Job",
+          fields: [
+            {
+              id: "employed",
+              type: "boolean",
+              required: true,
+              defaultValue: false,
+            },
+            {
+              id: "company",
+              type: "text",
+              required: true,
+              defaultValue: "Acme",
+              showWhen: { field: "employed", equals: true },
+            },
+          ],
+        }),
+      },
+    });
+    const started = await form.api.startResponse({ body: { formId: "job" } });
+    expect(started.answers).toEqual({ employed: false });
+    const submitted = await form.api.submitResponse({
+      body: {
+        responseId: started.id,
+        answers: { employed: false, company: "Acme" },
+      },
+    });
+    expect(submitted.answers).toEqual({ employed: false });
+  });
+
+  it("deletes a response", async () => {
+    const form = createInstance();
+    const started = await form.api.startResponse({
+      body: { formId: "onboarding" },
+    });
+    await expect(
+      form.api.deleteResponse({ body: { responseId: started.id } }),
+    ).resolves.toEqual({ ok: true, responseId: started.id });
+    await expect(
+      form.api.getResponse({ query: { responseId: started.id } }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "UNKNOWN_RESPONSE"),
+    );
+  });
+
+  it("refuses to delete a form that still has responses", async () => {
+    const form = dimahForm({ database: memoryAdapter() });
+    await form.api.saveForm({
+      body: {
+        id: "temp",
+        title: "Temp",
+        fields: [{ id: "n", type: "text" }],
+      },
+    });
+    await form.api.startResponse({ body: { formId: "temp" } });
+    await expect(
+      form.api.deleteForm({ body: { formId: "temp" } }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "FORM_HAS_RESPONSES"),
+    );
+  });
+
+  it("refuses to delete a code-authored form", async () => {
+    const form = createInstance();
+    await expect(
+      form.api.deleteForm({ body: { formId: "onboarding" } }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "CODE_AUTHORED_FORM"),
+    );
+  });
+
+  it("rejects a taken slug", async () => {
+    const form = dimahForm({ database: memoryAdapter() });
+    await form.api.saveForm({
+      body: {
+        id: "one",
+        slug: "join",
+        title: "One",
+        fields: [{ id: "n", type: "text" }],
+      },
+    });
+    await expect(
+      form.api.saveForm({
+        body: {
+          id: "two",
+          slug: "join",
+          title: "Two",
+          fields: [{ id: "n", type: "text" }],
+        },
+      }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "SLUG_TAKEN"),
+    );
+  });
+
+  it("rejects stale submit and abandon tokens", async () => {
+    const form = createInstance();
+    const started = await form.api.startResponse({
+      body: { formId: "onboarding" },
+    });
+    await expect(
+      form.api.submitResponse({
+        body: {
+          responseId: started.id,
+          answers: { name: "Ada", ok: true },
+          updatedAt: "2000-01-01T00:00:00.000Z",
+        },
+      }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "STALE_UPDATE"),
+    );
+    await expect(
+      form.api.abandonResponse({
+        body: {
+          responseId: started.id,
+          updatedAt: "2000-01-01T00:00:00.000Z",
+        },
+      }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "STALE_UPDATE"),
+    );
+  });
+
+  it("paginates listForms and listResponses with nextOffset", async () => {
+    const form = dimahForm({ database: memoryAdapter() });
+    await form.api.saveForm({
+      body: {
+        id: "a",
+        title: "A",
+        fields: [{ id: "n", type: "text" }],
+      },
+    });
+    await form.api.saveForm({
+      body: {
+        id: "b",
+        title: "B",
+        fields: [{ id: "n", type: "text" }],
+      },
+    });
+    const page = await form.api.listForms({ query: { limit: 1, offset: 0 } });
+    expect(page.forms).toHaveLength(1);
+    expect(page.nextOffset).toBe(1);
+    const rest = await form.api.listForms({
+      query: { limit: 1, offset: page.nextOffset ?? 0 },
+    });
+    expect(rest.forms).toHaveLength(1);
+    expect(rest.nextOffset).toBeNull();
+
+    await form.api.startResponse({ body: { formId: "a" } });
+    await form.api.startResponse({ body: { formId: "b" } });
+    const responses = await form.api.listResponses({
+      query: { limit: 1, offset: 0 },
+    });
+    expect(responses.responses).toHaveLength(1);
+    expect(responses.nextOffset).toBe(1);
+  });
+
+  it("rejects saveForm with an unknown field type", async () => {
+    const form = dimahForm({ database: memoryAdapter() });
+    await expect(
+      form.api.saveForm({
+        body: {
+          id: "x",
+          title: "X",
+          fields: [{ id: "f", type: "file" }],
+        },
+      }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "UNKNOWN_FIELD_TYPE"),
+    );
   });
 });

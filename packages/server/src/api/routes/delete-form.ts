@@ -13,7 +13,7 @@ export const deleteForm = createFormEndpoint(
   async (ctx): Promise<{ ok: true; formId: string }> => {
     const form = await resolveLiveForm(ctx.context.config, ctx.body.formId);
     if (Object.hasOwn(ctx.context.config.forms, form.id)) {
-      throw errors.conflict();
+      throw errors.codeAuthoredForm(form.id);
     }
     const existing = await ctx.context.config.database.listResponses({
       formId: form.id,
@@ -21,7 +21,7 @@ export const deleteForm = createFormEndpoint(
       offset: 0,
     });
     if (existing.length > 0) {
-      throw errors.conflict();
+      throw errors.formHasResponses(form.id);
     }
     const request = ctx.context.request;
     const hooks = ctx.context.config.hooks;

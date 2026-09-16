@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 
 import { defineClientPlugin } from "./client-plugin";
 import { createFormClient } from "./create-form-client";
+import { defineForm } from "./define";
 import { APIError, FORM_ERROR_CODES } from "./error";
 import { FORM_API_ROUTES } from "./routes";
 import { captureFetch, jsonResponse } from "./test/http";
@@ -177,5 +178,39 @@ describe("createFormClient protocol", () => {
     const api = createFormClient({ fetch, plugins: [ping] });
     await expect(api.ping()).resolves.toEqual({ ok: true });
     expect(calls[0]?.url).toContain("/ping");
+  });
+
+  it("rejects duplicate client plugin ids", () => {
+    const ping = defineClientPlugin({
+      id: "ping",
+      endpoints: () => ({ ping: () => Promise.resolve({ ok: true }) }),
+    });
+    expect(() => createFormClient({ plugins: [ping, ping] })).toThrow(
+      /Duplicate dimah-form client plugin id "ping"/,
+    );
+  });
+
+  it("rejects a plugin endpoint that collides with a core method", () => {
+    const bad = defineClientPlugin({
+      id: "bad",
+      endpoints: () => ({ getForm: () => Promise.resolve(snapshot) }),
+    });
+    expect(() => createFormClient({ plugins: [bad] })).toThrow(
+      /Duplicate dimah-form client endpoint "getForm"/,
+    );
+  });
+
+  it("infers $Infer.answers from options.forms", () => {
+    const forms = {
+      contact: defineForm({
+        title: "Contact",
+        fields: [{ id: "name", type: "text", required: true }],
+      }),
+    };
+    const client = createFormClient({ forms });
+    expect(client.$ERROR_CODES.VALIDATION_ERROR.code).toBe("VALIDATION_ERROR");
+    expectTypeOf<
+      typeof client.$Infer.answers.contact.name
+    >().toEqualTypeOf<string>();
   });
 });

@@ -20,14 +20,15 @@ export type FormClient<
   TFieldTypes extends readonly FieldTypeDefinition[] = [],
 > = CreateFormClientResult<TPlugins, TForms, TFieldTypes> & {
   Provider: (props: { children: ReactNode }) => ReactNode;
+  useFormClient: () => CreateFormClientResult<TPlugins, TForms, TFieldTypes>;
 };
 
 export function createFormClient<
   const TPlugins extends readonly FormClientPlugin[] = [],
-  TForms extends Record<string, unknown> = Record<string, unknown>,
-  TFieldTypes extends readonly FieldTypeDefinition[] = [],
+  const TForms extends Record<string, unknown> = Record<string, unknown>,
+  const TFieldTypes extends readonly FieldTypeDefinition[] = [],
 >(
-  options: CreateFormClientOptions<TPlugins> = {},
+  options: CreateFormClientOptions<TPlugins, TForms, TFieldTypes> = {},
 ): FormClient<TPlugins, TForms, TFieldTypes> {
   const client = createFormApiClient<TPlugins, TForms, TFieldTypes>(options);
 
@@ -39,7 +40,23 @@ export function createFormClient<
     );
   }
 
-  return { ...client, Provider } as FormClient<TPlugins, TForms, TFieldTypes>;
+  function useBoundFormClient(): CreateFormClientResult<
+    TPlugins,
+    TForms,
+    TFieldTypes
+  > {
+    const ctx = useContext(FormClientContext);
+    if (ctx == null) {
+      throw new Error("useFormClient must be used under FormClient.Provider");
+    }
+    return ctx as CreateFormClientResult<TPlugins, TForms, TFieldTypes>;
+  }
+
+  return {
+    ...client,
+    Provider,
+    useFormClient: useBoundFormClient,
+  } as FormClient<TPlugins, TForms, TFieldTypes>;
 }
 
 export function useFormClient<

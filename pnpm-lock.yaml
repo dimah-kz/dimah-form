@@ -414,9 +414,6 @@ importers:
       fumadb:
         specifier: 'catalog:'
         version: 0.6.0(drizzle-orm@1.0.0-rc.4(@libsql/client@0.18.0)(zod@4.6.5))
-      zod:
-        specifier: 'catalog:'
-        version: 4.6.5
     devDependencies:
       '@dimah-form/server':
         specifier: workspace:*

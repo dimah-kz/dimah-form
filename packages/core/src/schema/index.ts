@@ -1,5 +1,7 @@
 export {
   booleanFieldSchema,
+  dateFieldSchema,
+  emailFieldSchema,
   fieldSchema,
   formDefinitionSchema,
   formFieldsSchema,
@@ -12,8 +14,10 @@ export {
   numberFieldSchema,
   selectFieldSchema,
   selectOptionSchema,
+  showWhenSchema,
   storedFieldSchema,
   textFieldSchema,
+  type FieldShowWhen,
   type FormDefinition,
   type FormField,
   type FormSnapshot,

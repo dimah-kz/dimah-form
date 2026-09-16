@@ -25,6 +25,11 @@ export const FORM_ERROR_CODES = defineErrorCodes({
   UNKNOWN_RESPONSE: "Unknown response",
   FORM_INACTIVE: "Form is not active",
   STALE_UPDATE: "Response was updated",
+  RESPONSE_NOT_DRAFT: "Response is not a draft",
+  CODE_AUTHORED_FORM: "Cannot modify a code-authored form",
+  FORM_HAS_RESPONSES: "Form still has responses",
+  SLUG_TAKEN: "Form slug is already in use",
+  UNKNOWN_FIELD_TYPE: "Unknown field type",
 });
 
 export type FormErrorCode = keyof typeof FORM_ERROR_CODES;

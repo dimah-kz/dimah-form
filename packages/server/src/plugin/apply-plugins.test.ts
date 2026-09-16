@@ -61,7 +61,7 @@ describe("applyPlugins", () => {
     const applied = applyPlugins([
       {
         id: "a",
-        fieldTypes: [{ type: "email", validate: () => undefined }],
+        fieldTypes: [{ type: "rating", validate: () => undefined }],
         hooks: {
           onStart: () => {
             order.push("a");
@@ -77,7 +77,7 @@ describe("applyPlugins", () => {
         },
       },
     ]);
-    expect(applied.fieldTypes.map((type) => type.type)).toEqual(["email"]);
+    expect(applied.fieldTypes.map((type) => type.type)).toEqual(["rating"]);
     await applied.hooks.onStart?.({
       request: new Request("http://localhost"),
       response: {} as never,

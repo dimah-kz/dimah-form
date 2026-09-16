@@ -32,7 +32,12 @@ function assertFieldDocuments(
     const type = typeof field.type === "string" ? field.type : "";
     const fieldType = fieldTypes.get(type);
     if (!fieldType) {
-      fail(asError, formId, `Unknown field type "${type}"`);
+      if (asError === "init") {
+        throw new Error(
+          `Invalid form "${formId}": Unknown field type "${type}"`,
+        );
+      }
+      throw errors.unknownFieldType(type);
     }
     if (!fieldType.fieldSchema) continue;
     const parsed = fieldType.fieldSchema.safeParse(field);
@@ -156,11 +161,11 @@ export async function assertSlugAvailable(
     );
     if (snapshot.id === form.id) continue;
     if (snapshot.id === form.slug || snapshot.slug === form.slug) {
-      throw errors.conflict();
+      throw errors.slugTaken(form.slug);
     }
   }
   const existing = await config.database.getForm(form.slug);
   if (existing && existing.id !== form.id) {
-    throw errors.conflict();
+    throw errors.slugTaken(form.slug);
   }
 }

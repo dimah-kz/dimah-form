@@ -181,12 +181,49 @@ describe("formSnapshotSchema", () => {
       formSnapshotSchema.parse({
         id: "intake",
         title: "Intake",
-        fields: [{ id: "email", type: "email", required: true }],
+        fields: [{ id: "file", type: "file", required: true }],
       }),
     ).toMatchObject({
       id: "intake",
-      fields: [{ id: "email", type: "email", required: true }],
+      fields: [{ id: "file", type: "file", required: true }],
     });
+  });
+
+  it("parses email, date, description, defaultValue, and showWhen", () => {
+    expect(
+      formDefinitionSchema.parse({
+        title: "Job",
+        fields: [
+          {
+            id: "email",
+            type: "email",
+            required: true,
+            description: "Work email",
+          },
+          { id: "start", type: "date", defaultValue: "2026-01-01" },
+          {
+            id: "company",
+            type: "text",
+            showWhen: { field: "employed", equals: true },
+          },
+        ],
+      }),
+    ).toMatchObject({
+      fields: [
+        { id: "email", type: "email", description: "Work email" },
+        { id: "start", type: "date", defaultValue: "2026-01-01" },
+        { id: "company", showWhen: { field: "employed", equals: true } },
+      ],
+    });
+  });
+
+  it("rejects showWhen without equals or includes", () => {
+    expect(
+      formDefinitionSchema.safeParse({
+        title: "X",
+        fields: [{ id: "n", type: "text", showWhen: { field: "other" } }],
+      }).success,
+    ).toBe(false);
   });
 
   it("keeps extra keys and timestamps on normalize", () => {

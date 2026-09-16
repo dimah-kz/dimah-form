@@ -16,7 +16,7 @@ export const saveForm = createFormEndpoint(
   { method, body: saveFormBodySchema },
   async (ctx): Promise<FormSnapshot> => {
     if (Object.hasOwn(ctx.context.config.forms, ctx.body.id)) {
-      throw errors.conflict();
+      throw errors.codeAuthoredForm(ctx.body.id);
     }
     const parsed = parseLiveSnapshot(ctx.body, ctx.context.config.fieldTypes);
     await assertSlugAvailable(ctx.context.config, parsed);

@@ -12,6 +12,13 @@ export type FormDefinitionInput = {
     type: string;
     required?: boolean;
     label?: string;
+    description?: string;
+    defaultValue?: unknown;
+    showWhen?: {
+      field: string;
+      equals?: unknown;
+      includes?: unknown;
+    };
   } & Record<string, unknown>)[];
   slug?: string;
   status?: FormStatus;

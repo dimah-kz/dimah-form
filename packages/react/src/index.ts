@@ -22,6 +22,7 @@ export {
   type FormAnswers,
   type FormApiOperation,
   type FormDefinition,
+  type FieldTypeDefinition,
   type FormField,
   type FormList,
   type FormSnapshot,

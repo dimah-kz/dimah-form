@@ -22,7 +22,7 @@ export const submitResponse = createFormEndpoint(
     if (!existing) {
       throw errors.unknownResponse(ctx.body.responseId);
     }
-    requireDraft(existing.status);
+    requireDraft(existing);
     assertFresh(existing, ctx.body.updatedAt);
     const incoming = ctx.body.answers ?? existing.answers;
     const answers = parseAnswers(

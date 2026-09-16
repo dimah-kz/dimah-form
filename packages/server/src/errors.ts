@@ -22,6 +22,36 @@ export const errors = {
       params: { formId },
     }),
 
+  responseNotDraft: (responseId: string) =>
+    APIError.from("CONFLICT", {
+      ...FORM_ERROR_CODES.RESPONSE_NOT_DRAFT,
+      params: { responseId },
+    }),
+
+  codeAuthoredForm: (formId: string) =>
+    APIError.from("CONFLICT", {
+      ...FORM_ERROR_CODES.CODE_AUTHORED_FORM,
+      params: { formId },
+    }),
+
+  formHasResponses: (formId: string) =>
+    APIError.from("CONFLICT", {
+      ...FORM_ERROR_CODES.FORM_HAS_RESPONSES,
+      params: { formId },
+    }),
+
+  slugTaken: (slug: string) =>
+    APIError.from("CONFLICT", {
+      ...FORM_ERROR_CODES.SLUG_TAKEN,
+      params: { slug },
+    }),
+
+  unknownFieldType: (type: string) =>
+    APIError.from("BAD_REQUEST", {
+      ...FORM_ERROR_CODES.UNKNOWN_FIELD_TYPE,
+      params: { type },
+    }),
+
   internalError: () =>
     APIError.from("INTERNAL_SERVER_ERROR", FORM_ERROR_CODES.INTERNAL_ERROR),
 

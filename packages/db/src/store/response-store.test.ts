@@ -65,7 +65,8 @@ function createOrm(
     }
     return overrides.responses ?? [row()];
   });
-  const orm = { upsert, findFirst, create, findMany };
+  const deleteMany = vi.fn(async () => undefined);
+  const orm = { upsert, findFirst, create, findMany, deleteMany };
   const db = { orm: () => orm } as unknown as DimahFormDbClient;
   return {
     store: createDbResponseStore(db),
@@ -73,6 +74,7 @@ function createOrm(
     findFirst,
     create,
     findMany,
+    deleteMany,
   };
 }
 
@@ -163,5 +165,34 @@ describe("createDbResponseStore", () => {
     ).resolves.toEqual([record]);
     expect(findMany).toHaveBeenCalledWith("questionnaire", expect.any(Object));
     expect(findMany).toHaveBeenCalledWith("response", expect.any(Object));
+  });
+
+  it("deletes a response and a form", async () => {
+    const { store, deleteMany } = createOrm();
+    await store.delete("resp-1");
+    await store.deleteForm("onboarding");
+    expect(deleteMany).toHaveBeenCalledWith("response", expect.any(Object));
+    expect(deleteMany).toHaveBeenCalledWith(
+      "questionnaire",
+      expect.any(Object),
+    );
+  });
+
+  it("skips questionnaire rows that cannot be mapped", async () => {
+    const { store } = createOrm({
+      questionnaires: [
+        questionnaire({ status: "nope" }),
+        questionnaire({ id: "ok" }),
+      ],
+    });
+    await expect(store.listForms()).resolves.toEqual([
+      {
+        id: "ok",
+        slug: "ok",
+        status: "active",
+        title: "Onboarding",
+        fields: [{ id: "name", type: "text", required: true }],
+      },
+    ]);
   });
 });

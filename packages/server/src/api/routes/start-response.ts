@@ -1,5 +1,6 @@
 import {
   FORM_API_OPERATIONS,
+  seedDefaultAnswers,
   startResponseBodySchema,
   type ResponseRecord,
 } from "@dimah-form/core";
@@ -25,7 +26,7 @@ export const startResponse = createFormEndpoint(
       formId: definition.id,
       status: "draft",
       definition,
-      answers: {},
+      answers: seedDefaultAnswers(definition),
       respondentId: ctx.body.respondentId ?? null,
       submittedAt: null,
       createdAt: now,

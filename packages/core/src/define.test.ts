@@ -37,30 +37,32 @@ describe("defineForm", () => {
   it("allows unknown field types in the document", () => {
     const form = defineForm({
       title: "Intake",
-      fields: [{ id: "email", type: "email", required: true }],
+      fields: [{ id: "file", type: "file", required: true }],
     });
-    expect(form.fields[0]?.type).toBe("email");
+    expect(form.fields[0]?.type).toBe("file");
   });
 });
 
 describe("defineFieldType", () => {
   it("returns the descriptor", () => {
-    const email = defineFieldType({
-      type: "email",
+    const handle = defineFieldType({
+      type: "handle",
       validate: (value, _field) =>
-        typeof value === "string" ? undefined : "Expected an email",
+        typeof value === "string" ? undefined : "Expected a handle",
       $Infer: "" as string,
     });
-    expect(email.type).toBe("email");
-    expect(email.validate("a@b.c", { type: "email" })).toBeUndefined();
+    expect(handle.type).toBe("handle");
+    expect(handle.validate("@ada", { type: "handle" })).toBeUndefined();
   });
 
   it("accepts a field document schema", () => {
-    const email = defineFieldType({
-      type: "email",
-      fieldSchema: z.looseObject({ type: z.literal("email") }),
+    const handle = defineFieldType({
+      type: "handle",
+      fieldSchema: z.looseObject({ type: z.literal("handle") }),
       validate: () => undefined,
     });
-    expect(email.fieldSchema?.safeParse({ type: "email" }).success).toBe(true);
+    expect(handle.fieldSchema?.safeParse({ type: "handle" }).success).toBe(
+      true,
+    );
   });
 });

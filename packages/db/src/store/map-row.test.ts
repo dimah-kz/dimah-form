@@ -143,4 +143,18 @@ describe("map-row", () => {
       }).fields,
     ).toEqual([{ id: "name", type: "text", placeholder: "Ada" }]);
   });
+
+  it("rejects an invalid questionnaire status", () => {
+    expect(() =>
+      toFormSnapshot({
+        id: "intake",
+        title: "Intake",
+        definition: {
+          title: "Intake",
+          fields: [{ id: "name", type: "text" }],
+        },
+        status: "nope",
+      }),
+    ).toThrow(/Invalid questionnaire status/);
+  });
 });

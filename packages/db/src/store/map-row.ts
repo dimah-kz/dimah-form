@@ -19,9 +19,12 @@ function toDate(value: string | null): Date | null {
   return value == null ? null : new Date(value);
 }
 
-function toFormStatus(value: string | undefined): FormStatus {
+function parseFormStatus(value: string | undefined): FormStatus {
   const parsed = formStatusSchema.safeParse(value);
-  return parsed.success ? parsed.data : "active";
+  if (!parsed.success) {
+    throw new Error(`Invalid questionnaire status ${JSON.stringify(value)}`);
+  }
+  return parsed.data;
 }
 
 /** Raw `response` row as returned by the FumaDB ORM. */
@@ -72,7 +75,7 @@ export function toFormSnapshot(row: QuestionnaireRow): FormSnapshot {
     title: definition.title,
     fields: definition.fields,
     slug: row.slug ?? definition.slug,
-    status: toFormStatus(row.status),
+    status: parseFormStatus(row.status),
     ...(createdAt ? { createdAt } : {}),
     ...(updatedAt ? { updatedAt } : {}),
   });

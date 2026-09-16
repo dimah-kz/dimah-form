@@ -40,11 +40,10 @@
   },
   "dependencies": {
     "@dimah-form/core": "workspace:*",
-    "fumadb": "catalog:",
-    "zod": "catalog:"
+    "fumadb": "catalog:"
   },
   "peerDependencies": {
-    "@dimah-form/server": "0.0.0"
+    "@dimah-form/server": "workspace:*"
   },
   "devDependencies": {
     "@dimah-form/server": "workspace:*",

@@ -29,6 +29,9 @@ export { defineClientPlugin, type FormClientPlugin };
 
 export type CreateFormClientOptions<
   TPlugins extends readonly FormClientPlugin[] = readonly FormClientPlugin[],
+  TForms extends Record<string, unknown> = Record<string, unknown>,
+  TFieldTypes extends readonly FieldTypeDefinition[] =
+    readonly FieldTypeDefinition[],
 > = {
   /** API path prefix — must match server `basePath`. @default "/api/form" */
   basePath?: string;
@@ -39,6 +42,15 @@ export type CreateFormClientOptions<
   baseURL?: string;
   /** Browser companions to server plugins. Merged onto the returned client. */
   plugins?: TPlugins;
+  /**
+   * Code-authored catalog for `$Infer` only — not sent over the network.
+   * Pass the same `forms` map the server uses.
+   */
+  forms?: TForms;
+  /**
+   * Custom field types for `$Infer` only — not sent over the network.
+   */
+  fieldTypes?: TFieldTypes;
 } & FormClientFetchOptions;
 
 type ClientHeaders = {
@@ -160,12 +172,19 @@ const CORE_CLIENT_KEYS = new Set([
 /** Typed better-fetch client for the questionnaire protocol. */
 export function createFormClient<
   const TPlugins extends readonly FormClientPlugin[] = [],
-  TForms extends Record<string, unknown> = Record<string, unknown>,
-  TFieldTypes extends readonly FieldTypeDefinition[] = [],
+  const TForms extends Record<string, unknown> = Record<string, unknown>,
+  const TFieldTypes extends readonly FieldTypeDefinition[] = [],
 >(
-  options: CreateFormClientOptions<TPlugins> = {},
+  options: CreateFormClientOptions<TPlugins, TForms, TFieldTypes> = {},
 ): CreateFormClientResult<TPlugins, TForms, TFieldTypes> {
-  const { basePath, baseURL, plugins, ...fetchOptions } = options;
+  const {
+    basePath,
+    baseURL,
+    plugins,
+    forms: _forms,
+    fieldTypes: _fieldTypes,
+    ...fetchOptions
+  } = options;
   const base = normalizeFormApiBasePath(
     baseURL ?? basePath ?? FORM_API_BASE_PATH,
   );

@@ -112,7 +112,15 @@ export function createDbResponseStore(db: DimahFormDbClient): ResponseStore {
         limit: query?.limit,
         offset: query?.offset,
       });
-      return rows.map((row) => toFormSnapshot(row));
+      const forms: FormSnapshot[] = [];
+      for (const row of rows) {
+        try {
+          forms.push(toFormSnapshot(row));
+        } catch {
+          continue;
+        }
+      }
+      return forms;
     },
     async create(row) {
       await insertQuestionnaireIfMissing(row);

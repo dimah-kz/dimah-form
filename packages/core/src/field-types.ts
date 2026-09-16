@@ -1,4 +1,13 @@
 import { defineFieldType, type FieldTypeDefinition } from "./define";
+import {
+  booleanFieldSchema,
+  dateFieldSchema,
+  emailFieldSchema,
+  multiSelectFieldSchema,
+  numberFieldSchema,
+  selectFieldSchema,
+  textFieldSchema,
+} from "./schema/definition";
 
 function asFiniteNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value)
@@ -14,8 +23,21 @@ function isBlankString(value: unknown): boolean {
   return typeof value === "string" && value.trim() === "";
 }
 
+function isEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function isIsoDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return (
+    !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
+  );
+}
+
 export const textFieldType = defineFieldType({
   type: "text",
+  fieldSchema: textFieldSchema,
   isEmpty: (value) => value == null || isBlankString(value),
   validate: (value, field) => {
     if (typeof value !== "string") return "Expected a string";
@@ -43,6 +65,8 @@ export const textFieldType = defineFieldType({
 
 export const numberFieldType = defineFieldType({
   type: "number",
+  fieldSchema: numberFieldSchema,
+  isEmpty: (value) => value == null || isBlankString(value),
   validate: (value, field) => {
     if (typeof value !== "number" || !Number.isFinite(value)) {
       return "Expected a number";
@@ -65,6 +89,7 @@ export const numberFieldType = defineFieldType({
 
 export const booleanFieldType = defineFieldType({
   type: "boolean",
+  fieldSchema: booleanFieldSchema,
   validate: (value) =>
     typeof value === "boolean" ? undefined : "Expected a boolean",
   $Infer: false as boolean,
@@ -89,6 +114,7 @@ function optionValues(field: Record<string, unknown>): Set<string> | undefined {
 
 export const selectFieldType = defineFieldType({
   type: "select",
+  fieldSchema: selectFieldSchema,
   isEmpty: (value) => value == null || isBlankString(value),
   validate: (value, field) => {
     if (typeof value !== "string") return "Expected a string";
@@ -101,6 +127,7 @@ export const selectFieldType = defineFieldType({
 
 export const multiSelectFieldType = defineFieldType({
   type: "multiSelect",
+  fieldSchema: multiSelectFieldSchema,
   isEmpty: (value) =>
     value == null || !Array.isArray(value) || value.length === 0,
   validate: (value, field) => {
@@ -123,13 +150,46 @@ export const multiSelectFieldType = defineFieldType({
   $Infer: [] as string[],
 });
 
+export const emailFieldType = defineFieldType({
+  type: "email",
+  fieldSchema: emailFieldSchema,
+  isEmpty: (value) => value == null || isBlankString(value),
+  validate: (value) => {
+    if (typeof value !== "string") return "Expected a string";
+    return isEmail(value) ? undefined : "Expected an email";
+  },
+  $Infer: "" as string,
+});
+
+export const dateFieldType = defineFieldType({
+  type: "date",
+  fieldSchema: dateFieldSchema,
+  isEmpty: (value) => value == null || isBlankString(value),
+  validate: (value) => {
+    if (typeof value !== "string") return "Expected a string";
+    return isIsoDate(value) ? undefined : "Expected a date";
+  },
+  $Infer: "" as string,
+});
+
 export const builtinFieldTypes = [
   textFieldType,
   numberFieldType,
   booleanFieldType,
   selectFieldType,
   multiSelectFieldType,
+  emailFieldType,
+  dateFieldType,
 ] as const;
+
+/** Answer types keyed by builtin `type` string, from each type's `$Infer`. */
+export type BuiltinAnswerMap = {
+  [F in (typeof builtinFieldTypes)[number] as F["type"]]: F extends {
+    readonly $Infer: infer A;
+  }
+    ? A
+    : unknown;
+};
 
 /** Built-ins plus consumer types. Duplicate `type` strings throw. */
 export function createFieldTypeRegistry(
