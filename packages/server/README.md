@@ -14,5 +14,15 @@ const tests = dimahForm({
 const prod = dimahForm({
   database: db(DimahFormDB.client(adapter)),
   forms,
+  guard: async ({ request, operation }) => {
+    /* auth */
+  },
+  hooks: {
+    onSubmit: async ({ response }) => {
+      /* side effects */
+    },
+  },
 });
 ```
+
+Code-authored `forms` are optional. Dynamic questionnaires use `saveForm` / `getForm` against `database`.

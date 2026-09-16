@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { DimahFormDbClient } from "./response-store";
 import { createDbResponseStore } from "./response-store";
-import type { ResponseRow } from "./map-row";
+import type { QuestionnaireRow, ResponseRow } from "./map-row";
 
 function row(overrides: Partial<ResponseRow> = {}): ResponseRow {
   return {
@@ -15,6 +15,7 @@ function row(overrides: Partial<ResponseRow> = {}): ResponseRow {
       fields: [{ id: "name", type: "text", required: true }],
     },
     answers: {},
+    respondentId: null,
     submittedAt: null,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -22,10 +23,27 @@ function row(overrides: Partial<ResponseRow> = {}): ResponseRow {
   };
 }
 
+function questionnaire(
+  overrides: Partial<QuestionnaireRow> = {},
+): QuestionnaireRow {
+  return {
+    id: "onboarding",
+    title: "Onboarding",
+    definition: {
+      title: "Onboarding",
+      fields: [{ id: "name", type: "text", required: true }],
+    },
+    status: "active",
+    ...overrides,
+  };
+}
+
 function createOrm(
   overrides: {
-    questionnaire?: { id: string } | null;
+    questionnaire?: QuestionnaireRow | { id: string } | null;
     response?: ResponseRow | null;
+    questionnaires?: QuestionnaireRow[];
+    responses?: ResponseRow[];
   } = {},
 ) {
   const forceReturning = vi.fn(async () => row());
@@ -39,9 +57,21 @@ function createOrm(
     }
     return overrides.response === undefined ? row() : overrides.response;
   });
-  const orm = { upsert, findFirst, create };
+  const findMany = vi.fn(async (table: string) => {
+    if (table === "questionnaire") {
+      return overrides.questionnaires ?? [questionnaire()];
+    }
+    return overrides.responses ?? [row()];
+  });
+  const orm = { upsert, findFirst, create, findMany };
   const db = { orm: () => orm } as unknown as DimahFormDbClient;
-  return { store: createDbResponseStore(db), upsert, findFirst, create };
+  return {
+    store: createDbResponseStore(db),
+    upsert,
+    findFirst,
+    create,
+    findMany,
+  };
 }
 
 const record = {
@@ -54,6 +84,7 @@ const record = {
     fields: [{ id: "name", type: "text" as const, required: true }],
   },
   answers: {},
+  respondentId: null,
   submittedAt: null,
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
@@ -65,10 +96,7 @@ describe("createDbResponseStore", () => {
       questionnaire: null,
     });
     await store.create(record);
-    expect(findFirst).toHaveBeenCalledWith(
-      "questionnaire",
-      expect.any(Object),
-    );
+    expect(findFirst).toHaveBeenCalledWith("questionnaire", expect.any(Object));
     expect(create).toHaveBeenCalledWith(
       "questionnaire",
       expect.objectContaining({ id: "onboarding" }),
@@ -91,6 +119,7 @@ describe("createDbResponseStore", () => {
       id: "resp-1",
       formId: "onboarding",
       status: "draft",
+      respondentId: null,
     });
   });
 
@@ -105,5 +134,28 @@ describe("createDbResponseStore", () => {
     expect(create).not.toHaveBeenCalled();
     expect(upsert).toHaveBeenCalledTimes(1);
     expect(upsert).toHaveBeenCalledWith("response", expect.any(Object));
+  });
+
+  it("upserts a live form on saveForm", async () => {
+    const { store, upsert, create } = createOrm();
+    await store.saveForm(record.definition);
+    expect(create).not.toHaveBeenCalled();
+    expect(upsert).toHaveBeenCalledWith("questionnaire", expect.any(Object));
+  });
+
+  it("lists live forms and responses", async () => {
+    const { store, findMany } = createOrm();
+    await expect(store.listForms()).resolves.toEqual([
+      {
+        id: "onboarding",
+        title: "Onboarding",
+        fields: [{ id: "name", type: "text", required: true }],
+      },
+    ]);
+    await expect(
+      store.listResponses({ formId: "onboarding" }),
+    ).resolves.toEqual([record]);
+    expect(findMany).toHaveBeenCalledWith("questionnaire", expect.any(Object));
+    expect(findMany).toHaveBeenCalledWith("response", expect.any(Object));
   });
 });

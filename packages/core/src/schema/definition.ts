@@ -5,54 +5,61 @@ import { fieldIdSchema, formIdSchema, trimmedString } from "./shared";
 const fieldLabelSchema = z.string().optional();
 const fieldRequiredSchema = z.boolean().optional();
 
-export const textFieldSchema = z.strictObject({
+/** Shared keys on every field document. Extra keys stay for consumer UI. */
+const fieldDocument = {
   id: fieldIdSchema,
+  required: fieldRequiredSchema,
+  label: fieldLabelSchema,
+};
+
+export const textFieldSchema = z.looseObject({
+  ...fieldDocument,
   type: z.literal("text"),
-  required: fieldRequiredSchema,
-  label: fieldLabelSchema,
 });
 
-export const numberFieldSchema = z.strictObject({
-  id: fieldIdSchema,
+export const numberFieldSchema = z.looseObject({
+  ...fieldDocument,
   type: z.literal("number"),
-  required: fieldRequiredSchema,
-  label: fieldLabelSchema,
 });
 
-export const booleanFieldSchema = z.strictObject({
-  id: fieldIdSchema,
+export const booleanFieldSchema = z.looseObject({
+  ...fieldDocument,
   type: z.literal("boolean"),
-  required: fieldRequiredSchema,
-  label: fieldLabelSchema,
 });
 
-export const selectOptionSchema = z.strictObject({
+export const selectOptionSchema = z.looseObject({
   value: trimmedString,
   label: fieldLabelSchema,
 });
 
-export const selectFieldSchema = z.strictObject({
-  id: fieldIdSchema,
-  type: z.literal("select"),
-  required: fieldRequiredSchema,
-  label: fieldLabelSchema,
-  options: z
-    .array(selectOptionSchema)
-    .min(1)
-    .check((ctx) => {
-      const seen = new Set<string>();
-      for (const option of ctx.value) {
-        if (seen.has(option.value)) {
-          ctx.issues.push({
-            code: "custom",
-            message: `Duplicate option value "${option.value}"`,
-            input: ctx.value,
-          });
-          return;
-        }
-        seen.add(option.value);
+const fieldOptionsSchema = z
+  .array(selectOptionSchema)
+  .min(1)
+  .check((ctx) => {
+    const seen = new Set<string>();
+    for (const option of ctx.value) {
+      if (seen.has(option.value)) {
+        ctx.issues.push({
+          code: "custom",
+          message: `Duplicate option value "${option.value}"`,
+          input: ctx.value,
+        });
+        return;
       }
-    }),
+      seen.add(option.value);
+    }
+  });
+
+export const selectFieldSchema = z.looseObject({
+  ...fieldDocument,
+  type: z.literal("select"),
+  options: fieldOptionsSchema,
+});
+
+export const multiSelectFieldSchema = z.looseObject({
+  ...fieldDocument,
+  type: z.literal("multiSelect"),
+  options: fieldOptionsSchema,
 });
 
 /** Built-in field documents only. Custom types use {@link storedFieldSchema}. */
@@ -61,6 +68,7 @@ export const fieldSchema = z.discriminatedUnion("type", [
   numberFieldSchema,
   booleanFieldSchema,
   selectFieldSchema,
+  multiSelectFieldSchema,
 ]);
 
 const builtinFieldByType = {
@@ -68,18 +76,17 @@ const builtinFieldByType = {
   number: numberFieldSchema,
   boolean: booleanFieldSchema,
   select: selectFieldSchema,
+  multiSelect: multiSelectFieldSchema,
 } as const;
 
 /**
- * Snapshot / document field — builtins stay strict; unknown `type` values
- * pass through so custom field types can round-trip.
+ * Snapshot / document field — builtins stay typed; unknown `type` values
+ * pass through so custom field types can round-trip. Extra keys are kept.
  */
 export const storedFieldSchema = z
   .looseObject({
-    id: fieldIdSchema,
+    ...fieldDocument,
     type: trimmedString,
-    required: fieldRequiredSchema,
-    label: fieldLabelSchema,
   })
   .check((ctx) => {
     const builtin =

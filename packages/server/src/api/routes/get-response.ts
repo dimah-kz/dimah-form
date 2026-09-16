@@ -1,5 +1,5 @@
 import {
-  FORM_API_ROUTES,
+  FORM_API_OPERATIONS,
   getResponseQuerySchema,
   type ResponseRecord,
 } from "@dimah-form/core";
@@ -7,9 +7,11 @@ import {
 import { createFormEndpoint } from "@/api/create-form-endpoint";
 import { errors } from "@/errors";
 
+const { method, path } = FORM_API_OPERATIONS.getResponse;
+
 export const getResponse = createFormEndpoint(
-  FORM_API_ROUTES.getResponse,
-  { method: "GET", query: getResponseQuerySchema },
+  path,
+  { method, query: getResponseQuerySchema },
   async (ctx): Promise<ResponseRecord> => {
     const row = await ctx.context.config.database.get(ctx.query.responseId);
     if (!row) {

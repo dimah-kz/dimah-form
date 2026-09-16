@@ -23,26 +23,54 @@ export const booleanFieldType = defineFieldType({
   $Infer: false as boolean,
 });
 
+function optionValues(field: Record<string, unknown>): Set<string> | undefined {
+  const options = field.options;
+  if (!Array.isArray(options)) return undefined;
+  const allowed = new Set<string>();
+  for (const option of options) {
+    if (
+      option &&
+      typeof option === "object" &&
+      "value" in option &&
+      typeof option.value === "string"
+    ) {
+      allowed.add(option.value);
+    }
+  }
+  return allowed;
+}
+
 export const selectFieldType = defineFieldType({
   type: "select",
   validate: (value, field) => {
     if (typeof value !== "string") return "Expected a string";
-    const options = field.options;
-    if (!Array.isArray(options)) return "Invalid option";
-    const allowed = new Set<string>();
-    for (const option of options) {
-      if (
-        option &&
-        typeof option === "object" &&
-        "value" in option &&
-        typeof option.value === "string"
-      ) {
-        allowed.add(option.value);
-      }
-    }
+    const allowed = optionValues(field);
+    if (!allowed) return "Invalid option";
     return allowed.has(value) ? undefined : "Invalid option";
   },
   $Infer: "" as string,
+});
+
+export const multiSelectFieldType = defineFieldType({
+  type: "multiSelect",
+  validate: (value, field) => {
+    if (
+      !Array.isArray(value) ||
+      value.some((item) => typeof item !== "string")
+    ) {
+      return "Expected an array of strings";
+    }
+    const allowed = optionValues(field);
+    if (!allowed) return "Invalid option";
+    const seen = new Set<string>();
+    for (const item of value) {
+      if (!allowed.has(item)) return "Invalid option";
+      if (seen.has(item)) return "Duplicate option";
+      seen.add(item);
+    }
+    return undefined;
+  },
+  $Infer: [] as string[],
 });
 
 export const builtinFieldTypes = [
@@ -50,6 +78,7 @@ export const builtinFieldTypes = [
   numberFieldType,
   booleanFieldType,
   selectFieldType,
+  multiSelectFieldType,
 ] as const;
 
 /** Built-ins plus consumer types. Duplicate `type` strings throw. */

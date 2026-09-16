@@ -1,14 +1,20 @@
 import { getForm } from "./get-form";
 import { getResponse } from "./get-response";
+import { listForms } from "./list-forms";
+import { listResponses } from "./list-responses";
 import { saveDraft } from "./save-draft";
+import { saveForm } from "./save-form";
 import { startResponse } from "./start-response";
 import { submitResponse } from "./submit-response";
 
 /** Core better-call endpoints — keys become `form.api.*`. */
 export const coreEndpoints = {
   getForm,
+  saveForm,
+  listForms,
   startResponse,
   getResponse,
+  listResponses,
   saveDraft,
   submitResponse,
 };

@@ -4,6 +4,7 @@ import { formFetchErrorSchema } from "./error";
 import {
   getFormQuerySchema,
   saveDraftBodySchema,
+  saveFormBodySchema,
   startResponseBodySchema,
 } from "./protocol";
 
@@ -33,6 +34,18 @@ describe("protocol payloads", () => {
     expect(startResponseBodySchema.parse({ formId: " onboarding " })).toEqual({
       formId: "onboarding",
     });
+    expect(
+      startResponseBodySchema.parse({
+        formId: "onboarding",
+        respondentId: " user-1 ",
+      }),
+    ).toEqual({ formId: "onboarding", respondentId: "user-1" });
+  });
+
+  it("requires id, title, and fields on saveForm", () => {
+    expect(
+      saveFormBodySchema.safeParse({ title: "X", fields: [] }).success,
+    ).toBe(false);
   });
 
   it("requires responseId and answers on draft", () => {

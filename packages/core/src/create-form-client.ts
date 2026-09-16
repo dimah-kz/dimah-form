@@ -9,7 +9,12 @@ import {
   normalizeFormApiBasePath,
 } from "./routes";
 import type { FormSnapshot } from "./schema/definition";
-import type { FormAnswers, ResponseRecord } from "./schema/protocol";
+import type {
+  FormAnswers,
+  FormList,
+  ResponseList,
+  ResponseRecord,
+} from "./schema/protocol";
 
 export type CreateFormClientOptions = {
   /** API path prefix — must match server `basePath`. @default "/api/form" */
@@ -25,24 +30,9 @@ type ClientHeaders = {
   headers?: HeadersInit;
 };
 
-/** Browser client uses object args (not better-call `{ body, query }`). */
-export type FormClientApi = {
-  getForm: (
-    payload: { formId: string } & ClientHeaders,
-  ) => Promise<FormSnapshot>;
-  startResponse: (
-    payload: { formId: string } & ClientHeaders,
-  ) => Promise<ResponseRecord>;
-  getResponse: (
-    payload: { responseId: string } & ClientHeaders,
-  ) => Promise<ResponseRecord>;
-  saveDraft: (
-    payload: { responseId: string; answers: FormAnswers } & ClientHeaders,
-  ) => Promise<ResponseRecord>;
-  submitResponse: (
-    payload: { responseId: string; answers: FormAnswers } & ClientHeaders,
-  ) => Promise<ResponseRecord>;
-};
+function callHeaders(payload: ClientHeaders | undefined) {
+  return payload?.headers ? { headers: payload.headers } : {};
+}
 
 /** Strip server-only `headers` before sending over HTTP. */
 function withoutHeaders<T extends { headers?: HeadersInit }>(
@@ -51,6 +41,30 @@ function withoutHeaders<T extends { headers?: HeadersInit }>(
   const { headers: _headers, ...rest } = value;
   return rest;
 }
+
+/** Browser client uses object args (not better-call `{ body, query }`). */
+export type FormClientApi = {
+  getForm: (
+    payload: { formId: string } & ClientHeaders,
+  ) => Promise<FormSnapshot>;
+  saveForm: (payload: FormSnapshot & ClientHeaders) => Promise<FormSnapshot>;
+  listForms: (payload?: ClientHeaders) => Promise<FormList>;
+  startResponse: (
+    payload: { formId: string; respondentId?: string } & ClientHeaders,
+  ) => Promise<ResponseRecord>;
+  getResponse: (
+    payload: { responseId: string } & ClientHeaders,
+  ) => Promise<ResponseRecord>;
+  listResponses: (
+    payload?: { formId?: string } & ClientHeaders,
+  ) => Promise<ResponseList>;
+  saveDraft: (
+    payload: { responseId: string; answers: FormAnswers } & ClientHeaders,
+  ) => Promise<ResponseRecord>;
+  submitResponse: (
+    payload: { responseId: string; answers: FormAnswers } & ClientHeaders,
+  ) => Promise<ResponseRecord>;
+};
 
 export type CreateFormClientResult = FormClientApi & {
   $fetch: ReturnType<typeof createFormFetch>;
@@ -68,38 +82,58 @@ export function createFormClient(
   );
   const $fetch = createFormFetch(base, fetchOptions);
 
+  function get<T>(
+    path: string,
+    payload: ClientHeaders | undefined,
+    query?: Record<string, string>,
+  ) {
+    return $fetch<T>(path, {
+      method: "GET",
+      ...(query ? { query } : {}),
+      ...callHeaders(payload),
+    });
+  }
+
+  function post<T>(path: string, payload: ClientHeaders) {
+    return $fetch<T>(path, {
+      method: "POST",
+      body: withoutHeaders(payload),
+      ...callHeaders(payload),
+    });
+  }
+
   return {
     getForm(payload) {
-      const { formId } = withoutHeaders(payload);
-      return $fetch<FormSnapshot>(FORM_API_ROUTES.form, {
-        method: "GET",
-        query: { formId },
+      return get<FormSnapshot>(FORM_API_ROUTES.form, payload, {
+        formId: payload.formId,
       });
+    },
+    saveForm(payload) {
+      return post<FormSnapshot>(FORM_API_ROUTES.form, payload);
+    },
+    listForms(payload) {
+      return get<FormList>(FORM_API_ROUTES.forms, payload);
     },
     startResponse(payload) {
-      return $fetch<ResponseRecord>(FORM_API_ROUTES.startResponse, {
-        method: "POST",
-        body: withoutHeaders(payload),
-      });
+      return post<ResponseRecord>(FORM_API_ROUTES.startResponse, payload);
     },
     getResponse(payload) {
-      const { responseId } = withoutHeaders(payload);
-      return $fetch<ResponseRecord>(FORM_API_ROUTES.getResponse, {
-        method: "GET",
-        query: { responseId },
+      return get<ResponseRecord>(FORM_API_ROUTES.getResponse, payload, {
+        responseId: payload.responseId,
       });
+    },
+    listResponses(payload = {}) {
+      return get<ResponseList>(
+        FORM_API_ROUTES.responses,
+        payload,
+        payload.formId ? { formId: payload.formId } : undefined,
+      );
     },
     saveDraft(payload) {
-      return $fetch<ResponseRecord>(FORM_API_ROUTES.saveDraft, {
-        method: "POST",
-        body: withoutHeaders(payload),
-      });
+      return post<ResponseRecord>(FORM_API_ROUTES.saveDraft, payload);
     },
     submitResponse(payload) {
-      return $fetch<ResponseRecord>(FORM_API_ROUTES.submitResponse, {
-        method: "POST",
-        body: withoutHeaders(payload),
-      });
+      return post<ResponseRecord>(FORM_API_ROUTES.submitResponse, payload);
     },
     $fetch,
     baseURL: base,

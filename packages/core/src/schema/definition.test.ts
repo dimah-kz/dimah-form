@@ -13,6 +13,11 @@ const contact = {
       type: "select" as const,
       options: [{ value: "eng", label: "Engineer" }, { value: "pm" }],
     },
+    {
+      id: "skills",
+      type: "multiSelect" as const,
+      options: [{ value: "ts" }, { value: "go" }],
+    },
   ],
 };
 
@@ -70,6 +75,31 @@ describe("formDefinitionSchema", () => {
         fields: [{ id: "role", type: "select", options: [] }],
       }).success,
     ).toBe(false);
+  });
+
+  it("keeps extra keys on builtin fields and options", () => {
+    expect(
+      formDefinitionSchema.parse({
+        title: "X",
+        fields: [
+          { id: "n", type: "text", placeholder: "Ada" },
+          {
+            id: "role",
+            type: "select",
+            options: [{ value: "eng", icon: "cpu" }],
+          },
+        ],
+      }),
+    ).toMatchObject({
+      fields: [
+        { id: "n", type: "text", placeholder: "Ada" },
+        {
+          id: "role",
+          type: "select",
+          options: [{ value: "eng", icon: "cpu" }],
+        },
+      ],
+    });
   });
 
   it("keeps unknown field types on the document", () => {

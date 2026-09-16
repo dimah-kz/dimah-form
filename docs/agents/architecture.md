@@ -29,12 +29,13 @@ Shared protocol changes start in `core`, then wire `server` and `react`. Do not 
 
 ## Product shape
 
-- Config is instance-based: `dimahForm({ fieldTypes, forms, database, plugins })`.
+- Config is instance-based: `dimahForm({ fieldTypes, forms, database, plugins, hooks, guard })`.
 - Field types are registered on the instance. `defineForm` does not take `fieldTypes`.
 - Draft answers are a patch (`null` deletes a key). Submit replaces the whole answers object.
 - `database` is required (`memoryAdapter()` or `db()` from `@dimah-form/db`). Plugins merge once in `dimahForm()` and do not replace persistence.
-- Code-authored `forms` feed `$Infer`. Dynamic (DB-only) forms are runtime-validated.
+- Code-authored `forms` feed `$Infer`. `getForm` / `startResponse` read config first, then the live questionnaire row. `saveForm` writes that row and cannot overwrite a code-authored id.
 - Each response stores the definition it was started with. Submit validates that snapshot. Starting a response does not rewrite the live questionnaire row.
+- Domain hooks (`onStart`, `onSaveDraft`, `onSubmit`, `onSaveForm`) run after validation, before persist. Auth stays in `guard`.
 - Custom fields are `defineFieldType` validators, not components.
 
 ## Do not

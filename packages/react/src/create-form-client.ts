@@ -39,3 +39,9 @@ export function useFormClient(): CreateFormClientResult {
   }
   return client;
 }
+
+export type {
+  CreateFormClientOptions,
+  CreateFormClientResult,
+  FormClientApi,
+} from "@dimah-form/core";

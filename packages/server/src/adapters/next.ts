@@ -1,6 +1,6 @@
-export type DimahFormHandlerSource = {
-  handler: (request: Request) => Promise<Response>;
-};
+import type { DimahFormHandlerSource } from "./types";
+
+export type { DimahFormHandlerSource };
 
 /**
  * Adapt a dimah-form instance to Next.js App Router route handlers.

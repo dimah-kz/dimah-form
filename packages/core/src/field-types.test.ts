@@ -7,6 +7,7 @@ describe("createFieldTypeRegistry", () => {
     const registry = createFieldTypeRegistry();
     expect(registry.get("text")).toBe(textFieldType);
     expect(registry.has("select")).toBe(true);
+    expect(registry.has("multiSelect")).toBe(true);
   });
 
   it("registers extra types", () => {

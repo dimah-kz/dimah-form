@@ -5,6 +5,7 @@ type BuiltinAnswerMap = {
   number: number;
   boolean: boolean;
   select: string;
+  multiSelect: string[];
 };
 
 type InferFieldAnswer<
@@ -27,9 +28,11 @@ export type InferFormAnswers<
   TForm,
   TFieldTypes extends readonly FieldTypeDefinition[] = [],
 > = {
-  [F in FieldOf<TForm> as F extends { id: infer Id extends string }
-    ? Id
-    : never]: F extends { type: infer Type extends string }
+  [
+    F in FieldOf<TForm> as F extends { id: infer Id extends string }
+      ? Id
+      : never
+  ]: F extends { type: infer Type extends string }
     ? F extends { required: true }
       ? InferFieldAnswer<Type, TFieldTypes>
       : InferFieldAnswer<Type, TFieldTypes> | undefined

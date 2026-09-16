@@ -20,6 +20,7 @@ const response = {
   submittedAt: null,
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
+  respondentId: null,
 };
 
 describe("createFormClient protocol", () => {
@@ -30,6 +31,18 @@ describe("createFormClient protocol", () => {
       path: FORM_API_ROUTES.form,
       run: (api: ReturnType<typeof createFormClient>) =>
         api.getForm({ formId: "onboarding" }),
+    },
+    {
+      name: "saveForm",
+      method: "POST",
+      path: FORM_API_ROUTES.form,
+      run: (api: ReturnType<typeof createFormClient>) => api.saveForm(snapshot),
+    },
+    {
+      name: "listForms",
+      method: "GET",
+      path: FORM_API_ROUTES.forms,
+      run: (api: ReturnType<typeof createFormClient>) => api.listForms(),
     },
     {
       name: "startResponse",
@@ -44,6 +57,13 @@ describe("createFormClient protocol", () => {
       path: FORM_API_ROUTES.getResponse,
       run: (api: ReturnType<typeof createFormClient>) =>
         api.getResponse({ responseId: "res-1" }),
+    },
+    {
+      name: "listResponses",
+      method: "GET",
+      path: FORM_API_ROUTES.responses,
+      run: (api: ReturnType<typeof createFormClient>) =>
+        api.listResponses({ formId: "onboarding" }),
     },
     {
       name: "saveDraft",
@@ -64,7 +84,7 @@ describe("createFormClient protocol", () => {
     const api = createFormClient({ basePath: "/api/form", fetch });
     await run(api);
     expect(calls[0]?.init.method ?? "GET").toBe(method);
-    expect(calls[0]?.url).toContain(path);
+    expect(calls[0]?.url).toContain(`/api/form${path}`);
   });
 
   it("throws APIError for protocol error JSON", async () => {
@@ -81,5 +101,27 @@ describe("createFormClient protocol", () => {
     await expect(api.getForm({ formId: "missing" })).rejects.toBeInstanceOf(
       APIError,
     );
+  });
+
+  it("forwards per-call headers", async () => {
+    const { fetch, calls } = captureFetch(() => jsonResponse(snapshot));
+    const api = createFormClient({ fetch });
+    await api.getForm({
+      formId: "onboarding",
+      headers: { authorization: "Bearer t" },
+    });
+    const sent = new Headers(calls[0]?.init.headers);
+    expect(sent.get("authorization")).toBe("Bearer t");
+  });
+
+  it("keeps an absolute baseURL", async () => {
+    const { fetch, calls } = captureFetch(() => jsonResponse(snapshot));
+    const api = createFormClient({
+      baseURL: "https://api.example.com/api/form",
+      fetch,
+    });
+    expect(api.baseURL).toBe("https://api.example.com/api/form");
+    await api.getForm({ formId: "onboarding" });
+    expect(calls[0]?.url).toContain("https://api.example.com/api/form/form");
   });
 });

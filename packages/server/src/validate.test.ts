@@ -17,6 +17,11 @@ const snapshot = {
         type: "select",
         options: [{ value: "eng" }, { value: "pm" }],
       },
+      {
+        id: "skills",
+        type: "multiSelect",
+        options: [{ value: "ts" }, { value: "go" }],
+      },
     ],
   }),
 };
@@ -42,14 +47,32 @@ describe("collectAnswerIssues", () => {
     expect(
       collectAnswerIssues(
         snapshot,
-        { name: 1, extra: "x", role: "nope" },
+        { name: 1, extra: "x", role: "nope", skills: ["nope"] },
         "draft",
       ),
     ).toEqual([
       { field: "name", message: "Expected a string" },
       { field: "extra", message: "Unknown field" },
       { field: "role", message: "Invalid option" },
+      { field: "skills", message: "Invalid option" },
     ]);
+  });
+
+  it("treats an empty multiSelect as missing when required", () => {
+    const requiredSkills = {
+      ...snapshot,
+      fields: [
+        {
+          id: "skills",
+          type: "multiSelect",
+          required: true,
+          options: [{ value: "ts" }],
+        },
+      ],
+    };
+    expect(
+      collectAnswerIssues(requiredSkills, { skills: [] }, "submit"),
+    ).toEqual([{ field: "skills", message: "Required" }]);
   });
 
   it("uses a custom field type from the registry", () => {

@@ -4,6 +4,7 @@ export {
   formDefinitionSchema,
   formFieldsSchema,
   formSnapshotSchema,
+  multiSelectFieldSchema,
   numberFieldSchema,
   selectFieldSchema,
   selectOptionSchema,
@@ -15,14 +16,20 @@ export {
 } from "./definition";
 export {
   answersSchema,
+  formListSchema,
   getFormQuerySchema,
   getResponseQuerySchema,
+  listResponsesQuerySchema,
+  responseListSchema,
   responseRecordSchema,
   responseStatusSchema,
   saveDraftBodySchema,
+  saveFormBodySchema,
   startResponseBodySchema,
   submitResponseBodySchema,
   type FormAnswers,
+  type FormList,
+  type ResponseList,
   type ResponseRecord,
   type ResponseStatus,
 } from "./protocol";

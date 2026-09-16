@@ -21,6 +21,9 @@ function isRequiredPresent(field: FormField, value: unknown): boolean {
   if (field.type === "text") {
     return typeof value === "string" && value.trim() !== "";
   }
+  if (field.type === "multiSelect") {
+    return Array.isArray(value) && value.length > 0;
+  }
   return true;
 }
 
@@ -73,21 +76,25 @@ export function collectAnswerIssues(
   return issues;
 }
 
+export function assertAnswers(
+  definition: FormSnapshot,
+  answers: Record<string, unknown>,
+  mode: AnswerValidationMode,
+  fieldTypes?: ReadonlyMap<string, FieldTypeDefinition>,
+): void {
+  const issues = collectAnswerIssues(definition, answers, mode, fieldTypes);
+  if (issues.length > 0) {
+    throw errors.validationError(issues);
+  }
+}
+
 export function parseAnswers(
   definition: FormSnapshot,
   answers: Record<string, unknown>,
   mode: AnswerValidationMode,
   fieldTypes?: ReadonlyMap<string, FieldTypeDefinition>,
 ): Record<string, unknown> {
-  const issues = collectAnswerIssues(
-    definition,
-    answers,
-    mode,
-    fieldTypes,
-  );
-  if (issues.length > 0) {
-    throw errors.validationError(issues);
-  }
+  assertAnswers(definition, answers, mode, fieldTypes);
 
   const next: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(answers)) {

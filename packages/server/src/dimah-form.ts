@@ -6,24 +6,42 @@ import {
   type FieldTypeDefinition,
   type InferAnswersMap,
 } from "@dimah-form/core";
+import type { Endpoint } from "better-call";
 
 import { coreEndpoints, type CoreEndpoints } from "./api/routes";
 import { createFormRouter } from "./api/router";
 import { assertFormsConfig } from "./forms";
-import { applyPlugins } from "./plugin/apply-plugins";
+import {
+  applyPlugins,
+  mergeHooks,
+  type PluginEndpointMap,
+} from "./plugin/apply-plugins";
 import type { ResponseStore } from "./store";
 import type {
   DimahFormGuard,
+  DimahFormHooks,
   DimahFormPlugin,
   ResolvedDimahFormConfig,
 } from "./types";
 
-export type { DimahFormGuard, DimahFormPlugin };
+export type { DimahFormGuard, DimahFormHooks, DimahFormPlugin };
+
+type PluginFieldTypeUnion<P extends readonly DimahFormPlugin[]> =
+  P extends readonly []
+    ? never
+    : P[number] extends infer Plugin
+      ? Plugin extends { fieldTypes?: infer F }
+        ? F extends readonly FieldTypeDefinition[]
+          ? F[number]
+          : never
+        : never
+      : never;
 
 export type DimahFormConfig<
   TPlugins extends readonly DimahFormPlugin[] = readonly DimahFormPlugin[],
   TForms extends Record<string, unknown> = Record<string, unknown>,
-  TFieldTypes extends readonly FieldTypeDefinition[] = readonly FieldTypeDefinition[],
+  TFieldTypes extends readonly FieldTypeDefinition[] =
+    readonly FieldTypeDefinition[],
 > = {
   /** API path prefix for the HTTP `handler`. @default "/api/form" */
   basePath?: string;
@@ -40,19 +58,25 @@ export type DimahFormConfig<
   forms?: TForms;
   /** Runs before every operation. Throw to reject. */
   guard?: DimahFormGuard;
+  /** Domain hooks — after validation, before persist. */
+  hooks?: DimahFormHooks;
 };
 
 export type DimahForm<
   TPlugins extends readonly DimahFormPlugin[] = readonly DimahFormPlugin[],
   TForms extends Record<string, unknown> = Record<string, unknown>,
-  TFieldTypes extends readonly FieldTypeDefinition[] = readonly FieldTypeDefinition[],
+  TFieldTypes extends readonly FieldTypeDefinition[] =
+    readonly FieldTypeDefinition[],
 > = {
   handler: (request: Request) => Promise<Response>;
-  api: CoreEndpoints;
+  api: CoreEndpoints & PluginEndpointMap<TPlugins>;
   $ERROR_CODES: typeof FORM_ERROR_CODES;
   $Infer: {
     forms: TForms;
-    answers: InferAnswersMap<TForms, TFieldTypes>;
+    answers: InferAnswersMap<
+      TForms,
+      readonly (PluginFieldTypeUnion<TPlugins> | TFieldTypes[number])[]
+    >;
     plugins: TPlugins;
   };
 };
@@ -76,26 +100,35 @@ export function dimahForm<
     );
   }
 
-  const fieldTypes = createFieldTypeRegistry(config.fieldTypes);
+  const applied = applyPlugins(config.plugins);
+  const fieldTypes = createFieldTypeRegistry([
+    ...applied.fieldTypes,
+    ...(config.fieldTypes ?? []),
+  ]);
   const forms = (config.forms ?? {}) as Record<string, unknown>;
   assertFormsConfig(forms, fieldTypes);
-  applyPlugins(config.plugins);
 
   const resolved: ResolvedDimahFormConfig = {
     basePath: normalizeFormApiBasePath(config.basePath ?? FORM_API_BASE_PATH),
     forms,
     guard: config.guard,
+    hooks: mergeHooks(applied.hooks, config.hooks),
     database: config.database,
     fieldTypes,
   };
 
-  const { handler, endpoints } = createFormRouter(coreEndpoints, {
+  const endpoints = {
+    ...coreEndpoints,
+    ...applied.endpoints,
+  } as Record<string, Endpoint>;
+
+  const { handler, endpoints: api } = createFormRouter(endpoints, {
     config: resolved,
   });
 
   return {
     handler,
-    api: endpoints,
+    api: api as DimahForm<TPlugins, TForms, TFieldTypes>["api"],
     $ERROR_CODES: FORM_ERROR_CODES,
     $Infer: undefined as unknown as DimahForm<
       TPlugins,

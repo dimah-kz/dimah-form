@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defineForm } from "@dimah-form/core";
-import { dimahForm } from "@dimah-form/server";
+import { dimahForm, memoryAdapter } from "@dimah-form/server";
 
 import { db } from "./db";
 
@@ -10,21 +10,16 @@ const onboarding = defineForm({
 });
 
 describe("db adapter", () => {
-  it("wires the client store so start persists", async () => {
+  it("passes through a ResponseStore", async () => {
     const ids: string[] = [];
-    const rows = new Map<string, unknown>();
+    const memory = memoryAdapter();
     const form = dimahForm({
       forms: { onboarding },
       database: db({
+        ...memory,
         create(row) {
           ids.push(row.id);
-          rows.set(row.id, row);
-        },
-        get(id) {
-          return rows.get(id) as never;
-        },
-        save(row) {
-          rows.set(row.id, row);
+          return memory.create(row);
         },
       }),
     });

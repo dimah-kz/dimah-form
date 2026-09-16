@@ -16,6 +16,14 @@ describe("defineForm", () => {
     expect(() => defineForm({ title: "", fields: [] })).toThrow();
   });
 
+  it("allows extra keys on builtin fields", () => {
+    const form = defineForm({
+      title: "Contact",
+      fields: [{ id: "name", type: "text", placeholder: "Ada" }],
+    });
+    expect(form.fields[0]).toMatchObject({ placeholder: "Ada" });
+  });
+
   it("allows unknown field types in the document", () => {
     const form = defineForm({
       title: "Intake",

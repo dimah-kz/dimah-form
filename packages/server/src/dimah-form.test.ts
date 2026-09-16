@@ -2,8 +2,10 @@ import { describe, expect, expectTypeOf, it } from "vitest";
 
 import { defineForm, isFormErrorCode } from "@dimah-form/core";
 
+import { createFormEndpoint } from "./api/create-form-endpoint";
 import { dimahForm } from "./dimah-form";
 import { APIError } from "./errors";
+import { definePlugin } from "./plugin/define-plugin";
 import { memoryAdapter } from "./store";
 import {
   apiUrl,
@@ -29,12 +31,11 @@ describe("dimahForm instance", () => {
     const memory = memoryAdapter();
     const form = createInstance({
       database: {
+        ...memory,
         create(row) {
           created.push(row.id);
           return memory.create(row);
         },
-        get: (id) => memory.get(id),
-        save: (row) => memory.save(row),
       },
     });
     const started = await form.api.startResponse({
@@ -68,7 +69,7 @@ describe("dimahForm instance", () => {
           }),
         },
       }),
-    ).toThrow(/unknown field type "email"/);
+    ).toThrow(/Unknown field type "email"/);
   });
 
   it("throws when a field type is registered twice", () => {
@@ -289,5 +290,207 @@ describe("custom field types", () => {
     expectTypeOf<
       typeof form.$Infer.answers.intake.email
     >().toEqualTypeOf<string>();
+  });
+});
+
+describe("live catalog", () => {
+  it("reads and writes dynamic forms from the database", async () => {
+    const form = dimahForm({ database: memoryAdapter() });
+    const intake = {
+      id: "intake",
+      title: "Intake",
+      fields: [{ id: "name", type: "text" as const, required: true }],
+    };
+
+    await expect(
+      form.api.getForm({ query: { formId: "intake" } }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "UNKNOWN_FORM"),
+    );
+
+    await expect(form.api.saveForm({ body: intake })).resolves.toEqual(intake);
+    await expect(
+      form.api.getForm({ query: { formId: "intake" } }),
+    ).resolves.toEqual(intake);
+
+    const listed = await form.api.listForms({});
+    expect(listed.forms).toEqual([intake]);
+
+    const started = await form.api.startResponse({
+      body: { formId: "intake", respondentId: "user-1" },
+    });
+    expect(started.respondentId).toBe("user-1");
+    expect(started.definition.title).toBe("Intake");
+
+    const listedResponses = await form.api.listResponses({
+      query: { formId: "intake" },
+    });
+    expect(listedResponses.responses.map((row) => row.id)).toEqual([
+      started.id,
+    ]);
+  });
+
+  it("keeps extra keys on builtin fields", async () => {
+    const form = dimahForm({ database: memoryAdapter() });
+    const withHints = {
+      id: "hints",
+      title: "Hints",
+      fields: [
+        {
+          id: "name",
+          type: "text" as const,
+          required: true,
+          placeholder: "Ada",
+        },
+      ],
+    };
+    await expect(form.api.saveForm({ body: withHints })).resolves.toEqual(
+      withHints,
+    );
+    await expect(
+      form.api.getForm({ query: { formId: "hints" } }),
+    ).resolves.toEqual(withHints);
+  });
+
+  it("prefers code-authored forms and refuses to overwrite them", async () => {
+    const form = createInstance();
+    const listed = await form.api.listForms({});
+    expect(listed.forms.some((item) => item.id === "onboarding")).toBe(true);
+
+    const res = await form.handler(
+      jsonRequest(apiUrl(FORM_API_ROUTES.form), {
+        body: { id: "onboarding", title: "Nope", fields: [] },
+      }),
+    );
+    await expectErrorCode(res, 409, FORM_ERROR_CODES.CONFLICT);
+  });
+
+  it("does not rewrite a stored live form when starting a code-authored response", async () => {
+    const database = memoryAdapter();
+    database.saveForm({
+      id: "onboarding",
+      title: "From DB",
+      fields: [{ id: "name", type: "text" }],
+    });
+    const form = createInstance({ database });
+    const live = await form.api.getForm({ query: { formId: "onboarding" } });
+    expect(live.title).toBe("Onboarding");
+    await form.api.startResponse({ body: { formId: "onboarding" } });
+    expect((await database.getForm("onboarding"))?.title).toBe("From DB");
+  });
+});
+
+describe("hooks and plugins", () => {
+  it("runs domain hooks before persist", async () => {
+    const events: string[] = [];
+    const form = createInstance({
+      hooks: {
+        onStart: ({ response }) => {
+          events.push("start");
+          response.respondentId = "hooked";
+        },
+        onSaveDraft: () => {
+          events.push("draft");
+        },
+        onSubmit: () => {
+          events.push("submit");
+        },
+      },
+    });
+    const started = await form.api.startResponse({
+      body: { formId: "onboarding" },
+    });
+    expect(started.respondentId).toBe("hooked");
+    await form.api.saveDraft({
+      body: { responseId: started.id, answers: { name: "Ada" } },
+    });
+    await form.api.submitResponse({
+      body: { responseId: started.id, answers: { name: "Ada", ok: true } },
+    });
+    expect(events).toEqual(["start", "draft", "submit"]);
+  });
+
+  it("merges plugin endpoints, field types, and hooks", async () => {
+    const order: string[] = [];
+    const ping = definePlugin({
+      id: "ping",
+      endpoints: {
+        ping: createFormEndpoint(
+          "/ping",
+          { method: "GET", metadata: { operation: "ping" } },
+          async () => ({
+            ok: true,
+          }),
+        ),
+      },
+      fieldTypes: [
+        {
+          type: "email" as const,
+          validate: () => undefined,
+          $Infer: "" as string,
+        },
+      ],
+      hooks: {
+        onStart: () => {
+          order.push("plugin");
+        },
+      },
+    });
+    const form = dimahForm({
+      database: memoryAdapter(),
+      plugins: [ping],
+      hooks: {
+        onStart: () => {
+          order.push("user");
+        },
+      },
+      forms: {
+        intake: defineForm({
+          title: "Intake",
+          fields: [{ id: "email", type: "email", required: true }],
+        }),
+      },
+    });
+
+    await expect(form.api.ping({})).resolves.toMatchObject({ ok: true });
+    await form.api.startResponse({ body: { formId: "intake" } });
+    expect(order).toEqual(["plugin", "user"]);
+    expectTypeOf<
+      typeof form.$Infer.answers.intake.email
+    >().toEqualTypeOf<string>();
+  });
+
+  it("passes the operation name to guard", async () => {
+    const operations: string[] = [];
+    const form = createInstance({
+      guard: ({ operation, formId }) => {
+        operations.push(`${operation}:${formId ?? ""}`);
+      },
+    });
+    await form.api.getForm({ query: { formId: "onboarding" } });
+    expect(operations).toEqual(["getForm:onboarding"]);
+  });
+
+  it("uses the plugin endpoint name as the guard operation", async () => {
+    const operations: string[] = [];
+    const ping = definePlugin({
+      id: "ping",
+      endpoints: {
+        ping: createFormEndpoint(
+          "/ping",
+          { method: "GET", metadata: { operation: "ping" } },
+          async () => ({ ok: true }),
+        ),
+      },
+    });
+    const form = dimahForm({
+      database: memoryAdapter(),
+      plugins: [ping],
+      guard: ({ operation }) => {
+        operations.push(operation);
+      },
+    });
+    await form.api.ping({});
+    expect(operations).toEqual(["ping"]);
   });
 });

@@ -1,23 +1,25 @@
 import {
-  FORM_API_ROUTES,
+  FORM_API_OPERATIONS,
   saveDraftBodySchema,
   type ResponseRecord,
 } from "@dimah-form/core";
 
 import { createFormEndpoint } from "@/api/create-form-endpoint";
 import { errors } from "@/errors";
-import { applyAnswerPatch, parseAnswers, requireDraft } from "@/validate";
+import { applyAnswerPatch, assertAnswers, requireDraft } from "@/validate";
+
+const { method, path } = FORM_API_OPERATIONS.saveDraft;
 
 export const saveDraft = createFormEndpoint(
-  FORM_API_ROUTES.saveDraft,
-  { method: "POST", body: saveDraftBodySchema },
+  path,
+  { method, body: saveDraftBodySchema },
   async (ctx): Promise<ResponseRecord> => {
     const existing = await ctx.context.config.database.get(ctx.body.responseId);
     if (!existing) {
       throw errors.unknownResponse(ctx.body.responseId);
     }
     requireDraft(existing.status);
-    parseAnswers(
+    assertAnswers(
       existing.definition,
       ctx.body.answers,
       "draft",
@@ -29,6 +31,10 @@ export const saveDraft = createFormEndpoint(
       answers,
       updatedAt: new Date().toISOString(),
     };
+    await ctx.context.config.hooks.onSaveDraft?.({
+      request: ctx.context.request,
+      response: row,
+    });
     await ctx.context.config.database.save(row);
     return row;
   },

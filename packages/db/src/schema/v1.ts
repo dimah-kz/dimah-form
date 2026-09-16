@@ -21,6 +21,7 @@ const response = table("response", {
   /** Definition copy at start — submit validates against this, not live. */
   definition: column("definition", "json"),
   answers: column("answers", "json"),
+  respondentId: column("respondent_id", "varchar(255)").nullable(),
   submittedAt: column("submitted_at", "timestamp").nullable(),
   createdAt: column("created_at", "timestamp").defaultTo$("now"),
   updatedAt: column("updated_at", "timestamp").defaultTo$("now"),
