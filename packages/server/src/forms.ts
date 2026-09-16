@@ -139,7 +139,9 @@ export async function listLiveForms(
       continue;
     }
   }
-  return [...fromConfig, ...extra];
+  return [...fromConfig, ...extra].sort((a, b) =>
+    (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""),
+  );
 }
 
 export async function assertSlugAvailable(

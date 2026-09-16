@@ -27,6 +27,7 @@ export {
   defineFieldType,
   defineForm,
   type FieldTypeDefinition,
+  type FieldValidateContext,
   type FormDefinitionInput,
 } from "./define";
 export {

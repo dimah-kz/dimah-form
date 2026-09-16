@@ -13,6 +13,7 @@ export type ListFormsStoreQuery = {
 
 export type ListResponsesStoreQuery = {
   formId?: string;
+  respondentId?: string;
   status?: ResponseStatus;
   limit?: number;
   offset?: number;
@@ -42,8 +43,10 @@ function clone<T>(value: T): T {
   return structuredClone(value);
 }
 
-function sortByUpdatedAtDesc<T extends { updatedAt: string }>(items: T[]) {
-  return [...items].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+function sortByUpdatedAtDesc<T extends { updatedAt?: string }>(items: T[]) {
+  return [...items].sort((a, b) =>
+    (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""),
+  );
 }
 
 function slicePage<T>(
@@ -83,14 +86,25 @@ export function memoryAdapter(): ResponseStore {
       return findForm(idOrSlug);
     },
     saveForm(form) {
-      forms.set(form.id, clone(form));
+      const now = new Date().toISOString();
+      const existing = forms.get(form.id);
+      forms.set(
+        form.id,
+        clone({
+          ...form,
+          createdAt: form.createdAt ?? existing?.createdAt ?? now,
+          updatedAt: form.updatedAt ?? now,
+        }),
+      );
     },
     deleteForm(id) {
       forms.delete(id);
     },
     listForms(query) {
-      const filtered = [...forms.values()].filter(
-        (form) => !query?.status || form.status === query.status,
+      const filtered = sortByUpdatedAtDesc(
+        [...forms.values()].filter(
+          (form) => !query?.status || form.status === query.status,
+        ),
       );
       return slicePage(filtered, query).map(clone);
     },
@@ -112,6 +126,9 @@ export function memoryAdapter(): ResponseStore {
       const filtered = sortByUpdatedAtDesc(
         [...rows.values()].filter((row) => {
           if (query?.formId && row.formId !== query.formId) return false;
+          if (query?.respondentId && row.respondentId !== query.respondentId) {
+            return false;
+          }
           if (query?.status && row.status !== query.status) return false;
           return true;
         }),

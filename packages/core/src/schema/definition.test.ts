@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { formDefinitionSchema, formSnapshotSchema } from "./definition";
+import {
+  formDefinitionSchema,
+  formSnapshotSchema,
+  normalizeFormSnapshot,
+} from "./definition";
 
 const contact = {
   title: "Contact",
@@ -140,6 +144,20 @@ describe("formDefinitionSchema", () => {
       fields: [{ id: "n", type: "file", pattern: ".+" }],
     });
   });
+
+  it("keeps extra keys on the form document", () => {
+    expect(
+      formDefinitionSchema.parse({
+        title: "X",
+        description: "Hello",
+        fields: [{ id: "n", type: "text" }],
+      }),
+    ).toMatchObject({
+      title: "X",
+      description: "Hello",
+      fields: [{ id: "n", type: "text" }],
+    });
+  });
 });
 
 describe("formSnapshotSchema", () => {
@@ -168,6 +186,28 @@ describe("formSnapshotSchema", () => {
     ).toMatchObject({
       id: "intake",
       fields: [{ id: "email", type: "email", required: true }],
+    });
+  });
+
+  it("keeps extra keys and timestamps on normalize", () => {
+    expect(
+      normalizeFormSnapshot({
+        id: "intake",
+        title: "Intake",
+        description: "Join us",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-02T00:00:00.000Z",
+        fields: [{ id: "n", type: "text" }],
+      }),
+    ).toEqual({
+      id: "intake",
+      slug: "intake",
+      status: "active",
+      title: "Intake",
+      description: "Join us",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-02T00:00:00.000Z",
+      fields: [{ id: "n", type: "text" }],
     });
   });
 });

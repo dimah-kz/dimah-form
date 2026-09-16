@@ -127,6 +127,23 @@ describe("createFormClient protocol", () => {
     );
   });
 
+  it("sends respondentId on listResponses", async () => {
+    const { fetch, calls } = captureFetch(() =>
+      jsonResponse({
+        responses: [],
+        limit: 50,
+        offset: 0,
+        nextOffset: null,
+      }),
+    );
+    const api = createFormClient({ basePath: "/api/form", fetch });
+    await api.listResponses({
+      formId: "onboarding",
+      respondentId: "user-1",
+    });
+    expect(calls[0]?.url).toContain("respondentId=user-1");
+  });
+
   it("forwards per-call headers", async () => {
     const { fetch, calls } = captureFetch(() => jsonResponse(snapshot));
     const api = createFormClient({ fetch });

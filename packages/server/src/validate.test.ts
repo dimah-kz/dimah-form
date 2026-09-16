@@ -77,10 +77,18 @@ describe("collectAnswerIssues", () => {
     ).toEqual([{ field: "skills", message: "Required" }]);
   });
 
+  it("treats blank required text as missing", () => {
+    expect(
+      collectAnswerIssues(snapshot, { name: "  ", ok: true }, "submit"),
+    ).toEqual([{ field: "name", message: "Required" }]);
+  });
+
   it("uses a custom field type from the registry", () => {
     const registry = createFieldTypeRegistry([
       {
         type: "email",
+        isEmpty: (value) =>
+          value == null || (typeof value === "string" && value.trim() === ""),
         validate: (value) =>
           typeof value === "string" && value.includes("@")
             ? undefined
@@ -97,6 +105,45 @@ describe("collectAnswerIssues", () => {
     expect(
       collectAnswerIssues(intake, { email: "nope" }, "draft", registry),
     ).toEqual([{ field: "email", message: "Expected an email" }]);
+    expect(
+      collectAnswerIssues(intake, { email: "  " }, "submit", registry),
+    ).toEqual([{ field: "email", message: "Required" }]);
+  });
+
+  it("passes sibling answers to validate", () => {
+    const registry = createFieldTypeRegistry([
+      {
+        type: "confirm",
+        validate: (value, _field, context) =>
+          value === context?.answers.password ? undefined : "Must match",
+      },
+    ]);
+    const form = {
+      id: "signup",
+      slug: "signup",
+      status: "active" as const,
+      title: "Signup",
+      fields: [
+        { id: "password", type: "text", required: true },
+        { id: "confirm", type: "confirm", required: true },
+      ],
+    };
+    expect(
+      collectAnswerIssues(
+        form,
+        { password: "secret", confirm: "nope" },
+        "submit",
+        registry,
+      ),
+    ).toEqual([{ field: "confirm", message: "Must match" }]);
+    expect(
+      collectAnswerIssues(
+        form,
+        { password: "secret", confirm: "secret" },
+        "submit",
+        registry,
+      ),
+    ).toEqual([]);
   });
 
   it("enforces text minLength", () => {

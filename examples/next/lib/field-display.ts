@@ -32,7 +32,8 @@ export function formatAnswer(field: FormField, value: unknown) {
     const labels = value
       .filter((item): item is string => typeof item === "string")
       .map(
-        (item) => options.find((option) => option.value === item)?.label ?? item,
+        (item) =>
+          options.find((option) => option.value === item)?.label ?? item,
       );
     return labels.length ? labels.join(", ") : "—";
   }

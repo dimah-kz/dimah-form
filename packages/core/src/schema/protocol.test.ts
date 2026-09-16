@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { formFetchErrorSchema } from "./error";
 import {
   getFormQuerySchema,
+  listResponsesQuerySchema,
   saveDraftBodySchema,
   saveFormBodySchema,
   startResponseBodySchema,
@@ -62,5 +63,14 @@ describe("protocol payloads", () => {
     expect(submitResponseBodySchema.parse({ responseId: "r" })).toEqual({
       responseId: "r",
     });
+  });
+
+  it("accepts respondentId on listResponses", () => {
+    expect(
+      listResponsesQuerySchema.parse({
+        formId: " onboarding ",
+        respondentId: " user-1 ",
+      }),
+    ).toEqual({ formId: "onboarding", respondentId: "user-1" });
   });
 });

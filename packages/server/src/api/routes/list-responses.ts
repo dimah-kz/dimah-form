@@ -22,6 +22,7 @@ export const listResponses = createFormEndpoint(
     const { limit, offset } = normalizeListPage(query);
     const rows = await ctx.context.config.database.listResponses({
       formId: query.formId,
+      respondentId: query.respondentId,
       status: query.status,
       limit: limit + 1,
       offset,

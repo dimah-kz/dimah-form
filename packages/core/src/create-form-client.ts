@@ -94,6 +94,7 @@ export type FormClientApi = {
   listResponses: (
     payload?: {
       formId?: string;
+      respondentId?: string;
       status?: ResponseStatus;
       include?: "summary" | "full";
       limit?: number;
@@ -228,6 +229,7 @@ export function createFormClient<
     listResponses(payload = {}) {
       return get<ResponseList>(FORM_API_ROUTES.responses, payload, {
         formId: payload.formId,
+        respondentId: payload.respondentId,
         status: payload.status,
         include: payload.include,
         limit: payload.limit,

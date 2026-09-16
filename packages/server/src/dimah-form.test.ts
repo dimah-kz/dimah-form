@@ -313,27 +313,31 @@ describe("live catalog", () => {
       isFormErrorCode(error, "UNKNOWN_FORM"),
     );
 
-    await expect(form.api.saveForm({ body: intake })).resolves.toEqual({
+    const saved = await form.api.saveForm({ body: intake });
+    expect(saved).toMatchObject({
       ...intake,
       slug: "intake",
       status: "active",
     });
+    expect(saved.createdAt).toEqual(expect.any(String));
+    expect(saved.updatedAt).toEqual(expect.any(String));
     await expect(
       form.api.getForm({ query: { formId: "intake" } }),
-    ).resolves.toEqual({
+    ).resolves.toMatchObject({
       ...intake,
       slug: "intake",
       status: "active",
+      createdAt: saved.createdAt,
+      updatedAt: saved.updatedAt,
     });
 
     const listed = await form.api.listForms({});
-    expect(listed.forms).toEqual([
-      {
-        ...intake,
-        slug: "intake",
-        status: "active",
-      },
-    ]);
+    expect(listed.forms).toHaveLength(1);
+    expect(listed.forms[0]).toMatchObject({
+      ...intake,
+      slug: "intake",
+      status: "active",
+    });
     expect(listed.nextOffset).toBeNull();
 
     const started = await form.api.startResponse({
@@ -348,6 +352,16 @@ describe("live catalog", () => {
     expect(listedResponses.responses.map((row) => row.id)).toEqual([
       started.id,
     ]);
+    await expect(
+      form.api.listResponses({
+        query: { formId: "intake", respondentId: "user-1" },
+      }),
+    ).resolves.toMatchObject({ responses: [{ id: started.id }] });
+    await expect(
+      form.api.listResponses({
+        query: { formId: "intake", respondentId: "other" },
+      }),
+    ).resolves.toMatchObject({ responses: [] });
   });
 
   it("keeps extra keys on builtin fields", async () => {
@@ -364,18 +378,38 @@ describe("live catalog", () => {
         },
       ],
     };
-    await expect(form.api.saveForm({ body: withHints })).resolves.toEqual({
+    await expect(form.api.saveForm({ body: withHints })).resolves.toMatchObject(
+      {
+        ...withHints,
+        slug: "hints",
+        status: "active",
+      },
+    );
+    await expect(
+      form.api.getForm({ query: { formId: "hints" } }),
+    ).resolves.toMatchObject({
       ...withHints,
       slug: "hints",
+      status: "active",
+    });
+  });
+
+  it("keeps extra keys on the form document", async () => {
+    const form = dimahForm({ database: memoryAdapter() });
+    const withCopy = {
+      id: "copy",
+      title: "Copy",
+      description: "Shown in the consumer UI",
+      fields: [{ id: "n", type: "text" as const }],
+    };
+    await expect(form.api.saveForm({ body: withCopy })).resolves.toMatchObject({
+      description: "Shown in the consumer UI",
+      slug: "copy",
       status: "active",
     });
     await expect(
-      form.api.getForm({ query: { formId: "hints" } }),
-    ).resolves.toEqual({
-      ...withHints,
-      slug: "hints",
-      status: "active",
-    });
+      form.api.getForm({ query: { formId: "copy" } }),
+    ).resolves.toMatchObject({ description: "Shown in the consumer UI" });
   });
 
   it("prefers code-authored forms and refuses to overwrite them", async () => {

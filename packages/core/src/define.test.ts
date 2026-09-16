@@ -17,6 +17,15 @@ describe("defineForm", () => {
     expect(() => defineForm({ title: "", fields: [] })).toThrow();
   });
 
+  it("allows extra keys on the form document", () => {
+    const form = defineForm({
+      title: "Contact",
+      description: "Hello",
+      fields: [{ id: "name", type: "text" }],
+    });
+    expect(form.description).toBe("Hello");
+  });
+
   it("allows extra keys on builtin fields", () => {
     const form = defineForm({
       title: "Contact",

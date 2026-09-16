@@ -132,8 +132,9 @@ export function Questionnaire({
         <CardHeader>
           <CardTitle>{form.title}</CardTitle>
           <CardDescription>
-            {form.slug} · widgets are yours, validation is the snapshot on the
-            response
+            {typeof form.description === "string"
+              ? form.description
+              : `${form.slug} · widgets are yours, validation is the snapshot on the response`}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -185,9 +186,7 @@ export function Questionnaire({
               disabled={busy != null}
               onClick={() => void onSubmit()}
             >
-              {busy === "submit" ? (
-                <Spinner data-icon="inline-start" />
-              ) : null}
+              {busy === "submit" ? <Spinner data-icon="inline-start" /> : null}
               Submit
             </Button>
             <Button

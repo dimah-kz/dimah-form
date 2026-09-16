@@ -10,8 +10,13 @@ function asBoolean(value: unknown): boolean | undefined {
   return typeof value === "boolean" ? value : undefined;
 }
 
+function isBlankString(value: unknown): boolean {
+  return typeof value === "string" && value.trim() === "";
+}
+
 export const textFieldType = defineFieldType({
   type: "text",
+  isEmpty: (value) => value == null || isBlankString(value),
   validate: (value, field) => {
     if (typeof value !== "string") return "Expected a string";
     const minLength = asFiniteNumber(field.minLength);
@@ -84,6 +89,7 @@ function optionValues(field: Record<string, unknown>): Set<string> | undefined {
 
 export const selectFieldType = defineFieldType({
   type: "select",
+  isEmpty: (value) => value == null || isBlankString(value),
   validate: (value, field) => {
     if (typeof value !== "string") return "Expected a string";
     const allowed = optionValues(field);
@@ -95,6 +101,8 @@ export const selectFieldType = defineFieldType({
 
 export const multiSelectFieldType = defineFieldType({
   type: "multiSelect",
+  isEmpty: (value) =>
+    value == null || !Array.isArray(value) || value.length === 0,
   validate: (value, field) => {
     if (
       !Array.isArray(value) ||

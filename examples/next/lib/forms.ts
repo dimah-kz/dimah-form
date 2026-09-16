@@ -5,6 +5,7 @@ export const forms = {
     title: "Onboarding",
     slug: "onboarding",
     status: "active",
+    description: "Widgets are yours. Validation uses the response snapshot.",
     fields: [
       {
         id: "name",

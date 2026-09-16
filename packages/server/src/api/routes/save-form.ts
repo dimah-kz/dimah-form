@@ -18,8 +18,15 @@ export const saveForm = createFormEndpoint(
     if (Object.hasOwn(ctx.context.config.forms, ctx.body.id)) {
       throw errors.conflict();
     }
-    const form = parseLiveSnapshot(ctx.body, ctx.context.config.fieldTypes);
-    await assertSlugAvailable(ctx.context.config, form);
+    const parsed = parseLiveSnapshot(ctx.body, ctx.context.config.fieldTypes);
+    await assertSlugAvailable(ctx.context.config, parsed);
+    const existing = await ctx.context.config.database.getForm(parsed.id);
+    const now = new Date().toISOString();
+    const form: FormSnapshot = {
+      ...parsed,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+    };
     const request = ctx.context.request;
     const hooks = ctx.context.config.hooks;
     return commitLifecycle(

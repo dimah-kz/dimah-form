@@ -16,25 +16,24 @@ function isAbsent(value: unknown): boolean {
   return value === undefined || value === null;
 }
 
-function isRequiredPresent(field: FormField, value: unknown): boolean {
-  if (isAbsent(value)) return false;
-  if (field.type === "text" || field.type === "email") {
-    return typeof value === "string" && value.trim() !== "";
-  }
-  if (field.type === "multiSelect") {
-    return Array.isArray(value) && value.length > 0;
-  }
-  return true;
+function isValueEmpty(
+  field: FormField,
+  value: unknown,
+  fieldTypes: ReadonlyMap<string, FieldTypeDefinition>,
+): boolean {
+  if (isAbsent(value)) return true;
+  return fieldTypes.get(field.type)?.isEmpty?.(value, field) ?? false;
 }
 
 function typeMessage(
   field: FormField,
   value: unknown,
+  answers: Record<string, unknown>,
   fieldTypes: ReadonlyMap<string, FieldTypeDefinition>,
 ): string | undefined {
   const fieldType = fieldTypes.get(field.type);
   if (!fieldType) return "Unknown field type";
-  return fieldType.validate(value, field);
+  return fieldType.validate(value, field, { answers });
 }
 
 export function collectAnswerIssues(
@@ -55,8 +54,8 @@ export function collectAnswerIssues(
       continue;
     }
     const value = answers[key];
-    if (isAbsent(value)) continue;
-    const message = typeMessage(field, value, fieldTypes);
+    if (isValueEmpty(field, value, fieldTypes)) continue;
+    const message = typeMessage(field, value, answers, fieldTypes);
     if (message) issues.push({ field: key, message });
   }
 
@@ -64,7 +63,7 @@ export function collectAnswerIssues(
     for (const field of definition.fields) {
       if (!field.required) continue;
       const value = answers[field.id];
-      if (isAbsent(value) || !isRequiredPresent(field, value)) {
+      if (isValueEmpty(field, value, fieldTypes)) {
         const alreadyTyped = issues.some((issue) => issue.field === field.id);
         if (!alreadyTyped) {
           issues.push({ field: field.id, message: "Required" });

@@ -64,12 +64,17 @@ export function toResponseRecord(row: ResponseRow): ResponseRecord {
 
 export function toFormSnapshot(row: QuestionnaireRow): FormSnapshot {
   const definition = formDefinitionSchema.parse(row.definition);
+  const createdAt = row.createdAt != null ? toIso(row.createdAt) : undefined;
+  const updatedAt = row.updatedAt != null ? toIso(row.updatedAt) : undefined;
   return normalizeFormSnapshot({
+    ...definition,
     id: row.id,
     title: definition.title,
     fields: definition.fields,
     slug: row.slug ?? definition.slug,
     status: toFormStatus(row.status),
+    ...(createdAt ? { createdAt } : {}),
+    ...(updatedAt ? { updatedAt } : {}),
   });
 }
 
@@ -88,16 +93,17 @@ export function toResponseColumns(row: ResponseRecord) {
 }
 
 export function toQuestionnaireColumns(form: FormSnapshot, updatedAt: Date) {
+  const {
+    id: _id,
+    createdAt: _createdAt,
+    updatedAt: _updatedAt,
+    ...document
+  } = form;
   return {
     id: form.id,
     slug: form.slug,
     title: form.title,
-    definition: {
-      title: form.title,
-      fields: form.fields,
-      slug: form.slug,
-      status: form.status,
-    },
+    definition: document,
     status: form.status,
     updatedAt,
   };

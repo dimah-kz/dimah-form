@@ -16,11 +16,13 @@ const questionnaire = table("questionnaire", {
 
 const response = table("response", {
   id: idColumn("id", "varchar(255)").defaultTo$("auto"),
+  /** Queried by `listResponses({ formId })`. FumaDB 0.6 has no non-unique index API; this FK is the access path. */
   questionnaireId: column("questionnaire_id", "varchar(255)"),
   status: column("status", "string"),
   /** Definition copy at start — submit validates against this, not live. */
   definition: column("definition", "json"),
   answers: column("answers", "json"),
+  /** Queried by `listResponses({ respondentId })`. */
   respondentId: column("respondent_id", "varchar(255)").nullable(),
   submittedAt: column("submitted_at", "timestamp").nullable(),
   createdAt: column("created_at", "timestamp").defaultTo$("now"),

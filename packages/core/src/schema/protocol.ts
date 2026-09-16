@@ -44,6 +44,7 @@ export const listFormsQuerySchema = z.strictObject({
 
 export const listResponsesQuerySchema = z.strictObject({
   formId: formIdSchema.optional(),
+  respondentId: trimmedString.optional(),
   status: z.enum(["draft", "submitted", "abandoned"]).optional(),
   include: z.enum(["summary", "full"]).optional(),
   ...listPageQueryFields,

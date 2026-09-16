@@ -87,16 +87,46 @@ describe("map-row", () => {
         title: "Intake",
         definition: {
           title: "Intake",
+          description: "Join",
           fields: [{ id: "email", type: "email", required: true }],
         },
         status: "active",
+        createdAt: new Date("2026-01-01T00:00:00.000Z"),
+        updatedAt: new Date("2026-01-02T00:00:00.000Z"),
       }),
     ).toEqual({
       id: "intake",
       slug: "intake",
       status: "active",
       title: "Intake",
+      description: "Join",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-02T00:00:00.000Z",
       fields: [{ id: "email", type: "email", required: true }],
+    });
+  });
+
+  it("keeps extra keys on the questionnaire document", () => {
+    expect(
+      toQuestionnaireColumns(
+        {
+          id: "onboarding",
+          slug: "onboarding",
+          status: "active",
+          title: "Onboarding",
+          description: "Join us",
+          fields: [{ id: "name", type: "text" }],
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-02T00:00:00.000Z",
+        },
+        new Date("2026-01-02T00:00:00.000Z"),
+      ).definition,
+    ).toEqual({
+      slug: "onboarding",
+      status: "active",
+      title: "Onboarding",
+      description: "Join us",
+      fields: [{ id: "name", type: "text" }],
     });
   });
 

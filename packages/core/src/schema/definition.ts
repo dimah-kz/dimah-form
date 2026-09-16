@@ -164,17 +164,19 @@ export const formFieldsSchema = z.array(storedFieldSchema).check((ctx) => {
 const formMeta = {
   slug: trimmedString.optional(),
   status: formStatusSchema.optional(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
 };
 
-/** Code-authored questionnaire document (no `id` — that is the `forms` key). */
-export const formDefinitionSchema = z.strictObject({
+/** Code-authored questionnaire document (no `id` — that is the `forms` key). Extra keys stay for consumer UI. */
+export const formDefinitionSchema = z.looseObject({
   title: trimmedString,
   fields: formFieldsSchema,
   ...formMeta,
 });
 
-/** Frozen copy stored on a response — definition plus the form id. */
-export const formSnapshotSchema = z.strictObject({
+/** Frozen copy stored on a response — definition plus the form id. Extra keys stay. */
+export const formSnapshotSchema = z.looseObject({
   id: formIdSchema,
   title: trimmedString,
   fields: formFieldsSchema,
@@ -193,7 +195,9 @@ export type FormDefinition = {
   fields: readonly FormField[];
   slug?: string;
   status?: FormStatus;
-};
+  createdAt?: string;
+  updatedAt?: string;
+} & Record<string, unknown>;
 
 export type FormSnapshot = {
   id: string;
@@ -201,23 +205,46 @@ export type FormSnapshot = {
   status: FormStatus;
   title: string;
   fields: readonly FormField[];
-};
+  createdAt?: string;
+  updatedAt?: string;
+} & Record<string, unknown>;
 
-/** Fill `slug` (defaults to `id`) and `status` (defaults to `active`). */
-export function normalizeFormSnapshot(snapshot: {
+type SnapshotInput = {
   id: string;
   title: string;
   fields: readonly FormField[];
   slug?: string | null;
   status?: FormStatus | null;
-}): FormSnapshot {
-  const slug = snapshot.slug?.trim();
+  createdAt?: string | null;
+  updatedAt?: string | null;
+} & Record<string, unknown>;
+
+/** Fill `slug` (defaults to `id`) and `status` (defaults to `active`). Extra keys are kept. */
+export function normalizeFormSnapshot(snapshot: SnapshotInput): FormSnapshot {
+  const {
+    id,
+    title,
+    fields,
+    slug: rawSlug,
+    status: rawStatus,
+    createdAt,
+    updatedAt,
+    ...extra
+  } = snapshot;
+  const slug = rawSlug?.trim();
   return {
-    id: snapshot.id,
-    title: snapshot.title,
-    fields: snapshot.fields,
-    slug: slug && slug.length > 0 ? slug : snapshot.id,
-    status: snapshot.status ?? "active",
+    ...extra,
+    id,
+    title,
+    fields,
+    slug: slug && slug.length > 0 ? slug : id,
+    status: rawStatus ?? "active",
+    ...(typeof createdAt === "string" && createdAt.length > 0
+      ? { createdAt }
+      : {}),
+    ...(typeof updatedAt === "string" && updatedAt.length > 0
+      ? { updatedAt }
+      : {}),
   };
 }
 

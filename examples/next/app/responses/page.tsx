@@ -19,9 +19,10 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { formatFormError } from "@/lib/format-error";
 
-function isFull(
-  row: { answers?: unknown; definition?: unknown },
-): row is ResponseRecord {
+function isFull(row: {
+  answers?: unknown;
+  definition?: unknown;
+}): row is ResponseRecord {
   return "answers" in row && "definition" in row;
 }
 

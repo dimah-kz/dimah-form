@@ -37,4 +37,12 @@ describe("createFieldTypeRegistry", () => {
       registry.get("text")?.validate("ab", { type: "text", minLength: 3 }),
     ).toBe("Must be at least 3 characters");
   });
+
+  it("treats blank strings as empty on text", () => {
+    const registry = createFieldTypeRegistry();
+    expect(registry.get("text")?.isEmpty?.("  ", { type: "text" })).toBe(true);
+    expect(registry.get("text")?.isEmpty?.("Ada", { type: "text" })).toBe(
+      false,
+    );
+  });
 });

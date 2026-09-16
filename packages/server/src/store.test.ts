@@ -52,4 +52,41 @@ describe("memoryAdapter", () => {
     expect((await store.getForm("intake"))?.title).toBe("Intake");
     expect(await store.listForms()).toHaveLength(1);
   });
+
+  it("lists forms by updatedAt descending", async () => {
+    const store = memoryAdapter();
+    store.saveForm({
+      id: "older",
+      slug: "older",
+      status: "active",
+      title: "Older",
+      fields: [],
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+    store.saveForm({
+      id: "newer",
+      slug: "newer",
+      status: "active",
+      title: "Newer",
+      fields: [],
+      createdAt: "2026-01-02T00:00:00.000Z",
+      updatedAt: "2026-01-02T00:00:00.000Z",
+    });
+    expect((await store.listForms()).map((form) => form.id)).toEqual([
+      "newer",
+      "older",
+    ]);
+  });
+
+  it("filters responses by respondentId", async () => {
+    const store = memoryAdapter();
+    store.create(row);
+    store.create({ ...row, id: "r2", respondentId: "user-1" });
+    expect(
+      (await store.listResponses({ respondentId: "user-1" })).map(
+        (item) => item.id,
+      ),
+    ).toEqual(["r2"]);
+  });
 });

@@ -69,7 +69,8 @@ export function createDbResponseStore(db: DimahFormDbClient): ResponseStore {
   }
 
   async function upsertLiveForm(form: FormSnapshot) {
-    const now = new Date();
+    const now = form.updatedAt ? new Date(form.updatedAt) : new Date();
+    const createdAt = form.createdAt ? new Date(form.createdAt) : now;
     const columns = toQuestionnaireColumns(form, now);
     const { id: _id, ...update } = columns;
     await orm
@@ -78,7 +79,7 @@ export function createDbResponseStore(db: DimahFormDbClient): ResponseStore {
         update,
         create: {
           ...columns,
-          createdAt: now,
+          createdAt,
         },
       })
       .forceReturning();
@@ -133,13 +134,15 @@ export function createDbResponseStore(db: DimahFormDbClient): ResponseStore {
     },
     async listResponses(query) {
       const formId = query?.formId;
+      const respondentId = query?.respondentId;
       const status = query?.status;
       const rows = await orm.findMany("response", {
         where:
-          formId || status
+          formId || respondentId || status
             ? (b) => {
                 const parts = [
                   formId ? b("questionnaireId", "=", formId) : true,
+                  respondentId ? b("respondentId", "=", respondentId) : true,
                   status ? b("status", "=", status) : true,
                 ];
                 return b.and(...parts);
