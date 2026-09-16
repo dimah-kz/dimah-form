@@ -1,5 +1,6 @@
 import { APIError as BetterCallAPIError } from "better-call/error";
 import { type FormErrorCode } from "./error-codes";
+import type { ValidationIssue } from "./schema/error";
 
 export {
   defineErrorCodes,
@@ -11,13 +12,14 @@ type NamedStatus = ConstructorParameters<typeof BetterCallAPIError>[0];
 type APIErrorStatus = NamedStatus | number;
 type APIErrorBody = ConstructorParameters<typeof BetterCallAPIError>[1] & {
   params?: Record<string, string | number>;
+  issues?: ValidationIssue[];
   cause?: unknown;
 };
 
 /**
  * better-call `APIError` — same name and `(status, body)` constructor as
- * `ctx.error(...)`. HTTP serializes `{ message, code?, params? }` via native
- * `toResponse`.
+ * `ctx.error(...)`. HTTP serializes `{ message, code?, params?, issues? }`
+ * via native `toResponse`.
  */
 export class APIError extends BetterCallAPIError {
   constructor(
@@ -45,6 +47,10 @@ export class APIError extends BetterCallAPIError {
     return this.body?.params as Record<string, string | number> | undefined;
   }
 
+  get issues(): ValidationIssue[] | undefined {
+    return this.body?.issues as ValidationIssue[] | undefined;
+  }
+
   /** Throw a catalog (or custom) `{ code, message }` with an HTTP status. */
   static from(
     status: APIErrorStatus,
@@ -52,12 +58,14 @@ export class APIError extends BetterCallAPIError {
       code: string;
       message: string;
       params?: Record<string, string | number>;
+      issues?: ValidationIssue[];
     },
   ): APIError {
     return new APIError(status, {
       message: error.message,
       code: error.code,
       ...(error.params !== undefined ? { params: error.params } : {}),
+      ...(error.issues !== undefined ? { issues: error.issues } : {}),
     });
   }
 

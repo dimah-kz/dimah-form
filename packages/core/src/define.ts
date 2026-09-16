@@ -1,6 +1,8 @@
-/** Authoring helper — identity at runtime; types come from the instance later. */
-export function defineForm<const T extends object>(form: T): T {
-  return form;
+import { formDefinitionSchema, type FormDefinition } from "./schema/definition";
+
+/** Parse and freeze a code-authored questionnaire document. */
+export function defineForm(form: FormDefinition): FormDefinition {
+  return formDefinitionSchema.parse(form);
 }
 
 /** Custom field type — validator + answer shape. Not a UI component. */

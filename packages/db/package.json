@@ -47,7 +47,7 @@
   },
   "devDependencies": {
     "@dimah-form/server": "workspace:*",
-    "@types/node": "^24.5.2",
+    "@types/node": "^24.13.4",
     "@workspace/eslint-config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
     "@workspace/vitest-config": "workspace:*",

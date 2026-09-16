@@ -4,6 +4,12 @@ import {
   normalizeFormApiBasePath,
 } from "@dimah-form/core";
 
+import { coreEndpoints, type CoreEndpoints } from "./api/routes";
+import { createFormRouter } from "./api/router";
+import { assertFormsConfig } from "./forms";
+import { createMemoryResponseStore } from "./store";
+import type { DimahFormGuard, ResolvedDimahFormConfig } from "./types";
+
 export type DimahFormPlugin = {
   readonly id: string;
 };
@@ -21,7 +27,7 @@ export type DimahFormConfig<
   /** Code-authored forms. Dynamic forms live in the database. */
   forms?: TForms;
   /** Runs before every operation. Throw to reject. */
-  guard?: (context: { request: Request }) => Promise<void> | void;
+  guard?: DimahFormGuard;
 };
 
 export type DimahForm<
@@ -29,7 +35,7 @@ export type DimahForm<
   TForms extends Record<string, unknown> = Record<string, unknown>,
 > = {
   handler: (request: Request) => Promise<Response>;
-  api: Record<string, never>;
+  api: CoreEndpoints;
   $ERROR_CODES: typeof FORM_ERROR_CODES;
   $Infer: {
     forms: TForms;
@@ -40,35 +46,30 @@ export type DimahForm<
 /**
  * Create a dimah-form server instance.
  *
- * Protocol endpoints are not implemented yet — this is the public shell.
+ * Submit validates against the definition snapshot taken at start, not the
+ * live questionnaire in {@link DimahFormConfig.forms}.
  */
 export function dimahForm<
   const TPlugins extends readonly DimahFormPlugin[] = [],
   const TForms extends Record<string, unknown> = Record<string, unknown>,
 >(config: DimahFormConfig<TPlugins, TForms> = {}): DimahForm<TPlugins, TForms> {
-  const {
-    basePath: basePathOption,
-    plugins: _plugins,
-    fieldTypes: _fieldTypes,
-    forms: _forms,
-    guard: _guard,
-  } = config;
-  const basePath = normalizeFormApiBasePath(
-    basePathOption ?? FORM_API_BASE_PATH,
-  );
+  const forms = (config.forms ?? {}) as Record<string, unknown>;
+  assertFormsConfig(forms);
+
+  const resolved: ResolvedDimahFormConfig = {
+    basePath: normalizeFormApiBasePath(config.basePath ?? FORM_API_BASE_PATH),
+    forms,
+    guard: config.guard,
+    store: createMemoryResponseStore(),
+  };
+
+  const { handler, endpoints } = createFormRouter(coreEndpoints, {
+    config: resolved,
+  });
 
   return {
-    async handler() {
-      return Response.json(
-        {
-          message: "dimah-form handler is not implemented yet",
-          code: FORM_ERROR_CODES.INTERNAL_ERROR.code,
-          basePath,
-        },
-        { status: 501 },
-      );
-    },
-    api: {},
+    handler,
+    api: endpoints,
     $ERROR_CODES: FORM_ERROR_CODES,
     $Infer: undefined as unknown as DimahForm<TPlugins, TForms>["$Infer"],
   };
