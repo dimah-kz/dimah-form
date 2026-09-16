@@ -5,6 +5,7 @@ import { getForm } from "./get-form";
 import { getResponse } from "./get-response";
 import { listForms } from "./list-forms";
 import { listResponses } from "./list-responses";
+import { reopenResponse } from "./reopen-response";
 import { saveDraft } from "./save-draft";
 import { saveForm } from "./save-form";
 import { startResponse } from "./start-response";
@@ -22,6 +23,7 @@ export const coreEndpoints = {
   saveDraft,
   submitResponse,
   abandonResponse,
+  reopenResponse,
   deleteResponse,
 };
 

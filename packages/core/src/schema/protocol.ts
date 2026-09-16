@@ -68,6 +68,11 @@ export const abandonResponseBodySchema = z.strictObject({
   updatedAt: z.string().optional(),
 });
 
+export const reopenResponseBodySchema = z.strictObject({
+  responseId: responseIdSchema,
+  updatedAt: z.string().optional(),
+});
+
 export const deleteResponseBodySchema = z.strictObject({
   responseId: responseIdSchema,
 });

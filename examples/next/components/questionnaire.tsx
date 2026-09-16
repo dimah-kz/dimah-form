@@ -51,7 +51,7 @@ export function Questionnaire({
   const [status, setStatus] = useState(initialStatus);
   const [error, setError] = useState<string>();
   const [issues, setIssues] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState<"save" | "submit">();
+  const [busy, setBusy] = useState<"save" | "submit" | "reopen">();
 
   const locked = status === "submitted" || status === "abandoned";
 
@@ -129,6 +129,26 @@ export function Questionnaire({
     }
   }
 
+  async function onReopen() {
+    if (!id) return;
+    setBusy("reopen");
+    setError(undefined);
+    try {
+      const reopened = await client.reopenResponse({
+        responseId: id,
+        updatedAt,
+      });
+      setStatus(reopened.status);
+      setUpdatedAt(reopened.updatedAt);
+      setAnswers(reopened.answers);
+      setIssues({});
+    } catch (caught) {
+      fail(caught, "Could not reopen");
+    } finally {
+      setBusy(undefined);
+    }
+  }
+
   if (!id && form.status !== "active") {
     return (
       <Alert>
@@ -188,7 +208,19 @@ export function Questionnaire({
             </Alert>
           ) : null}
         </CardContent>
-        {locked ? null : (
+        {locked ? (
+          <CardFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy != null || !id}
+              onClick={() => void onReopen()}
+            >
+              {busy === "reopen" ? <Spinner data-icon="inline-start" /> : null}
+              Edit
+            </Button>
+          </CardFooter>
+        ) : (
           <CardFooter className="gap-2">
             <Button
               type="button"

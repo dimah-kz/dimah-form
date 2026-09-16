@@ -41,6 +41,7 @@ export {
   responseListSchema,
   responseRecordSchema,
   responseStatusSchema,
+  reopenResponseBodySchema,
   responseSummarySchema,
   saveDraftBodySchema,
   saveFormBodySchema,

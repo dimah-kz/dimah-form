@@ -37,6 +37,7 @@ export type DimahFormHooks = {
   onSubmit?: (context: ResponseHookContext) => MaybePromise<void>;
   onSaveForm?: (context: FormHookContext) => MaybePromise<void>;
   onAbandon?: (context: ResponseHookContext) => MaybePromise<void>;
+  onReopen?: (context: ResponseHookContext) => MaybePromise<void>;
   onDeleteResponse?: (context: ResponseHookContext) => MaybePromise<void>;
   onDeleteForm?: (context: FormHookContext) => MaybePromise<void>;
   /** After persist. Skip irreversible I/O in `on*` — use these instead. */
@@ -45,6 +46,7 @@ export type DimahFormHooks = {
   afterSubmit?: (context: ResponseHookContext) => MaybePromise<void>;
   afterSaveForm?: (context: FormHookContext) => MaybePromise<void>;
   afterAbandon?: (context: ResponseHookContext) => MaybePromise<void>;
+  afterReopen?: (context: ResponseHookContext) => MaybePromise<void>;
   afterDeleteResponse?: (context: ResponseHookContext) => MaybePromise<void>;
   afterDeleteForm?: (context: FormHookContext) => MaybePromise<void>;
 };
@@ -55,6 +57,7 @@ export const FORM_HOOK_KEYS = [
   "onSubmit",
   "onSaveForm",
   "onAbandon",
+  "onReopen",
   "onDeleteResponse",
   "onDeleteForm",
   "afterStart",
@@ -62,6 +65,7 @@ export const FORM_HOOK_KEYS = [
   "afterSubmit",
   "afterSaveForm",
   "afterAbandon",
+  "afterReopen",
   "afterDeleteResponse",
   "afterDeleteForm",
 ] as const satisfies readonly (keyof DimahFormHooks)[];

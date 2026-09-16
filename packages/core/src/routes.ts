@@ -25,6 +25,7 @@ export const FORM_API_ROUTES = {
   saveDraft: "/response/draft",
   submitResponse: "/response/submit",
   abandonResponse: "/response/abandon",
+  reopenResponse: "/response/reopen",
   deleteResponse: "/response/delete",
 } as const;
 
@@ -40,6 +41,7 @@ export const FORM_API_OPERATIONS = {
   saveDraft: { method: "POST", path: FORM_API_ROUTES.saveDraft },
   submitResponse: { method: "POST", path: FORM_API_ROUTES.submitResponse },
   abandonResponse: { method: "POST", path: FORM_API_ROUTES.abandonResponse },
+  reopenResponse: { method: "POST", path: FORM_API_ROUTES.reopenResponse },
   deleteResponse: { method: "POST", path: FORM_API_ROUTES.deleteResponse },
 } as const;
 

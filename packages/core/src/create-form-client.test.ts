@@ -98,6 +98,13 @@ describe("createFormClient protocol", () => {
         api.abandonResponse({ responseId: "res-1" }),
     },
     {
+      name: "reopenResponse",
+      method: "POST",
+      path: FORM_API_ROUTES.reopenResponse,
+      run: (api: ReturnType<typeof createFormClient>) =>
+        api.reopenResponse({ responseId: "res-1" }),
+    },
+    {
       name: "deleteResponse",
       method: "POST",
       path: FORM_API_ROUTES.deleteResponse,

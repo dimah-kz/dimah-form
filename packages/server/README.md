@@ -37,4 +37,4 @@ export const form = dimahForm({
 export type Form = typeof form;
 ```
 
-Code-authored `forms` are optional. Dynamic questionnaires use `saveForm` / `getForm` against `database`. Snapshots carry `slug` and `status`. List endpoints are paginated.
+Code-authored `forms` are optional. Dynamic questionnaires use `saveForm` / `getForm` against `database`. Snapshots carry `slug` and `status`. List endpoints are paginated. `reopenResponse` returns a submitted or abandoned response to draft without rewriting its snapshot.

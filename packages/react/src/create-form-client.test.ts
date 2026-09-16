@@ -16,6 +16,7 @@ describe("createFormClient", () => {
     expect(typeof client.listResponses).toBe("function");
     expect(typeof client.saveDraft).toBe("function");
     expect(typeof client.abandonResponse).toBe("function");
+    expect(typeof client.reopenResponse).toBe("function");
     expect(typeof client.deleteForm).toBe("function");
     expect(typeof client.getForm).toBe("function");
     expect(typeof client.getResponse).toBe("function");

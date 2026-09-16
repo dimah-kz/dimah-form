@@ -4,6 +4,7 @@ import { formFetchErrorSchema } from "./error";
 import {
   getFormQuerySchema,
   listResponsesQuerySchema,
+  reopenResponseBodySchema,
   saveDraftBodySchema,
   saveFormBodySchema,
   startResponseBodySchema,
@@ -61,6 +62,13 @@ describe("protocol payloads", () => {
 
   it("allows omitting answers on submit", () => {
     expect(submitResponseBodySchema.parse({ responseId: "r" })).toEqual({
+      responseId: "r",
+    });
+  });
+
+  it("requires responseId on reopen", () => {
+    expect(reopenResponseBodySchema.safeParse({}).success).toBe(false);
+    expect(reopenResponseBodySchema.parse({ responseId: "r" })).toEqual({
       responseId: "r",
     });
   });

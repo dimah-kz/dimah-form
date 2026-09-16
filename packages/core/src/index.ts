@@ -84,6 +84,7 @@ export {
   numberFieldSchema,
   pageFromOverfetch,
   paginateItems,
+  reopenResponseBodySchema,
   responseIdSchema,
   responseListSchema,
   responseRecordSchema,

@@ -156,6 +156,9 @@ export type FormClientApi = {
   abandonResponse: (
     payload: { responseId: string; updatedAt?: string } & ClientHeaders,
   ) => Promise<ResponseRecord>;
+  reopenResponse: (
+    payload: { responseId: string; updatedAt?: string } & ClientHeaders,
+  ) => Promise<ResponseRecord>;
   deleteResponse: (
     payload: { responseId: string } & ClientHeaders,
   ) => Promise<{ ok: true; responseId: string }>;
@@ -189,6 +192,7 @@ const CORE_CLIENT_KEYS = new Set([
   "saveDraft",
   "submitResponse",
   "abandonResponse",
+  "reopenResponse",
   "deleteResponse",
   "$fetch",
   "baseURL",
@@ -322,6 +326,12 @@ export function createFormClient<
     abandonResponse(payload) {
       return post<ResponseRecord>(
         FORM_API_OPERATIONS.abandonResponse.path,
+        payload,
+      );
+    },
+    reopenResponse(payload) {
+      return post<ResponseRecord>(
+        FORM_API_OPERATIONS.reopenResponse.path,
         payload,
       );
     },

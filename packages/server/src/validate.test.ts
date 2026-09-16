@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { isFormErrorCode } from "@dimah-form/core";
 
-import { assertFresh, requireDraft } from "./validate";
+import { assertFresh, requireDraft, requireLocked } from "./validate";
 
 function expectErrorCode(
   run: () => void,
-  code: "RESPONSE_NOT_DRAFT" | "STALE_UPDATE",
+  code: "RESPONSE_NOT_DRAFT" | "RESPONSE_NOT_LOCKED" | "STALE_UPDATE",
 ) {
   try {
     run();
@@ -25,6 +25,24 @@ describe("requireDraft", () => {
     expectErrorCode(
       () => requireDraft({ id: "r1", status: "submitted" }),
       "RESPONSE_NOT_DRAFT",
+    );
+  });
+});
+
+describe("requireLocked", () => {
+  it("allows submitted and abandoned rows", () => {
+    expect(() =>
+      requireLocked({ id: "r1", status: "submitted" }),
+    ).not.toThrow();
+    expect(() =>
+      requireLocked({ id: "r1", status: "abandoned" }),
+    ).not.toThrow();
+  });
+
+  it("rejects draft rows", () => {
+    expectErrorCode(
+      () => requireLocked({ id: "r1", status: "draft" }),
+      "RESPONSE_NOT_LOCKED",
     );
   });
 });

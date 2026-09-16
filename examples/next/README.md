@@ -18,4 +18,4 @@ Open http://localhost:3001
 - `/f/onboarding` — built-in field types (including `email`, `date`, and `showWhen`), rendered with shadcn `Field` widgets
 - Save draft patches answers; Submit replaces them. Both send `updatedAt` for optimistic concurrency
 - `/responses` lists stored answers (`include=full`)
-- `/r/:id` resumes a draft or shows a submitted response
+- `/r/:id` resumes a draft or shows a submitted / abandoned response. Edit calls `reopenResponse` (same snapshot and answers) — it does not start a new response

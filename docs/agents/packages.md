@@ -40,7 +40,7 @@ First-class `database` on `dimahForm()`. Official adapters: `memoryAdapter()` in
 
 `defineForm` does not take `fieldTypes`. Unknown types are allowed in the document and rejected at `dimahForm()` if unregistered. Optional `fieldSchema` is applied at init / `saveForm`.
 
-Draft is a patch (`null` deletes a key). Submit is a full replace, or omit `answers` to submit the stored draft.
+Draft is a patch (`null` deletes a key). Submit is a full replace, or omit `answers` to submit the stored draft. `reopenResponse` returns submitted / abandoned to draft; answers and the snapshot stay.
 
 ## Plugin
 

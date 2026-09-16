@@ -7,6 +7,13 @@ export function requireDraft(row: { id: string; status: string }): void {
   }
 }
 
+/** Reopen-only. Draft rows are already editable. */
+export function requireLocked(row: { id: string; status: string }): void {
+  if (row.status !== "submitted" && row.status !== "abandoned") {
+    throw errors.responseNotLocked(row.id);
+  }
+}
+
 export function assertFresh(
   existing: { updatedAt: string },
   expected?: string,

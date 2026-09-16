@@ -28,6 +28,12 @@ export const errors = {
       params: { responseId },
     }),
 
+  responseNotLocked: (responseId: string) =>
+    APIError.from("CONFLICT", {
+      ...FORM_ERROR_CODES.RESPONSE_NOT_LOCKED,
+      params: { responseId },
+    }),
+
   codeAuthoredForm: (formId: string) =>
     APIError.from("CONFLICT", {
       ...FORM_ERROR_CODES.CODE_AUTHORED_FORM,

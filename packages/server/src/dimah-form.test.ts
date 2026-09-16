@@ -23,6 +23,7 @@ describe("dimahForm instance", () => {
     const form = createInstance();
     expect(typeof form.handler).toBe("function");
     expect(form.api.startResponse).toBeTypeOf("function");
+    expect(form.api.reopenResponse).toBeTypeOf("function");
     expect(form.$ERROR_CODES).toBe(FORM_ERROR_CODES);
   });
 
@@ -532,18 +533,32 @@ describe("hooks and plugins", () => {
         afterSubmit: () => {
           events.push("afterSubmit");
         },
+        onReopen: () => {
+          events.push("onReopen");
+        },
+        afterReopen: () => {
+          events.push("afterReopen");
+        },
       },
     });
     const started = await form.api.startResponse({
       body: { formId: "onboarding" },
     });
-    await form.api.submitResponse({
+    const submitted = await form.api.submitResponse({
       body: {
         responseId: started.id,
         answers: { name: "Ada", ok: true },
       },
     });
-    expect(events).toEqual(["onSubmit", "afterSubmit"]);
+    await form.api.reopenResponse({
+      body: { responseId: submitted.id, updatedAt: submitted.updatedAt },
+    });
+    expect(events).toEqual([
+      "onSubmit",
+      "afterSubmit",
+      "onReopen",
+      "afterReopen",
+    ]);
   });
 
   it("submits stored draft answers when the body omits answers", async () => {
@@ -581,6 +596,115 @@ describe("hooks and plugins", () => {
     ).rejects.toSatisfy((error: unknown) =>
       isFormErrorCode(error, "RESPONSE_NOT_DRAFT"),
     );
+  });
+
+  it("reopens a submitted response without rewriting the snapshot", async () => {
+    const form = createInstance();
+    const started = await form.api.startResponse({
+      body: { formId: "onboarding" },
+    });
+    const answers = { name: "Ada", ok: true };
+    const submitted = await form.api.submitResponse({
+      body: { responseId: started.id, answers },
+    });
+    const reopened = await form.api.reopenResponse({
+      body: {
+        responseId: submitted.id,
+        updatedAt: submitted.updatedAt,
+      },
+    });
+    expect(reopened.status).toBe("draft");
+    expect(reopened.answers).toEqual(answers);
+    expect(reopened.definition).toEqual(submitted.definition);
+    expect(reopened.submittedAt).toBe(submitted.submittedAt);
+  });
+
+  it("reopens an abandoned response to draft", async () => {
+    const form = createInstance();
+    const started = await form.api.startResponse({
+      body: { formId: "onboarding" },
+    });
+    const abandoned = await form.api.abandonResponse({
+      body: { responseId: started.id },
+    });
+    const reopened = await form.api.reopenResponse({
+      body: { responseId: abandoned.id, updatedAt: abandoned.updatedAt },
+    });
+    expect(reopened.status).toBe("draft");
+    expect(reopened.answers).toEqual(started.answers);
+    expect(reopened.definition).toEqual(started.definition);
+  });
+
+  it("rejects reopen on a draft with RESPONSE_NOT_LOCKED", async () => {
+    const form = createInstance();
+    const started = await form.api.startResponse({
+      body: { formId: "onboarding" },
+    });
+    await expect(
+      form.api.reopenResponse({ body: { responseId: started.id } }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "RESPONSE_NOT_LOCKED"),
+    );
+  });
+
+  it("rejects a stale reopen token", async () => {
+    const form = createInstance();
+    const started = await form.api.startResponse({
+      body: { formId: "onboarding" },
+    });
+    const submitted = await form.api.submitResponse({
+      body: {
+        responseId: started.id,
+        answers: { name: "Ada", ok: true },
+      },
+    });
+    await expect(
+      form.api.reopenResponse({
+        body: {
+          responseId: submitted.id,
+          updatedAt: "2000-01-01T00:00:00.000Z",
+        },
+      }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "STALE_UPDATE"),
+    );
+  });
+
+  it("saves a draft and submits again after reopen", async () => {
+    const form = createInstance();
+    const started = await form.api.startResponse({
+      body: { formId: "onboarding" },
+    });
+    const submitted = await form.api.submitResponse({
+      body: {
+        responseId: started.id,
+        answers: { name: "Ada", ok: true },
+      },
+    });
+    const reopened = await form.api.reopenResponse({
+      body: {
+        responseId: submitted.id,
+        updatedAt: submitted.updatedAt,
+      },
+    });
+    const saved = await form.api.saveDraft({
+      body: {
+        responseId: reopened.id,
+        answers: { name: "Bob" },
+        updatedAt: reopened.updatedAt,
+      },
+    });
+    expect(saved.status).toBe("draft");
+    expect(saved.answers).toEqual({ name: "Bob", ok: true });
+    const resubmitted = await form.api.submitResponse({
+      body: {
+        responseId: saved.id,
+        answers: { name: "Bob", ok: false },
+        updatedAt: saved.updatedAt,
+      },
+    });
+    expect(resubmitted.status).toBe("submitted");
+    expect(resubmitted.answers).toEqual({ name: "Bob", ok: false });
   });
 
   it("rejects stale draft updates", async () => {

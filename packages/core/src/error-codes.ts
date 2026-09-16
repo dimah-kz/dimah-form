@@ -26,6 +26,7 @@ export const FORM_ERROR_CODES = defineErrorCodes({
   FORM_INACTIVE: "Form is not active",
   STALE_UPDATE: "Response was updated",
   RESPONSE_NOT_DRAFT: "Response is not a draft",
+  RESPONSE_NOT_LOCKED: "Response is not locked",
   CODE_AUTHORED_FORM: "Cannot modify a code-authored form",
   FORM_HAS_RESPONSES: "Form still has responses",
   SLUG_TAKEN: "Form slug is already in use",
