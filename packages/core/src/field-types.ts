@@ -1,3 +1,5 @@
+import * as z from "zod";
+
 import { defineFieldType, type FieldTypeDefinition } from "./define";
 import {
   booleanFieldSchema,
@@ -8,6 +10,9 @@ import {
   selectFieldSchema,
   textFieldSchema,
 } from "./schema/definition";
+
+/** HTML `type="date"` / ISO calendar date (`YYYY-MM-DD`). */
+const isoDateAnswer = z.iso.date();
 
 function asFiniteNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value)
@@ -25,14 +30,6 @@ function isBlankString(value: unknown): boolean {
 
 function isEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
-
-function isIsoDate(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const date = new Date(`${value}T00:00:00.000Z`);
-  return (
-    !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
-  );
 }
 
 export const textFieldType = defineFieldType({
@@ -167,7 +164,9 @@ export const dateFieldType = defineFieldType({
   isEmpty: (value) => value == null || isBlankString(value),
   validate: (value) => {
     if (typeof value !== "string") return "Expected a string";
-    return isIsoDate(value) ? undefined : "Expected a date";
+    return isoDateAnswer.safeParse(value).success
+      ? undefined
+      : "Expected a date";
   },
   $Infer: "" as string,
 });
