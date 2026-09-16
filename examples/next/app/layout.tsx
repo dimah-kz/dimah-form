@@ -38,7 +38,7 @@ export default function RootLayout({
                 dimah-form
               </Link>
               <nav className="flex gap-3 text-muted-foreground">
-                <Link href="/">Forms</Link>
+                <Link href="/">Form</Link>
                 <Link href="/responses">Responses</Link>
               </nav>
             </header>

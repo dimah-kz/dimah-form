@@ -7,6 +7,7 @@ import {
 } from "@dimah-form/react";
 import type { ReactNode } from "react";
 
+import { StarRating } from "@/components/star-rating";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
@@ -26,7 +27,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { fieldLabel, fieldOptions } from "@/lib/field-display";
+import { Textarea } from "@/components/ui/textarea";
+import { fieldLabel, fieldOptions, ratingMax } from "@/lib/field-display";
 
 function LabeledField({
   field,
@@ -179,6 +181,35 @@ function FormFieldControl({
     );
   }
 
+  if (field.type === "rating") {
+    return (
+      <Field
+        data-invalid={invalid || undefined}
+        data-disabled={disabled || undefined}
+      >
+        <FieldSet>
+          <FieldLegend id={`${field.id}-label`} variant="label">
+            {fieldLabel(field)}
+            {field.required === true ? " *" : ""}
+          </FieldLegend>
+          <StarRating
+            id={field.id}
+            value={value}
+            max={ratingMax(field)}
+            disabled={disabled}
+            invalid={invalid}
+            required={field.required === true}
+            onChange={onChange}
+          />
+        </FieldSet>
+        {typeof field.description === "string" ? (
+          <FieldDescription>{field.description}</FieldDescription>
+        ) : null}
+        <FieldError errors={errors} />
+      </Field>
+    );
+  }
+
   if (field.type === "number") {
     return (
       <LabeledField field={field} issue={issue} disabled={disabled}>
@@ -192,6 +223,22 @@ function FormFieldControl({
             onChange(
               event.target.value === "" ? null : Number(event.target.value),
             )
+          }
+        />
+      </LabeledField>
+    );
+  }
+
+  if (field.type === "text" && field.multiline === true) {
+    return (
+      <LabeledField field={field} issue={issue} disabled={disabled}>
+        <Textarea
+          id={field.id}
+          disabled={disabled}
+          aria-invalid={invalid || undefined}
+          value={typeof value === "string" ? value : ""}
+          onChange={(event) =>
+            onChange(event.target.value === "" ? null : event.target.value)
           }
         />
       </LabeledField>

@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { formClient, respondentId } from "@/lib/client";
+import { fieldTypeRegistry } from "@/lib/field-types";
 import { formErrorMessage, formIssues } from "@/lib/format-error";
 
 export function Questionnaire({
@@ -101,7 +102,12 @@ export function Questionnaire({
   async function onSubmit() {
     setBusy("submit");
     setError(undefined);
-    const localIssues = collectAnswerIssues(form, answers, "submit");
+    const localIssues = collectAnswerIssues(
+      form,
+      answers,
+      "submit",
+      fieldTypeRegistry,
+    );
     if (localIssues.length) {
       setIssues(
         Object.fromEntries(
