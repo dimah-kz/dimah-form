@@ -5,6 +5,8 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Questionnaire } from "@/components/questionnaire";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Spinner } from "@/components/ui/spinner";
 import { formatFormError } from "@/lib/format-error";
 import type { FormSnapshot } from "@dimah-form/core";
 
@@ -23,7 +25,23 @@ export default function FormPage() {
       );
   }, [client, params.formId]);
 
-  if (error) return <p className="text-sm text-destructive">{error}</p>;
-  if (!form) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>Unknown form</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (!form) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Spinner />
+        Loading form
+      </div>
+    );
+  }
+
   return <Questionnaire form={form} />;
 }

@@ -20,7 +20,7 @@ There is no UI package. Field widgets stay in the consumer app.
 
 ## Example
 
-`examples/next` is a Next.js App Router demo: code-authored + dynamic forms, drafts, submit-from-draft, admin list, and Drizzle RC + SQLite via FumaDB.
+`examples/next` is a Next.js App Router demo: one code-authored form, shadcn Field widgets, live answer preview, and Drizzle RC + SQLite via FumaDB.
 
 ```bash
 pnpm install

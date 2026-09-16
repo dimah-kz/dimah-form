@@ -14,7 +14,8 @@ pnpm --filter @dimah-form/example-next dev
 
 Open http://localhost:3001
 
-- `/` lists **active** forms (`slug` + `status`)
-- `/f/onboarding` starts a response (code-authored form: custom `email`, text/number constraints, `select` / `multiSelect`)
-- Draft is a patch; **Submit stored draft** omits `answers` so the server submits what was saved
-- `/admin` uses the demo `guard` (`x-demo-admin`) plus `saveForm` (slug/status), `listForms`, response summaries or `include=full`, abandon/delete, `deleteForm`, and plugin `ping`
+- `/` lists active forms
+- `/f/onboarding` — built-in field types, rendered with shadcn `Field` widgets, plus a live answers preview
+- Save draft patches answers; Submit sends the current answers
+- `/responses` lists stored answers (`include=full`)
+- `/r/:id` resumes a draft or shows a submitted response

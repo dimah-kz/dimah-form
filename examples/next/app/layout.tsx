@@ -13,6 +13,10 @@ const fontMono = Geist_Mono({
   variable: "--font-mono",
 });
 
+export const metadata = {
+  title: "dimah-form",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -26,13 +30,14 @@ export default function RootLayout({
     >
       <body>
         <Providers>
-          <div className="mx-auto flex min-h-svh max-w-3xl flex-col gap-6 p-6">
+          <div className="mx-auto flex min-h-svh max-w-4xl flex-col gap-6 p-6">
             <header className="flex items-center justify-between text-sm">
               <Link href="/" className="font-medium">
-                dimah-form demo
+                dimah-form
               </Link>
               <nav className="flex gap-3 text-muted-foreground">
-                <Link href="/admin">Admin</Link>
+                <Link href="/">Forms</Link>
+                <Link href="/responses">Responses</Link>
               </nav>
             </header>
             {children}

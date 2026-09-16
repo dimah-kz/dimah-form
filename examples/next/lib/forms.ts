@@ -16,9 +16,9 @@ export const forms = {
       },
       {
         id: "email",
-        type: "email",
+        type: "text",
         required: true,
-        label: "Work email",
+        label: "Email",
       },
       {
         id: "age",
