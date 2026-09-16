@@ -8,6 +8,7 @@ import {
 import { expect } from "vitest";
 
 import { dimahForm, type DimahFormConfig } from "@/dimah-form";
+import { memoryAdapter } from "@/store";
 
 export const onboarding = defineForm({
   title: "Onboarding",
@@ -24,10 +25,10 @@ export const onboarding = defineForm({
 });
 
 export function createInstance(overrides: Partial<DimahFormConfig> = {}) {
-  const { forms, ...rest } = overrides;
   return dimahForm({
-    forms: forms ?? { onboarding },
-    ...rest,
+    database: memoryAdapter(),
+    ...overrides,
+    forms: overrides.forms ?? { onboarding },
   });
 }
 

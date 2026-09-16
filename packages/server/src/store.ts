@@ -8,8 +8,11 @@ export type ResponseStore = {
   save: (row: ResponseRecord) => void | Promise<void>;
 };
 
-/** Per-instance in-memory responses. Isolated across `dimahForm()` calls. */
-export function createMemoryResponseStore(): ResponseStore {
+/**
+ * In-memory `database` adapter for tests and local demos.
+ * Isolated across `memoryAdapter()` calls.
+ */
+export function memoryAdapter(): ResponseStore {
   const rows = new Map<string, ResponseRecord>();
   return {
     create(row) {

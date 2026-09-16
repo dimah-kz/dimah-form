@@ -7,9 +7,9 @@ Backend-first questionnaire engine. Consumers own UI, auth, and the database ada
 ```
 @dimah-form/core
         ↓
-@dimah-form/server | @dimah-form/react
+    @dimah-form/server | @dimah-form/react
         ↑
-@dimah-form/db  (peer: server — `db()` plugin)
+@dimah-form/db  (peer: server — `db()` adapter for `database`)
 ```
 
 `apps/` and `examples/*` consume workspace packages (not published) when they exist.
@@ -23,14 +23,14 @@ Edit the **smallest package that owns the behavior**. Search that package before
 | `core`   | Protocol, `createFormClient`, errors, field types |
 | `server` | HTTP, `dimahForm()`, server plugins, adapters     |
 | `react`  | Thin client Provider / hooks                      |
-| `db`     | Optional FumaDB persistence plugin                |
+| `db`     | FumaDB `database` adapter                         |
 
 Shared protocol changes start in `core`, then wire `server` and `react`. Do not copy a parallel schema or URL string into another package.
 
 ## Product shape
 
-- Config is instance-based: `dimahForm({ fieldTypes, forms, plugins, db })`.
-- Plugins merge once in `dimahForm()`. `db()` may replace the in-memory response store (one store plugin).
+- Config is instance-based: `dimahForm({ fieldTypes, forms, database, plugins })`.
+- `database` is required (`memoryAdapter()` or `db()` from `@dimah-form/db`). Plugins merge once in `dimahForm()` and do not replace persistence.
 - Code-authored `forms` feed `$Infer`. Dynamic (DB-only) forms are runtime-validated.
 - Each response stores the definition it was started with. Live questionnaire updates do not rewrite old answers.
 - Custom fields are `defineFieldType` validators, not components.
@@ -42,3 +42,4 @@ Shared protocol changes start in `core`, then wire `server` and `react`. Do not 
 - Import `react` from `server` or `core`.
 - Ship field widgets or a form renderer.
 - Add a questionnaire version table unless a stable public form URL with history is an explicit product requirement.
+- Inject persistence through `plugins` — that slot is additive features only.

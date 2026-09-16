@@ -2,35 +2,31 @@ import { describe, expect, it } from "vitest";
 import { defineForm } from "@dimah-form/core";
 import { dimahForm } from "@dimah-form/server";
 
-import { db } from "./plugin";
+import { db } from "./db";
 
 const onboarding = defineForm({
   title: "Onboarding",
   fields: [{ id: "name", type: "text", required: true }],
 });
 
-describe("db plugin", () => {
-  it("replaces the memory store so start persists on the client store", async () => {
+describe("db adapter", () => {
+  it("wires the client store so start persists", async () => {
     const ids: string[] = [];
     const rows = new Map<string, unknown>();
     const form = dimahForm({
       forms: { onboarding },
-      plugins: [
-        db({
-          client: {
-            create(row) {
-              ids.push(row.id);
-              rows.set(row.id, row);
-            },
-            get(id) {
-              return rows.get(id) as never;
-            },
-            save(row) {
-              rows.set(row.id, row);
-            },
-          },
-        }),
-      ],
+      database: db({
+        create(row) {
+          ids.push(row.id);
+          rows.set(row.id, row);
+        },
+        get(id) {
+          return rows.get(id) as never;
+        },
+        save(row) {
+          rows.set(row.id, row);
+        },
+      }),
     });
 
     const started = await form.api.startResponse({

@@ -12,7 +12,7 @@ export const saveDraft = createFormEndpoint(
   FORM_API_ROUTES.saveDraft,
   { method: "POST", body: saveDraftBodySchema },
   async (ctx): Promise<ResponseRecord> => {
-    const existing = await ctx.context.config.store.get(ctx.body.responseId);
+    const existing = await ctx.context.config.database.get(ctx.body.responseId);
     if (!existing) {
       throw errors.unknownResponse(ctx.body.responseId);
     }
@@ -27,7 +27,7 @@ export const saveDraft = createFormEndpoint(
       answers,
       updatedAt: new Date().toISOString(),
     };
-    await ctx.context.config.store.save(row);
+    await ctx.context.config.database.save(row);
     return row;
   },
 );

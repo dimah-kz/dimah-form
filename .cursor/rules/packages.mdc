@@ -8,7 +8,7 @@ alwaysApply: false
 
 Edit the smallest package that owns the behavior. Shared protocol starts in `core`, then `server` and `react` — no duplicate route strings or schemas.
 
-Auth stays in consumer guards. No ORM in `server`. Feature plugins (e.g. `db()`) live in their own package; merge once in `dimahForm()`. Throw `APIError` and let the router serialize.
+Auth stays in consumer guards. No ORM in `server`. Persistence is `database` (`memoryAdapter()` or `db()` from `@dimah-form/db`), not a plugin. Feature plugins live in their own package; merge once in `dimahForm()`. Throw `APIError` and let the router serialize.
 
 No field widgets. Custom field types are validators that feed `$Infer`.
 

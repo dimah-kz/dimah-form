@@ -8,6 +8,7 @@ import { coreEndpoints, type CoreEndpoints } from "./api/routes";
 import { createFormRouter } from "./api/router";
 import { assertFormsConfig } from "./forms";
 import { applyPlugins } from "./plugin/apply-plugins";
+import type { ResponseStore } from "./store";
 import type {
   DimahFormGuard,
   DimahFormPlugin,
@@ -22,7 +23,12 @@ export type DimahFormConfig<
 > = {
   /** API path prefix for the HTTP `handler`. @default "/api/form" */
   basePath?: string;
-  /** Optional server plugins (e.g. `db()` from `@dimah-form/db`). */
+  /**
+   * Persistence adapter. Use `memoryAdapter()` for tests, or `db()` from
+   * `@dimah-form/db`.
+   */
+  database: ResponseStore;
+  /** Additive feature plugins. Persistence is `database`, not a plugin. */
   plugins?: TPlugins;
   /** Custom field types — validators only, not UI. */
   fieldTypes?: readonly { type: string }[];
@@ -54,17 +60,22 @@ export type DimahForm<
 export function dimahForm<
   const TPlugins extends readonly DimahFormPlugin[] = [],
   const TForms extends Record<string, unknown> = Record<string, unknown>,
->(config: DimahFormConfig<TPlugins, TForms> = {}): DimahForm<TPlugins, TForms> {
+>(config: DimahFormConfig<TPlugins, TForms>): DimahForm<TPlugins, TForms> {
+  if (config.database == null) {
+    throw new Error(
+      "`dimahForm()` requires `database`. Use `memoryAdapter()` from `@dimah-form/server` for tests, or `db()` from `@dimah-form/db` for persistence.",
+    );
+  }
+
   const forms = (config.forms ?? {}) as Record<string, unknown>;
   assertFormsConfig(forms);
-
-  const { store } = applyPlugins(config.plugins);
+  applyPlugins(config.plugins);
 
   const resolved: ResolvedDimahFormConfig = {
     basePath: normalizeFormApiBasePath(config.basePath ?? FORM_API_BASE_PATH),
     forms,
     guard: config.guard,
-    store,
+    database: config.database,
   };
 
   const { handler, endpoints } = createFormRouter(coreEndpoints, {

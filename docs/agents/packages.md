@@ -22,12 +22,17 @@ Packages are unpublished — no changelog until first npm release ([AGENTS.md](.
 
 New HTTP adapter: add it next to existing files in `packages/server/src/adapters/`, export from `package.json`, prefer structural types (no framework peer deps). Public entry stays `dimahForm(config)`.
 
+## Database
+
+First-class `database` on `dimahForm()`. Official adapters: `memoryAdapter()` in `@dimah-form/server`, `db()` in `@dimah-form/db`. A custom `ResponseStore` is allowed. Do not inject persistence through plugins.
+
 ## Plugin
 
-Feature plugins (like `db()`) live in their own package and peer-depend on server.
+Feature plugins live in their own package and peer-depend on server.
 
 - Merge once in `dimahForm()` — never inside an endpoint.
 - Keep ORM off the client entry.
+- Persistence is `database`, not a plugin.
 
 ## Strings and errors
 

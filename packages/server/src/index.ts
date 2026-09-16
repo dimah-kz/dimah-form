@@ -5,7 +5,7 @@ export {
   type DimahFormPlugin,
 } from "./dimah-form";
 export type { DimahFormGuard } from "./types";
-export type { ResponseStore } from "./store";
+export { memoryAdapter, type ResponseStore } from "./store";
 export {
   APIError,
   FORM_ERROR_CODES,

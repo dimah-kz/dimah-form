@@ -27,7 +27,7 @@ This section will be rewritten when packages are published.
 
 - Backend-first. No form renderer, no field widgets, no shadcn registry. Consumers own UI.
 - Protocol SSOT is `@dimah-form/core`. `server` and `react` must not copy route strings or payload schemas.
-- Auth lives in consumer `guard` hooks, not library packages. Optional persistence is `@dimah-form/db` — no ORM inside `server`.
+- Auth lives in consumer `guard` hooks, not library packages. Persistence is the `database` adapter on `dimahForm()` — `@dimah-form/db` is FumaDB, `memoryAdapter()` is for tests. No ORM inside `server`.
 - A response stores a **definition snapshot** plus answers. Submit validates against that snapshot, not the live questionnaire. Do not add a version table unless the product explicitly needs one.
 - Custom field types are server validators (`defineFieldType`) that feed `$Infer`. They are not React components.
 - API errors: stable `code` + English `message`.

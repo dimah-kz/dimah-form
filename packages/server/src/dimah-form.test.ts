@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { defineForm, isFormErrorCode } from "@dimah-form/core";
 
+import { dimahForm } from "./dimah-form";
 import { APIError } from "./errors";
+import { memoryAdapter } from "./store";
 import {
   apiUrl,
   createInstance,
@@ -13,7 +15,6 @@ import {
   jsonRequest,
   onboarding,
 } from "./test/harness";
-import { createMemoryResponseStore } from "./store";
 
 describe("dimahForm instance", () => {
   it("exposes handler, api, and the error catalog", () => {
@@ -23,28 +24,30 @@ describe("dimahForm instance", () => {
     expect(form.$ERROR_CODES).toBe(FORM_ERROR_CODES);
   });
 
-  it("uses a plugin-provided response store", async () => {
+  it("uses the configured database adapter", async () => {
     const created: string[] = [];
-    const memory = createMemoryResponseStore();
+    const memory = memoryAdapter();
     const form = createInstance({
-      plugins: [
-        {
-          id: "db",
-          store: {
-            create(row) {
-              created.push(row.id);
-              return memory.create(row);
-            },
-            get: (id) => memory.get(id),
-            save: (row) => memory.save(row),
-          },
+      database: {
+        create(row) {
+          created.push(row.id);
+          return memory.create(row);
         },
-      ],
+        get: (id) => memory.get(id),
+        save: (row) => memory.save(row),
+      },
     });
     const started = await form.api.startResponse({
       body: { formId: "onboarding" },
     });
     expect(created).toEqual([started.id]);
+  });
+
+  it("throws when database is missing", () => {
+    expect(() => {
+      // @ts-expect-error database is required
+      dimahForm({ forms: { onboarding } });
+    }).toThrow(/requires `database`/);
   });
 
   it("throws when a configured form is invalid", () => {

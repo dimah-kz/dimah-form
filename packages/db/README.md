@@ -1,13 +1,13 @@
 # @dimah-form/db
 
-Optional FumaDB persistence for dimah-form. `db()` replaces the in-memory response store.
+FumaDB adapter for dimah-form. Pass `db(client)` as `database`.
 
 ```ts
 import { DimahFormDB, db } from "@dimah-form/db";
 import { dimahForm } from "@dimah-form/server";
 
 const form = dimahForm({
+  database: db(DimahFormDB.client(adapter)),
   forms,
-  plugins: [db({ client: DimahFormDB.client(adapter) })],
 });
 ```

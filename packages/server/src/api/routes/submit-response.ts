@@ -12,7 +12,7 @@ export const submitResponse = createFormEndpoint(
   FORM_API_ROUTES.submitResponse,
   { method: "POST", body: submitResponseBodySchema },
   async (ctx): Promise<ResponseRecord> => {
-    const existing = await ctx.context.config.store.get(ctx.body.responseId);
+    const existing = await ctx.context.config.database.get(ctx.body.responseId);
     if (!existing) {
       throw errors.unknownResponse(ctx.body.responseId);
     }
@@ -30,7 +30,7 @@ export const submitResponse = createFormEndpoint(
       submittedAt: now,
       updatedAt: now,
     };
-    await ctx.context.config.store.save(row);
+    await ctx.context.config.database.save(row);
     return row;
   },
 );

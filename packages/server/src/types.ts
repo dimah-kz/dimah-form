@@ -4,10 +4,9 @@ export type DimahFormGuard = (context: {
   request: Request;
 }) => Promise<void> | void;
 
+/** Additive feature plugin. Persistence is `database`, not a plugin. */
 export type DimahFormPlugin = {
   readonly id: string;
-  /** Replaces the in-memory response store. Only one plugin may set this. */
-  store?: ResponseStore;
 };
 
 export type ResolvedDimahFormConfig = {
@@ -15,5 +14,5 @@ export type ResolvedDimahFormConfig = {
   /** Live catalog — read on get/start, not copied at init. */
   forms: Record<string, unknown>;
   guard?: DimahFormGuard;
-  store: ResponseStore;
+  database: ResponseStore;
 };
