@@ -1,0 +1,62 @@
+{
+  "name": "@dimah-form/react",
+  "version": "0.0.0",
+  "description": "Thin React client for dimah-form — Provider and protocol access",
+  "keywords": [
+    "form",
+    "questionnaire",
+    "react",
+    "typescript"
+  ],
+  "author": "Hamidrezakz",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dimah-kz/dimah-form.git",
+    "directory": "packages/react"
+  },
+  "homepage": "https://github.com/dimah-kz/dimah-form",
+  "bugs": {
+    "url": "https://github.com/dimah-kz/dimah-form/issues"
+  },
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup --config tsup.config.ts && tsc --emitDeclarationOnly -p tsconfig.build.json && tsc-alias",
+    "lint": "eslint --max-warnings 0",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@dimah-form/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "@workspace/vitest-config": "workspace:*",
+    "eslint": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "tsc-alias": "^1.9.5",
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

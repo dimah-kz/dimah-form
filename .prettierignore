@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+.next/
+out/
+build/
+.turbo/
+
+# Lock files
+pnpm-lock.yaml
+
+# Coverage
+coverage/
+
+# Misc
+*.tsbuildinfo

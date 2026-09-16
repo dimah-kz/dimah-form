@@ -1,0 +1,21 @@
+---
+description: Library packages — placement and protocol sync; read docs/agents when changing published behavior
+globs: packages/core/**/*,packages/server/**/*,packages/react/**/*,packages/db/**/*
+alwaysApply: false
+---
+
+# Library packages
+
+Edit the smallest package that owns the behavior. Shared protocol starts in `core`, then `server` and `react` — no duplicate route strings or schemas.
+
+Auth stays in consumer guards. No ORM in `server`. Feature plugins (e.g. `db()`) live in their own package; merge once in `dimahForm()`. Throw `APIError` and let the router serialize.
+
+No field widgets. Custom field types are validators that feed `$Infer`.
+
+Responses snapshot the definition they started with. Do not validate old answers against the live questionnaire.
+
+**When adding a package or moving behavior across packages, Read** [docs/agents/architecture.md](docs/agents/architecture.md).
+
+**When changing published API, protocol, endpoints, plugins, or hooks, Read** [docs/agents/packages.md](docs/agents/packages.md).
+
+For a local fix, match the surrounding code.

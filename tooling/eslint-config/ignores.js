@@ -1,0 +1,19 @@
+/** Build artifacts and generated files — shared by all ESLint configs. */
+export const ignorePatterns = [
+  "**/node_modules/**",
+  "**/dist/**",
+  "**/.next/**",
+  "**/.source/**",
+  "**/out/**",
+  "**/build/**",
+  "**/.turbo/**",
+  "**/coverage/**",
+  "**/.vitest/**",
+  "**/next-env.d.ts",
+  "**/tsup.config.bundled_*.mjs",
+];
+
+/** @type {import("eslint").Linter.Config} */
+export const globalIgnores = {
+  ignores: ignorePatterns,
+};

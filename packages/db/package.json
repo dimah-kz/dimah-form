@@ -1,0 +1,63 @@
+{
+  "name": "@dimah-form/db",
+  "version": "0.0.0",
+  "description": "Optional FumaDB plugin for dimah-form — questionnaires and responses",
+  "keywords": [
+    "form",
+    "questionnaire",
+    "fumadb",
+    "drizzle",
+    "prisma",
+    "typescript"
+  ],
+  "author": "Hamidrezakz",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dimah-kz/dimah-form.git",
+    "directory": "packages/db"
+  },
+  "homepage": "https://github.com/dimah-kz/dimah-form",
+  "bugs": {
+    "url": "https://github.com/dimah-kz/dimah-form/issues"
+  },
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup --config tsup.config.ts && tsc --emitDeclarationOnly -p tsconfig.build.json && tsc-alias",
+    "lint": "eslint --max-warnings 0",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "fumadb": "catalog:",
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "@dimah-form/server": "0.0.0"
+  },
+  "devDependencies": {
+    "@dimah-form/server": "workspace:*",
+    "@types/node": "^24.5.2",
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "@workspace/vitest-config": "workspace:*",
+    "eslint": "catalog:",
+    "tsc-alias": "^1.9.5",
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,33 @@
+# dimah-form
+
+**Backend-first questionnaires for the React ecosystem.**
+
+Server instance, typed protocol client, and optional [FumaDB](https://github.com/fuma-nama/fumadb) persistence.
+You own rendering. The library owns definition snapshots, drafts, and submit validation.
+
+Same stack as [dimah-s3](https://github.com/dimah-kz/dimah-s3): pnpm + Turbo, `better-call`, `@better-fetch/fetch`, Zod, Tegami.
+
+## Packages
+
+| Package              | Role                                                  |
+| -------------------- | ----------------------------------------------------- |
+| `@dimah-form/core`   | Protocol, error catalog, typed fetch client           |
+| `@dimah-form/server` | `dimahForm()` — HTTP `handler` + `api`                |
+| `@dimah-form/db`     | Optional FumaDB plugin (`questionnaire` + `response`) |
+| `@dimah-form/react`  | Thin React client (`Provider` / hooks later)          |
+
+There is no UI package. Field widgets stay in the consumer app.
+
+## Develop
+
+```bash
+pnpm install
+pnpm build
+pnpm check-types
+pnpm lint
+pnpm test
+```
+
+## License
+
+MIT
