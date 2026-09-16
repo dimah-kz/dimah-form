@@ -12,6 +12,10 @@ Keep these in lockstep (same paths, same payloads — no duplicate route strings
 
 Browser client uses object args; server `form.api` is the better-call map. Match existing call sites.
 
+Consumer apps import from the package they already use: `@dimah-form/server` in server modules, `@dimah-form/react` in UI. `core` is for protocol/plugin authors.
+
+`createFormClient<typeof form>()` (or `createFormClient<Form>()` with `export type Form = typeof form`) copies server `$Infer` onto the client. Do not pass the server instance at runtime.
+
 Packages are unpublished — no changelog until first npm release ([AGENTS.md](../../AGENTS.md)).
 
 ## Endpoint
@@ -24,7 +28,7 @@ New HTTP adapter: add it next to existing files in `packages/server/src/adapters
 
 ## Database
 
-First-class `database` on `dimahForm()`. Official adapters: `memoryAdapter()` in `@dimah-form/server`, `db()` in `@dimah-form/db`. A custom `ResponseStore` is allowed. Do not inject persistence through plugins.
+First-class `database` on `dimahForm()`. Official adapters: `memoryAdapter()` in `@dimah-form/server`, `db()` in `@dimah-form/db`. A custom `ResponseStore` is allowed — pass it to `database` directly, not through `db()`. Do not inject persistence through plugins.
 
 `getForm` / `startResponse` resolve code-authored `forms` first (id then slug), then `database.getForm`. `saveForm` upserts the live questionnaire. Starting a response inserts the parent questionnaire row if it is missing and never overwrites the live definition.
 
@@ -32,7 +36,7 @@ First-class `database` on `dimahForm()`. Official adapters: `memoryAdapter()` in
 
 ## Field types
 
-`defineFieldType` lives in `@dimah-form/core`. Register extra types on `dimahForm({ fieldTypes })` — that instance is the registry. Built-ins are field types too; duplicate `type` strings throw at init.
+`defineFieldType` lives in `@dimah-form/core` and is re-exported from `server` / `react`. Register extra types on `dimahForm({ fieldTypes })` — that instance is the registry. Built-ins are field types too; duplicate `type` strings throw at init.
 
 `defineForm` does not take `fieldTypes`. Unknown types are allowed in the document and rejected at `dimahForm()` if unregistered. Optional `fieldSchema` is applied at init / `saveForm`.
 

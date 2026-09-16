@@ -8,3 +8,5 @@ export const form = dimahForm({
   database: db(formDb),
   forms,
 });
+
+export type Form = typeof form;

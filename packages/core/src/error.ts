@@ -2,11 +2,7 @@ import { APIError as BetterCallAPIError } from "better-call/error";
 import { type FormErrorCode } from "./error-codes";
 import type { ValidationIssue } from "./schema/error";
 
-export {
-  defineErrorCodes,
-  FORM_ERROR_CODES,
-  type FormErrorCode,
-} from "./error-codes";
+export { FORM_ERROR_CODES, type FormErrorCode } from "./error-codes";
 
 type NamedStatus = ConstructorParameters<typeof BetterCallAPIError>[0];
 type APIErrorStatus = NamedStatus | number;
@@ -67,10 +63,6 @@ export class APIError extends BetterCallAPIError {
       ...(error.params !== undefined ? { params: error.params } : {}),
       ...(error.issues !== undefined ? { issues: error.issues } : {}),
     });
-  }
-
-  static fromStatus(status: APIErrorStatus, body?: APIErrorBody): APIError {
-    return new APIError(status, body);
   }
 }
 

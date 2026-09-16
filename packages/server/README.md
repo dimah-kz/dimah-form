@@ -3,15 +3,22 @@
 `dimahForm()` — HTTP `handler` and better-call `api`.
 
 ```ts
-import { dimahForm, memoryAdapter } from "@dimah-form/server";
 import { db, DimahFormDB } from "@dimah-form/db";
+import { dimahForm, defineForm, memoryAdapter } from "@dimah-form/server";
+
+const forms = {
+  onboarding: defineForm({
+    title: "Onboarding",
+    fields: [{ id: "name", type: "text", required: true }],
+  }),
+};
 
 const tests = dimahForm({
   database: memoryAdapter(),
   forms,
 });
 
-const prod = dimahForm({
+export const form = dimahForm({
   database: db(DimahFormDB.client(adapter)),
   forms,
   guard: async ({ request, operation }) => {
@@ -26,6 +33,8 @@ const prod = dimahForm({
     },
   },
 });
+
+export type Form = typeof form;
 ```
 
 Code-authored `forms` are optional. Dynamic questionnaires use `saveForm` / `getForm` against `database`. Snapshots carry `slug` and `status`. List endpoints are paginated.

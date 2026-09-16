@@ -1,7 +1,13 @@
 "use client";
 
-import type { FormAnswers, FormSnapshot } from "@dimah-form/core";
-import { useFormClient } from "@dimah-form/react";
+import {
+  applyAnswerPatch,
+  collectAnswerIssues,
+  seedDefaultAnswers,
+  type FormAnswers,
+  type FormSnapshot,
+  type ResponseStatus,
+} from "@dimah-form/react";
 import { CircleAlertIcon, CircleCheckIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -19,36 +25,35 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import { respondentId } from "@/lib/client";
-import { formatFormError, formIssues } from "@/lib/format-error";
+import { formClient, respondentId } from "@/lib/client";
+import { formErrorMessage, formIssues } from "@/lib/format-error";
 
 export function Questionnaire({
   form,
   responseId,
-  initialAnswers = {},
+  initialAnswers,
   initialStatus = "draft",
   initialUpdatedAt,
 }: {
   form: FormSnapshot;
   responseId?: string;
   initialAnswers?: FormAnswers;
-  initialStatus?: string;
+  initialStatus?: ResponseStatus;
   initialUpdatedAt?: string;
 }) {
-  const client = useFormClient();
+  const client = formClient.useFormClient();
   const router = useRouter();
   const [id, setId] = useState(responseId);
-  const [answers, setAnswers] = useState<FormAnswers>(initialAnswers);
-  const [updatedAt, setUpdatedAt] = useState<string | undefined>(
-    initialUpdatedAt,
+  const [answers, setAnswers] = useState<FormAnswers>(
+    () => initialAnswers ?? seedDefaultAnswers(form),
   );
+  const [updatedAt, setUpdatedAt] = useState(initialUpdatedAt);
   const [status, setStatus] = useState(initialStatus);
   const [error, setError] = useState<string>();
   const [issues, setIssues] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<"save" | "submit">();
 
   const locked = status === "submitted" || status === "abandoned";
-  const canStart = form.status === "active";
 
   function fail(caught: unknown, fallback: string) {
     const nextIssues = formIssues(caught);
@@ -58,7 +63,7 @@ export function Questionnaire({
       return;
     }
     setIssues({});
-    setError(formatFormError(caught, fallback));
+    setError(formErrorMessage(caught, fallback));
   }
 
   async function ensureResponse() {
@@ -96,6 +101,16 @@ export function Questionnaire({
   async function onSubmit() {
     setBusy("submit");
     setError(undefined);
+    const localIssues = collectAnswerIssues(form, answers, "submit");
+    if (localIssues.length) {
+      setIssues(
+        Object.fromEntries(
+          localIssues.map((issue) => [issue.field, issue.message]),
+        ),
+      );
+      setBusy(undefined);
+      return;
+    }
     try {
       const current = await ensureResponse();
       const submitted = await client.submitResponse({
@@ -114,7 +129,7 @@ export function Questionnaire({
     }
   }
 
-  if (!id && !canStart) {
+  if (!id && form.status !== "active") {
     return (
       <Alert>
         <CircleAlertIcon />
@@ -134,7 +149,7 @@ export function Questionnaire({
           <CardDescription>
             {typeof form.description === "string"
               ? form.description
-              : `${form.slug} · widgets are yours, validation is the snapshot on the response`}
+              : `${form.slug} · widgets are yours, validation is the snapshot`}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -160,15 +175,9 @@ export function Questionnaire({
             issues={issues}
             disabled={locked || busy != null}
             onChange={(fieldId, value) =>
-              setAnswers((current) => {
-                const next = { ...current };
-                if (value === null || value === undefined) {
-                  delete next[fieldId];
-                } else {
-                  next[fieldId] = value;
-                }
-                return next;
-              })
+              setAnswers((current) =>
+                applyAnswerPatch(current, { [fieldId]: value }),
+              )
             }
           />
           {error ? (

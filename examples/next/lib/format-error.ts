@@ -1,24 +1,12 @@
-import { isAPIError, isFormErrorCode } from "@dimah-form/core";
+import { isAPIError } from "@dimah-form/core";
 
-export function formIssues(caught: unknown): Record<string, string> {
-  if (!isAPIError(caught) || !caught.issues?.length) return {};
+export function formIssues(error: unknown): Record<string, string> {
+  if (!isAPIError(error) || !error.issues?.length) return {};
   return Object.fromEntries(
-    caught.issues.map((issue) => [issue.field, issue.message]),
+    error.issues.map((issue) => [issue.field, issue.message]),
   );
 }
 
-export function formatFormError(caught: unknown, fallback: string) {
-  if (!isAPIError(caught)) return fallback;
-  if (isFormErrorCode(caught, "STALE_UPDATE")) {
-    return "This response changed on the server. Reload and try again.";
-  }
-  if (isFormErrorCode(caught, "FORM_INACTIVE")) {
-    return "This form is not accepting new responses.";
-  }
-  if (caught.issues?.length) {
-    return caught.issues
-      .map((issue) => `${issue.field}: ${issue.message}`)
-      .join(" · ");
-  }
-  return caught.message || fallback;
+export function formErrorMessage(error: unknown, fallback = "Request failed") {
+  return isAPIError(error) ? error.message : fallback;
 }

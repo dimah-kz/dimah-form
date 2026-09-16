@@ -1,6 +1,6 @@
 # @dimah-form/db
 
-FumaDB adapter for dimah-form. Pass `db(client)` as `database`.
+FumaDB adapter for dimah-form. Pass `db(client)` as `database`. Custom stores go to `dimahForm({ database })` directly.
 
 ```ts
 import { DimahFormDB, db } from "@dimah-form/db";

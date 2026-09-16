@@ -1,48 +1,22 @@
-"use client";
-
-import type { ResponseRecord } from "@dimah-form/core";
-import { useFormClient } from "@dimah-form/react";
-import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { isFormErrorCode } from "@dimah-form/server";
+import { notFound } from "next/navigation";
 
 import { Questionnaire } from "@/components/questionnaire";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Spinner } from "@/components/ui/spinner";
-import { formatFormError } from "@/lib/format-error";
+import { form } from "@/lib/form";
 
-export default function ResponsePage() {
-  const params = useParams<{ responseId: string }>();
-  const client = useFormClient();
-  const [row, setRow] = useState<ResponseRecord>();
-  const [error, setError] = useState<string>();
-
-  useEffect(() => {
-    client
-      .getResponse({ responseId: params.responseId })
-      .then(setRow)
-      .catch((caught: unknown) =>
-        setError(formatFormError(caught, "Unknown response")),
-      );
-  }, [client, params.responseId]);
-
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertTitle>Unknown response</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    );
+export default async function ResponsePage({
+  params,
+}: {
+  params: Promise<{ responseId: string }>;
+}) {
+  const { responseId } = await params;
+  let row;
+  try {
+    row = await form.api.getResponse({ query: { responseId } });
+  } catch (error) {
+    if (isFormErrorCode(error, "UNKNOWN_RESPONSE")) notFound();
+    throw error;
   }
-
-  if (!row) {
-    return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Spinner />
-        Loading response
-      </div>
-    );
-  }
-
   return (
     <Questionnaire
       form={row.definition}

@@ -18,6 +18,8 @@ Same stack as [dimah-s3](https://github.com/dimah-kz/dimah-s3): pnpm + Turbo, `b
 
 There is no UI package. Field widgets stay in the consumer app.
 
+Apps import from the package they already use: `@dimah-form/server` on the server, `@dimah-form/react` in the browser. Share `$Infer` with `export type Form = typeof form` and `createFormClient<Form>()`.
+
 ## Example
 
 `examples/next` is a Next.js App Router demo: one code-authored form, shadcn Field widgets, live answer preview, and Drizzle RC + SQLite via FumaDB.

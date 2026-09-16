@@ -45,7 +45,7 @@ describe("createFormClient", () => {
       return useFormClient().baseURL;
     }
     expect(() => renderToString(createElement(Probe))).toThrow(
-      /useFormClient must be used under FormClient.Provider/,
+      /useFormClient must be used under formClient.Provider/,
     );
   });
 });

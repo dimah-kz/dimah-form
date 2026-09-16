@@ -13,7 +13,7 @@ import {
 } from "./client-plugin";
 import {
   FORM_API_BASE_PATH,
-  FORM_API_ROUTES,
+  FORM_API_OPERATIONS,
   normalizeFormApiBasePath,
 } from "./routes";
 import type { FormSnapshot, FormStatus } from "./schema/definition";
@@ -26,6 +26,31 @@ import type {
 } from "./schema/protocol";
 
 export { defineClientPlugin, type FormClientPlugin };
+
+/**
+ * `dimahForm()` instance shape for `createFormClient<typeof form>()`.
+ * Type-only — never pass the server instance at runtime.
+ */
+export type FormServerLike = {
+  readonly $Infer: {
+    forms: Record<string, unknown>;
+    answers: unknown;
+  };
+};
+
+type InferClientForms<TServer, TForms> = TServer extends {
+  $Infer: { forms: infer F extends Record<string, unknown> };
+}
+  ? F
+  : TForms;
+
+type InferClientAnswers<
+  TServer,
+  TForms extends Record<string, unknown>,
+  TFieldTypes extends readonly FieldTypeDefinition[],
+> = TServer extends { $Infer: { answers: infer A } }
+  ? A
+  : InferAnswersMap<TForms, TFieldTypes>;
 
 export type CreateFormClientOptions<
   TPlugins extends readonly FormClientPlugin[] = readonly FormClientPlugin[],
@@ -44,11 +69,12 @@ export type CreateFormClientOptions<
   plugins?: TPlugins;
   /**
    * Code-authored catalog for `$Infer` only — not sent over the network.
-   * Pass the same `forms` map the server uses.
+   * Skip this when using `createFormClient<typeof form>()`.
    */
   forms?: TForms;
   /**
    * Custom field types for `$Infer` only — not sent over the network.
+   * Skip this when using `createFormClient<typeof form>()`.
    */
   fieldTypes?: TFieldTypes;
 } & FormClientFetchOptions;
@@ -139,14 +165,15 @@ export type CreateFormClientResult<
   TPlugins extends readonly FormClientPlugin[] = [],
   TForms extends Record<string, unknown> = Record<string, unknown>,
   TFieldTypes extends readonly FieldTypeDefinition[] = [],
+  TServer = undefined,
 > = FormClientApi &
   ClientPluginEndpointMap<TPlugins> & {
     $fetch: FormFetch;
     baseURL: string;
     $ERROR_CODES: typeof FORM_ERROR_CODES;
     $Infer: {
-      forms: TForms;
-      answers: InferAnswersMap<TForms, TFieldTypes>;
+      forms: InferClientForms<TServer, TForms>;
+      answers: InferClientAnswers<TServer, TForms, TFieldTypes>;
       plugins: TPlugins;
     };
   };
@@ -169,14 +196,26 @@ const CORE_CLIENT_KEYS = new Set([
   "$Infer",
 ]);
 
-/** Typed better-fetch client for the questionnaire protocol. */
+/**
+ * Typed better-fetch client for the questionnaire protocol.
+ *
+ * Prefer `createFormClient<typeof form>()` so `$Infer` matches the server
+ * catalog (including plugin field types) without sending `forms` to the browser.
+ *
+ * @example
+ * ```ts
+ * export type Form = typeof form;
+ * export const formClient = createFormClient<Form>();
+ * ```
+ */
 export function createFormClient<
+  TServer extends FormServerLike | undefined = undefined,
   const TPlugins extends readonly FormClientPlugin[] = [],
   const TForms extends Record<string, unknown> = Record<string, unknown>,
   const TFieldTypes extends readonly FieldTypeDefinition[] = [],
 >(
   options: CreateFormClientOptions<TPlugins, TForms, TFieldTypes> = {},
-): CreateFormClientResult<TPlugins, TForms, TFieldTypes> {
+): CreateFormClientResult<TPlugins, TForms, TFieldTypes, TServer> {
   const {
     basePath,
     baseURL,
@@ -214,59 +253,81 @@ export function createFormClient<
     $fetch: FormFetch;
     baseURL: string;
     $ERROR_CODES: typeof FORM_ERROR_CODES;
-    $Infer: CreateFormClientResult<TPlugins, TForms, TFieldTypes>["$Infer"];
+    $Infer: CreateFormClientResult<
+      TPlugins,
+      TForms,
+      TFieldTypes,
+      TServer
+    >["$Infer"];
   } = {
     getForm(payload) {
-      return get<FormSnapshot>(FORM_API_ROUTES.form, payload, {
+      return get<FormSnapshot>(FORM_API_OPERATIONS.getForm.path, payload, {
         formId: payload.formId,
       });
     },
     saveForm(payload) {
-      return post<FormSnapshot>(FORM_API_ROUTES.form, payload);
+      return post<FormSnapshot>(FORM_API_OPERATIONS.saveForm.path, payload);
     },
     deleteForm(payload) {
       return post<{ ok: true; formId: string }>(
-        FORM_API_ROUTES.deleteForm,
+        FORM_API_OPERATIONS.deleteForm.path,
         payload,
       );
     },
     listForms(payload = {}) {
-      return get<FormList>(FORM_API_ROUTES.forms, payload, {
+      return get<FormList>(FORM_API_OPERATIONS.listForms.path, payload, {
         status: payload.status,
         limit: payload.limit,
         offset: payload.offset,
       });
     },
     startResponse(payload) {
-      return post<ResponseRecord>(FORM_API_ROUTES.startResponse, payload);
+      return post<ResponseRecord>(
+        FORM_API_OPERATIONS.startResponse.path,
+        payload,
+      );
     },
     getResponse(payload) {
-      return get<ResponseRecord>(FORM_API_ROUTES.getResponse, payload, {
-        responseId: payload.responseId,
-      });
+      return get<ResponseRecord>(
+        FORM_API_OPERATIONS.getResponse.path,
+        payload,
+        {
+          responseId: payload.responseId,
+        },
+      );
     },
     listResponses(payload = {}) {
-      return get<ResponseList>(FORM_API_ROUTES.responses, payload, {
-        formId: payload.formId,
-        respondentId: payload.respondentId,
-        status: payload.status,
-        include: payload.include,
-        limit: payload.limit,
-        offset: payload.offset,
-      });
+      return get<ResponseList>(
+        FORM_API_OPERATIONS.listResponses.path,
+        payload,
+        {
+          formId: payload.formId,
+          respondentId: payload.respondentId,
+          status: payload.status,
+          include: payload.include,
+          limit: payload.limit,
+          offset: payload.offset,
+        },
+      );
     },
     saveDraft(payload) {
-      return post<ResponseRecord>(FORM_API_ROUTES.saveDraft, payload);
+      return post<ResponseRecord>(FORM_API_OPERATIONS.saveDraft.path, payload);
     },
     submitResponse(payload) {
-      return post<ResponseRecord>(FORM_API_ROUTES.submitResponse, payload);
+      return post<ResponseRecord>(
+        FORM_API_OPERATIONS.submitResponse.path,
+        payload,
+      );
     },
     abandonResponse(payload) {
-      return post<ResponseRecord>(FORM_API_ROUTES.abandonResponse, payload);
+      return post<ResponseRecord>(
+        FORM_API_OPERATIONS.abandonResponse.path,
+        payload,
+      );
     },
     deleteResponse(payload) {
       return post<{ ok: true; responseId: string }>(
-        FORM_API_ROUTES.deleteResponse,
+        FORM_API_OPERATIONS.deleteResponse.path,
         payload,
       );
     },
@@ -276,7 +337,8 @@ export function createFormClient<
     $Infer: undefined as unknown as CreateFormClientResult<
       TPlugins,
       TForms,
-      TFieldTypes
+      TFieldTypes,
+      TServer
     >["$Infer"],
   };
 
@@ -302,6 +364,7 @@ export function createFormClient<
   return api as unknown as CreateFormClientResult<
     TPlugins,
     TForms,
-    TFieldTypes
+    TFieldTypes,
+    TServer
   >;
 }

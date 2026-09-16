@@ -1,11 +1,11 @@
-import { defineForm } from "@dimah-form/core";
+import { defineForm } from "@dimah-form/server";
 
 export const forms = {
   onboarding: defineForm({
     title: "Onboarding",
     slug: "onboarding",
     status: "active",
-    description: "Widgets are yours. Validation uses the response snapshot.",
+    description: "Widgets are yours. Submit validates the response snapshot.",
     fields: [
       {
         id: "name",
@@ -17,14 +17,20 @@ export const forms = {
       },
       {
         id: "email",
-        type: "text",
+        type: "email",
         required: true,
         label: "Email",
+      },
+      {
+        id: "startDate",
+        type: "date",
+        label: "Start date",
       },
       {
         id: "age",
         type: "number",
         label: "Age",
+        description: "13–120",
         min: 13,
         max: 120,
         integer: true,
@@ -33,11 +39,19 @@ export const forms = {
         id: "role",
         type: "select",
         label: "Role",
+        defaultValue: "eng",
         options: [
           { value: "eng", label: "Engineer" },
           { value: "pm", label: "Product" },
           { value: "design", label: "Design" },
         ],
+      },
+      {
+        id: "team",
+        type: "text",
+        label: "Team",
+        description: "Shown when role is Engineer",
+        showWhen: { field: "role", equals: "eng" },
       },
       {
         id: "interests",

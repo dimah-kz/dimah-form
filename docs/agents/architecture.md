@@ -35,6 +35,7 @@ Shared protocol changes start in `core`, then wire `server` and `react`. Do not 
 - Draft answers are a patch (`null` deletes a key). Submit replaces the whole answers object, or omits `answers` to submit the stored draft. Optional `updatedAt` on draft/submit/abandon is optimistic concurrency (`STALE_UPDATE`).
 - `database` is required (`memoryAdapter()` or `db()` from `@dimah-form/db`). Plugins merge once in `dimahForm()` and do not replace persistence.
 - Code-authored `forms` feed `$Infer`. `getForm` / `startResponse` read config first, then the live questionnaire row. `saveForm` writes that row and cannot overwrite a code-authored id.
+- Browser `$Infer` is `createFormClient<typeof form>()` (type-only). Apps import from `server` or `react`; `core` is protocol/plugin internals.
 - Each response stores the definition it was started with. Submit validates that snapshot. Starting a response does not rewrite the live questionnaire row.
 - Domain hooks: `on*` after validation before persist; `after*` after persist. Auth stays in `guard`.
 - Custom fields are `defineFieldType` validators, not components.

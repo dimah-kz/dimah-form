@@ -2,4 +2,4 @@
 
 Protocol, error catalog, and typed fetch client for dimah-form.
 
-`createFormClient({ plugins })` merges `defineClientPlugin` endpoints. `$Infer` is a phantom map of code-authored answer types.
+`createFormClient<typeof form>()` copies server `$Infer` onto the client. `createFormClient({ plugins })` merges `defineClientPlugin` endpoints. Pass `forms` / `fieldTypes` only when you do not have the server instance type.

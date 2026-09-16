@@ -213,4 +213,27 @@ describe("createFormClient protocol", () => {
       typeof client.$Infer.answers.contact.name
     >().toEqualTypeOf<string>();
   });
+
+  it("infers $Infer.answers from a dimahForm-like server type", () => {
+    const forms = {
+      contact: defineForm({
+        title: "Contact",
+        fields: [{ id: "name", type: "text", required: true }],
+      }),
+    };
+    type Server = {
+      $Infer: {
+        forms: typeof forms;
+        answers: { contact: { name: string } };
+        plugins: [];
+      };
+    };
+    const client = createFormClient<Server>();
+    expect(forms.contact.title).toBe("Contact");
+    expect(client.$ERROR_CODES.VALIDATION_ERROR.code).toBe("VALIDATION_ERROR");
+    expectTypeOf<
+      typeof client.$Infer.answers.contact.name
+    >().toEqualTypeOf<string>();
+    expectTypeOf<typeof client.$Infer.forms>().toEqualTypeOf<typeof forms>();
+  });
 });

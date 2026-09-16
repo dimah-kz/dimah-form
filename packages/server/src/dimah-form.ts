@@ -84,6 +84,9 @@ export type DimahForm<
 /**
  * Create a dimah-form server instance.
  *
+ * Pair with `export type Form = typeof form` and `createFormClient<Form>()`
+ * so the browser client reuses `$Infer` without a runtime catalog copy.
+ *
  * Submit validates against the definition snapshot taken at start, not the
  * live questionnaire in {@link DimahFormConfig.forms}.
  */

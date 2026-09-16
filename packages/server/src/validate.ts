@@ -1,11 +1,3 @@
-export {
-  applyAnswerPatch,
-  assertAnswers,
-  collectAnswerIssues,
-  parseAnswers,
-  type AnswerValidationMode,
-} from "@dimah-form/core";
-
 import { errors } from "./errors";
 
 /** Draft-only mutations. Submitted and abandoned rows are locked. */

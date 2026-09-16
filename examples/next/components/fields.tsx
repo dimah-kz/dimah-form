@@ -1,6 +1,11 @@
 "use client";
 
-import type { FormAnswers, FormField } from "@dimah-form/core";
+import {
+  isFieldVisible,
+  type FormAnswers,
+  type FormField,
+} from "@dimah-form/react";
+import type { ReactNode } from "react";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -23,16 +28,34 @@ import {
 } from "@/components/ui/select";
 import { fieldLabel, fieldOptions } from "@/lib/field-display";
 
-function FieldHint({ field }: { field: FormField }) {
-  const parts: string[] = [];
-  if (field.required === true) parts.push("required");
-  if (typeof field.minLength === "number") parts.push(`min ${field.minLength}`);
-  if (typeof field.maxLength === "number") parts.push(`max ${field.maxLength}`);
-  if (typeof field.min === "number") parts.push(`min ${field.min}`);
-  if (typeof field.max === "number") parts.push(`max ${field.max}`);
-  if (field.integer === true) parts.push("integer");
-  if (!parts.length) return null;
-  return <FieldDescription>{parts.join(" · ")}</FieldDescription>;
+function LabeledField({
+  field,
+  issue,
+  disabled,
+  children,
+}: {
+  field: FormField;
+  issue?: string;
+  disabled?: boolean;
+  children: ReactNode;
+}) {
+  const invalid = Boolean(issue);
+  return (
+    <Field
+      data-invalid={invalid || undefined}
+      data-disabled={disabled || undefined}
+    >
+      <FieldLabel htmlFor={field.id}>
+        {fieldLabel(field)}
+        {field.required === true ? " *" : ""}
+      </FieldLabel>
+      {children}
+      {typeof field.description === "string" ? (
+        <FieldDescription>{field.description}</FieldDescription>
+      ) : null}
+      <FieldError errors={issue ? [{ message: issue }] : undefined} />
+    </Field>
+  );
 }
 
 function FormFieldControl({
@@ -48,7 +71,6 @@ function FormFieldControl({
   disabled?: boolean;
   onChange: (value: unknown) => void;
 }) {
-  const label = fieldLabel(field);
   const invalid = Boolean(issue);
   const errors = issue ? [{ message: issue }] : undefined;
 
@@ -67,7 +89,7 @@ function FormFieldControl({
           onCheckedChange={(checked) => onChange(checked ? true : null)}
         />
         <FieldLabel htmlFor={field.id} className="font-normal">
-          {label}
+          {fieldLabel(field)}
         </FieldLabel>
         <FieldError errors={errors} />
       </Field>
@@ -85,20 +107,13 @@ function FormFieldControl({
     ];
 
     return (
-      <Field
-        data-invalid={invalid || undefined}
-        data-disabled={disabled || undefined}
-      >
-        <FieldLabel htmlFor={field.id}>
-          {label}
-          {field.required === true ? " *" : ""}
-        </FieldLabel>
+      <LabeledField field={field} issue={issue} disabled={disabled}>
         <Select
           id={field.id}
           items={items}
           value={typeof value === "string" ? value : null}
           disabled={disabled}
-          onValueChange={(next) => onChange(next)}
+          onValueChange={onChange}
         >
           <SelectTrigger className="w-full" aria-invalid={invalid || undefined}>
             <SelectValue />
@@ -113,9 +128,7 @@ function FormFieldControl({
             </SelectGroup>
           </SelectContent>
         </Select>
-        <FieldHint field={field} />
-        <FieldError errors={errors} />
-      </Field>
+      </LabeledField>
     );
   }
 
@@ -127,13 +140,12 @@ function FormFieldControl({
     return (
       <FieldSet>
         <FieldLegend variant="label">
-          {label}
+          {fieldLabel(field)}
           {field.required === true ? " *" : ""}
         </FieldLegend>
         <FieldGroup>
           {fieldOptions(field).map((option) => {
             const id = `${field.id}-${option.value}`;
-            const checked = selected.includes(option.value);
             return (
               <Field
                 key={option.value}
@@ -142,15 +154,15 @@ function FormFieldControl({
               >
                 <Checkbox
                   id={id}
-                  checked={checked}
+                  checked={selected.includes(option.value)}
                   disabled={disabled}
-                  onCheckedChange={(next) => {
-                    if (next) {
-                      onChange([...selected, option.value]);
-                      return;
-                    }
-                    onChange(selected.filter((item) => item !== option.value));
-                  }}
+                  onCheckedChange={(next) =>
+                    onChange(
+                      next
+                        ? [...selected, option.value]
+                        : selected.filter((item) => item !== option.value),
+                    )
+                  }
                 />
                 <FieldLabel htmlFor={id} className="font-normal">
                   {option.label}
@@ -159,7 +171,9 @@ function FormFieldControl({
             );
           })}
         </FieldGroup>
-        <FieldHint field={field} />
+        {typeof field.description === "string" ? (
+          <FieldDescription>{field.description}</FieldDescription>
+        ) : null}
         <FieldError errors={errors} />
       </FieldSet>
     );
@@ -167,14 +181,7 @@ function FormFieldControl({
 
   if (field.type === "number") {
     return (
-      <Field
-        data-invalid={invalid || undefined}
-        data-disabled={disabled || undefined}
-      >
-        <FieldLabel htmlFor={field.id}>
-          {label}
-          {field.required === true ? " *" : ""}
-        </FieldLabel>
+      <LabeledField field={field} issue={issue} disabled={disabled}>
         <Input
           id={field.id}
           type="number"
@@ -187,25 +194,20 @@ function FormFieldControl({
             )
           }
         />
-        <FieldHint field={field} />
-        <FieldError errors={errors} />
-      </Field>
+      </LabeledField>
     );
   }
 
-  if (field.type === "text") {
+  if (
+    field.type === "text" ||
+    field.type === "email" ||
+    field.type === "date"
+  ) {
     return (
-      <Field
-        data-invalid={invalid || undefined}
-        data-disabled={disabled || undefined}
-      >
-        <FieldLabel htmlFor={field.id}>
-          {label}
-          {field.required === true ? " *" : ""}
-        </FieldLabel>
+      <LabeledField field={field} issue={issue} disabled={disabled}>
         <Input
           id={field.id}
-          type="text"
+          type={field.type === "text" ? "text" : field.type}
           disabled={disabled}
           aria-invalid={invalid || undefined}
           value={typeof value === "string" ? value : ""}
@@ -213,15 +215,13 @@ function FormFieldControl({
             onChange(event.target.value === "" ? null : event.target.value)
           }
         />
-        <FieldHint field={field} />
-        <FieldError errors={errors} />
-      </Field>
+      </LabeledField>
     );
   }
 
   return (
     <Field>
-      <FieldLabel>{label}</FieldLabel>
+      <FieldLabel>{fieldLabel(field)}</FieldLabel>
       <FieldDescription>Unsupported type: {field.type}</FieldDescription>
     </Field>
   );
@@ -242,16 +242,18 @@ export function FormFields({
 }) {
   return (
     <FieldGroup>
-      {fields.map((field) => (
-        <FormFieldControl
-          key={field.id}
-          field={field}
-          value={answers[field.id]}
-          issue={issues?.[field.id]}
-          disabled={disabled}
-          onChange={(value) => onChange(field.id, value)}
-        />
-      ))}
+      {fields
+        .filter((field) => isFieldVisible(field, answers))
+        .map((field) => (
+          <FormFieldControl
+            key={field.id}
+            field={field}
+            value={answers[field.id]}
+            issue={issues?.[field.id]}
+            disabled={disabled}
+            onChange={(value) => onChange(field.id, value)}
+          />
+        ))}
     </FieldGroup>
   );
 }

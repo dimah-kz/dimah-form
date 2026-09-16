@@ -1,76 +1,38 @@
-"use client";
-
-import type { ResponseRecord } from "@dimah-form/core";
-import { useFormClient } from "@dimah-form/react";
-import { InboxIcon } from "lucide-react";
+import type { ResponseRecord } from "@dimah-form/server";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
 import { AnswersPreview } from "@/components/answers-preview";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
-import { Spinner } from "@/components/ui/spinner";
-import { formatFormError } from "@/lib/format-error";
+import { form } from "@/lib/form";
 
-function isFull(row: {
-  answers?: unknown;
-  definition?: unknown;
-}): row is ResponseRecord {
-  return "answers" in row && "definition" in row;
+function isFull(row: { answers?: unknown }): row is ResponseRecord {
+  return "answers" in row;
 }
 
-export default function ResponsesPage() {
-  const client = useFormClient();
-  const [rows, setRows] = useState<ResponseRecord[]>();
-  const [error, setError] = useState<string>();
-
-  useEffect(() => {
-    client
-      .listResponses({ include: "full", limit: 20 })
-      .then((page) => setRows(page.responses.filter(isFull)))
-      .catch((caught: unknown) =>
-        setError(formatFormError(caught, "Could not load responses")),
-      );
-  }, [client]);
-
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertTitle>Could not load responses</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    );
+export default async function ResponsesPage() {
+  let rows: ResponseRecord[] | undefined;
+  try {
+    const { responses } = await form.api.listResponses({
+      query: { include: "full", limit: 20 },
+    });
+    rows = responses.filter(isFull);
+  } catch {
+    rows = undefined;
   }
 
   if (!rows) {
     return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Spinner />
-        Loading responses
-      </div>
+      <p className="text-sm text-muted-foreground">
+        Could not load responses. Did you run <code>db:push</code>?
+      </p>
     );
   }
 
   if (!rows.length) {
     return (
-      <Empty className="border">
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <InboxIcon />
-          </EmptyMedia>
-          <EmptyTitle>No responses yet</EmptyTitle>
-          <EmptyDescription>
-            Submit a form, then the stored answers show up here.
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <p className="text-sm text-muted-foreground">
+        No responses yet. Submit a form, then stored answers show up here.
+      </p>
     );
   }
 

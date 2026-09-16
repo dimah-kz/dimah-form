@@ -13,30 +13,6 @@ import {
 /** FumaDB client for the @dimah-form/db schema. */
 export type DimahFormDbClient = InferFumaDB<typeof DimahFormDB>;
 
-const STORE_METHODS = [
-  "create",
-  "get",
-  "save",
-  "delete",
-  "getForm",
-  "saveForm",
-  "deleteForm",
-  "listForms",
-  "listResponses",
-] as const satisfies readonly (keyof ResponseStore)[];
-
-function isResponseStore(value: unknown): value is ResponseStore {
-  if (typeof value !== "object" || value === null) return false;
-  const store = value as ResponseStore;
-  return STORE_METHODS.every((method) => typeof store[method] === "function");
-}
-
-export function resolveResponseStore(
-  client: DimahFormDbClient | ResponseStore,
-): ResponseStore {
-  return isResponseStore(client) ? client : createDbResponseStore(client);
-}
-
 /** Persist questionnaires and responses. Start never overwrites a live form. */
 export function createDbResponseStore(db: DimahFormDbClient): ResponseStore {
   const orm = db.orm("1.0.0");

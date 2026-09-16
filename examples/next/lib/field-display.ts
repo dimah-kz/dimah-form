@@ -1,28 +1,30 @@
 import type { FormField } from "@dimah-form/core";
 
 export function fieldLabel(field: FormField) {
-  return typeof field.label === "string" ? field.label : field.id;
+  return field.label ?? field.id;
 }
 
 export function fieldOptions(field: FormField) {
-  const options = field.options;
-  if (!Array.isArray(options)) return [];
-  return options.flatMap((option) => {
-    if (!option || typeof option !== "object" || !("value" in option)) {
+  if (!Array.isArray(field.options)) return [];
+  return field.options.flatMap((option) => {
+    if (
+      !option ||
+      typeof option !== "object" ||
+      typeof option.value !== "string"
+    ) {
       return [];
     }
-    const value = option.value;
-    if (typeof value !== "string") return [];
-    const label =
-      "label" in option && typeof option.label === "string"
-        ? option.label
-        : value;
-    return [{ value, label }];
+    return [
+      {
+        value: option.value,
+        label: typeof option.label === "string" ? option.label : option.value,
+      },
+    ];
   });
 }
 
 export function formatAnswer(field: FormField, value: unknown) {
-  if (value === undefined || value === null) return "—";
+  if (value == null) return "—";
   if (field.type === "boolean") return value === true ? "Yes" : "No";
   const options = fieldOptions(field);
   if (field.type === "select" && typeof value === "string") {

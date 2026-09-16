@@ -1,5 +1,6 @@
 import {
   FORM_API_OPERATIONS,
+  parseAnswers,
   submitResponseBodySchema,
   type ResponseRecord,
 } from "@dimah-form/core";
@@ -7,7 +8,7 @@ import {
 import { createFormEndpoint } from "@/api/create-form-endpoint";
 import { errors } from "@/errors";
 import { commitLifecycle, persistedResponse } from "@/helpers/lifecycle";
-import { assertFresh, parseAnswers, requireDraft } from "@/validate";
+import { assertFresh, requireDraft } from "@/validate";
 
 const { method, path } = FORM_API_OPERATIONS.submitResponse;
 

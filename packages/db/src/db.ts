@@ -1,15 +1,16 @@
 import type { ResponseStore } from "@dimah-form/server";
 
 import {
-  resolveResponseStore,
+  createDbResponseStore,
   type DimahFormDbClient,
 } from "@/store/response-store";
 
 /**
  * FumaDB adapter — pass to `dimahForm({ database: db(client) })`.
  *
- * `client` is `DimahFormDB.client(adapter)` or a prebuilt {@link ResponseStore}.
+ * `client` is `DimahFormDB.client(adapter)`. A custom {@link ResponseStore}
+ * goes to `dimahForm({ database })` directly.
  */
-export function db(client: DimahFormDbClient | ResponseStore): ResponseStore {
-  return resolveResponseStore(client);
+export function db(client: DimahFormDbClient): ResponseStore {
+  return createDbResponseStore(client);
 }

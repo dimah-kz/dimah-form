@@ -13,6 +13,8 @@ const fontMono = Geist_Mono({
   variable: "--font-mono",
 });
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "dimah-form",
 };

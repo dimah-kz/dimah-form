@@ -66,6 +66,15 @@ export const FORM_HOOK_KEYS = [
   "afterDeleteForm",
 ] as const satisfies readonly (keyof DimahFormHooks)[];
 
+type MissingFormHook = Exclude<
+  keyof DimahFormHooks,
+  (typeof FORM_HOOK_KEYS)[number]
+>;
+const _allHooksListed: [MissingFormHook] extends [never]
+  ? true
+  : MissingFormHook = true;
+void _allHooksListed;
+
 /**
  * Additive feature plugin. Persistence is `database`, not a plugin.
  *
