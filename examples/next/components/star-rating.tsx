@@ -57,8 +57,8 @@ export function StarRating({
               key={score}
               className={cn(
                 "relative inline-flex size-11 cursor-pointer items-center justify-center rounded-md transition-transform",
-                "hover:scale-110 has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
-                "has-[:disabled]:pointer-events-none has-[:disabled]:opacity-50",
+                "hover:scale-110 has-focus-visible:ring-3 has-focus-visible:ring-ring/50",
+                "has-disabled:pointer-events-none has-disabled:opacity-50",
               )}
               onMouseEnter={() => {
                 if (!disabled) setHovered(score);
