@@ -106,7 +106,7 @@ describe("map-row", () => {
     });
   });
 
-  it("keeps extra keys on the questionnaire document", () => {
+  it("round-trips description and meta on the questionnaire document", () => {
     expect(
       toQuestionnaireColumns(
         {
@@ -115,6 +115,7 @@ describe("map-row", () => {
           status: "active",
           title: "Onboarding",
           description: "Join us",
+          meta: { locale: "en" },
           fields: [{ id: "name", type: "text" }],
           createdAt: "2026-01-01T00:00:00.000Z",
           updatedAt: "2026-01-02T00:00:00.000Z",
@@ -126,22 +127,23 @@ describe("map-row", () => {
       status: "active",
       title: "Onboarding",
       description: "Join us",
+      meta: { locale: "en" },
       fields: [{ id: "name", type: "text" }],
     });
   });
 
-  it("keeps extra keys on builtin fields", () => {
+  it("round-trips meta on builtin fields", () => {
     expect(
       toFormSnapshot({
         id: "intake",
         title: "Intake",
         definition: {
           title: "Intake",
-          fields: [{ id: "name", type: "text", placeholder: "Ada" }],
+          fields: [{ id: "name", type: "text", meta: { placeholder: "Ada" } }],
         },
         status: "active",
       }).fields,
-    ).toEqual([{ id: "name", type: "text", placeholder: "Ada" }]);
+    ).toEqual([{ id: "name", type: "text", meta: { placeholder: "Ada" } }]);
   });
 
   it("rejects an invalid questionnaire status", () => {

@@ -4,6 +4,9 @@ export {
   type DimahFormConfig,
   type DimahFormPlugin,
   type DimahFormHooks,
+  type DimahFormMetaSchema,
+  type PluginInitContext,
+  type PluginInitResult,
 } from "./dimah-form";
 export type { DimahFormGuard, FormOperation } from "./types";
 export {
@@ -14,9 +17,11 @@ export {
 } from "./store";
 export { createFormEndpoint } from "./api/create-form-endpoint";
 export { definePlugin } from "./plugin/define-plugin";
+export { getPluginContext } from "./plugin/context";
 export {
   APIError,
   FORM_ERROR_CODES,
+  defineErrorCodes,
   isAPIError,
   isFormErrorCode,
 } from "./errors";
@@ -37,6 +42,7 @@ export {
   type FormList,
   type FormSnapshot,
   type FormStatus,
+  type DocumentMeta,
   type InferAnswersMap,
   type InferFormAnswers,
   type ResponseList,
@@ -44,4 +50,5 @@ export {
   type ResponseStatus,
   type ResponseSummary,
   type ValidationIssue,
+  type ErrorCodeCatalog,
 } from "@dimah-form/core";

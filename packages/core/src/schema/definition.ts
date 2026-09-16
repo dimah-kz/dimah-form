@@ -10,6 +10,14 @@ export const formStatusSchema = z.enum(["draft", "active", "archived"]);
 
 export type FormStatus = z.output<typeof formStatusSchema>;
 
+/**
+ * Opaque JSON bag on a form, field, or option. The engine does not read this —
+ * type-specific validation stays on the field document / `fieldSchema`.
+ */
+export const documentMetaSchema = z.record(z.string(), z.json());
+
+export type DocumentMeta = z.output<typeof documentMetaSchema>;
+
 /** Sibling visibility — field is skipped when the rule does not match. */
 export const showWhenSchema = z
   .looseObject({
@@ -29,7 +37,7 @@ export const showWhenSchema = z
 
 export type FieldShowWhen = z.output<typeof showWhenSchema>;
 
-/** Shared keys on every field document. Extra keys stay for consumer UI. */
+/** Shared protocol keys on every field document. */
 const fieldDocument = {
   id: fieldIdSchema,
   required: fieldRequiredSchema,
@@ -37,10 +45,11 @@ const fieldDocument = {
   description: z.string().optional(),
   defaultValue: z.unknown().optional(),
   showWhen: showWhenSchema.optional(),
+  meta: documentMetaSchema.optional(),
 };
 
 export const textFieldSchema = z
-  .looseObject({
+  .strictObject({
     ...fieldDocument,
     type: z.literal("text"),
     minLength: z.number().int().min(0).optional(),
@@ -70,7 +79,7 @@ export const textFieldSchema = z
   });
 
 export const numberFieldSchema = z
-  .looseObject({
+  .strictObject({
     ...fieldDocument,
     type: z.literal("number"),
     min: z.number().optional(),
@@ -88,14 +97,15 @@ export const numberFieldSchema = z
     }
   });
 
-export const booleanFieldSchema = z.looseObject({
+export const booleanFieldSchema = z.strictObject({
   ...fieldDocument,
   type: z.literal("boolean"),
 });
 
-export const selectOptionSchema = z.looseObject({
+export const selectOptionSchema = z.strictObject({
   value: trimmedString,
   label: fieldLabelSchema,
+  meta: documentMetaSchema.optional(),
 });
 
 const fieldOptionsSchema = z
@@ -116,24 +126,24 @@ const fieldOptionsSchema = z
     }
   });
 
-export const selectFieldSchema = z.looseObject({
+export const selectFieldSchema = z.strictObject({
   ...fieldDocument,
   type: z.literal("select"),
   options: fieldOptionsSchema,
 });
 
-export const multiSelectFieldSchema = z.looseObject({
+export const multiSelectFieldSchema = z.strictObject({
   ...fieldDocument,
   type: z.literal("multiSelect"),
   options: fieldOptionsSchema,
 });
 
-export const emailFieldSchema = z.looseObject({
+export const emailFieldSchema = z.strictObject({
   ...fieldDocument,
   type: z.literal("email"),
 });
 
-export const dateFieldSchema = z.looseObject({
+export const dateFieldSchema = z.strictObject({
   ...fieldDocument,
   type: z.literal("date"),
 });
@@ -161,7 +171,7 @@ const builtinFieldByType = {
 
 /**
  * Snapshot / document field — builtins stay typed; unknown `type` values
- * pass through so custom field types can round-trip. Extra keys are kept.
+ * pass through so custom field types can round-trip type-specific keys.
  */
 export const storedFieldSchema = z
   .looseObject({
@@ -197,29 +207,37 @@ export const formFieldsSchema = z.array(storedFieldSchema).check((ctx) => {
   }
 });
 
-const formMeta = {
+const formLifecycle = {
   slug: trimmedString.optional(),
   status: formStatusSchema.optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 };
 
-/** Code-authored questionnaire document (no `id` — that is the `forms` key). Extra keys stay for consumer UI. */
-export const formDefinitionSchema = z.looseObject({
+const formDocument = {
   title: trimmedString,
+  description: z.string().optional(),
   fields: formFieldsSchema,
-  ...formMeta,
-});
+  meta: documentMetaSchema.optional(),
+  ...formLifecycle,
+};
 
-/** Frozen copy stored on a response — definition plus the form id. Extra keys stay. */
-export const formSnapshotSchema = z.looseObject({
+/** Code-authored questionnaire document (no `id` — that is the `forms` key). */
+export const formDefinitionSchema = z.strictObject(formDocument);
+
+/** Frozen copy stored on a response — definition plus the form id. */
+export const formSnapshotSchema = z.strictObject({
   id: formIdSchema,
-  title: trimmedString,
-  fields: formFieldsSchema,
-  ...formMeta,
+  ...formDocument,
 });
 
-export type FormField = {
+export type SelectOption = {
+  value: string;
+  label?: string;
+  meta?: DocumentMeta;
+};
+
+export interface FormField {
   id: string;
   type: string;
   required?: boolean;
@@ -227,63 +245,67 @@ export type FormField = {
   description?: string;
   defaultValue?: unknown;
   showWhen?: FieldShowWhen;
-} & Record<string, unknown>;
+  meta?: DocumentMeta;
+  [key: string]: unknown;
+}
 
 export type FormDefinition = {
   title: string;
+  description?: string;
   fields: readonly FormField[];
   slug?: string;
   status?: FormStatus;
   createdAt?: string;
   updatedAt?: string;
-} & Record<string, unknown>;
+  meta?: DocumentMeta;
+};
 
 export type FormSnapshot = {
   id: string;
   slug: string;
   status: FormStatus;
   title: string;
+  description?: string;
   fields: readonly FormField[];
   createdAt?: string;
   updatedAt?: string;
-} & Record<string, unknown>;
+  meta?: DocumentMeta;
+};
 
 type SnapshotInput = {
   id: string;
   title: string;
+  description?: string | null;
   fields: readonly FormField[];
   slug?: string | null;
   status?: FormStatus | null;
   createdAt?: string | null;
   updatedAt?: string | null;
-} & Record<string, unknown>;
+  meta?: DocumentMeta | null;
+};
 
-/** Fill `slug` (defaults to `id`) and `status` (defaults to `active`). Extra keys are kept. */
+function nonEmptyString(value: string | null | undefined) {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+/** Fill `slug` (defaults to `id`) and `status` (defaults to `active`). */
 export function normalizeFormSnapshot(snapshot: SnapshotInput): FormSnapshot {
-  const {
-    id,
-    title,
-    fields,
-    slug: rawSlug,
-    status: rawStatus,
-    createdAt,
-    updatedAt,
-    ...extra
-  } = snapshot;
-  const slug = rawSlug?.trim();
+  const slug = snapshot.slug?.trim();
+  const description =
+    typeof snapshot.description === "string" ? snapshot.description : undefined;
+  const meta = snapshot.meta ?? undefined;
+  const createdAt = nonEmptyString(snapshot.createdAt);
+  const updatedAt = nonEmptyString(snapshot.updatedAt);
   return {
-    ...extra,
-    id,
-    title,
-    fields,
-    slug: slug && slug.length > 0 ? slug : id,
-    status: rawStatus ?? "active",
-    ...(typeof createdAt === "string" && createdAt.length > 0
-      ? { createdAt }
-      : {}),
-    ...(typeof updatedAt === "string" && updatedAt.length > 0
-      ? { updatedAt }
-      : {}),
+    id: snapshot.id,
+    title: snapshot.title,
+    fields: snapshot.fields,
+    slug: slug && slug.length > 0 ? slug : snapshot.id,
+    status: snapshot.status ?? "active",
+    ...(description !== undefined ? { description } : {}),
+    ...(meta !== undefined ? { meta } : {}),
+    ...(createdAt !== undefined ? { createdAt } : {}),
+    ...(updatedAt !== undefined ? { updatedAt } : {}),
   };
 }
 

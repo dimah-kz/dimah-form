@@ -1,12 +1,19 @@
 import {
   APIError,
   FORM_ERROR_CODES,
+  defineErrorCodes,
   isAPIError,
   isFormErrorCode,
   type ValidationIssue,
 } from "@dimah-form/core";
 
-export { APIError, FORM_ERROR_CODES, isAPIError, isFormErrorCode };
+export {
+  APIError,
+  FORM_ERROR_CODES,
+  defineErrorCodes,
+  isAPIError,
+  isFormErrorCode,
+};
 
 /** English API errors with stable codes for client-side localization. */
 export const errors = {

@@ -3,7 +3,7 @@ import { describe, expect, expectTypeOf, it } from "vitest";
 import { defineClientPlugin } from "./client-plugin";
 import { createFormClient } from "./create-form-client";
 import { defineForm } from "./define";
-import { APIError, FORM_ERROR_CODES } from "./error";
+import { APIError, defineErrorCodes, FORM_ERROR_CODES } from "./error";
 import { FORM_API_ROUTES } from "./routes";
 import { captureFetch, jsonResponse } from "./test/http";
 
@@ -205,6 +205,39 @@ describe("createFormClient protocol", () => {
     expect(() => createFormClient({ plugins: [bad] })).toThrow(
       /Duplicate dimah-form client endpoint "getForm"/,
     );
+  });
+
+  it("rejects reserved client plugin ids", () => {
+    expect(() =>
+      createFormClient({
+        plugins: [defineClientPlugin({ id: "$fetch" })],
+      }),
+    ).toThrow(/reserved on the client/);
+  });
+
+  it("rejects a missing client plugin dependency", () => {
+    expect(() =>
+      createFormClient({
+        plugins: [defineClientPlugin({ id: "files", dependsOn: ["storage"] })],
+      }),
+    ).toThrow(/depends on "storage", which is not installed/);
+  });
+
+  it("merges client plugin error codes", () => {
+    const ping = defineClientPlugin({
+      id: "ping",
+      $ERROR_CODES: defineErrorCodes({ PING_FAILED: "Ping failed" }),
+      endpoints: () => ({ ping: () => Promise.resolve({ ok: true }) }),
+    });
+    const api = createFormClient({ plugins: [ping] });
+    expect(api.$ERROR_CODES.PING_FAILED).toEqual({
+      code: "PING_FAILED",
+      message: "Ping failed",
+    });
+    expect(api.$ERROR_CODES.VALIDATION_ERROR.code).toBe("VALIDATION_ERROR");
+    expectTypeOf<
+      typeof api.$ERROR_CODES.PING_FAILED.code
+    >().toEqualTypeOf<"PING_FAILED">();
   });
 
   it("infers $Infer.answers from options.forms", () => {

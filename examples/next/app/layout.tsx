@@ -32,7 +32,7 @@ export default function RootLayout({
     >
       <body>
         <Providers>
-          <div className="mx-auto flex min-h-svh max-w-4xl flex-col gap-6 p-6">
+          <div className="mx-auto flex min-h-svh max-w-5xl flex-col gap-6 p-6">
             <header className="flex items-center justify-between text-sm">
               <Link href="/" className="font-medium">
                 dimah-form

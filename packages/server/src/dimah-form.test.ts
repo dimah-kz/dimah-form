@@ -1,11 +1,17 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
+import * as z from "zod";
 
-import { defineForm, isFormErrorCode } from "@dimah-form/core";
+import {
+  defineErrorCodes,
+  defineForm,
+  isFormErrorCode,
+} from "@dimah-form/core";
 
 import { createFormEndpoint } from "./api/create-form-endpoint";
 import { dimahForm } from "./dimah-form";
 import { APIError } from "./errors";
 import { definePlugin } from "./plugin/define-plugin";
+import { getPluginContext } from "./plugin/context";
 import { memoryAdapter } from "./store";
 import {
   apiUrl,
@@ -24,7 +30,7 @@ describe("dimahForm instance", () => {
     expect(typeof form.handler).toBe("function");
     expect(form.api.startResponse).toBeTypeOf("function");
     expect(form.api.reopenResponse).toBeTypeOf("function");
-    expect(form.$ERROR_CODES).toBe(FORM_ERROR_CODES);
+    expect(form.$ERROR_CODES).toEqual(FORM_ERROR_CODES);
   });
 
   it("uses the configured database adapter", async () => {
@@ -365,7 +371,7 @@ describe("live catalog", () => {
     ).resolves.toMatchObject({ responses: [] });
   });
 
-  it("keeps extra keys on builtin fields", async () => {
+  it("round-trips meta on builtin fields", async () => {
     const form = dimahForm({ database: memoryAdapter() });
     const withHints = {
       id: "hints",
@@ -375,7 +381,7 @@ describe("live catalog", () => {
           id: "name",
           type: "text" as const,
           required: true,
-          placeholder: "Ada",
+          meta: { placeholder: "Ada" },
         },
       ],
     };
@@ -395,22 +401,97 @@ describe("live catalog", () => {
     });
   });
 
-  it("keeps extra keys on the form document", async () => {
+  it("rejects unknown keys on builtin fields", async () => {
+    const form = dimahForm({ database: memoryAdapter() });
+    await expect(
+      form.api.saveForm({
+        body: {
+          id: "hints",
+          title: "Hints",
+          fields: [
+            { id: "name", type: "text", required: true, placeholder: "Ada" },
+          ],
+        },
+      }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "VALIDATION_ERROR"),
+    );
+  });
+
+  it("round-trips description and meta on the form document", async () => {
     const form = dimahForm({ database: memoryAdapter() });
     const withCopy = {
       id: "copy",
       title: "Copy",
       description: "Shown in the consumer UI",
+      meta: { locale: "en" },
       fields: [{ id: "n", type: "text" as const }],
     };
     await expect(form.api.saveForm({ body: withCopy })).resolves.toMatchObject({
       description: "Shown in the consumer UI",
+      meta: { locale: "en" },
       slug: "copy",
       status: "active",
     });
     await expect(
       form.api.getForm({ query: { formId: "copy" } }),
-    ).resolves.toMatchObject({ description: "Shown in the consumer UI" });
+    ).resolves.toMatchObject({
+      description: "Shown in the consumer UI",
+      meta: { locale: "en" },
+    });
+  });
+
+  it("validates form and field meta against dimahForm metaSchema", async () => {
+    expect(() =>
+      dimahForm({
+        database: memoryAdapter(),
+        metaSchema: {
+          form: z.object({ locale: z.string() }),
+        },
+        forms: {
+          copy: defineForm({
+            title: "Copy",
+            fields: [{ id: "n", type: "text" }],
+          }),
+        },
+      }),
+    ).toThrow(/Invalid form "copy"/);
+
+    const form = dimahForm({
+      database: memoryAdapter(),
+      metaSchema: {
+        form: z.object({ locale: z.string() }),
+        field: z.object({ placeholder: z.string().optional() }),
+        option: z.object({ icon: z.string().optional() }),
+      },
+    });
+    await expect(
+      form.api.saveForm({
+        body: {
+          id: "copy",
+          title: "Copy",
+          meta: { locale: "en" },
+          fields: [
+            {
+              id: "role",
+              type: "select",
+              options: [{ value: "eng", meta: { icon: "cpu" } }],
+            },
+          ],
+        },
+      }),
+    ).resolves.toMatchObject({ meta: { locale: "en" } });
+    await expect(
+      form.api.saveForm({
+        body: {
+          id: "bad",
+          title: "Bad",
+          fields: [{ id: "n", type: "text", meta: { placeholder: 1 } }],
+        },
+      }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "VALIDATION_ERROR"),
+    );
   });
 
   it("prefers code-authored forms and refuses to overwrite them", async () => {
@@ -831,9 +912,30 @@ describe("hooks and plugins", () => {
     const ping = definePlugin({
       id: "ping",
       endpoints: {
+        ping: createFormEndpoint("/ping", { method: "GET" }, async () => ({
+          ok: true,
+        })),
+      },
+    });
+    const form = dimahForm({
+      database: memoryAdapter(),
+      plugins: [ping],
+      guard: ({ operation }) => {
+        operations.push(operation);
+      },
+    });
+    await form.api.ping({});
+    expect(operations).toEqual(["ping"]);
+  });
+
+  it("lets metadata.operation override the endpoint key", async () => {
+    const operations: string[] = [];
+    const ping = definePlugin({
+      id: "ping",
+      endpoints: {
         ping: createFormEndpoint(
           "/ping",
-          { method: "GET", metadata: { operation: "ping" } },
+          { method: "GET", metadata: { operation: "health" } },
           async () => ({ ok: true }),
         ),
       },
@@ -846,7 +948,69 @@ describe("hooks and plugins", () => {
       },
     });
     await form.api.ping({});
-    expect(operations).toEqual(["ping"]);
+    expect(operations).toEqual(["health"]);
+  });
+
+  it("merges plugin error codes onto the instance", () => {
+    const ping = definePlugin({
+      id: "ping",
+      $ERROR_CODES: defineErrorCodes({ PING_FAILED: "Ping failed" }),
+    });
+    const form = dimahForm({
+      database: memoryAdapter(),
+      plugins: [ping],
+    });
+    expect(form.$ERROR_CODES.PING_FAILED).toEqual({
+      code: "PING_FAILED",
+      message: "Ping failed",
+    });
+    expect(form.$ERROR_CODES.VALIDATION_ERROR.code).toBe("VALIDATION_ERROR");
+    expectTypeOf<
+      typeof form.$ERROR_CODES.PING_FAILED.code
+    >().toEqualTypeOf<"PING_FAILED">();
+  });
+
+  it("runs init in dependsOn order and stores plugin context", async () => {
+    const order: string[] = [];
+    const a = definePlugin({
+      id: "a",
+      init() {
+        order.push("a");
+        return { context: { n: 1 } };
+      },
+    });
+    const b = definePlugin({
+      id: "b",
+      dependsOn: ["a"],
+      endpoints: {
+        peek: createFormEndpoint("/peek", { method: "GET" }, async (ctx) => ({
+          a: getPluginContext<{ n: number }>(ctx.context.config, "a"),
+        })),
+      },
+      init() {
+        order.push("b");
+      },
+    });
+    const form = dimahForm({
+      database: memoryAdapter(),
+      plugins: [b, a] as const,
+    });
+    expect(order).toEqual(["a", "b"]);
+    await expect(form.api.peek({})).resolves.toEqual({ a: { n: 1 } });
+  });
+
+  it("rejects async plugin init", () => {
+    expect(() =>
+      dimahForm({
+        database: memoryAdapter(),
+        plugins: [
+          {
+            id: "async",
+            init: (() => Promise.resolve({ context: true })) as never,
+          },
+        ],
+      }),
+    ).toThrow(/init\(\) must be synchronous/);
   });
 });
 

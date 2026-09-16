@@ -17,21 +17,25 @@ describe("defineForm", () => {
     expect(() => defineForm({ title: "", fields: [] })).toThrow();
   });
 
-  it("allows extra keys on the form document", () => {
+  it("keeps description and meta on the form document", () => {
     const form = defineForm({
       title: "Contact",
       description: "Hello",
+      meta: { locale: "en" },
       fields: [{ id: "name", type: "text" }],
     });
     expect(form.description).toBe("Hello");
+    expect(form.meta).toEqual({ locale: "en" });
   });
 
-  it("allows extra keys on builtin fields", () => {
+  it("keeps meta on builtin fields", () => {
     const form = defineForm({
       title: "Contact",
-      fields: [{ id: "name", type: "text", placeholder: "Ada" }],
+      fields: [{ id: "name", type: "text", meta: { placeholder: "Ada" } }],
     });
-    expect(form.fields[0]).toMatchObject({ placeholder: "Ada" });
+    expect(form.fields[0]).toMatchObject({
+      meta: { placeholder: "Ada" },
+    });
   });
 
   it("allows unknown field types in the document", () => {

@@ -1,12 +1,13 @@
 import type { z } from "zod";
 
-import { formDefinitionSchema } from "./schema/definition";
+import { formDefinitionSchema, type DocumentMeta } from "./schema/definition";
 import type { FormStatus } from "./schema/definition";
 import type { FormAnswers } from "./schema/protocol";
 
-/** Code-authored form document. Extra keys on the form and fields are allowed. */
+/** Code-authored form document. Type-specific keys stay on the field; UI extras go in `meta`. */
 export type FormDefinitionInput = {
   title: string;
+  description?: string;
   fields: readonly ({
     id: string;
     type: string;
@@ -19,10 +20,12 @@ export type FormDefinitionInput = {
       equals?: unknown;
       includes?: unknown;
     };
+    meta?: DocumentMeta;
   } & Record<string, unknown>)[];
   slug?: string;
   status?: FormStatus;
-} & Record<string, unknown>;
+  meta?: DocumentMeta;
+};
 
 export type FieldValidateContext = {
   /** All answers in this draft/submit payload (same object being validated). */
@@ -36,8 +39,8 @@ export type FieldTypeDefinition<
   readonly type: TType;
   /**
    * When the answer is present, return an English error or `undefined`.
-   * Select (and similar) read extra keys on `field`. `context.answers` is the
-   * full payload so types can compare sibling values.
+   * Select (and similar) read type-specific keys on `field`. `context.answers`
+   * is the full payload so types can compare sibling values.
    */
   validate: (
     value: unknown,
@@ -63,7 +66,7 @@ export type FieldTypeDefinition<
 
 /** Parse a questionnaire document. Unknown field types are allowed here. */
 export function defineForm<const T extends FormDefinitionInput>(form: T): T {
-  return formDefinitionSchema.parse(form) as T;
+  return formDefinitionSchema.parse(form) as unknown as T;
 }
 
 /** Custom field type — validator + answer shape. Not a UI component. */

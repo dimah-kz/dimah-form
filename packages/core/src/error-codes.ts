@@ -1,6 +1,16 @@
+/** One stable `{ code, message }` pair from {@link defineErrorCodes}. */
+export type ErrorCodeEntry = {
+  readonly code: string;
+  readonly message: string;
+};
+
+/** Plugin or core error catalog. Keys are the stable `code` strings. */
+export type ErrorCodeCatalog = Record<string, ErrorCodeEntry>;
+
 /**
  * Pair each stable API `code` with its English `message`.
- * Same shape as Better Auth `defineErrorCodes`.
+ * Same shape as Better Auth `defineErrorCodes`. Plugin packages should call
+ * this once and attach the catalog on both the server and client plugin.
  */
 export function defineErrorCodes<const T extends Record<string, string>>(
   messages: T,

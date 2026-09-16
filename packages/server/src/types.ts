@@ -1,10 +1,12 @@
 import type { Endpoint } from "better-call";
 import type {
+  ErrorCodeCatalog,
   FieldTypeDefinition,
   FormApiOperation,
   FormSnapshot,
   ResponseRecord,
 } from "@dimah-form/core";
+import type { z } from "zod";
 
 import type { ResponseStore } from "./store";
 
@@ -79,8 +81,22 @@ const _allHooksListed: [MissingFormHook] extends [never]
   : MissingFormHook = true;
 void _allHooksListed;
 
+export type PluginInitContext = {
+  id: string;
+  options: unknown;
+  config: ResolvedDimahFormConfig;
+  plugins: ReadonlyMap<string, DimahFormPlugin>;
+};
+
+export type PluginInitResult = {
+  /** Stored on `config.pluginContext` under this plugin's `id`. */
+  context?: unknown;
+};
+
 /**
  * Additive feature plugin. Persistence is `database`, not a plugin.
+ *
+ * Prefer a factory that closes over options and returns {@link definePlugin}.
  *
  * @typeParam TEndpoints — better-call endpoints merged onto `form.api`.
  */
@@ -88,9 +104,33 @@ export type DimahFormPlugin<
   TEndpoints extends Record<string, Endpoint> = Record<string, Endpoint>,
 > = {
   readonly id: string;
+  /**
+   * Other plugin ids that must be installed. Sorted before this plugin
+   * (`init`, hooks, field types, endpoints).
+   */
+  readonly dependsOn?: readonly string[];
+  /** Factory options for sibling plugins. Prefer closures for your own config. */
+  readonly options?: unknown;
   endpoints?: TEndpoints;
   hooks?: DimahFormHooks;
   fieldTypes?: readonly FieldTypeDefinition[];
+  /**
+   * Plugin error catalog. Merged onto `form.$ERROR_CODES`. Cannot shadow
+   * core or another plugin's codes. Share the same module with the client plugin.
+   */
+  $ERROR_CODES?: ErrorCodeCatalog;
+  /**
+   * Runs once in `dimahForm()`, after plugins are sorted and the registry
+   * exists. Must be synchronous. Return `{ context }` for request handlers.
+   */
+  init?: (ctx: PluginInitContext) => PluginInitResult | void;
+};
+
+/** Optional Zod schemas for the opaque `meta` bag. Applied at init / `saveForm`. */
+export type DimahFormMetaSchema = {
+  form?: z.ZodType;
+  field?: z.ZodType;
+  option?: z.ZodType;
 };
 
 export type ResolvedDimahFormConfig = {
@@ -101,4 +141,12 @@ export type ResolvedDimahFormConfig = {
   hooks: DimahFormHooks;
   database: ResponseStore;
   fieldTypes: ReadonlyMap<string, FieldTypeDefinition>;
+  plugins: ReadonlyMap<string, DimahFormPlugin>;
+  pluginContext: ReadonlyMap<string, unknown>;
+  /**
+   * Plugin route key (`"GET /ping"`) → `endpoints` object key (`"ping"`).
+   * Guard uses this when `metadata.operation` is omitted.
+   */
+  pluginOperations: ReadonlyMap<string, string>;
+  metaSchema?: DimahFormMetaSchema;
 };

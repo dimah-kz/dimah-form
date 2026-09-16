@@ -84,4 +84,92 @@ describe("applyPlugins", () => {
     });
     expect(order).toEqual(["a", "b"]);
   });
+
+  it("rejects an empty plugin id", () => {
+    expect(() => applyPlugins([{ id: "  " }])).toThrow(/non-empty string/);
+  });
+
+  it("runs dependsOn plugins first", async () => {
+    const order: string[] = [];
+    const applied = applyPlugins([
+      {
+        id: "b",
+        dependsOn: ["a"],
+        hooks: {
+          onStart: () => {
+            order.push("b");
+          },
+        },
+      },
+      {
+        id: "a",
+        hooks: {
+          onStart: () => {
+            order.push("a");
+          },
+        },
+      },
+    ]);
+    await applied.hooks.onStart?.({
+      request: new Request("http://localhost"),
+      response: {} as never,
+    });
+    expect(order).toEqual(["a", "b"]);
+  });
+
+  it("maps plugin routes to endpoint names", () => {
+    const applied = applyPlugins([
+      definePlugin({
+        id: "ping",
+        endpoints: {
+          ping: createFormEndpoint("/ping", { method: "GET" }, async () => ({
+            ok: true,
+          })),
+        },
+      }),
+    ]);
+    expect(applied.pluginOperations.get("GET /ping")).toBe("ping");
+  });
+
+  it("rejects a plugin field type that shadows a built-in", () => {
+    expect(() =>
+      applyPlugins([
+        {
+          id: "dup",
+          fieldTypes: [{ type: "text", validate: () => undefined }],
+        },
+      ]),
+    ).toThrow(/conflicts with a built-in type/);
+  });
+
+  it("rejects the same field type from two plugins", () => {
+    expect(() =>
+      applyPlugins([
+        {
+          id: "a",
+          fieldTypes: [{ type: "rating", validate: () => undefined }],
+        },
+        {
+          id: "b",
+          fieldTypes: [{ type: "rating", validate: () => undefined }],
+        },
+      ]),
+    ).toThrow(/Plugin "b" conflicts with plugin "a"/);
+  });
+
+  it("rejects a plugin error code that shadows core", () => {
+    expect(() =>
+      applyPlugins([
+        {
+          id: "ping",
+          $ERROR_CODES: {
+            VALIDATION_ERROR: {
+              code: "VALIDATION_ERROR",
+              message: "Nope",
+            },
+          },
+        },
+      ]),
+    ).toThrow(/conflicts with a core code/);
+  });
 });

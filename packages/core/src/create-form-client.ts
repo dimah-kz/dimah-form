@@ -11,6 +11,8 @@ import {
   type ClientPluginEndpointMap,
   type FormClientPlugin,
 } from "./client-plugin";
+import { applyClientPlugins } from "./plugin/apply-client-plugins";
+import type { PluginErrorCodeMap } from "./plugin/types";
 import {
   FORM_API_BASE_PATH,
   FORM_API_OPERATIONS,
@@ -173,7 +175,7 @@ export type CreateFormClientResult<
   ClientPluginEndpointMap<TPlugins> & {
     $fetch: FormFetch;
     baseURL: string;
-    $ERROR_CODES: typeof FORM_ERROR_CODES;
+    $ERROR_CODES: typeof FORM_ERROR_CODES & PluginErrorCodeMap<TPlugins>;
     $Infer: {
       forms: InferClientForms<TServer, TForms>;
       answers: InferClientAnswers<TServer, TForms, TFieldTypes>;
@@ -253,17 +255,20 @@ export function createFormClient<
     });
   }
 
-  const api: FormClientApi & {
-    $fetch: FormFetch;
-    baseURL: string;
-    $ERROR_CODES: typeof FORM_ERROR_CODES;
-    $Infer: CreateFormClientResult<
-      TPlugins,
-      TForms,
-      TFieldTypes,
-      TServer
-    >["$Infer"];
-  } = {
+  const applied = applyClientPlugins(plugins, { $fetch }, CORE_CLIENT_KEYS);
+
+  const api: FormClientApi &
+    Record<string, unknown> & {
+      $fetch: FormFetch;
+      baseURL: string;
+      $ERROR_CODES: typeof FORM_ERROR_CODES & PluginErrorCodeMap<TPlugins>;
+      $Infer: CreateFormClientResult<
+        TPlugins,
+        TForms,
+        TFieldTypes,
+        TServer
+      >["$Infer"];
+    } = {
     getForm(payload) {
       return get<FormSnapshot>(FORM_API_OPERATIONS.getForm.path, payload, {
         formId: payload.formId,
@@ -343,33 +348,16 @@ export function createFormClient<
     },
     $fetch,
     baseURL: base,
-    $ERROR_CODES: FORM_ERROR_CODES,
+    $ERROR_CODES: applied.errorCodes as typeof FORM_ERROR_CODES &
+      PluginErrorCodeMap<TPlugins>,
     $Infer: undefined as unknown as CreateFormClientResult<
       TPlugins,
       TForms,
       TFieldTypes,
       TServer
     >["$Infer"],
+    ...applied.endpoints,
   };
-
-  const seen = new Set<string>();
-  for (const plugin of plugins ?? []) {
-    if (seen.has(plugin.id)) {
-      throw new Error(
-        `Duplicate dimah-form client plugin id "${plugin.id}". Each plugin id must be unique.`,
-      );
-    }
-    seen.add(plugin.id);
-    const extra = plugin.endpoints?.({ $fetch }) ?? {};
-    for (const [name, fn] of Object.entries(extra)) {
-      if (CORE_CLIENT_KEYS.has(name) || name in api) {
-        throw new Error(
-          `Duplicate dimah-form client endpoint "${name}". Plugin "${plugin.id}" conflicts with a core or plugin method.`,
-        );
-      }
-      (api as Record<string, unknown>)[name] = fn;
-    }
-  }
 
   return api as unknown as CreateFormClientResult<
     TPlugins,

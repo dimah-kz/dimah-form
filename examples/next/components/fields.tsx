@@ -229,7 +229,7 @@ function FormFieldControl({
     );
   }
 
-  if (field.type === "text" && field.multiline === true) {
+  if (field.type === "text" && field.meta?.multiline === true) {
     return (
       <LabeledField field={field} issue={issue} disabled={disabled}>
         <Textarea

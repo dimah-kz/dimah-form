@@ -18,6 +18,7 @@ export {
   defineClientPlugin,
   defineFieldType,
   defineForm,
+  defineErrorCodes,
   isAPIError,
   isFieldVisible,
   isFormErrorCode,
@@ -31,6 +32,7 @@ export {
   type FormList,
   type FormSnapshot,
   type FormStatus,
+  type DocumentMeta,
   type InferAnswersMap,
   type InferFormAnswers,
   type ResponseList,
@@ -38,4 +40,5 @@ export {
   type ResponseStatus,
   type ResponseSummary,
   type ValidationIssue,
+  type ErrorCodeCatalog,
 } from "@dimah-form/core";

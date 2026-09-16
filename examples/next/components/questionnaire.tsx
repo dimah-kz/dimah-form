@@ -168,17 +168,16 @@ export function Questionnaire({
   }
 
   return (
-    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <Card>
         <CardHeader>
           <CardTitle>{form.title}</CardTitle>
           <CardDescription>
-            {typeof form.description === "string"
-              ? form.description
-              : `${form.slug} · widgets are yours, validation is the snapshot`}
+            {form.description ??
+              `${form.slug} · widgets are yours, validation is the snapshot`}
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+        <CardContent className="flex flex-col gap-6">
           {status === "submitted" ? (
             <Alert>
               <CircleCheckIcon />

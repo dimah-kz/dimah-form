@@ -1,6 +1,7 @@
 export {
   booleanFieldSchema,
   dateFieldSchema,
+  documentMetaSchema,
   emailFieldSchema,
   fieldSchema,
   formDefinitionSchema,
@@ -17,11 +18,13 @@ export {
   showWhenSchema,
   storedFieldSchema,
   textFieldSchema,
+  type DocumentMeta,
   type FieldShowWhen,
   type FormDefinition,
   type FormField,
   type FormSnapshot,
   type FormStatus,
+  type SelectOption,
 } from "./definition";
 export {
   LIST_DEFAULT_LIMIT,

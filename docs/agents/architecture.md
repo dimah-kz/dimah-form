@@ -29,8 +29,9 @@ Shared protocol changes start in `core`, then wire `server` and `react`. Do not 
 
 ## Product shape
 
-- Config is instance-based: `dimahForm({ fieldTypes, forms, database, plugins, hooks, guard })`.
+- Config is instance-based: `dimahForm({ fieldTypes, forms, database, plugins, hooks, guard, metaSchema })`.
 - Field types are registered on the instance. `defineForm` does not take `fieldTypes`. Optional `fieldSchema` on `defineFieldType` validates the field document at init / `saveForm`.
+- Optional `meta` on the form, field, and option documents is an opaque JSON object for consumer UI. Type-specific keys stay on the field document. Optional `metaSchema.form` / `field` / `option` on `dimahForm()` validate that bag at init / `saveForm`.
 - Snapshots include `slug` (defaults to `id`) and `status` (`draft` \| `active` \| `archived`). Only `active` forms can be started. `getForm` / `startResponse` accept id or slug.
 - Draft answers are a patch (`null` deletes a key). Submit replaces the whole answers object, or omits `answers` to submit the stored draft. `reopenResponse` returns a submitted or abandoned row to draft without rewriting the snapshot. Optional `updatedAt` on draft/submit/abandon/reopen is optimistic concurrency (`STALE_UPDATE`).
 - `database` is required (`memoryAdapter()` or `db()` from `@dimah-form/db`). Plugins merge once in `dimahForm()` and do not replace persistence.
@@ -39,7 +40,7 @@ Shared protocol changes start in `core`, then wire `server` and `react`. Do not 
 - Each response stores the definition it was started with. Submit validates that snapshot. Starting a response does not rewrite the live questionnaire row.
 - Domain hooks: `on*` after validation before persist; `after*` after persist. Auth stays in `guard`.
 - Custom fields are `defineFieldType` validators, not components.
-- Server plugins may add `endpoints`, `hooks`, and `fieldTypes`. Browser companions use `defineClientPlugin` on `createFormClient({ plugins })`.
+- Server plugins may add `endpoints`, `hooks`, `fieldTypes`, and `$ERROR_CODES`. Optional `dependsOn` (topological order), `options`, and synchronous `init` (`{ context }` → `config.pluginContext`). Browser companions use `defineClientPlugin` on `createFormClient({ plugins })`. They are not inferred from the server plugin.
 
 ## Do not
 

@@ -29,7 +29,13 @@ export const listForms = createFormEndpoint(
       const forms: FormSnapshot[] = [];
       for (const form of rows) {
         try {
-          forms.push(parseLiveSnapshot(form, ctx.context.config.fieldTypes));
+          forms.push(
+            parseLiveSnapshot(
+              form,
+              ctx.context.config.fieldTypes,
+              ctx.context.config.metaSchema,
+            ),
+          );
         } catch {
           continue;
         }

@@ -38,7 +38,7 @@ First-class `database` on `dimahForm()`. Official adapters: `memoryAdapter()` in
 
 `defineFieldType` lives in `@dimah-form/core` and is re-exported from `server` / `react`. Register extra types on `dimahForm({ fieldTypes })` — that instance is the registry. Built-ins are field types too; duplicate `type` strings throw at init.
 
-`defineForm` does not take `fieldTypes`. Unknown types are allowed in the document and rejected at `dimahForm()` if unregistered. Optional `fieldSchema` is applied at init / `saveForm`.
+`defineForm` does not take `fieldTypes`. Unknown types are allowed in the document and rejected at `dimahForm()` if unregistered. Optional `fieldSchema` is applied at init / `saveForm`. Optional `meta` on the form, field, and option is opaque JSON for consumer UI — not type config. Optional `metaSchema` on `dimahForm()` validates that bag at init / `saveForm`.
 
 Draft is a patch (`null` deletes a key). Submit is a full replace, or omit `answers` to submit the stored draft. `reopenResponse` returns submitted / abandoned to draft; answers and the snapshot stay.
 
@@ -47,10 +47,12 @@ Draft is a patch (`null` deletes a key). Submit is a full replace, or omit `answ
 Feature plugins live in their own package and peer-depend on server.
 
 - Merge once in `dimahForm()` — never inside an endpoint.
-- Plugins may add `endpoints` (via `createFormEndpoint`), `hooks`, and `fieldTypes`.
-- Browser companions are `defineClientPlugin` merged in `createFormClient({ plugins })`. They are not inferred from the server plugin.
+- Plugins may add `endpoints` (via `createFormEndpoint`), `hooks`, `fieldTypes`, and `$ERROR_CODES` (`defineErrorCodes`).
+- Optional `dependsOn` (topological `init` / hook order), `options` (for sibling plugins), and synchronous `init` that may return `{ context }` stored on `config.pluginContext`.
+- Guard `operation` for a plugin route is the `endpoints` key unless `metadata.operation` is set.
+- Browser companions are `defineClientPlugin` merged in `createFormClient({ plugins })`. They are not inferred from the server plugin. Share `id` and the error catalog module.
 - Keep ORM off the client entry.
-- Persistence is `database`, not a plugin.
+- Persistence is `database`, not a plugin. Plugins must not add tables.
 
 ## Strings and errors
 

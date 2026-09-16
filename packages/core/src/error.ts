@@ -1,8 +1,13 @@
 import { APIError as BetterCallAPIError } from "better-call/error";
-import { type FormErrorCode } from "./error-codes";
 import type { ValidationIssue } from "./schema/error";
 
-export { FORM_ERROR_CODES, type FormErrorCode } from "./error-codes";
+export {
+  FORM_ERROR_CODES,
+  defineErrorCodes,
+  type ErrorCodeCatalog,
+  type ErrorCodeEntry,
+  type FormErrorCode,
+} from "./error-codes";
 
 type NamedStatus = ConstructorParameters<typeof BetterCallAPIError>[0];
 type APIErrorStatus = NamedStatus | number;
@@ -75,8 +80,8 @@ export function isAPIError(error: unknown): error is APIError {
   );
 }
 
-/** True when `error` is an {@link APIError} with this catalog `code`. */
-export function isFormErrorCode<C extends FormErrorCode>(
+/** True when `error` is an {@link APIError} with this `code` (core or plugin). */
+export function isFormErrorCode<C extends string>(
   error: unknown,
   code: C,
 ): error is APIError & { code: C } {

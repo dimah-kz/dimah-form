@@ -5,6 +5,7 @@ import {
   normalizeFormApiBasePath,
   type FieldTypeDefinition,
   type InferAnswersMap,
+  type PluginErrorCodeMap,
 } from "@dimah-form/core";
 import type { Endpoint } from "better-call";
 
@@ -14,17 +15,28 @@ import { assertFormsConfig } from "./forms";
 import {
   applyPlugins,
   mergeHooks,
+  runPluginInits,
   type PluginEndpointMap,
 } from "./plugin/apply-plugins";
 import type { ResponseStore } from "./store";
 import type {
   DimahFormGuard,
   DimahFormHooks,
+  DimahFormMetaSchema,
   DimahFormPlugin,
+  PluginInitContext,
+  PluginInitResult,
   ResolvedDimahFormConfig,
 } from "./types";
 
-export type { DimahFormGuard, DimahFormHooks, DimahFormPlugin };
+export type {
+  DimahFormGuard,
+  DimahFormHooks,
+  DimahFormMetaSchema,
+  DimahFormPlugin,
+  PluginInitContext,
+  PluginInitResult,
+};
 
 type PluginFieldTypeUnion<P extends readonly DimahFormPlugin[]> =
   P extends readonly []
@@ -56,6 +68,11 @@ export type DimahFormConfig<
   fieldTypes?: TFieldTypes;
   /** Code-authored forms. Dynamic forms live in the database. */
   forms?: TForms;
+  /**
+   * Optional schemas for the opaque `meta` bag on forms, fields, and options.
+   * Protocol already requires a JSON object; these tighten the contents.
+   */
+  metaSchema?: DimahFormMetaSchema;
   /** Runs before every operation. Throw to reject. */
   guard?: DimahFormGuard;
   /** Domain hooks — `on*` after validation before persist; `after*` after persist. */
@@ -70,7 +87,7 @@ export type DimahForm<
 > = {
   handler: (request: Request) => Promise<Response>;
   api: CoreEndpoints & PluginEndpointMap<TPlugins>;
-  $ERROR_CODES: typeof FORM_ERROR_CODES;
+  $ERROR_CODES: typeof FORM_ERROR_CODES & PluginErrorCodeMap<TPlugins>;
   $Infer: {
     forms: TForms;
     answers: InferAnswersMap<
@@ -109,7 +126,12 @@ export function dimahForm<
     ...(config.fieldTypes ?? []),
   ]);
   const forms = (config.forms ?? {}) as Record<string, unknown>;
-  assertFormsConfig(forms, fieldTypes);
+  assertFormsConfig(forms, fieldTypes, config.metaSchema);
+
+  const pluginMap = new Map(
+    applied.plugins.map((plugin) => [plugin.id, plugin]),
+  );
+  const pluginContext = new Map<string, unknown>();
 
   const resolved: ResolvedDimahFormConfig = {
     basePath: normalizeFormApiBasePath(config.basePath ?? FORM_API_BASE_PATH),
@@ -118,7 +140,13 @@ export function dimahForm<
     hooks: mergeHooks(applied.hooks, config.hooks),
     database: config.database,
     fieldTypes,
+    plugins: pluginMap,
+    pluginContext,
+    pluginOperations: applied.pluginOperations,
+    metaSchema: config.metaSchema,
   };
+
+  runPluginInits(applied.plugins, resolved);
 
   const endpoints = {
     ...coreEndpoints,
@@ -132,7 +160,11 @@ export function dimahForm<
   return {
     handler,
     api: api as DimahForm<TPlugins, TForms, TFieldTypes>["api"],
-    $ERROR_CODES: FORM_ERROR_CODES,
+    $ERROR_CODES: applied.errorCodes as DimahForm<
+      TPlugins,
+      TForms,
+      TFieldTypes
+    >["$ERROR_CODES"],
     $Infer: undefined as unknown as DimahForm<
       TPlugins,
       TForms,

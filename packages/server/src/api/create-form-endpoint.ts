@@ -50,15 +50,20 @@ function idsFrom(ctx: {
   };
 }
 
-function inferOperation(options: EndpointOptions, path: string): FormOperation {
+function inferOperation(
+  options: EndpointOptions,
+  path: string,
+  pluginOperations?: ReadonlyMap<string, string>,
+): FormOperation {
   const explicit = options.metadata?.operation;
   if (typeof explicit === "string") return explicit;
   const key = formApiRouteKey(String(options.method), path);
-  return FORM_API_ROUTE_KEYS[key] ?? key;
+  return FORM_API_ROUTE_KEYS[key] ?? pluginOperations?.get(key) ?? key;
 }
 
 function guardHandler(
-  operation: FormOperation,
+  options: EndpointOptions,
+  path: string,
   handler: (...args: never[]) => unknown,
 ) {
   return async (ctx: {
@@ -70,6 +75,7 @@ function guardHandler(
           formId?: string;
           responseId?: string;
         }) => unknown;
+        pluginOperations?: ReadonlyMap<string, string>;
       };
       request: Request;
     };
@@ -78,7 +84,11 @@ function guardHandler(
   }) => {
     await ctx.context.config.guard?.({
       request: ctx.context.request,
-      operation,
+      operation: inferOperation(
+        options,
+        path,
+        ctx.context.config.pluginOperations,
+      ),
       ...idsFrom(ctx),
     });
     return handler(ctx as never);
@@ -94,8 +104,8 @@ type CreateFormEndpoint = typeof createEndpointWithContext;
  * injected by the router / `form.api`. Zod failures throw `APIError`
  * (`VALIDATION_ERROR`) via better-call `onValidationError`.
  *
- * Plugin routes should set `metadata.operation` to the `endpoints` key
- * (e.g. `"ping"`); otherwise the guard sees `"GET /ping"`.
+ * Guard `operation` is `metadata.operation` when set, otherwise the core
+ * route name or the plugin `endpoints` key (e.g. `"ping"`).
  */
 export const createFormEndpoint: CreateFormEndpoint = ((
   pathOrOptions: string | EndpointOptions,
@@ -108,7 +118,8 @@ export const createFormEndpoint: CreateFormEndpoint = ((
       pathOrOptions,
       withFormValidation(options),
       guardHandler(
-        inferOperation(options, pathOrOptions),
+        options,
+        pathOrOptions,
         maybeHandler as (...args: never[]) => unknown,
       ),
     );
@@ -119,7 +130,8 @@ export const createFormEndpoint: CreateFormEndpoint = ((
   return createEndpointWithContext(
     withFormValidation(options),
     guardHandler(
-      inferOperation(options, path),
+      options,
+      path,
       optionsOrHandler as (...args: never[]) => unknown,
     ),
   );

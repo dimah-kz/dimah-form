@@ -1,8 +1,11 @@
 export {
   APIError,
   FORM_ERROR_CODES,
+  defineErrorCodes,
   isAPIError,
   isFormErrorCode,
+  type ErrorCodeCatalog,
+  type ErrorCodeEntry,
   type FormErrorCode,
 } from "./error";
 export {
@@ -24,6 +27,10 @@ export {
   type FormClientPlugin,
   type FormServerLike,
 } from "./create-form-client";
+export type { IntersectDefined, PluginErrorCodeMap } from "./plugin/types";
+export { RESERVED_CLIENT_PLUGIN_IDS } from "./client-plugin";
+export { mergeErrorCodes } from "./plugin/merge-error-codes";
+export { assertPluginId, sortPluginsByDependsOn } from "./plugin/sort-plugins";
 export {
   FORM_API_BASE_PATH,
   FORM_API_OPERATIONS,
@@ -63,6 +70,7 @@ export {
   dateFieldSchema,
   deleteFormBodySchema,
   deleteResponseBodySchema,
+  documentMetaSchema,
   emailFieldSchema,
   fieldIdSchema,
   fieldSchema,
@@ -100,6 +108,7 @@ export {
   submitResponseBodySchema,
   textFieldSchema,
   toResponseSummary,
+  type DocumentMeta,
   type FieldShowWhen,
   type FormAnswers,
   type FormDefinition,
@@ -108,6 +117,7 @@ export {
   type FormSnapshot,
   type FormStatus,
   type ListPageQuery,
+  type SelectOption,
   type ResponseList,
   type ResponseRecord,
   type ResponseStatus,

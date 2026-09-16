@@ -108,29 +108,93 @@ describe("formDefinitionSchema", () => {
     ).toBe(false);
   });
 
-  it("keeps extra keys on builtin fields and options", () => {
+  it("keeps description and meta on the form document", () => {
+    expect(
+      formDefinitionSchema.parse({
+        title: "X",
+        description: "Hello",
+        meta: { locale: "en" },
+        fields: [{ id: "n", type: "text" }],
+      }),
+    ).toEqual({
+      title: "X",
+      description: "Hello",
+      meta: { locale: "en" },
+      fields: [{ id: "n", type: "text" }],
+    });
+  });
+
+  it("rejects unknown keys on the form document", () => {
+    expect(
+      formDefinitionSchema.safeParse({
+        title: "X",
+        theme: "dark",
+        fields: [{ id: "n", type: "text" }],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("keeps meta on builtin fields and options", () => {
     expect(
       formDefinitionSchema.parse({
         title: "X",
         fields: [
-          { id: "n", type: "text", placeholder: "Ada" },
+          { id: "n", type: "text", meta: { placeholder: "Ada" } },
+          {
+            id: "role",
+            type: "select",
+            options: [{ value: "eng", meta: { icon: "cpu" } }],
+          },
+        ],
+      }),
+    ).toEqual({
+      title: "X",
+      fields: [
+        { id: "n", type: "text", meta: { placeholder: "Ada" } },
+        {
+          id: "role",
+          type: "select",
+          options: [{ value: "eng", meta: { icon: "cpu" } }],
+        },
+      ],
+    });
+  });
+
+  it("rejects unknown keys on builtin fields and options", () => {
+    expect(
+      formDefinitionSchema.safeParse({
+        title: "X",
+        fields: [{ id: "n", type: "text", placeholder: "Ada" }],
+      }).success,
+    ).toBe(false);
+    expect(
+      formDefinitionSchema.safeParse({
+        title: "X",
+        fields: [
           {
             id: "role",
             type: "select",
             options: [{ value: "eng", icon: "cpu" }],
           },
         ],
-      }),
-    ).toMatchObject({
-      fields: [
-        { id: "n", type: "text", placeholder: "Ada" },
-        {
-          id: "role",
-          type: "select",
-          options: [{ value: "eng", icon: "cpu" }],
-        },
-      ],
-    });
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects non-object meta", () => {
+    expect(
+      formDefinitionSchema.safeParse({
+        title: "X",
+        meta: ["nope"],
+        fields: [{ id: "n", type: "text" }],
+      }).success,
+    ).toBe(false);
+    expect(
+      formDefinitionSchema.safeParse({
+        title: "X",
+        fields: [{ id: "n", type: "text", meta: "Ada" }],
+      }).success,
+    ).toBe(false);
   });
 
   it("keeps unknown field types on the document", () => {
@@ -142,20 +206,6 @@ describe("formDefinitionSchema", () => {
     ).toMatchObject({
       title: "X",
       fields: [{ id: "n", type: "file", pattern: ".+" }],
-    });
-  });
-
-  it("keeps extra keys on the form document", () => {
-    expect(
-      formDefinitionSchema.parse({
-        title: "X",
-        description: "Hello",
-        fields: [{ id: "n", type: "text" }],
-      }),
-    ).toMatchObject({
-      title: "X",
-      description: "Hello",
-      fields: [{ id: "n", type: "text" }],
     });
   });
 });
@@ -226,12 +276,13 @@ describe("formSnapshotSchema", () => {
     ).toBe(false);
   });
 
-  it("keeps extra keys and timestamps on normalize", () => {
+  it("keeps description, meta, and timestamps on normalize", () => {
     expect(
       normalizeFormSnapshot({
         id: "intake",
         title: "Intake",
         description: "Join us",
+        meta: { locale: "en" },
         createdAt: "2026-01-01T00:00:00.000Z",
         updatedAt: "2026-01-02T00:00:00.000Z",
         fields: [{ id: "n", type: "text" }],
@@ -242,6 +293,7 @@ describe("formSnapshotSchema", () => {
       status: "active",
       title: "Intake",
       description: "Join us",
+      meta: { locale: "en" },
       createdAt: "2026-01-01T00:00:00.000Z",
       updatedAt: "2026-01-02T00:00:00.000Z",
       fields: [{ id: "n", type: "text" }],

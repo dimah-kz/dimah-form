@@ -14,7 +14,7 @@ pnpm --filter @dimah-form/example-next dev
 
 Open http://localhost:3000
 
-- `/` — one feedback form. `rating` is a consumer `defineFieldType`; the stars are example UI
+- `/` — one feedback form. Built-in field types plus `showWhen`; `rating` is the only custom type (stars are example UI)
 - Save draft patches answers; Submit replaces them. Both send `updatedAt` for optimistic concurrency
 - `/responses` lists stored answers (`include=full`)
 - `/r/:id` resumes a draft or shows a submitted / abandoned response. Edit calls `reopenResponse` (same snapshot and answers) — it does not start a new response

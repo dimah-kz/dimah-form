@@ -1,7 +1,13 @@
 import {
+  assertPluginId,
+  builtinFieldTypes,
   FORM_API_ROUTE_KEYS,
   formApiRouteKey,
+  mergeErrorCodes,
+  sortPluginsByDependsOn,
+  type ErrorCodeCatalog,
   type FieldTypeDefinition,
+  type IntersectDefined,
 } from "@dimah-form/core";
 import type { Endpoint } from "better-call";
 
@@ -10,6 +16,8 @@ import {
   FORM_HOOK_KEYS,
   type DimahFormHooks,
   type DimahFormPlugin,
+  type PluginInitResult,
+  type ResolvedDimahFormConfig,
 } from "@/types";
 
 export const RESERVED_PLUGIN_IDS = [
@@ -19,28 +27,26 @@ export const RESERVED_PLUGIN_IDS = [
   "$Infer",
 ] as const;
 
-type UnionToIntersection<U> = (
-  U extends unknown ? (k: U) => void : never
-) extends (k: infer I) => void
-  ? I
-  : Record<string, never>;
+type EndpointsOf<P> = P extends { endpoints: infer E }
+  ? E extends Record<string, Endpoint>
+    ? E
+    : never
+  : never;
 
 /** Map plugin endpoint names → better-call endpoints. */
-export type PluginEndpointMap<P extends readonly DimahFormPlugin[]> =
-  P extends readonly []
-    ? Record<string, never>
-    : UnionToIntersection<
-        P[number] extends { endpoints?: infer E }
-          ? E extends Record<string, Endpoint>
-            ? E
-            : Record<string, never>
-          : Record<string, never>
-      >;
+export type PluginEndpointMap<P extends readonly DimahFormPlugin[]> = [
+  P,
+] extends [readonly []]
+  ? Record<string, never>
+  : IntersectDefined<EndpointsOf<P[number]>>;
 
 export type AppliedPlugins = {
+  plugins: DimahFormPlugin[];
   endpoints: Record<string, Endpoint>;
   fieldTypes: FieldTypeDefinition[];
   hooks: DimahFormHooks;
+  errorCodes: ErrorCodeCatalog;
+  pluginOperations: Map<string, string>;
 };
 
 function routeKey(endpoint: Endpoint) {
@@ -70,22 +76,23 @@ export function mergeHookBags(bags: DimahFormHooks[]): DimahFormHooks {
   ) as DimahFormHooks;
 }
 
+const builtinTypeNames = new Set<string>(
+  builtinFieldTypes.map((fieldType) => fieldType.type),
+);
+
 /**
- * Validate plugins, collect endpoints / field types, and chain plugin hooks.
- * User config hooks are chained afterwards in `dimahForm()`.
+ * Validate plugins, honor `dependsOn`, collect endpoints / field types /
+ * error codes, and chain plugin hooks. User config hooks are chained
+ * afterwards in `dimahForm()`.
  */
 export function applyPlugins(
   plugins: readonly DimahFormPlugin[] | undefined,
 ): AppliedPlugins {
   const list = plugins ?? [];
   const seen = new Set<string>();
-  const endpoints: Record<string, Endpoint> = {};
-  const fieldTypes: FieldTypeDefinition[] = [];
-  const hookBags: DimahFormHooks[] = [];
-  const seenRoutes = new Set<string>(Object.keys(FORM_API_ROUTE_KEYS));
-  const reservedNames = new Set<string>(CORE_ENDPOINT_NAMES);
 
   for (const plugin of list) {
+    assertPluginId(plugin.id, "plugin");
     if ((RESERVED_PLUGIN_IDS as readonly string[]).includes(plugin.id)) {
       throw new Error(
         `dimah-form plugin id "${plugin.id}" is reserved on the instance.`,
@@ -97,12 +104,36 @@ export function applyPlugins(
       );
     }
     seen.add(plugin.id);
+  }
 
-    if (plugin.fieldTypes) {
-      fieldTypes.push(...plugin.fieldTypes);
-    }
+  const sorted = sortPluginsByDependsOn(list, "plugin");
+  const endpoints: Record<string, Endpoint> = {};
+  const fieldTypes: FieldTypeDefinition[] = [];
+  const hookBags: DimahFormHooks[] = [];
+  const seenRoutes = new Set<string>(Object.keys(FORM_API_ROUTE_KEYS));
+  const reservedNames = new Set<string>(CORE_ENDPOINT_NAMES);
+  const pluginOperations = new Map<string, string>();
+  const typeOwner = new Map<string, string>();
+
+  for (const plugin of sorted) {
     if (plugin.hooks) {
       hookBags.push(plugin.hooks);
+    }
+
+    for (const fieldType of plugin.fieldTypes ?? []) {
+      if (builtinTypeNames.has(fieldType.type)) {
+        throw new Error(
+          `Duplicate dimah-form field type "${fieldType.type}". Plugin "${plugin.id}" conflicts with a built-in type.`,
+        );
+      }
+      const owner = typeOwner.get(fieldType.type);
+      if (owner) {
+        throw new Error(
+          `Duplicate dimah-form field type "${fieldType.type}". Plugin "${plugin.id}" conflicts with plugin "${owner}".`,
+        );
+      }
+      typeOwner.set(fieldType.type, plugin.id);
+      fieldTypes.push(fieldType);
     }
 
     for (const [name, endpoint] of Object.entries(plugin.endpoints ?? {})) {
@@ -119,14 +150,18 @@ export function applyPlugins(
       }
       seenRoutes.add(key);
       reservedNames.add(name);
+      pluginOperations.set(key, name);
       endpoints[name] = endpoint;
     }
   }
 
   return {
+    plugins: sorted,
     endpoints,
     fieldTypes,
     hooks: mergeHookBags(hookBags),
+    errorCodes: mergeErrorCodes(sorted, "plugin"),
+    pluginOperations,
   };
 }
 
@@ -135,4 +170,30 @@ export function mergeHooks(
   userHooks: DimahFormHooks | undefined,
 ): DimahFormHooks {
   return mergeHookBags(userHooks ? [pluginHooks, userHooks] : [pluginHooks]);
+}
+
+/**
+ * Run each plugin `init` in `dependsOn` order. Must be synchronous.
+ */
+export function runPluginInits(
+  plugins: readonly DimahFormPlugin[],
+  config: ResolvedDimahFormConfig,
+): void {
+  for (const plugin of plugins) {
+    const result = plugin.init?.({
+      id: plugin.id,
+      options: plugin.options,
+      config,
+      plugins: config.plugins,
+    });
+    if (result instanceof Promise) {
+      throw new Error(
+        `dimah-form plugin "${plugin.id}" init() must be synchronous.`,
+      );
+    }
+    const context = (result as PluginInitResult | void)?.context;
+    if (context !== undefined) {
+      (config.pluginContext as Map<string, unknown>).set(plugin.id, context);
+    }
+  }
 }
