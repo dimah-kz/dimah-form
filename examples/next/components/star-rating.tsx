@@ -28,8 +28,8 @@ export function StarRating({
   const preview = hovered ?? selected;
   const label =
     preview > 0
-      ? (max === LABELS.length ? LABELS[preview - 1] : undefined) ??
-        `${preview} of ${max}`
+      ? ((max === LABELS.length ? LABELS[preview - 1] : undefined) ??
+        `${preview} of ${max}`)
       : "Select a rating";
 
   return (

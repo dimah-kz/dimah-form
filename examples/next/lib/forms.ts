@@ -5,8 +5,7 @@ export const forms = {
     title: "Feedback",
     slug: "feedback",
     status: "active",
-    description:
-      "Custom `rating` type. Widgets are yours; submit validates the snapshot.",
+    description: "Widgets are yours. Submit validates the response snapshot.",
     fields: [
       {
         id: "score",

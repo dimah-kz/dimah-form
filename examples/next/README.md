@@ -12,7 +12,7 @@ pnpm --filter @dimah-form/example-next db:push
 pnpm --filter @dimah-form/example-next dev
 ```
 
-Open http://localhost:3001
+Open http://localhost:3000
 
 - `/` — one feedback form. `rating` is a consumer `defineFieldType`; the stars are example UI
 - Save draft patches answers; Submit replaces them. Both send `updatedAt` for optimistic concurrency
