@@ -18,23 +18,29 @@ export function normalizeFormApiBasePath(basePath = FORM_API_BASE_PATH) {
 export const FORM_API_ROUTES = {
   form: "/form",
   forms: "/forms",
+  deleteForm: "/form/delete",
   startResponse: "/response/start",
   getResponse: "/response",
   responses: "/responses",
   saveDraft: "/response/draft",
   submitResponse: "/response/submit",
+  abandonResponse: "/response/abandon",
+  deleteResponse: "/response/delete",
 } as const;
 
 /** Core protocol: operation name → HTTP method + path. */
 export const FORM_API_OPERATIONS = {
   getForm: { method: "GET", path: FORM_API_ROUTES.form },
   saveForm: { method: "POST", path: FORM_API_ROUTES.form },
+  deleteForm: { method: "POST", path: FORM_API_ROUTES.deleteForm },
   listForms: { method: "GET", path: FORM_API_ROUTES.forms },
   startResponse: { method: "POST", path: FORM_API_ROUTES.startResponse },
   getResponse: { method: "GET", path: FORM_API_ROUTES.getResponse },
   listResponses: { method: "GET", path: FORM_API_ROUTES.responses },
   saveDraft: { method: "POST", path: FORM_API_ROUTES.saveDraft },
   submitResponse: { method: "POST", path: FORM_API_ROUTES.submitResponse },
+  abandonResponse: { method: "POST", path: FORM_API_ROUTES.abandonResponse },
+  deleteResponse: { method: "POST", path: FORM_API_ROUTES.deleteResponse },
 } as const;
 
 export type FormApiOperation = keyof typeof FORM_API_OPERATIONS;

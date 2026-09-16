@@ -18,6 +18,17 @@ Same stack as [dimah-s3](https://github.com/dimah-kz/dimah-s3): pnpm + Turbo, `b
 
 There is no UI package. Field widgets stay in the consumer app.
 
+## Example
+
+`examples/next` is a Next.js App Router demo: code-authored + dynamic forms, drafts, submit-from-draft, admin list, and Drizzle RC + SQLite via FumaDB.
+
+```bash
+pnpm install
+pnpm build
+pnpm --filter @dimah-form/example-next db:push
+pnpm --filter @dimah-form/example-next dev
+```
+
 ## Develop
 
 ```bash

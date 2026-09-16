@@ -75,7 +75,7 @@ export class APIError extends BetterCallAPIError {
 }
 
 /** True for {@link APIError} and better-call copies (including duck-typed). */
-export function isAPIError(error: unknown): boolean {
+export function isAPIError(error: unknown): error is APIError {
   return (
     error instanceof BetterCallAPIError ||
     error instanceof APIError ||
@@ -87,6 +87,6 @@ export function isAPIError(error: unknown): boolean {
 export function isFormErrorCode<C extends FormErrorCode>(
   error: unknown,
   code: C,
-): boolean {
-  return isAPIError(error) && (error as APIError).code === code;
+): error is APIError & { code: C } {
+  return isAPIError(error) && error.code === code;
 }

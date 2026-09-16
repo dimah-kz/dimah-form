@@ -11,6 +11,8 @@ function row(overrides: Partial<ResponseRow> = {}): ResponseRow {
     status: "draft",
     definition: {
       id: "onboarding",
+      slug: "onboarding",
+      status: "active",
       title: "Onboarding",
       fields: [{ id: "name", type: "text", required: true }],
     },
@@ -80,6 +82,8 @@ const record = {
   status: "draft" as const,
   definition: {
     id: "onboarding",
+    slug: "onboarding",
+    status: "active" as const,
     title: "Onboarding",
     fields: [{ id: "name", type: "text" as const, required: true }],
   },
@@ -148,6 +152,8 @@ describe("createDbResponseStore", () => {
     await expect(store.listForms()).resolves.toEqual([
       {
         id: "onboarding",
+        slug: "onboarding",
+        status: "active",
         title: "Onboarding",
         fields: [{ id: "name", type: "text", required: true }],
       },

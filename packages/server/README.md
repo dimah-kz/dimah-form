@@ -19,10 +19,13 @@ const prod = dimahForm({
   },
   hooks: {
     onSubmit: async ({ response }) => {
-      /* side effects */
+      /* mutate before persist */
+    },
+    afterSubmit: async ({ response }) => {
+      /* side effects after persist */
     },
   },
 });
 ```
 
-Code-authored `forms` are optional. Dynamic questionnaires use `saveForm` / `getForm` against `database`.
+Code-authored `forms` are optional. Dynamic questionnaires use `saveForm` / `getForm` against `database`. Snapshots carry `slug` and `status`. List endpoints are paginated.

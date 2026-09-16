@@ -77,6 +77,33 @@ describe("formDefinitionSchema", () => {
     ).toBe(false);
   });
 
+  it("accepts text and number constraints", () => {
+    expect(
+      formDefinitionSchema.parse({
+        title: "X",
+        fields: [
+          {
+            id: "n",
+            type: "text",
+            minLength: 2,
+            maxLength: 8,
+            pattern: "^a+$",
+          },
+          { id: "age", type: "number", min: 1, max: 10, integer: true },
+        ],
+      }).fields,
+    ).toMatchObject([
+      { id: "n", minLength: 2, maxLength: 8, pattern: "^a+$" },
+      { id: "age", min: 1, max: 10, integer: true },
+    ]);
+    expect(
+      formDefinitionSchema.safeParse({
+        title: "X",
+        fields: [{ id: "n", type: "text", minLength: 8, maxLength: 2 }],
+      }).success,
+    ).toBe(false);
+  });
+
   it("keeps extra keys on builtin fields and options", () => {
     expect(
       formDefinitionSchema.parse({
@@ -121,6 +148,14 @@ describe("formSnapshotSchema", () => {
     expect(
       formSnapshotSchema.parse({ id: "contact", ...contact }),
     ).toMatchObject({ id: "contact", title: "Contact" });
+    expect(
+      formSnapshotSchema.parse({
+        id: "contact",
+        slug: "join",
+        status: "draft",
+        ...contact,
+      }),
+    ).toMatchObject({ slug: "join", status: "draft" });
   });
 
   it("round-trips a custom field type", () => {

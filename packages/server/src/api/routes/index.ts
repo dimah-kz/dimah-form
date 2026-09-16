@@ -1,3 +1,6 @@
+import { abandonResponse } from "./abandon-response";
+import { deleteForm } from "./delete-form";
+import { deleteResponse } from "./delete-response";
 import { getForm } from "./get-form";
 import { getResponse } from "./get-response";
 import { listForms } from "./list-forms";
@@ -11,12 +14,15 @@ import { submitResponse } from "./submit-response";
 export const coreEndpoints = {
   getForm,
   saveForm,
+  deleteForm,
   listForms,
   startResponse,
   getResponse,
   listResponses,
   saveDraft,
   submitResponse,
+  abandonResponse,
+  deleteResponse,
 };
 
 export type CoreEndpoints = typeof coreEndpoints;

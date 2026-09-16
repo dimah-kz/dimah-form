@@ -1,23 +1,58 @@
-import type { FormSnapshot, ResponseRecord } from "@dimah-form/core";
+import type {
+  FormSnapshot,
+  FormStatus,
+  ResponseRecord,
+  ResponseStatus,
+} from "@dimah-form/core";
+
+export type ListFormsStoreQuery = {
+  status?: FormStatus;
+  limit?: number;
+  offset?: number;
+};
+
+export type ListResponsesStoreQuery = {
+  formId?: string;
+  status?: ResponseStatus;
+  limit?: number;
+  offset?: number;
+};
 
 export type ResponseStore = {
   getForm: (
-    id: string,
+    idOrSlug: string,
   ) => FormSnapshot | undefined | Promise<FormSnapshot | undefined>;
   saveForm: (form: FormSnapshot) => void | Promise<void>;
-  listForms: () => FormSnapshot[] | Promise<FormSnapshot[]>;
+  deleteForm: (id: string) => void | Promise<void>;
+  listForms: (
+    query?: ListFormsStoreQuery,
+  ) => FormSnapshot[] | Promise<FormSnapshot[]>;
   create: (row: ResponseRecord) => void | Promise<void>;
   get: (
     id: string,
   ) => ResponseRecord | undefined | Promise<ResponseRecord | undefined>;
   save: (row: ResponseRecord) => void | Promise<void>;
-  listResponses: (query?: {
-    formId?: string;
-  }) => ResponseRecord[] | Promise<ResponseRecord[]>;
+  delete: (id: string) => void | Promise<void>;
+  listResponses: (
+    query?: ListResponsesStoreQuery,
+  ) => ResponseRecord[] | Promise<ResponseRecord[]>;
 };
 
 function clone<T>(value: T): T {
   return structuredClone(value);
+}
+
+function sortByUpdatedAtDesc<T extends { updatedAt: string }>(items: T[]) {
+  return [...items].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
+function slicePage<T>(
+  items: readonly T[],
+  query?: { limit?: number; offset?: number },
+) {
+  if (query?.limit == null) return [...items];
+  const offset = query.offset ?? 0;
+  return items.slice(offset, offset + query.limit);
 }
 
 /**
@@ -34,16 +69,30 @@ export function memoryAdapter(): ResponseStore {
     }
   }
 
+  function findForm(idOrSlug: string) {
+    const byId = forms.get(idOrSlug);
+    if (byId) return clone(byId);
+    for (const form of forms.values()) {
+      if (form.slug === idOrSlug) return clone(form);
+    }
+    return undefined;
+  }
+
   return {
-    getForm(id) {
-      const form = forms.get(id);
-      return form ? clone(form) : undefined;
+    getForm(idOrSlug) {
+      return findForm(idOrSlug);
     },
     saveForm(form) {
       forms.set(form.id, clone(form));
     },
-    listForms() {
-      return [...forms.values()].map(clone);
+    deleteForm(id) {
+      forms.delete(id);
+    },
+    listForms(query) {
+      const filtered = [...forms.values()].filter(
+        (form) => !query?.status || form.status === query.status,
+      );
+      return slicePage(filtered, query).map(clone);
     },
     create(row) {
       insertFormIfMissing(row);
@@ -56,10 +105,18 @@ export function memoryAdapter(): ResponseStore {
     save(row) {
       rows.set(row.id, clone(row));
     },
+    delete(id) {
+      rows.delete(id);
+    },
     listResponses(query) {
-      return [...rows.values()]
-        .filter((row) => !query?.formId || row.formId === query.formId)
-        .map(clone);
+      const filtered = sortByUpdatedAtDesc(
+        [...rows.values()].filter((row) => {
+          if (query?.formId && row.formId !== query.formId) return false;
+          if (query?.status && row.status !== query.status) return false;
+          return true;
+        }),
+      );
+      return slicePage(filtered, query).map(clone);
     },
   };
 }

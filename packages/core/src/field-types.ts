@@ -1,18 +1,60 @@
 import { defineFieldType, type FieldTypeDefinition } from "./define";
 
+function asFiniteNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+function asBoolean(value: unknown): boolean | undefined {
+  return typeof value === "boolean" ? value : undefined;
+}
+
 export const textFieldType = defineFieldType({
   type: "text",
-  validate: (value) =>
-    typeof value === "string" ? undefined : "Expected a string",
+  validate: (value, field) => {
+    if (typeof value !== "string") return "Expected a string";
+    const minLength = asFiniteNumber(field.minLength);
+    if (minLength !== undefined && value.length < minLength) {
+      return `Must be at least ${minLength} characters`;
+    }
+    const maxLength = asFiniteNumber(field.maxLength);
+    if (maxLength !== undefined && value.length > maxLength) {
+      return `Must be at most ${maxLength} characters`;
+    }
+    const pattern =
+      typeof field.pattern === "string" ? field.pattern : undefined;
+    if (pattern) {
+      try {
+        if (!new RegExp(pattern).test(value)) return "Invalid format";
+      } catch {
+        return "Invalid format";
+      }
+    }
+    return undefined;
+  },
   $Infer: "" as string,
 });
 
 export const numberFieldType = defineFieldType({
   type: "number",
-  validate: (value) =>
-    typeof value === "number" && Number.isFinite(value)
-      ? undefined
-      : "Expected a number",
+  validate: (value, field) => {
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      return "Expected a number";
+    }
+    if (asBoolean(field.integer) && !Number.isInteger(value)) {
+      return "Expected an integer";
+    }
+    const min = asFiniteNumber(field.min);
+    if (min !== undefined && value < min) {
+      return `Must be at least ${min}`;
+    }
+    const max = asFiniteNumber(field.max);
+    if (max !== undefined && value > max) {
+      return `Must be at most ${max}`;
+    }
+    return undefined;
+  },
   $Infer: 0 as number,
 });
 

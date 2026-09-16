@@ -3,7 +3,9 @@ import {
   FORM_API_BASE_PATH,
   FORM_API_ROUTES,
   FORM_ERROR_CODES,
+  normalizeFormSnapshot,
   type FormErrorCode,
+  type FormSnapshot,
 } from "@dimah-form/core";
 import { expect } from "vitest";
 
@@ -74,3 +76,10 @@ export async function expectErrorCode(
 }
 
 export { FORM_API_ROUTES, FORM_ERROR_CODES };
+
+export function liveSnapshot(
+  id: string,
+  form: { title: string; fields: FormSnapshot["fields"] },
+): FormSnapshot {
+  return normalizeFormSnapshot({ id, ...form });
+}

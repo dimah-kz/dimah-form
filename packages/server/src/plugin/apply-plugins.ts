@@ -45,12 +45,24 @@ function routeKey(endpoint: Endpoint) {
   return formApiRouteKey(String(endpoint.options.method), endpoint.path);
 }
 
-function mergeHookBags(bags: DimahFormHooks[]): DimahFormHooks {
+export function mergeHookBags(bags: DimahFormHooks[]): DimahFormHooks {
   return {
     onStart: chainHooks(...bags.map((bag) => bag.onStart)),
     onSaveDraft: chainHooks(...bags.map((bag) => bag.onSaveDraft)),
     onSubmit: chainHooks(...bags.map((bag) => bag.onSubmit)),
     onSaveForm: chainHooks(...bags.map((bag) => bag.onSaveForm)),
+    onAbandon: chainHooks(...bags.map((bag) => bag.onAbandon)),
+    onDeleteResponse: chainHooks(...bags.map((bag) => bag.onDeleteResponse)),
+    onDeleteForm: chainHooks(...bags.map((bag) => bag.onDeleteForm)),
+    afterStart: chainHooks(...bags.map((bag) => bag.afterStart)),
+    afterSaveDraft: chainHooks(...bags.map((bag) => bag.afterSaveDraft)),
+    afterSubmit: chainHooks(...bags.map((bag) => bag.afterSubmit)),
+    afterSaveForm: chainHooks(...bags.map((bag) => bag.afterSaveForm)),
+    afterAbandon: chainHooks(...bags.map((bag) => bag.afterAbandon)),
+    afterDeleteResponse: chainHooks(
+      ...bags.map((bag) => bag.afterDeleteResponse),
+    ),
+    afterDeleteForm: chainHooks(...bags.map((bag) => bag.afterDeleteForm)),
   };
 }
 

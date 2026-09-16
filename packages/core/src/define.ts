@@ -1,4 +1,7 @@
+import type { z } from "zod";
+
 import { formDefinitionSchema } from "./schema/definition";
+import type { FormStatus } from "./schema/definition";
 
 /** Code-authored form document. Extra field keys are allowed. */
 export type FormDefinitionInput = {
@@ -9,6 +12,8 @@ export type FormDefinitionInput = {
     required?: boolean;
     label?: string;
   } & Record<string, unknown>)[];
+  slug?: string;
+  status?: FormStatus;
 };
 
 export type FieldTypeDefinition<
@@ -24,6 +29,11 @@ export type FieldTypeDefinition<
     value: unknown,
     field: { type: TType } & Record<string, unknown>,
   ) => string | undefined;
+  /**
+   * Optional document schema for this type. Applied at `dimahForm()` /
+   * `saveForm` — unknown types still round-trip through `defineForm`.
+   */
+  fieldSchema?: z.ZodType;
   /** Phantom answer type for `$Infer`. */
   readonly $Infer?: TAnswer;
 };

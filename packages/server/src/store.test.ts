@@ -6,7 +6,13 @@ const row = {
   id: "r1",
   formId: "onboarding",
   status: "draft" as const,
-  definition: { id: "onboarding", title: "Onboarding", fields: [] },
+  definition: {
+    id: "onboarding",
+    slug: "onboarding",
+    status: "active" as const,
+    title: "Onboarding",
+    fields: [],
+  },
   answers: {},
   respondentId: null,
   submittedAt: null,
@@ -27,6 +33,8 @@ describe("memoryAdapter", () => {
     const store = memoryAdapter();
     store.saveForm({
       id: "intake",
+      slug: "intake",
+      status: "active",
       title: "Intake",
       fields: [{ id: "n", type: "text" }],
     });
@@ -35,6 +43,8 @@ describe("memoryAdapter", () => {
       formId: "intake",
       definition: {
         id: "intake",
+        slug: "intake",
+        status: "active",
         title: "Old",
         fields: [{ id: "n", type: "text" }],
       },

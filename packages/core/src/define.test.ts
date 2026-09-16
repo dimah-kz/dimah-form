@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import * as z from "zod";
 
 import { defineFieldType, defineForm } from "./define";
 
@@ -43,5 +44,14 @@ describe("defineFieldType", () => {
     });
     expect(email.type).toBe("email");
     expect(email.validate("a@b.c", { type: "email" })).toBeUndefined();
+  });
+
+  it("accepts a field document schema", () => {
+    const email = defineFieldType({
+      type: "email",
+      fieldSchema: z.looseObject({ type: z.literal("email") }),
+      validate: () => undefined,
+    });
+    expect(email.fieldSchema?.safeParse({ type: "email" }).success).toBe(true);
   });
 });

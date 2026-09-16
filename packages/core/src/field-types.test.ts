@@ -30,4 +30,11 @@ describe("createFieldTypeRegistry", () => {
       ]),
     ).toThrow(/Duplicate dimah-form field type "text"/);
   });
+
+  it("validates minLength on text answers", () => {
+    const registry = createFieldTypeRegistry();
+    expect(
+      registry.get("text")?.validate("ab", { type: "text", minLength: 3 }),
+    ).toBe("Must be at least 3 characters");
+  });
 });

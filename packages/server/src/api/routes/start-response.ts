@@ -5,7 +5,8 @@ import {
 } from "@dimah-form/core";
 
 import { createFormEndpoint } from "@/api/create-form-endpoint";
-import { resolveLiveForm } from "@/forms";
+import { requireActiveForm, resolveLiveForm } from "@/forms";
+import { commitLifecycle, persistedResponse } from "@/helpers/lifecycle";
 
 const { method, path } = FORM_API_OPERATIONS.startResponse;
 
@@ -17,6 +18,7 @@ export const startResponse = createFormEndpoint(
       ctx.context.config,
       ctx.body.formId,
     );
+    requireActiveForm(definition);
     const now = new Date().toISOString();
     const row: ResponseRecord = {
       id: crypto.randomUUID(),
@@ -29,11 +31,13 @@ export const startResponse = createFormEndpoint(
       createdAt: now,
       updatedAt: now,
     };
-    await ctx.context.config.hooks.onStart?.({
-      request: ctx.context.request,
-      response: row,
-    });
-    await ctx.context.config.database.create(row);
-    return row;
+    const request = ctx.context.request;
+    const hooks = ctx.context.config.hooks;
+    await commitLifecycle(
+      () => hooks.onStart?.({ request, response: row }),
+      () => ctx.context.config.database.create(row),
+      () => hooks.afterStart?.({ request, response: row }),
+    );
+    return persistedResponse((id) => ctx.context.config.database.get(id), row);
   },
 );

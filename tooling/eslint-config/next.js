@@ -10,7 +10,7 @@ import { reactConfig } from "./react.js";
 
 const nextVitals = pluginNext.configs["core-web-vitals"];
 
-export const nextJsConfig = defineConfig(
+export const config = defineConfig(
   baseConfig,
   reactConfig,
   {

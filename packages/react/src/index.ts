@@ -5,6 +5,7 @@ export {
   type CreateFormClientOptions,
   type CreateFormClientResult,
   type FormClientApi,
+  type FormClientPlugin,
 } from "./create-form-client";
 
 export {
@@ -13,6 +14,7 @@ export {
   FORM_API_OPERATIONS,
   FORM_API_ROUTES,
   FORM_ERROR_CODES,
+  defineClientPlugin,
   defineFieldType,
   defineForm,
   isAPIError,
@@ -23,9 +25,11 @@ export {
   type FormField,
   type FormList,
   type FormSnapshot,
+  type FormStatus,
   type InferAnswersMap,
   type InferFormAnswers,
   type ResponseList,
   type ResponseRecord,
   type ResponseStatus,
+  type ResponseSummary,
 } from "@dimah-form/core";

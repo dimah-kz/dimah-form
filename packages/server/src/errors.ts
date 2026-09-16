@@ -14,6 +14,14 @@ export const errors = {
 
   conflict: () => APIError.from("CONFLICT", FORM_ERROR_CODES.CONFLICT),
 
+  staleUpdate: () => APIError.from("CONFLICT", FORM_ERROR_CODES.STALE_UPDATE),
+
+  formInactive: (formId: string) =>
+    APIError.from("CONFLICT", {
+      ...FORM_ERROR_CODES.FORM_INACTIVE,
+      params: { formId },
+    }),
+
   internalError: () =>
     APIError.from("INTERNAL_SERVER_ERROR", FORM_ERROR_CODES.INTERNAL_ERROR),
 

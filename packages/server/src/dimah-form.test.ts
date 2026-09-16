@@ -132,7 +132,12 @@ describe("start / draft / submit", () => {
       body: { formId: "onboarding" },
     });
     expect(started.status).toBe("draft");
-    expect(started.definition).toEqual({ id: "onboarding", ...onboarding });
+    expect(started.definition).toEqual({
+      id: "onboarding",
+      slug: "onboarding",
+      status: "active",
+      ...onboarding,
+    });
     expect(started.answers).toEqual({});
   });
 
@@ -308,13 +313,28 @@ describe("live catalog", () => {
       isFormErrorCode(error, "UNKNOWN_FORM"),
     );
 
-    await expect(form.api.saveForm({ body: intake })).resolves.toEqual(intake);
+    await expect(form.api.saveForm({ body: intake })).resolves.toEqual({
+      ...intake,
+      slug: "intake",
+      status: "active",
+    });
     await expect(
       form.api.getForm({ query: { formId: "intake" } }),
-    ).resolves.toEqual(intake);
+    ).resolves.toEqual({
+      ...intake,
+      slug: "intake",
+      status: "active",
+    });
 
     const listed = await form.api.listForms({});
-    expect(listed.forms).toEqual([intake]);
+    expect(listed.forms).toEqual([
+      {
+        ...intake,
+        slug: "intake",
+        status: "active",
+      },
+    ]);
+    expect(listed.nextOffset).toBeNull();
 
     const started = await form.api.startResponse({
       body: { formId: "intake", respondentId: "user-1" },
@@ -344,12 +364,18 @@ describe("live catalog", () => {
         },
       ],
     };
-    await expect(form.api.saveForm({ body: withHints })).resolves.toEqual(
-      withHints,
-    );
+    await expect(form.api.saveForm({ body: withHints })).resolves.toEqual({
+      ...withHints,
+      slug: "hints",
+      status: "active",
+    });
     await expect(
       form.api.getForm({ query: { formId: "hints" } }),
-    ).resolves.toEqual(withHints);
+    ).resolves.toEqual({
+      ...withHints,
+      slug: "hints",
+      status: "active",
+    });
   });
 
   it("prefers code-authored forms and refuses to overwrite them", async () => {
@@ -369,6 +395,8 @@ describe("live catalog", () => {
     const database = memoryAdapter();
     database.saveForm({
       id: "onboarding",
+      slug: "onboarding",
+      status: "active",
       title: "From DB",
       fields: [{ id: "name", type: "text" }],
     });
@@ -458,6 +486,173 @@ describe("hooks and plugins", () => {
     expectTypeOf<
       typeof form.$Infer.answers.intake.email
     >().toEqualTypeOf<string>();
+  });
+
+  it("runs after-persist hooks after the row is stored", async () => {
+    const events: string[] = [];
+    const form = createInstance({
+      hooks: {
+        onSubmit: () => {
+          events.push("onSubmit");
+        },
+        afterSubmit: () => {
+          events.push("afterSubmit");
+        },
+      },
+    });
+    const started = await form.api.startResponse({
+      body: { formId: "onboarding" },
+    });
+    await form.api.submitResponse({
+      body: {
+        responseId: started.id,
+        answers: { name: "Ada", ok: true },
+      },
+    });
+    expect(events).toEqual(["onSubmit", "afterSubmit"]);
+  });
+
+  it("submits stored draft answers when the body omits answers", async () => {
+    const form = createInstance();
+    const started = await form.api.startResponse({
+      body: { formId: "onboarding" },
+    });
+    const saved = await form.api.saveDraft({
+      body: {
+        responseId: started.id,
+        answers: { name: "Ada", ok: true },
+        updatedAt: started.updatedAt,
+      },
+    });
+    const submitted = await form.api.submitResponse({
+      body: { responseId: started.id, updatedAt: saved.updatedAt },
+    });
+    expect(submitted.status).toBe("submitted");
+    expect(submitted.answers).toEqual({ name: "Ada", ok: true });
+  });
+
+  it("abandons a draft and rejects later drafts", async () => {
+    const form = createInstance();
+    const started = await form.api.startResponse({
+      body: { formId: "onboarding" },
+    });
+    const abandoned = await form.api.abandonResponse({
+      body: { responseId: started.id },
+    });
+    expect(abandoned.status).toBe("abandoned");
+    await expect(
+      form.api.saveDraft({
+        body: { responseId: started.id, answers: { name: "Ada" } },
+      }),
+    ).rejects.toSatisfy((error: unknown) => isFormErrorCode(error, "CONFLICT"));
+  });
+
+  it("rejects stale draft updates", async () => {
+    const form = createInstance();
+    const started = await form.api.startResponse({
+      body: { formId: "onboarding" },
+    });
+    await expect(
+      form.api.saveDraft({
+        body: {
+          responseId: started.id,
+          answers: { name: "Bob" },
+          updatedAt: "2000-01-01T00:00:00.000Z",
+        },
+      }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "STALE_UPDATE"),
+    );
+  });
+
+  it("does not start an archived form", async () => {
+    const form = dimahForm({
+      database: memoryAdapter(),
+      forms: {
+        closed: defineForm({
+          title: "Closed",
+          status: "archived",
+          fields: [{ id: "name", type: "text" }],
+        }),
+      },
+    });
+    await expect(
+      form.api.startResponse({ body: { formId: "closed" } }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "FORM_INACTIVE"),
+    );
+  });
+
+  it("deletes a dynamic form with no responses", async () => {
+    const form = dimahForm({ database: memoryAdapter() });
+    await form.api.saveForm({
+      body: {
+        id: "temp",
+        title: "Temp",
+        fields: [{ id: "n", type: "text" }],
+      },
+    });
+    await expect(
+      form.api.deleteForm({ body: { formId: "temp" } }),
+    ).resolves.toEqual({ ok: true, formId: "temp" });
+    await expect(
+      form.api.getForm({ query: { formId: "temp" } }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "UNKNOWN_FORM"),
+    );
+  });
+
+  it("lists response summaries without answers by default", async () => {
+    const form = createInstance();
+    const started = await form.api.startResponse({
+      body: { formId: "onboarding" },
+    });
+    await form.api.saveDraft({
+      body: { responseId: started.id, answers: { name: "Ada" } },
+    });
+    const listed = await form.api.listResponses({
+      query: { formId: "onboarding" },
+    });
+    expect(listed.responses[0]).toMatchObject({
+      id: started.id,
+      status: "draft",
+    });
+    expect(listed.responses[0]).not.toHaveProperty("answers");
+    const full = await form.api.listResponses({
+      query: { formId: "onboarding", include: "full" },
+    });
+    expect(full.responses[0]).toMatchObject({ answers: { name: "Ada" } });
+  });
+
+  it("skips invalid stored forms when listing", async () => {
+    const database = memoryAdapter();
+    database.saveForm({
+      id: "broken",
+      slug: "broken",
+      status: "active",
+      title: "Broken",
+      fields: [{ id: "x", type: "not-a-type" }],
+    });
+    const form = createInstance({ database });
+    const listed = await form.api.listForms({});
+    expect(listed.forms.some((item) => item.id === "broken")).toBe(false);
+    expect(listed.forms.some((item) => item.id === "onboarding")).toBe(true);
+  });
+
+  it("looks up a form by slug", async () => {
+    const form = dimahForm({
+      database: memoryAdapter(),
+      forms: {
+        onboarding: defineForm({
+          title: "Onboarding",
+          slug: "join",
+          fields: [{ id: "name", type: "text", required: true }],
+        }),
+      },
+    });
+    await expect(
+      form.api.getForm({ query: { formId: "join" } }),
+    ).resolves.toMatchObject({ id: "onboarding", slug: "join" });
   });
 
   it("passes the operation name to guard", async () => {

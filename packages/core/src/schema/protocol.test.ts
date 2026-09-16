@@ -6,6 +6,7 @@ import {
   saveDraftBodySchema,
   saveFormBodySchema,
   startResponseBodySchema,
+  submitResponseBodySchema,
 } from "./protocol";
 
 describe("formFetchErrorSchema", () => {
@@ -55,5 +56,11 @@ describe("protocol payloads", () => {
     expect(
       saveDraftBodySchema.parse({ responseId: "r", answers: { name: "Ada" } }),
     ).toEqual({ responseId: "r", answers: { name: "Ada" } });
+  });
+
+  it("allows omitting answers on submit", () => {
+    expect(submitResponseBodySchema.parse({ responseId: "r" })).toEqual({
+      responseId: "r",
+    });
   });
 });

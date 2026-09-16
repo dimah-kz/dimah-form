@@ -23,6 +23,8 @@ export const FORM_ERROR_CODES = defineErrorCodes({
   VALIDATION_ERROR: "Validation Error",
   UNKNOWN_FORM: "Unknown form",
   UNKNOWN_RESPONSE: "Unknown response",
+  FORM_INACTIVE: "Form is not active",
+  STALE_UPDATE: "Response was updated",
 });
 
 export type FormErrorCode = keyof typeof FORM_ERROR_CODES;

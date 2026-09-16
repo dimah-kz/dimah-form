@@ -1,8 +1,10 @@
 import {
   formDefinitionSchema,
-  formSnapshotSchema,
+  formStatusSchema,
+  normalizeFormSnapshot,
   responseRecordSchema,
   type FormSnapshot,
+  type FormStatus,
   type ResponseRecord,
 } from "@dimah-form/core";
 
@@ -15,6 +17,11 @@ function toIso(value: Date | string | null | undefined): string | null {
 
 function toDate(value: string | null): Date | null {
   return value == null ? null : new Date(value);
+}
+
+function toFormStatus(value: string | undefined): FormStatus {
+  const parsed = formStatusSchema.safeParse(value);
+  return parsed.success ? parsed.data : "active";
 }
 
 /** Raw `response` row as returned by the FumaDB ORM. */
@@ -46,7 +53,7 @@ export function toResponseRecord(row: ResponseRow): ResponseRecord {
     id: row.id,
     formId: row.questionnaireId,
     status: row.status,
-    definition: formSnapshotSchema.parse(row.definition),
+    definition: row.definition,
     answers: row.answers ?? {},
     respondentId: row.respondentId ?? null,
     submittedAt: toIso(row.submittedAt),
@@ -57,11 +64,13 @@ export function toResponseRecord(row: ResponseRow): ResponseRecord {
 
 export function toFormSnapshot(row: QuestionnaireRow): FormSnapshot {
   const definition = formDefinitionSchema.parse(row.definition);
-  return {
+  return normalizeFormSnapshot({
     id: row.id,
     title: definition.title,
     fields: definition.fields,
-  };
+    slug: row.slug ?? definition.slug,
+    status: toFormStatus(row.status),
+  });
 }
 
 export function toResponseColumns(row: ResponseRecord) {
@@ -81,13 +90,15 @@ export function toResponseColumns(row: ResponseRecord) {
 export function toQuestionnaireColumns(form: FormSnapshot, updatedAt: Date) {
   return {
     id: form.id,
-    slug: form.id,
+    slug: form.slug,
     title: form.title,
     definition: {
       title: form.title,
       fields: form.fields,
+      slug: form.slug,
+      status: form.status,
     },
-    status: "active",
+    status: form.status,
     updatedAt,
   };
 }

@@ -1,6 +1,9 @@
 import {
   FORM_API_OPERATIONS,
   listResponsesQuerySchema,
+  normalizeListPage,
+  pageFromOverfetch,
+  toResponseSummary,
   type ResponseList,
 } from "@dimah-form/core";
 
@@ -12,12 +15,24 @@ export const listResponses = createFormEndpoint(
   path,
   {
     method,
-    query: listResponsesQuerySchema,
+    query: listResponsesQuerySchema.optional(),
   },
   async (ctx): Promise<ResponseList> => {
-    const responses = await ctx.context.config.database.listResponses({
-      formId: ctx.query.formId,
+    const query = ctx.query ?? {};
+    const { limit, offset } = normalizeListPage(query);
+    const rows = await ctx.context.config.database.listResponses({
+      formId: query.formId,
+      status: query.status,
+      limit: limit + 1,
+      offset,
     });
-    return { responses };
+    const page = pageFromOverfetch(rows, limit, offset);
+    const includeFull = query.include === "full";
+    return {
+      responses: includeFull ? page.items : page.items.map(toResponseSummary),
+      limit,
+      offset,
+      nextOffset: page.nextOffset,
+    };
   },
 );

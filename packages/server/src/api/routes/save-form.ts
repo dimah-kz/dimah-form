@@ -6,7 +6,8 @@ import {
 
 import { createFormEndpoint } from "@/api/create-form-endpoint";
 import { errors } from "@/errors";
-import { parseLiveSnapshot } from "@/forms";
+import { assertSlugAvailable, parseLiveSnapshot } from "@/forms";
+import { commitLifecycle } from "@/helpers/lifecycle";
 
 const { method, path } = FORM_API_OPERATIONS.saveForm;
 
@@ -18,11 +19,13 @@ export const saveForm = createFormEndpoint(
       throw errors.conflict();
     }
     const form = parseLiveSnapshot(ctx.body, ctx.context.config.fieldTypes);
-    await ctx.context.config.hooks.onSaveForm?.({
-      request: ctx.context.request,
-      form,
-    });
-    await ctx.context.config.database.saveForm(form);
-    return form;
+    await assertSlugAvailable(ctx.context.config, form);
+    const request = ctx.context.request;
+    const hooks = ctx.context.config.hooks;
+    return commitLifecycle(
+      () => hooks.onSaveForm?.({ request, form }),
+      () => ctx.context.config.database.saveForm(form),
+      () => hooks.afterSaveForm?.({ request, form }),
+    ).then(() => form);
   },
 );

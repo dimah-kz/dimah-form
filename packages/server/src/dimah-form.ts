@@ -58,7 +58,7 @@ export type DimahFormConfig<
   forms?: TForms;
   /** Runs before every operation. Throw to reject. */
   guard?: DimahFormGuard;
-  /** Domain hooks — after validation, before persist. */
+  /** Domain hooks — `on*` after validation before persist; `after*` after persist. */
   hooks?: DimahFormHooks;
 };
 

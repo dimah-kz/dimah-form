@@ -18,7 +18,7 @@ function isAbsent(value: unknown): boolean {
 
 function isRequiredPresent(field: FormField, value: unknown): boolean {
   if (isAbsent(value)) return false;
-  if (field.type === "text") {
+  if (field.type === "text" || field.type === "email") {
     return typeof value === "string" && value.trim() !== "";
   }
   if (field.type === "multiSelect") {
@@ -120,8 +120,18 @@ export function applyAnswerPatch(
   return next;
 }
 
+/** Draft-only mutations. Submitted and abandoned rows are locked. */
 export function requireDraft(status: string): void {
-  if (status === "submitted") {
+  if (status !== "draft") {
     throw errors.conflict();
+  }
+}
+
+export function assertFresh(
+  existing: { updatedAt: string },
+  expected?: string,
+): void {
+  if (expected !== undefined && expected !== existing.updatedAt) {
+    throw errors.staleUpdate();
   }
 }

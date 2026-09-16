@@ -6,6 +6,8 @@ import { applyAnswerPatch, collectAnswerIssues } from "./validate";
 
 const snapshot = {
   id: "onboarding",
+  slug: "onboarding",
+  status: "active" as const,
   ...defineForm({
     title: "Onboarding",
     fields: [
@@ -87,12 +89,24 @@ describe("collectAnswerIssues", () => {
     ]);
     const intake = {
       id: "intake",
+      slug: "intake",
+      status: "active" as const,
       title: "Intake",
       fields: [{ id: "email", type: "email", required: true }],
     };
     expect(
       collectAnswerIssues(intake, { email: "nope" }, "draft", registry),
     ).toEqual([{ field: "email", message: "Expected an email" }]);
+  });
+
+  it("enforces text minLength", () => {
+    const short = {
+      ...snapshot,
+      fields: [{ id: "name", type: "text", minLength: 3 }],
+    };
+    expect(collectAnswerIssues(short, { name: "ab" }, "draft")).toEqual([
+      { field: "name", message: "Must be at least 3 characters" },
+    ]);
   });
 });
 

@@ -29,8 +29,13 @@ describe("normalizeFormApiBasePath", () => {
 
 describe("FORM_API_OPERATIONS", () => {
   it("indexes every core route by METHOD path", () => {
-    expect(FORM_API_ROUTE_KEYS["GET /form"]).toBe("getForm");
-    expect(FORM_API_ROUTE_KEYS["POST /form"]).toBe("saveForm");
-    expect(FORM_API_OPERATIONS.listForms.path).toBe(FORM_API_ROUTES.forms);
+    for (const [operation, spec] of Object.entries(FORM_API_OPERATIONS)) {
+      expect(FORM_API_ROUTE_KEYS[`${spec.method} ${spec.path}`]).toBe(
+        operation,
+      );
+    }
+    expect(new Set(Object.values(FORM_API_ROUTES))).toEqual(
+      new Set(Object.values(FORM_API_OPERATIONS).map((spec) => spec.path)),
+    );
   });
 });

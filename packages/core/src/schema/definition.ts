@@ -5,6 +5,11 @@ import { fieldIdSchema, formIdSchema, trimmedString } from "./shared";
 const fieldLabelSchema = z.string().optional();
 const fieldRequiredSchema = z.boolean().optional();
 
+/** Live questionnaire lifecycle — independent of response `draft` / `submitted`. */
+export const formStatusSchema = z.enum(["draft", "active", "archived"]);
+
+export type FormStatus = z.output<typeof formStatusSchema>;
+
 /** Shared keys on every field document. Extra keys stay for consumer UI. */
 const fieldDocument = {
   id: fieldIdSchema,
@@ -12,15 +17,54 @@ const fieldDocument = {
   label: fieldLabelSchema,
 };
 
-export const textFieldSchema = z.looseObject({
-  ...fieldDocument,
-  type: z.literal("text"),
-});
+export const textFieldSchema = z
+  .looseObject({
+    ...fieldDocument,
+    type: z.literal("text"),
+    minLength: z.number().int().min(0).optional(),
+    maxLength: z.number().int().min(0).optional(),
+    pattern: z
+      .string()
+      .optional()
+      .refine((value) => {
+        if (value === undefined) return true;
+        try {
+          new RegExp(value);
+          return true;
+        } catch {
+          return false;
+        }
+      }, "Invalid pattern"),
+  })
+  .check((ctx) => {
+    const { minLength, maxLength } = ctx.value;
+    if (minLength != null && maxLength != null && minLength > maxLength) {
+      ctx.issues.push({
+        code: "custom",
+        message: "minLength must be <= maxLength",
+        input: ctx.value,
+      });
+    }
+  });
 
-export const numberFieldSchema = z.looseObject({
-  ...fieldDocument,
-  type: z.literal("number"),
-});
+export const numberFieldSchema = z
+  .looseObject({
+    ...fieldDocument,
+    type: z.literal("number"),
+    min: z.number().optional(),
+    max: z.number().optional(),
+    integer: z.boolean().optional(),
+  })
+  .check((ctx) => {
+    const { min, max } = ctx.value;
+    if (min != null && max != null && min > max) {
+      ctx.issues.push({
+        code: "custom",
+        message: "min must be <= max",
+        input: ctx.value,
+      });
+    }
+  });
 
 export const booleanFieldSchema = z.looseObject({
   ...fieldDocument,
@@ -117,10 +161,16 @@ export const formFieldsSchema = z.array(storedFieldSchema).check((ctx) => {
   }
 });
 
+const formMeta = {
+  slug: trimmedString.optional(),
+  status: formStatusSchema.optional(),
+};
+
 /** Code-authored questionnaire document (no `id` — that is the `forms` key). */
 export const formDefinitionSchema = z.strictObject({
   title: trimmedString,
   fields: formFieldsSchema,
+  ...formMeta,
 });
 
 /** Frozen copy stored on a response — definition plus the form id. */
@@ -128,6 +178,7 @@ export const formSnapshotSchema = z.strictObject({
   id: formIdSchema,
   title: trimmedString,
   fields: formFieldsSchema,
+  ...formMeta,
 });
 
 export type FormField = {
@@ -140,10 +191,42 @@ export type FormField = {
 export type FormDefinition = {
   title: string;
   fields: readonly FormField[];
+  slug?: string;
+  status?: FormStatus;
 };
 
 export type FormSnapshot = {
   id: string;
+  slug: string;
+  status: FormStatus;
   title: string;
   fields: readonly FormField[];
 };
+
+/** Fill `slug` (defaults to `id`) and `status` (defaults to `active`). */
+export function normalizeFormSnapshot(snapshot: {
+  id: string;
+  title: string;
+  fields: readonly FormField[];
+  slug?: string | null;
+  status?: FormStatus | null;
+}): FormSnapshot {
+  const slug = snapshot.slug?.trim();
+  return {
+    id: snapshot.id,
+    title: snapshot.title,
+    fields: snapshot.fields,
+    slug: slug && slug.length > 0 ? slug : snapshot.id,
+    status: snapshot.status ?? "active",
+  };
+}
+
+export function parseFormSnapshot(input: unknown): FormSnapshot {
+  return normalizeFormSnapshot(formSnapshotSchema.parse(input));
+}
+
+export function safeParseFormSnapshot(input: unknown) {
+  const parsed = formSnapshotSchema.safeParse(input);
+  if (!parsed.success) return parsed;
+  return { success: true as const, data: normalizeFormSnapshot(parsed.data) };
+}

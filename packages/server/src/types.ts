@@ -20,25 +20,51 @@ export type DimahFormGuard = (context: {
   responseId?: string;
 }) => MaybePromise<void>;
 
+type ResponseHookContext = {
+  request: Request;
+  response: ResponseRecord;
+};
+
+type FormHookContext = {
+  request: Request;
+  form: FormSnapshot;
+};
+
 export type DimahFormHooks = {
   /** After validation, before persist. May set `response.respondentId`. */
-  onStart?: (context: {
-    request: Request;
-    response: ResponseRecord;
-  }) => MaybePromise<void>;
-  onSaveDraft?: (context: {
-    request: Request;
-    response: ResponseRecord;
-  }) => MaybePromise<void>;
-  onSubmit?: (context: {
-    request: Request;
-    response: ResponseRecord;
-  }) => MaybePromise<void>;
-  onSaveForm?: (context: {
-    request: Request;
-    form: FormSnapshot;
-  }) => MaybePromise<void>;
+  onStart?: (context: ResponseHookContext) => MaybePromise<void>;
+  onSaveDraft?: (context: ResponseHookContext) => MaybePromise<void>;
+  onSubmit?: (context: ResponseHookContext) => MaybePromise<void>;
+  onSaveForm?: (context: FormHookContext) => MaybePromise<void>;
+  onAbandon?: (context: ResponseHookContext) => MaybePromise<void>;
+  onDeleteResponse?: (context: ResponseHookContext) => MaybePromise<void>;
+  onDeleteForm?: (context: FormHookContext) => MaybePromise<void>;
+  /** After persist. Skip irreversible I/O in `on*` — use these instead. */
+  afterStart?: (context: ResponseHookContext) => MaybePromise<void>;
+  afterSaveDraft?: (context: ResponseHookContext) => MaybePromise<void>;
+  afterSubmit?: (context: ResponseHookContext) => MaybePromise<void>;
+  afterSaveForm?: (context: FormHookContext) => MaybePromise<void>;
+  afterAbandon?: (context: ResponseHookContext) => MaybePromise<void>;
+  afterDeleteResponse?: (context: ResponseHookContext) => MaybePromise<void>;
+  afterDeleteForm?: (context: FormHookContext) => MaybePromise<void>;
 };
+
+export const FORM_HOOK_KEYS = [
+  "onStart",
+  "onSaveDraft",
+  "onSubmit",
+  "onSaveForm",
+  "onAbandon",
+  "onDeleteResponse",
+  "onDeleteForm",
+  "afterStart",
+  "afterSaveDraft",
+  "afterSubmit",
+  "afterSaveForm",
+  "afterAbandon",
+  "afterDeleteResponse",
+  "afterDeleteForm",
+] as const satisfies readonly (keyof DimahFormHooks)[];
 
 /**
  * Additive feature plugin. Persistence is `database`, not a plugin.

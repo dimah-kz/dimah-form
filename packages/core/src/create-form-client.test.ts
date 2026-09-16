@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { defineClientPlugin } from "./client-plugin";
 import { createFormClient } from "./create-form-client";
 import { APIError, FORM_ERROR_CODES } from "./error";
 import { FORM_API_ROUTES } from "./routes";
@@ -7,6 +8,8 @@ import { captureFetch, jsonResponse } from "./test/http";
 
 const snapshot = {
   id: "onboarding",
+  slug: "onboarding",
+  status: "active" as const,
   title: "Onboarding",
   fields: [{ id: "name", type: "text" as const, required: true }],
 };
@@ -45,6 +48,13 @@ describe("createFormClient protocol", () => {
       run: (api: ReturnType<typeof createFormClient>) => api.listForms(),
     },
     {
+      name: "deleteForm",
+      method: "POST",
+      path: FORM_API_ROUTES.deleteForm,
+      run: (api: ReturnType<typeof createFormClient>) =>
+        api.deleteForm({ formId: "onboarding" }),
+    },
+    {
       name: "startResponse",
       method: "POST",
       path: FORM_API_ROUTES.startResponse,
@@ -78,6 +88,20 @@ describe("createFormClient protocol", () => {
       path: FORM_API_ROUTES.submitResponse,
       run: (api: ReturnType<typeof createFormClient>) =>
         api.submitResponse({ responseId: "res-1", answers: { name: "Ada" } }),
+    },
+    {
+      name: "abandonResponse",
+      method: "POST",
+      path: FORM_API_ROUTES.abandonResponse,
+      run: (api: ReturnType<typeof createFormClient>) =>
+        api.abandonResponse({ responseId: "res-1" }),
+    },
+    {
+      name: "deleteResponse",
+      method: "POST",
+      path: FORM_API_ROUTES.deleteResponse,
+      run: (api: ReturnType<typeof createFormClient>) =>
+        api.deleteResponse({ responseId: "res-1" }),
     },
   ] as const)("$name is $method $path", async ({ method, path, run }) => {
     const { fetch, calls } = captureFetch(() => jsonResponse(response));
@@ -123,5 +147,18 @@ describe("createFormClient protocol", () => {
     expect(api.baseURL).toBe("https://api.example.com/api/form");
     await api.getForm({ formId: "onboarding" });
     expect(calls[0]?.url).toContain("https://api.example.com/api/form/form");
+  });
+
+  it("merges client plugin endpoints", async () => {
+    const ping = defineClientPlugin({
+      id: "ping",
+      endpoints: ({ $fetch }) => ({
+        ping: () => $fetch<{ ok: boolean }>("/ping", { method: "GET" }),
+      }),
+    });
+    const { fetch, calls } = captureFetch(() => jsonResponse({ ok: true }));
+    const api = createFormClient({ fetch, plugins: [ping] });
+    await expect(api.ping()).resolves.toEqual({ ok: true });
+    expect(calls[0]?.url).toContain("/ping");
   });
 });

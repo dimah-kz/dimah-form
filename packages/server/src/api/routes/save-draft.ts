@@ -6,7 +6,13 @@ import {
 
 import { createFormEndpoint } from "@/api/create-form-endpoint";
 import { errors } from "@/errors";
-import { applyAnswerPatch, assertAnswers, requireDraft } from "@/validate";
+import { commitLifecycle, persistedResponse } from "@/helpers/lifecycle";
+import {
+  applyAnswerPatch,
+  assertAnswers,
+  assertFresh,
+  requireDraft,
+} from "@/validate";
 
 const { method, path } = FORM_API_OPERATIONS.saveDraft;
 
@@ -19,6 +25,7 @@ export const saveDraft = createFormEndpoint(
       throw errors.unknownResponse(ctx.body.responseId);
     }
     requireDraft(existing.status);
+    assertFresh(existing, ctx.body.updatedAt);
     assertAnswers(
       existing.definition,
       ctx.body.answers,
@@ -31,11 +38,13 @@ export const saveDraft = createFormEndpoint(
       answers,
       updatedAt: new Date().toISOString(),
     };
-    await ctx.context.config.hooks.onSaveDraft?.({
-      request: ctx.context.request,
-      response: row,
-    });
-    await ctx.context.config.database.save(row);
-    return row;
+    const request = ctx.context.request;
+    const hooks = ctx.context.config.hooks;
+    await commitLifecycle(
+      () => hooks.onSaveDraft?.({ request, response: row }),
+      () => ctx.context.config.database.save(row),
+      () => hooks.afterSaveDraft?.({ request, response: row }),
+    );
+    return persistedResponse((id) => ctx.context.config.database.get(id), row);
   },
 );

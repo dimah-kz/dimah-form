@@ -12,6 +12,8 @@ const record = {
   status: "draft" as const,
   definition: {
     id: "onboarding",
+    slug: "onboarding",
+    status: "active" as const,
     title: "Onboarding",
     fields: [{ id: "name", type: "text" as const, required: true }],
   },
@@ -47,6 +49,8 @@ describe("map-row", () => {
         status: "draft",
         definition: {
           id: "intake",
+          slug: "intake",
+          status: "active",
           title: "Intake",
           fields: [{ id: "email", type: "email", required: true }],
         },
@@ -69,6 +73,8 @@ describe("map-row", () => {
       definition: {
         title: "Onboarding",
         fields: record.definition.fields,
+        slug: "onboarding",
+        status: "active",
       },
       status: "active",
     });
@@ -87,6 +93,8 @@ describe("map-row", () => {
       }),
     ).toEqual({
       id: "intake",
+      slug: "intake",
+      status: "active",
       title: "Intake",
       fields: [{ id: "email", type: "email", required: true }],
     });

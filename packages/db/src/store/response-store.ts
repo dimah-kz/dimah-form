@@ -17,8 +17,10 @@ const STORE_METHODS = [
   "create",
   "get",
   "save",
+  "delete",
   "getForm",
   "saveForm",
+  "deleteForm",
   "listForms",
   "listResponses",
 ] as const satisfies readonly (keyof ResponseStore)[];
@@ -83,18 +85,31 @@ export function createDbResponseStore(db: DimahFormDbClient): ResponseStore {
   }
 
   return {
-    async getForm(id) {
-      const row = await orm.findFirst("questionnaire", {
-        where: (b) => b("id", "=", id),
+    async getForm(idOrSlug) {
+      const byId = await orm.findFirst("questionnaire", {
+        where: (b) => b("id", "=", idOrSlug),
       });
-      return row ? toFormSnapshot(row) : undefined;
+      if (byId) return toFormSnapshot(byId);
+      const bySlug = await orm.findFirst("questionnaire", {
+        where: (b) => b("slug", "=", idOrSlug),
+      });
+      return bySlug ? toFormSnapshot(bySlug) : undefined;
     },
     async saveForm(form) {
       await upsertLiveForm(form);
     },
-    async listForms() {
+    async deleteForm(id) {
+      await orm.deleteMany("questionnaire", {
+        where: (b) => b("id", "=", id),
+      });
+    },
+    async listForms(query) {
+      const status = query?.status;
       const rows = await orm.findMany("questionnaire", {
+        where: status ? (b) => b("status", "=", status) : undefined,
         orderBy: ["updatedAt", "desc"],
+        limit: query?.limit,
+        offset: query?.offset,
       });
       return rows.map((row) => toFormSnapshot(row));
     },
@@ -111,16 +126,29 @@ export function createDbResponseStore(db: DimahFormDbClient): ResponseStore {
     async save(row) {
       await upsertResponse(row);
     },
+    async delete(id) {
+      await orm.deleteMany("response", {
+        where: (b) => b("id", "=", id),
+      });
+    },
     async listResponses(query) {
       const formId = query?.formId;
-      const rows = formId
-        ? await orm.findMany("response", {
-            where: (b) => b("questionnaireId", "=", formId),
-            orderBy: ["updatedAt", "desc"],
-          })
-        : await orm.findMany("response", {
-            orderBy: ["updatedAt", "desc"],
-          });
+      const status = query?.status;
+      const rows = await orm.findMany("response", {
+        where:
+          formId || status
+            ? (b) => {
+                const parts = [
+                  formId ? b("questionnaireId", "=", formId) : true,
+                  status ? b("status", "=", status) : true,
+                ];
+                return b.and(...parts);
+              }
+            : undefined,
+        orderBy: ["updatedAt", "desc"],
+        limit: query?.limit,
+        offset: query?.offset,
+      });
       return rows.map((row) => toResponseRecord(row));
     },
   };
