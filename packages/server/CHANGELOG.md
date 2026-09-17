@@ -1,3 +1,11 @@
+## @dimah-form/server@0.0.2
+
+### Align package metadata and TypeScript emit
+
+- npm `author` is `dimah` on every `@dimah-form/*` package.
+- `FormField` is a type alias instead of an interface.
+- Declaration files use `verbatimModuleSyntax` (type-only imports). Runtime API is unchanged.
+
 ## @dimah-form/server@0.0.1
 
 ### Initial release
