@@ -1,13 +1,12 @@
 # @dimah-form/react
 
-Thin React client for dimah-form. `createFormClient()` returns the protocol API plus a `Provider`. Re-export `useFormClient` from that instance so `$Infer` stays typed. No field widgets — you render answers.
+Thin React client for dimah-form. `createFormClient()` returns the protocol API plus a `Provider` and `useFormResponse`. Re-export those from the instance so `$Infer` and field types stay tied to it. No field widgets — you render `visibleFields` / `field(id)`.
 
 ```ts
 import { createFormClient } from "@dimah-form/react";
 import type { Form } from "./form";
+import { fieldTypes } from "./field-types";
 
-export const formClient = createFormClient<Form>();
-export const { Provider, useFormClient } = formClient;
+export const formClient = createFormClient<Form>({ fieldTypes });
+export const { Provider, useFormClient, useFormResponse } = formClient;
 ```
-
-`isFieldVisible`, `seedDefaultAnswers`, `collectAnswerIssues`, and `applyAnswerPatch` are re-exported for consumer UI.

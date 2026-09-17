@@ -19,6 +19,28 @@ export {
   type AnswerValidationMode,
 } from "./answers";
 export {
+  fieldLabel,
+  fieldOptions,
+  formErrorMessage,
+  issuesByField,
+  visibleFields,
+  type FieldOption,
+} from "./field-view";
+export {
+  createFormResponseSession,
+  type CreateFormResponseSessionOptions,
+  type FormFieldBinding,
+  type FormResponseActions,
+  type FormResponseApi,
+  type FormResponseFieldTypes,
+  type FormResponsePending,
+  type FormResponseSession,
+  type FormResponseSessionClient,
+  type FormResponseSessionHooks,
+  type FormResponseSessionState,
+  type FormResponseValidateMode,
+} from "./create-form-response-session";
+export {
   createFormClient,
   defineClientPlugin,
   type CreateFormClientOptions,

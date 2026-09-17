@@ -6,15 +6,17 @@ Explore the package you are changing. This file is what to **keep in sync**, not
 
 Keep these in lockstep (same paths, same payloads — no duplicate route strings):
 
-1. `@dimah-form/core` — route constants, Zod schemas, types, `createFormClient`
+1. `@dimah-form/core` — route constants, Zod schemas, types, `createFormClient`, `createFormResponseSession`
 2. `@dimah-form/server` — endpoint handlers. The HTTP router is internal; do not export it.
-3. `@dimah-form/react` — React `createFormClient` / hooks
+3. `@dimah-form/react` — React `createFormClient` / `useFormResponse`
 
 Browser client uses object args; server `form.api` is the better-call map. Match existing call sites.
 
 Consumer apps import from the package they already use: `@dimah-form/server` in server modules, `@dimah-form/react` in UI. `core` is for protocol/plugin authors.
 
 `createFormClient<typeof form>()` (or `createFormClient<Form>()` with `export type Form = typeof form`) copies server `$Infer` onto the client. Do not pass the server instance at runtime.
+
+Pass the same `fieldTypes` array as `dimahForm({ fieldTypes })` on `createFormClient({ fieldTypes })` so `useFormResponse` can validate locally. Filling a response is `useFormResponse` / `createFormResponseSession` — no widgets in this package.
 
 Packages are unpublished — no changelog until first npm release ([AGENTS.md](../../AGENTS.md)).
 

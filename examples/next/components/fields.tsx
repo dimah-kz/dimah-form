@@ -1,9 +1,11 @@
 "use client";
 
 import {
-  isFieldVisible,
-  type FormAnswers,
   type FormField,
+  type FormFieldBinding,
+  type FormResponseApi,
+  fieldLabel,
+  fieldOptions,
 } from "@dimah-form/react";
 import type { ReactNode } from "react";
 
@@ -28,20 +30,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { fieldLabel, fieldOptions, ratingMax } from "@/lib/field-display";
+import { ratingMax } from "@/lib/field-display";
 
 function LabeledField({
   field,
-  issue,
+  error,
   disabled,
   children,
 }: {
   field: FormField;
-  issue?: string;
+  error?: string;
   disabled?: boolean;
   children: ReactNode;
 }) {
-  const invalid = Boolean(issue);
+  const invalid = Boolean(error);
   return (
     <Field
       data-invalid={invalid || undefined}
@@ -55,7 +57,7 @@ function LabeledField({
       {typeof field.description === "string" ? (
         <FieldDescription>{field.description}</FieldDescription>
       ) : null}
-      <FieldError errors={issue ? [{ message: issue }] : undefined} />
+      <FieldError errors={error ? [{ message: error }] : undefined} />
     </Field>
   );
 }
@@ -63,18 +65,13 @@ function LabeledField({
 function FormFieldControl({
   field,
   value,
-  issue,
+  error,
   disabled,
   onChange,
-}: {
-  field: FormField;
-  value: unknown;
-  issue?: string;
-  disabled?: boolean;
-  onChange: (value: unknown) => void;
-}) {
-  const invalid = Boolean(issue);
-  const errors = issue ? [{ message: issue }] : undefined;
+}: FormFieldBinding) {
+  if (!field) return null;
+  const invalid = Boolean(error);
+  const errors = error ? [{ message: error }] : undefined;
 
   if (field.type === "boolean") {
     return (
@@ -109,7 +106,7 @@ function FormFieldControl({
     ];
 
     return (
-      <LabeledField field={field} issue={issue} disabled={disabled}>
+      <LabeledField field={field} error={error} disabled={disabled}>
         <Select
           id={field.id}
           items={items}
@@ -212,7 +209,7 @@ function FormFieldControl({
 
   if (field.type === "number") {
     return (
-      <LabeledField field={field} issue={issue} disabled={disabled}>
+      <LabeledField field={field} error={error} disabled={disabled}>
         <Input
           id={field.id}
           type="number"
@@ -231,7 +228,7 @@ function FormFieldControl({
 
   if (field.type === "text" && field.meta?.multiline === true) {
     return (
-      <LabeledField field={field} issue={issue} disabled={disabled}>
+      <LabeledField field={field} error={error} disabled={disabled}>
         <Textarea
           id={field.id}
           disabled={disabled}
@@ -251,7 +248,7 @@ function FormFieldControl({
     field.type === "date"
   ) {
     return (
-      <LabeledField field={field} issue={issue} disabled={disabled}>
+      <LabeledField field={field} error={error} disabled={disabled}>
         <Input
           id={field.id}
           type={field.type === "text" ? "text" : field.type}
@@ -274,33 +271,13 @@ function FormFieldControl({
   );
 }
 
-export function FormFields({
-  fields,
-  answers,
-  issues,
-  disabled,
-  onChange,
-}: {
-  fields: readonly FormField[];
-  answers: FormAnswers;
-  issues?: Record<string, string>;
-  disabled?: boolean;
-  onChange: (id: string, value: unknown) => void;
-}) {
+/** Renders consumer widgets from a headless `useFormResponse` result. */
+export function FormFields({ form }: { form: FormResponseApi }) {
   return (
     <FieldGroup>
-      {fields
-        .filter((field) => isFieldVisible(field, answers))
-        .map((field) => (
-          <FormFieldControl
-            key={field.id}
-            field={field}
-            value={answers[field.id]}
-            issue={issues?.[field.id]}
-            disabled={disabled}
-            onChange={(value) => onChange(field.id, value)}
-          />
-        ))}
+      {form.visibleFields.map((field) => (
+        <FormFieldControl key={field.id} {...form.field(field.id)} />
+      ))}
     </FieldGroup>
   );
 }

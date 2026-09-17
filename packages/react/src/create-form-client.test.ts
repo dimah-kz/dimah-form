@@ -23,6 +23,8 @@ describe("createFormClient", () => {
     expect(typeof client.submitResponse).toBe("function");
     expect(typeof client.deleteResponse).toBe("function");
     expect(typeof client.useFormClient).toBe("function");
+    expect(typeof client.useFormResponse).toBe("function");
+    expect(client.fieldTypes).toEqual([]);
     expect(client.$ERROR_CODES.VALIDATION_ERROR.code).toBe("VALIDATION_ERROR");
   });
 

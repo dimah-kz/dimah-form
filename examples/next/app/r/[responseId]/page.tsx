@@ -17,13 +17,5 @@ export default async function ResponsePage({
     if (isFormErrorCode(error, "UNKNOWN_RESPONSE")) notFound();
     throw error;
   }
-  return (
-    <Questionnaire
-      form={row.definition}
-      responseId={row.id}
-      initialAnswers={row.answers}
-      initialStatus={row.status}
-      initialUpdatedAt={row.updatedAt}
-    />
-  );
+  return <Questionnaire form={row.definition} response={row} />;
 }

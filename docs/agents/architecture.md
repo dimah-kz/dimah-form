@@ -18,12 +18,12 @@ Backend-first questionnaire engine. Consumers own UI, auth, and the database ada
 
 Edit the **smallest package that owns the behavior**. Search that package before adding files.
 
-| Package  | Owns                                              |
-| -------- | ------------------------------------------------- |
-| `core`   | Protocol, `createFormClient`, errors, field types |
-| `server` | HTTP, `dimahForm()`, server plugins, adapters     |
-| `react`  | Thin client Provider / hooks                      |
-| `db`     | FumaDB `database` adapter                         |
+| Package  | Owns                                                            |
+| -------- | --------------------------------------------------------------- |
+| `core`   | Protocol, `createFormClient`, fill session, errors, field types |
+| `server` | HTTP, `dimahForm()`, server plugins, adapters                   |
+| `react`  | Thin client Provider / `useFormResponse`                        |
+| `db`     | FumaDB `database` adapter                                       |
 
 Shared protocol changes start in `core`, then wire `server` and `react`. Do not copy a parallel schema or URL string into another package.
 
@@ -37,6 +37,7 @@ Shared protocol changes start in `core`, then wire `server` and `react`. Do not 
 - `database` is required (`memoryAdapter()` or `db()` from `@dimah-form/db`). Plugins merge once in `dimahForm()` and do not replace persistence.
 - Code-authored `forms` feed `$Infer`. `getForm` / `startResponse` read config first, then the live questionnaire row. `saveForm` writes that row and cannot overwrite a code-authored id.
 - Browser `$Infer` is `createFormClient<typeof form>()` (type-only). Apps import from `server` or `react`; `core` is protocol/plugin internals.
+- Filling a response is headless: `createFormResponseSession` in core, `useFormResponse` in react. Consumers own widgets. A later UI package should wrap `FormFieldBinding` / `FormResponseApi`, not fork this loop.
 - Each response stores the definition it was started with. Submit validates that snapshot. Starting a response does not rewrite the live questionnaire row.
 - Domain hooks: `on*` after validation before persist; `after*` after persist. Auth stays in `guard`.
 - Custom fields are `defineFieldType` validators, not components.

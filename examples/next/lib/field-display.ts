@@ -1,27 +1,4 @@
-import type { FormField } from "@dimah-form/core";
-
-export function fieldLabel(field: FormField) {
-  return field.label ?? field.id;
-}
-
-export function fieldOptions(field: FormField) {
-  if (!Array.isArray(field.options)) return [];
-  return field.options.flatMap((option) => {
-    if (
-      !option ||
-      typeof option !== "object" ||
-      typeof option.value !== "string"
-    ) {
-      return [];
-    }
-    return [
-      {
-        value: option.value,
-        label: typeof option.label === "string" ? option.label : option.value,
-      },
-    ];
-  });
-}
+import { fieldOptions, type FormField } from "@dimah-form/core";
 
 export function ratingMax(field: FormField) {
   return typeof field.max === "number" &&

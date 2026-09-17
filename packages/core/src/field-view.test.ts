@@ -1,0 +1,88 @@
+import { describe, expect, it } from "vitest";
+
+import { APIError, FORM_ERROR_CODES } from "./error";
+import {
+  fieldLabel,
+  fieldOptions,
+  formErrorMessage,
+  issuesByField,
+  visibleFields,
+} from "./field-view";
+
+describe("fieldLabel", () => {
+  it("falls back to the field id", () => {
+    expect(fieldLabel({ id: "name" })).toBe("name");
+    expect(fieldLabel({ id: "name", label: "Name" })).toBe("Name");
+  });
+});
+
+describe("fieldOptions", () => {
+  it("skips invalid entries and fills label from value", () => {
+    expect(
+      fieldOptions({
+        id: "role",
+        type: "select",
+        options: [
+          { value: "eng", label: "Engineer" },
+          { value: "pm" },
+          { label: "nope" },
+          null,
+        ],
+      }),
+    ).toEqual([
+      { value: "eng", label: "Engineer" },
+      { value: "pm", label: "pm" },
+    ]);
+  });
+
+  it("returns an empty list when options are missing", () => {
+    expect(fieldOptions({ id: "name", type: "text" })).toEqual([]);
+  });
+});
+
+describe("visibleFields", () => {
+  it("keeps fields whose showWhen matches", () => {
+    const fields = [
+      { id: "role", type: "select" },
+      {
+        id: "team",
+        type: "text",
+        showWhen: { field: "role", equals: "eng" },
+      },
+    ];
+    expect(
+      visibleFields({ fields }, { role: "pm" }).map((field) => field.id),
+    ).toEqual(["role"]);
+    expect(
+      visibleFields({ fields }, { role: "eng" }).map((field) => field.id),
+    ).toEqual(["role", "team"]);
+  });
+});
+
+describe("issuesByField", () => {
+  it("maps an issue list and a VALIDATION_ERROR", () => {
+    const issues = [{ field: "name", message: "Required" }];
+    expect(issuesByField(issues)).toEqual({ name: "Required" });
+    expect(
+      issuesByField(
+        APIError.from("BAD_REQUEST", {
+          ...FORM_ERROR_CODES.VALIDATION_ERROR,
+          issues,
+        }),
+      ),
+    ).toEqual({ name: "Required" });
+    expect(issuesByField(new Error("nope"))).toEqual({});
+  });
+});
+
+describe("formErrorMessage", () => {
+  it("prefers APIError then Error then fallback", () => {
+    expect(
+      formErrorMessage(
+        APIError.from("FORBIDDEN", FORM_ERROR_CODES.FORM_INACTIVE),
+      ),
+    ).toBe("Form is not active");
+    expect(formErrorMessage(new Error("boom"), "nope")).toBe("boom");
+    expect(formErrorMessage("x")).toBe("Request failed");
+  });
+});

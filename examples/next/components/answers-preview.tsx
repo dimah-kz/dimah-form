@@ -1,6 +1,7 @@
 import {
-  isFieldVisible,
+  fieldLabel,
   stripHiddenAnswers,
+  visibleFields,
   type FormAnswers,
   type FormSnapshot,
   type ResponseStatus,
@@ -16,7 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { fieldLabel, formatAnswer } from "@/lib/field-display";
+import { formatAnswer } from "@/lib/field-display";
 
 export function StatusBadge({ status }: { status: ResponseStatus | string }) {
   const variant =
@@ -37,7 +38,7 @@ export function AnswersPreview({
   answers: FormAnswers;
   status?: ResponseStatus | string;
 }) {
-  const visible = stripHiddenAnswers(form, answers);
+  const payload = stripHiddenAnswers(form, answers);
 
   return (
     <Card size="sm">
@@ -52,18 +53,16 @@ export function AnswersPreview({
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <dl className="flex flex-col gap-3">
-          {form.fields
-            .filter((field) => isFieldVisible(field, answers))
-            .map((field) => (
-              <div key={field.id} className="flex flex-col gap-0.5">
-                <dt className="text-muted-foreground">{fieldLabel(field)}</dt>
-                <dd>{formatAnswer(field, visible[field.id])}</dd>
-              </div>
-            ))}
+          {visibleFields(form, answers).map((field) => (
+            <div key={field.id} className="flex flex-col gap-0.5">
+              <dt className="text-muted-foreground">{fieldLabel(field)}</dt>
+              <dd>{formatAnswer(field, payload[field.id])}</dd>
+            </div>
+          ))}
         </dl>
         <Separator />
         <pre className="overflow-x-auto font-mono text-xs text-muted-foreground">
-          {JSON.stringify(visible, null, 2)}
+          {JSON.stringify(payload, null, 2)}
         </pre>
       </CardContent>
     </Card>

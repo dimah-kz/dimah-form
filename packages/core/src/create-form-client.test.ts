@@ -2,7 +2,7 @@ import { describe, expect, expectTypeOf, it } from "vitest";
 
 import { defineClientPlugin } from "./client-plugin";
 import { createFormClient } from "./create-form-client";
-import { defineForm } from "./define";
+import { defineFieldType, defineForm } from "./define";
 import { APIError, defineErrorCodes, FORM_ERROR_CODES } from "./error";
 import { FORM_API_ROUTES } from "./routes";
 import { captureFetch, jsonResponse } from "./test/http";
@@ -183,6 +183,7 @@ describe("createFormClient protocol", () => {
     });
     const { fetch, calls } = captureFetch(() => jsonResponse({ ok: true }));
     const api = createFormClient({ fetch, plugins: [ping] });
+    expect(api.fieldTypes).toEqual([]);
     await expect(api.ping()).resolves.toEqual({ ok: true });
     expect(calls[0]?.url).toContain("/ping");
   });
@@ -275,5 +276,22 @@ describe("createFormClient protocol", () => {
       typeof client.$Infer.answers.contact.name
     >().toEqualTypeOf<string>();
     expectTypeOf<typeof client.$Infer.forms>().toEqualTypeOf<typeof forms>();
+  });
+
+  it("accepts runtime fieldTypes with a server generic", () => {
+    const extra = defineFieldType({
+      type: "rating",
+      validate: () => undefined,
+      $Infer: 0 as number,
+    });
+    type Server = {
+      $Infer: {
+        forms: Record<string, never>;
+        answers: Record<string, never>;
+        plugins: [];
+      };
+    };
+    const client = createFormClient<Server>({ fieldTypes: [extra] });
+    expect(client.fieldTypes).toEqual([extra]);
   });
 });

@@ -75,8 +75,10 @@ export type CreateFormClientOptions<
    */
   forms?: TForms;
   /**
-   * Custom field types for `$Infer` only — not sent over the network.
-   * Skip this when using `createFormClient<typeof form>()`.
+   * Custom field types. Used for `$Infer` and kept at runtime for
+   * `createFormResponseSession` / `useFormResponse` validation.
+   * Skip for `$Infer` when using `createFormClient<typeof form>()` — still
+   * pass the same array as `dimahForm({ fieldTypes })` for local validation.
    */
   fieldTypes?: TFieldTypes;
 } & FormClientFetchOptions;
@@ -169,12 +171,15 @@ export type FormClientApi = {
 export type CreateFormClientResult<
   TPlugins extends readonly FormClientPlugin[] = [],
   TForms extends Record<string, unknown> = Record<string, unknown>,
-  TFieldTypes extends readonly FieldTypeDefinition[] = [],
+  TFieldTypes extends readonly FieldTypeDefinition[] =
+    readonly FieldTypeDefinition[],
   TServer = undefined,
 > = FormClientApi &
   ClientPluginEndpointMap<TPlugins> & {
     $fetch: FormFetch;
     baseURL: string;
+    /** Runtime field types for local session validation. */
+    fieldTypes: TFieldTypes;
     $ERROR_CODES: typeof FORM_ERROR_CODES & PluginErrorCodeMap<TPlugins>;
     $Infer: {
       forms: InferClientForms<TServer, TForms>;
@@ -200,6 +205,7 @@ const CORE_CLIENT_KEYS = new Set([
   "baseURL",
   "$ERROR_CODES",
   "$Infer",
+  "fieldTypes",
 ]);
 
 /**
@@ -218,7 +224,8 @@ export function createFormClient<
   TServer extends FormServerLike | undefined = undefined,
   const TPlugins extends readonly FormClientPlugin[] = [],
   const TForms extends Record<string, unknown> = Record<string, unknown>,
-  const TFieldTypes extends readonly FieldTypeDefinition[] = [],
+  const TFieldTypes extends readonly FieldTypeDefinition[] =
+    readonly FieldTypeDefinition[],
 >(
   options: CreateFormClientOptions<TPlugins, TForms, TFieldTypes> = {},
 ): CreateFormClientResult<TPlugins, TForms, TFieldTypes, TServer> {
@@ -227,7 +234,7 @@ export function createFormClient<
     baseURL,
     plugins,
     forms: _forms,
-    fieldTypes: _fieldTypes,
+    fieldTypes = [] as unknown as TFieldTypes,
     ...fetchOptions
   } = options;
   const base = normalizeFormApiBasePath(
@@ -261,6 +268,7 @@ export function createFormClient<
     Record<string, unknown> & {
       $fetch: FormFetch;
       baseURL: string;
+      fieldTypes: TFieldTypes;
       $ERROR_CODES: typeof FORM_ERROR_CODES & PluginErrorCodeMap<TPlugins>;
       $Infer: CreateFormClientResult<
         TPlugins,
@@ -348,6 +356,7 @@ export function createFormClient<
     },
     $fetch,
     baseURL: base,
+    fieldTypes,
     $ERROR_CODES: applied.errorCodes as typeof FORM_ERROR_CODES &
       PluginErrorCodeMap<TPlugins>,
     $Infer: undefined as unknown as CreateFormClientResult<

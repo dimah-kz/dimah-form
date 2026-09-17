@@ -49,6 +49,7 @@ export const RESERVED_CLIENT_PLUGIN_IDS = [
   "baseURL",
   "$ERROR_CODES",
   "$Infer",
+  "fieldTypes",
 ] as const;
 
 /**

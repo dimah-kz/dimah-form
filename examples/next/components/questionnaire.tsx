@@ -1,16 +1,8 @@
 "use client";
 
-import {
-  applyAnswerPatch,
-  collectAnswerIssues,
-  seedDefaultAnswers,
-  type FormAnswers,
-  type FormSnapshot,
-  type ResponseStatus,
-} from "@dimah-form/react";
+import { type FormSnapshot, type ResponseRecord } from "@dimah-form/react";
 import { CircleAlertIcon, CircleCheckIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 
 import { AnswersPreview } from "@/components/answers-preview";
 import { FormFields } from "@/components/fields";
@@ -26,136 +18,28 @@ import {
 } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { formClient, respondentId } from "@/lib/client";
-import { fieldTypeRegistry } from "@/lib/field-types";
-import { formErrorMessage, formIssues } from "@/lib/format-error";
 
 export function Questionnaire({
   form,
-  responseId,
-  initialAnswers,
-  initialStatus = "draft",
-  initialUpdatedAt,
+  response,
 }: {
   form: FormSnapshot;
-  responseId?: string;
-  initialAnswers?: FormAnswers;
-  initialStatus?: ResponseStatus;
-  initialUpdatedAt?: string;
+  response?: ResponseRecord;
 }) {
-  const client = formClient.useFormClient();
   const router = useRouter();
-  const [id, setId] = useState(responseId);
-  const [answers, setAnswers] = useState<FormAnswers>(
-    () => initialAnswers ?? seedDefaultAnswers(form),
-  );
-  const [updatedAt, setUpdatedAt] = useState(initialUpdatedAt);
-  const [status, setStatus] = useState(initialStatus);
-  const [error, setError] = useState<string>();
-  const [issues, setIssues] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState<"save" | "submit" | "reopen">();
+  const q = formClient.useFormResponse({
+    snapshot: form,
+    response,
+    respondentId,
+    onSaved: (row) => {
+      if (!response) router.replace(`/r/${row.id}`);
+    },
+    onSubmitted: (row) => {
+      if (!response) router.replace(`/r/${row.id}`);
+    },
+  });
 
-  const locked = status === "submitted" || status === "abandoned";
-
-  function fail(caught: unknown, fallback: string) {
-    const nextIssues = formIssues(caught);
-    if (Object.keys(nextIssues).length) {
-      setIssues(nextIssues);
-      setError(undefined);
-      return;
-    }
-    setIssues({});
-    setError(formErrorMessage(caught, fallback));
-  }
-
-  async function ensureResponse() {
-    if (id) return { responseId: id, updatedAt };
-    const started = await client.startResponse({
-      formId: form.id,
-      respondentId: respondentId(),
-    });
-    setId(started.id);
-    setUpdatedAt(started.updatedAt);
-    return { responseId: started.id, updatedAt: started.updatedAt };
-  }
-
-  async function onSave() {
-    setBusy("save");
-    setError(undefined);
-    try {
-      const current = await ensureResponse();
-      const saved = await client.saveDraft({
-        responseId: current.responseId,
-        answers,
-        updatedAt: current.updatedAt,
-      });
-      setUpdatedAt(saved.updatedAt);
-      setStatus(saved.status);
-      setIssues({});
-      if (!responseId) router.replace(`/r/${saved.id}`);
-    } catch (caught) {
-      fail(caught, "Could not save draft");
-    } finally {
-      setBusy(undefined);
-    }
-  }
-
-  async function onSubmit() {
-    setBusy("submit");
-    setError(undefined);
-    const localIssues = collectAnswerIssues(
-      form,
-      answers,
-      "submit",
-      fieldTypeRegistry,
-    );
-    if (localIssues.length) {
-      setIssues(
-        Object.fromEntries(
-          localIssues.map((issue) => [issue.field, issue.message]),
-        ),
-      );
-      setBusy(undefined);
-      return;
-    }
-    try {
-      const current = await ensureResponse();
-      const submitted = await client.submitResponse({
-        responseId: current.responseId,
-        answers,
-        updatedAt: current.updatedAt,
-      });
-      setStatus(submitted.status);
-      setUpdatedAt(submitted.updatedAt);
-      setIssues({});
-      if (!responseId) router.replace(`/r/${submitted.id}`);
-    } catch (caught) {
-      fail(caught, "Could not submit");
-    } finally {
-      setBusy(undefined);
-    }
-  }
-
-  async function onReopen() {
-    if (!id) return;
-    setBusy("reopen");
-    setError(undefined);
-    try {
-      const reopened = await client.reopenResponse({
-        responseId: id,
-        updatedAt,
-      });
-      setStatus(reopened.status);
-      setUpdatedAt(reopened.updatedAt);
-      setAnswers(reopened.answers);
-      setIssues({});
-    } catch (caught) {
-      fail(caught, "Could not reopen");
-    } finally {
-      setBusy(undefined);
-    }
-  }
-
-  if (!id && form.status !== "active") {
+  if (q.inactive) {
     return (
       <Alert>
         <CircleAlertIcon />
@@ -166,6 +50,8 @@ export function Questionnaire({
       </Alert>
     );
   }
+
+  const busy = q.pending != null;
 
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
@@ -178,50 +64,42 @@ export function Questionnaire({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
-          {status === "submitted" ? (
+          {q.status === "submitted" ? (
             <Alert>
               <CircleCheckIcon />
               <AlertTitle>Submitted</AlertTitle>
               <AlertDescription>
-                Response <span className="font-mono">{id}</span>
+                Response <span className="font-mono">{q.responseId}</span>
               </AlertDescription>
             </Alert>
           ) : null}
-          {status === "abandoned" ? (
+          {q.status === "abandoned" ? (
             <Alert>
               <CircleAlertIcon />
               <AlertTitle>Abandoned</AlertTitle>
               <AlertDescription>This draft is closed.</AlertDescription>
             </Alert>
           ) : null}
-          <FormFields
-            fields={form.fields}
-            answers={answers}
-            issues={issues}
-            disabled={locked || busy != null}
-            onChange={(fieldId, value) =>
-              setAnswers((current) =>
-                applyAnswerPatch(current, { [fieldId]: value }),
-              )
-            }
-          />
-          {error ? (
+          <FormFields form={q} />
+          {q.error ? (
             <Alert variant="destructive">
               <CircleAlertIcon />
               <AlertTitle>Request failed</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>{q.error}</AlertDescription>
             </Alert>
           ) : null}
         </CardContent>
-        {locked ? (
+        {q.locked ? (
           <CardFooter>
             <Button
               type="button"
               variant="outline"
-              disabled={busy != null || !id}
-              onClick={() => void onReopen()}
+              disabled={busy || !q.responseId}
+              onClick={() => void q.reopen()}
             >
-              {busy === "reopen" ? <Spinner data-icon="inline-start" /> : null}
+              {q.pending === "reopen" ? (
+                <Spinner data-icon="inline-start" />
+              ) : null}
               Edit
             </Button>
           </CardFooter>
@@ -229,26 +107,34 @@ export function Questionnaire({
           <CardFooter className="gap-2">
             <Button
               type="button"
-              disabled={busy != null}
-              onClick={() => void onSubmit()}
+              disabled={busy}
+              onClick={() => void q.submit()}
             >
-              {busy === "submit" ? <Spinner data-icon="inline-start" /> : null}
+              {q.pending === "submit" ? (
+                <Spinner data-icon="inline-start" />
+              ) : null}
               Submit
             </Button>
             <Button
               type="button"
               variant="outline"
-              disabled={busy != null}
-              onClick={() => void onSave()}
+              disabled={busy}
+              onClick={() => void q.saveDraft()}
             >
-              {busy === "save" ? <Spinner data-icon="inline-start" /> : null}
+              {q.pending === "save" ? (
+                <Spinner data-icon="inline-start" />
+              ) : null}
               Save draft
             </Button>
           </CardFooter>
         )}
       </Card>
       <div className="lg:sticky lg:top-6">
-        <AnswersPreview form={form} answers={answers} status={status} />
+        <AnswersPreview
+          form={q.snapshot}
+          answers={q.answers}
+          status={q.status}
+        />
       </div>
     </div>
   );

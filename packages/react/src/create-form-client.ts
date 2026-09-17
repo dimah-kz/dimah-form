@@ -1,9 +1,4 @@
-import {
-  createContext,
-  createElement,
-  useContext,
-  type ReactNode,
-} from "react";
+import { createElement, useContext, type ReactNode } from "react";
 import {
   createFormClient as createFormApiClient,
   type CreateFormClientOptions,
@@ -13,12 +8,18 @@ import {
   type FormServerLike,
 } from "@dimah-form/core";
 
-const FormClientContext = createContext<unknown>(null);
+import { FormClientContext } from "./form-client-context";
+import {
+  useFormResponse,
+  type FormResponseApi,
+  type UseFormResponseOptions,
+} from "./use-form-response";
 
 export type FormClient<
   TPlugins extends readonly FormClientPlugin[] = [],
   TForms extends Record<string, unknown> = Record<string, unknown>,
-  TFieldTypes extends readonly FieldTypeDefinition[] = [],
+  TFieldTypes extends readonly FieldTypeDefinition[] =
+    readonly FieldTypeDefinition[],
   TServer = undefined,
 > = CreateFormClientResult<TPlugins, TForms, TFieldTypes, TServer> & {
   Provider: (props: { children: ReactNode }) => ReactNode;
@@ -28,25 +29,29 @@ export type FormClient<
     TFieldTypes,
     TServer
   >;
+  useFormResponse: (
+    options: Omit<UseFormResponseOptions, "client">,
+  ) => FormResponseApi;
 };
 
 /**
- * React client — protocol API plus `Provider`.
+ * React client — protocol API, `Provider`, and `useFormResponse`.
  *
- * Re-export `useFormClient` from this instance for `$Infer` types:
+ * Re-export hooks from this instance so `$Infer` stays typed:
  *
  * @example
  * ```ts
  * export type Form = typeof form;
- * export const formClient = createFormClient<Form>();
- * export const { Provider, useFormClient } = formClient;
+ * export const formClient = createFormClient<Form>({ fieldTypes });
+ * export const { Provider, useFormClient, useFormResponse } = formClient;
  * ```
  */
 export function createFormClient<
   TServer extends FormServerLike | undefined = undefined,
   const TPlugins extends readonly FormClientPlugin[] = [],
   const TForms extends Record<string, unknown> = Record<string, unknown>,
-  const TFieldTypes extends readonly FieldTypeDefinition[] = [],
+  const TFieldTypes extends readonly FieldTypeDefinition[] =
+    readonly FieldTypeDefinition[],
 >(
   options: CreateFormClientOptions<TPlugins, TForms, TFieldTypes> = {},
 ): FormClient<TPlugins, TForms, TFieldTypes, TServer> {
@@ -80,10 +85,21 @@ export function createFormClient<
     >;
   }
 
+  function useBoundFormResponse(
+    options: Omit<UseFormResponseOptions, "client">,
+  ): FormResponseApi {
+    return useFormResponse({
+      ...options,
+      client,
+      fieldTypes: options.fieldTypes ?? client.fieldTypes,
+    });
+  }
+
   return {
     ...client,
     Provider,
     useFormClient: useBoundFormClient,
+    useFormResponse: useBoundFormResponse,
   } as FormClient<TPlugins, TForms, TFieldTypes, TServer>;
 }
 

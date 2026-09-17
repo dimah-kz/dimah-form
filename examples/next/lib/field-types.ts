@@ -1,4 +1,4 @@
-import { createFieldTypeRegistry, defineFieldType } from "@dimah-form/core";
+import { defineFieldType } from "@dimah-form/core";
 import * as z from "zod";
 
 function asFiniteNumber(value: unknown): number | undefined {
@@ -40,5 +40,3 @@ export const ratingFieldType = defineFieldType({
 });
 
 export const fieldTypes = [ratingFieldType] as const;
-
-export const fieldTypeRegistry = createFieldTypeRegistry(fieldTypes);
