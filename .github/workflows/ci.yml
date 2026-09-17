@@ -13,10 +13,9 @@ concurrency:
 permissions:
   contents: read
 
-# Remote cache: repo secret TURBO_TOKEN + variable TURBO_TEAM (Vercel team slug).
-# Without them, jobs still share a local .turbo cache via actions/cache.
+# Remote cache needs a Vercel `TURBO_TOKEN` Actions secret. Until one is set,
+# jobs share a local .turbo cache via actions/cache.
 env:
-  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
 jobs:
