@@ -1,6 +1,6 @@
 # Examples
 
-Workspace demos consume unpublished `@dimah-form/*` packages.
+Workspace demos consume `@dimah-form/*` via `workspace:*`.
 
 | Path              | Stack                                         |
 | ----------------- | --------------------------------------------- |

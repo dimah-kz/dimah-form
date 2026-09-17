@@ -1,0 +1,26 @@
+core:changelogs:
+  - content: "---\npackages:\n  group:dimah-form:\n    type: patch\n---\n\n### Initial release\n\nFirst public release of the dimah-form questionnaire toolkit:\n\n- `@dimah-form/core` — protocol, error catalog, typed fetch client, and headless fill session\n- `@dimah-form/server` — `dimahForm()` HTTP `handler` and better-call `api`\n- `@dimah-form/db` — FumaDB adapter for questionnaires and responses\n- `@dimah-form/react` — thin React client (`createFormClient` / `useFormResponse`)\n\nThe library owns definition snapshots, drafts, and submit validation. Consumers own UI, auth, and the database driver.\n"
+    filename: 2026-09-17-initial.md
+    v: 0.0.0
+core:packages:
+  - changelogIds:
+      - 2026-09-17-initial.md
+    id: npm:@dimah-form/db
+    updated: true
+  - changelogIds:
+      - 2026-09-17-initial.md
+    id: npm:@dimah-form/core
+    updated: true
+  - changelogIds:
+      - 2026-09-17-initial.md
+    id: npm:@dimah-form/server
+    updated: true
+  - changelogIds:
+      - 2026-09-17-initial.md
+    id: npm:@dimah-form/react
+    updated: true
+npm:packages:
+  - id: npm:@dimah-form/db
+  - id: npm:@dimah-form/core
+  - id: npm:@dimah-form/server
+  - id: npm:@dimah-form/react

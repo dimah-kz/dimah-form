@@ -1,11 +1,24 @@
 # dimah-form
 
+[![npm version](https://img.shields.io/npm/v/@dimah-form/server?style=flat-square&logo=npm&logoColor=white&label=npm&color=CB3837)](https://www.npmjs.com/package/@dimah-form/server)
+[![GitHub stars](https://img.shields.io/github/stars/dimah-kz/dimah-form?style=flat-square&logo=github&logoColor=white&label=stars&color=F5C518)](https://github.com/dimah-kz/dimah-form)
+
 **Backend-first questionnaires for the React ecosystem.**
 
 Server instance, typed protocol client, and [FumaDB](https://github.com/fuma-nama/fumadb) persistence via `database`.
 You own rendering. The library owns definition snapshots, drafts, and submit validation.
 
 Same stack as [dimah-s3](https://github.com/dimah-kz/dimah-s3): pnpm + Turbo, `better-call`, `@better-fetch/fetch`, Zod, Tegami.
+
+## Install
+
+```bash
+pnpm add @dimah-form/server
+pnpm add @dimah-form/react
+pnpm add @dimah-form/db
+```
+
+`@dimah-form/core` is pulled in by the others. Install it directly only if you author protocol or client plugins.
 
 ## Packages
 
@@ -40,6 +53,8 @@ pnpm check-types
 pnpm lint
 pnpm test
 ```
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for changelogs and the publish flow.
 
 ## License
 

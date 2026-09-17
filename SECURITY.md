@@ -8,7 +8,7 @@ Security updates are provided for the latest published versions of maintained pa
 
 Please do not open public issues for security vulnerabilities.
 
-Instead, report vulnerabilities privately by contacting the repository maintainer and include:
+Report privately via [GitHub security advisories](https://github.com/dimah-kz/dimah-form/security/advisories/new) and include:
 
 - A clear description of the issue.
 - Steps to reproduce.

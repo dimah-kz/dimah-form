@@ -31,6 +31,7 @@ const paper = tegami({
   packages: () => ({ group: "dimah-form" }),
   ignore: [
     "dimah-form",
+    "@dimah-form/example-next",
     "@workspace/eslint-config",
     "@workspace/typescript-config",
     "@workspace/vitest-config",

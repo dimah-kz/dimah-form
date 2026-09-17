@@ -13,6 +13,8 @@ concurrency:
 permissions:
   contents: read
 
+# Remote cache: repo secret TURBO_TOKEN + variable TURBO_TEAM (Vercel team slug).
+# Without them, jobs still share a local .turbo cache via actions/cache.
 env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
@@ -40,9 +42,66 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            packages:
+              - 'packages/**'
+              - 'tooling/**'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'turbo.json'
+              - 'package.json'
+
+      - name: Resolve Turbo affected range
+        if: steps.filter.outputs.packages == 'true'
+        uses: ./.github/actions/turbo-affected-range
 
       - name: Setup
+        if: steps.filter.outputs.packages == 'true'
         uses: ./.github/actions/setup
 
       - name: Build, test, and typecheck packages
-        run: pnpm turbo run build test check-types --filter="./packages/*"
+        if: steps.filter.outputs.packages == 'true'
+        run: pnpm turbo run build test check-types --affected --filter="./packages/*"
+
+  examples:
+    name: Typecheck Examples
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            examples:
+              - 'examples/**'
+              - 'packages/**'
+              - 'pnpm-lock.yaml'
+              - 'turbo.json'
+
+      - name: Resolve Turbo affected range
+        if: steps.filter.outputs.examples == 'true'
+        uses: ./.github/actions/turbo-affected-range
+
+      - name: Setup
+        if: steps.filter.outputs.examples == 'true'
+        uses: ./.github/actions/setup
+        with:
+          ignore-scripts: "false"
+
+      - name: Build workspace dependencies
+        if: steps.filter.outputs.examples == 'true'
+        run: pnpm turbo run build --filter="./examples/*..." --filter="!./examples/*"
+
+      - name: Typecheck examples
+        if: steps.filter.outputs.examples == 'true'
+        run: pnpm turbo run check-types --affected --filter="./examples/*"

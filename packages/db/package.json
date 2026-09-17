@@ -1,12 +1,14 @@
 {
   "name": "@dimah-form/db",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "FumaDB adapter for dimah-form — questionnaires and responses",
   "keywords": [
     "form",
     "questionnaire",
+    "survey",
     "fumadb",
     "drizzle",
+    "drizzle-orm",
     "prisma",
     "typescript"
   ],

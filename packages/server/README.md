@@ -2,6 +2,12 @@
 
 `dimahForm()` — HTTP `handler` and better-call `api`.
 
+## Install
+
+```bash
+pnpm add @dimah-form/server
+```
+
 ```ts
 import { db, DimahFormDB } from "@dimah-form/db";
 import { dimahForm, defineForm, memoryAdapter } from "@dimah-form/server";
@@ -73,3 +79,7 @@ export const form = dimahForm({
 ```
 
 Pair with `defineClientPlugin({ id: "ping", $ERROR_CODES: PING_ERROR_CODES, endpoints })` on `createFormClient({ plugins })`. The client companion is never inferred from the server instance.
+
+## License
+
+MIT

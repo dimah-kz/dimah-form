@@ -1,6 +1,6 @@
 {
   "name": "@dimah-form/server",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Questionnaire server — dimahForm() with HTTP handler and direct api",
   "keywords": [
     "form",
@@ -8,6 +8,11 @@
     "survey",
     "better-call",
     "nextjs",
+    "hono",
+    "express",
+    "fastify",
+    "elysia",
+    "sveltekit",
     "typescript"
   ],
   "author": "Hamidrezakz",

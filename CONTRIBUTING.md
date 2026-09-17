@@ -22,7 +22,7 @@ pnpm lint
 pnpm test
 ```
 
-Run commands for a specific package:
+`pnpm build` compiles workspace packages and examples. Run commands for a specific package:
 
 ```bash
 pnpm --filter @dimah-form/core build
@@ -34,11 +34,12 @@ pnpm --filter @dimah-form/core check-types
 1. Fork the repository and create a branch from `main`.
 2. Make your changes with focused commits.
 3. Add or update tests/docs where needed.
-4. Open a Pull Request.
+4. Add a Tegami changelog for user-facing package changes.
+5. Open a Pull Request.
 
-## Changelogs
+## Changelogs (required for package changes)
 
-Packages are **not published yet**. Skip Tegami changelogs and version bumps until the first npm release (see `AGENTS.md`). The rest of this section applies after that.
+When your PR changes behavior, API, or package output, add a changelog:
 
 ```bash
 pnpm tegami
@@ -50,7 +51,13 @@ Then choose the package(s) / `group:dimah-form` and bump type:
 - `minor`: new backward-compatible features.
 - `major`: breaking changes.
 
-A changelog file is created in `.tegami/` and must be committed with your PR.
+A changelog file is created in `.tegami/` and must be committed with your PR. CI comments a release preview on the PR.
+
+## How to choose bump type (SemVer standard)
+
+- Choose `patch` if consumers can upgrade safely without changing their code.
+- Choose `minor` for additive features (new exports, new options with defaults, improved behavior).
+- Choose `major` when existing consumer code may break or output contracts change.
 
 ## Pull Request checklist
 
@@ -59,6 +66,7 @@ A changelog file is created in `.tegami/` and must be committed with your PR.
 - [ ] Lint passes (`pnpm lint`)
 - [ ] Tests pass (`pnpm test`)
 - [ ] Docs updated (if needed)
+- [ ] Changelog added (if package behavior changed)
 
 ## Code of Conduct
 

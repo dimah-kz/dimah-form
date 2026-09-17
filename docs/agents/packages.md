@@ -18,8 +18,6 @@ Consumer apps import from the package they already use: `@dimah-form/server` in 
 
 Pass the same `fieldTypes` array as `dimahForm({ fieldTypes })` on `createFormClient({ fieldTypes })` so `useFormResponse` can validate locally. Filling a response is `useFormResponse` / `createFormResponseSession` — no widgets in this package.
 
-Packages are unpublished — no changelog until first npm release ([AGENTS.md](../../AGENTS.md)).
-
 ## Endpoint
 
 1. Add the handler next to existing ones under `packages/server/src/`.

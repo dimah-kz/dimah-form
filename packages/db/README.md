@@ -2,6 +2,12 @@
 
 FumaDB adapter for dimah-form. Pass `db(client)` as `database`. Custom stores go to `dimahForm({ database })` directly.
 
+## Install
+
+```bash
+pnpm add @dimah-form/db
+```
+
 ```ts
 import { DimahFormDB, db } from "@dimah-form/db";
 import { dimahForm } from "@dimah-form/server";
@@ -16,3 +22,7 @@ const form = dimahForm({
 ```
 
 See `examples/next` for Drizzle ORM 1.0 RC + libSQL.
+
+## License
+
+MIT
