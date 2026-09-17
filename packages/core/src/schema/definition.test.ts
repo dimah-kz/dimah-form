@@ -47,19 +47,19 @@ describe("formDefinitionSchema", () => {
 
   it("rejects duplicate field ids", () => {
     expect(
-      formDefinitionSchema.safeParse({
+      formDefinitionSchema.validate({
         title: "Dup",
         fields: [
           { id: "name", type: "text" },
           { id: "name", type: "number" },
         ],
-      }).success,
+      }),
     ).toBe(false);
   });
 
   it("rejects select options with duplicate values", () => {
     expect(
-      formDefinitionSchema.safeParse({
+      formDefinitionSchema.validate({
         title: "Dup",
         fields: [
           {
@@ -68,16 +68,16 @@ describe("formDefinitionSchema", () => {
             options: [{ value: "a" }, { value: "a" }],
           },
         ],
-      }).success,
+      }),
     ).toBe(false);
   });
 
   it("rejects a select with no options", () => {
     expect(
-      formDefinitionSchema.safeParse({
+      formDefinitionSchema.validate({
         title: "Empty",
         fields: [{ id: "role", type: "select", options: [] }],
-      }).success,
+      }),
     ).toBe(false);
   });
 
@@ -101,10 +101,10 @@ describe("formDefinitionSchema", () => {
       { id: "age", min: 1, max: 10, integer: true },
     ]);
     expect(
-      formDefinitionSchema.safeParse({
+      formDefinitionSchema.validate({
         title: "X",
         fields: [{ id: "n", type: "text", minLength: 8, maxLength: 2 }],
-      }).success,
+      }),
     ).toBe(false);
   });
 
@@ -126,11 +126,11 @@ describe("formDefinitionSchema", () => {
 
   it("rejects unknown keys on the form document", () => {
     expect(
-      formDefinitionSchema.safeParse({
+      formDefinitionSchema.validate({
         title: "X",
         theme: "dark",
         fields: [{ id: "n", type: "text" }],
-      }).success,
+      }),
     ).toBe(false);
   });
 
@@ -162,13 +162,13 @@ describe("formDefinitionSchema", () => {
 
   it("rejects unknown keys on builtin fields and options", () => {
     expect(
-      formDefinitionSchema.safeParse({
+      formDefinitionSchema.validate({
         title: "X",
         fields: [{ id: "n", type: "text", placeholder: "Ada" }],
-      }).success,
+      }),
     ).toBe(false);
     expect(
-      formDefinitionSchema.safeParse({
+      formDefinitionSchema.validate({
         title: "X",
         fields: [
           {
@@ -177,23 +177,23 @@ describe("formDefinitionSchema", () => {
             options: [{ value: "eng", icon: "cpu" }],
           },
         ],
-      }).success,
+      }),
     ).toBe(false);
   });
 
   it("rejects non-object meta", () => {
     expect(
-      formDefinitionSchema.safeParse({
+      formDefinitionSchema.validate({
         title: "X",
         meta: ["nope"],
         fields: [{ id: "n", type: "text" }],
-      }).success,
+      }),
     ).toBe(false);
     expect(
-      formDefinitionSchema.safeParse({
+      formDefinitionSchema.validate({
         title: "X",
         fields: [{ id: "n", type: "text", meta: "Ada" }],
-      }).success,
+      }),
     ).toBe(false);
   });
 
@@ -212,18 +212,28 @@ describe("formDefinitionSchema", () => {
 
 describe("formSnapshotSchema", () => {
   it("requires a form id", () => {
-    expect(formSnapshotSchema.safeParse(contact).success).toBe(false);
+    expect(formSnapshotSchema.validate(contact)).toBe(false);
     expect(
       formSnapshotSchema.parse({ id: "contact", ...contact }),
-    ).toMatchObject({ id: "contact", title: "Contact" });
-    expect(
-      formSnapshotSchema.parse({
-        id: "contact",
-        slug: "join",
-        status: "draft",
-        ...contact,
-      }),
-    ).toMatchObject({ slug: "join", status: "draft" });
+    ).toMatchObject({
+      id: "contact",
+      title: "Contact",
+      slug: "contact",
+      status: "active",
+    });
+    const snapshot = formSnapshotSchema.parse({
+      id: "contact",
+      slug: "join",
+      status: "draft",
+      ...contact,
+    });
+    expect(snapshot).toMatchObject({ slug: "join", status: "draft" });
+    expect(formSnapshotSchema.encode(snapshot)).toMatchObject({
+      id: "contact",
+      slug: "join",
+      status: "draft",
+      title: "Contact",
+    });
   });
 
   it("round-trips a custom field type", () => {
@@ -269,10 +279,10 @@ describe("formSnapshotSchema", () => {
 
   it("rejects showWhen without equals or includes", () => {
     expect(
-      formDefinitionSchema.safeParse({
+      formDefinitionSchema.validate({
         title: "X",
         fields: [{ id: "n", type: "text", showWhen: { field: "other" } }],
-      }).success,
+      }),
     ).toBe(false);
   });
 

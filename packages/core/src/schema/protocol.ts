@@ -3,7 +3,6 @@ import * as z from "zod";
 import {
   formSnapshotSchema,
   formStatusSchema,
-  normalizeFormSnapshot,
   type FormSnapshot,
 } from "./definition";
 import { formIdSchema, responseIdSchema, trimmedString } from "./shared";
@@ -14,8 +13,8 @@ export const LIST_MAX_LIMIT = 100;
 export const answersSchema = z.record(z.string(), z.unknown());
 
 const listPageQueryFields = {
-  limit: z.coerce.number().int().min(1).max(LIST_MAX_LIMIT).optional(),
-  offset: z.coerce.number().int().min(0).optional(),
+  limit: z.coerce.number().pipe(z.int().min(1).max(LIST_MAX_LIMIT)).optional(),
+  offset: z.coerce.number().pipe(z.int().nonnegative()).optional(),
 };
 
 export const getFormQuerySchema = z.strictObject({
@@ -83,7 +82,7 @@ export const responseRecordSchema = z.strictObject({
   id: responseIdSchema,
   formId: formIdSchema,
   status: responseStatusSchema,
-  definition: formSnapshotSchema.transform(normalizeFormSnapshot),
+  definition: formSnapshotSchema,
   answers: answersSchema,
   respondentId: z.string().nullable(),
   submittedAt: z.string().nullable(),
@@ -97,17 +96,17 @@ export const responseSummarySchema = responseRecordSchema.omit({
 });
 
 export const formListSchema = z.strictObject({
-  forms: z.array(formSnapshotSchema.transform(normalizeFormSnapshot)),
-  limit: z.number().int(),
-  offset: z.number().int(),
-  nextOffset: z.number().int().nullable(),
+  forms: z.array(formSnapshotSchema),
+  limit: z.int(),
+  offset: z.int(),
+  nextOffset: z.int().nullable(),
 });
 
 export const responseListSchema = z.strictObject({
   responses: z.array(z.union([responseRecordSchema, responseSummarySchema])),
-  limit: z.number().int(),
-  offset: z.number().int(),
-  nextOffset: z.number().int().nullable(),
+  limit: z.int(),
+  offset: z.int(),
+  nextOffset: z.int().nullable(),
 });
 
 export type FormAnswers = z.output<typeof answersSchema>;

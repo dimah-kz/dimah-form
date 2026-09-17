@@ -52,23 +52,23 @@ export const textFieldSchema = z
   .strictObject({
     ...fieldDocument,
     type: z.literal("text"),
-    minLength: z.number().int().min(0).optional(),
-    maxLength: z.number().int().min(0).optional(),
-    pattern: z
-      .string()
-      .optional()
-      .refine((value) => {
-        if (value === undefined) return true;
-        try {
-          new RegExp(value);
-          return true;
-        } catch {
-          return false;
-        }
-      }, "Invalid pattern"),
+    minLength: z.int().nonnegative().optional(),
+    maxLength: z.int().nonnegative().optional(),
+    pattern: z.string().optional(),
   })
   .check((ctx) => {
-    const { minLength, maxLength } = ctx.value;
+    const { minLength, maxLength, pattern } = ctx.value;
+    if (pattern !== undefined) {
+      try {
+        new RegExp(pattern);
+      } catch {
+        ctx.issues.push({
+          code: "custom",
+          message: "Invalid pattern",
+          input: ctx.value,
+        });
+      }
+    }
     if (minLength != null && maxLength != null && minLength > maxLength) {
       ctx.issues.push({
         code: "custom",
@@ -225,8 +225,7 @@ const formDocument = {
 /** Code-authored questionnaire document (no `id` — that is the `forms` key). */
 export const formDefinitionSchema = z.strictObject(formDocument);
 
-/** Frozen copy stored on a response — definition plus the form id. */
-export const formSnapshotSchema = z.strictObject({
+const formSnapshotDocumentSchema = z.strictObject({
   id: formIdSchema,
   ...formDocument,
 });
@@ -309,12 +308,30 @@ export function normalizeFormSnapshot(snapshot: SnapshotInput): FormSnapshot {
   };
 }
 
+const formSnapshotNormalizedSchema = formSnapshotDocumentSchema.extend({
+  slug: trimmedString,
+  status: formStatusSchema,
+});
+
+/** Frozen copy stored on a response — definition plus the form id. */
+export const formSnapshotSchema = z.codec(
+  formSnapshotDocumentSchema,
+  formSnapshotNormalizedSchema,
+  {
+    decode: (value) =>
+      normalizeFormSnapshot(value) as z.output<
+        typeof formSnapshotNormalizedSchema
+      >,
+    encode: (value) => value,
+  },
+);
+
 export function parseFormSnapshot(input: unknown): FormSnapshot {
-  return normalizeFormSnapshot(formSnapshotSchema.parse(input));
+  return formSnapshotSchema.parse(input);
 }
 
 export function safeParseFormSnapshot(input: unknown) {
   const parsed = formSnapshotSchema.safeParse(input);
   if (!parsed.success) return parsed;
-  return { success: true as const, data: normalizeFormSnapshot(parsed.data) };
+  return { success: true as const, data: parsed.data };
 }

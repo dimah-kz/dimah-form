@@ -65,8 +65,6 @@ describe("defineFieldType", () => {
       fieldSchema: z.looseObject({ type: z.literal("handle") }),
       validate: () => undefined,
     });
-    expect(handle.fieldSchema?.safeParse({ type: "handle" }).success).toBe(
-      true,
-    );
+    expect(handle.fieldSchema?.validate({ type: "handle" })).toBe(true);
   });
 });

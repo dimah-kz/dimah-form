@@ -20,11 +20,10 @@ function toDate(value: string | null): Date | null {
 }
 
 function parseFormStatus(value: string | undefined): FormStatus {
-  const parsed = formStatusSchema.safeParse(value);
-  if (!parsed.success) {
+  if (!formStatusSchema.validate(value)) {
     throw new Error(`Invalid questionnaire status ${JSON.stringify(value)}`);
   }
-  return parsed.data;
+  return value;
 }
 
 /** Raw `response` row as returned by the FumaDB ORM. */

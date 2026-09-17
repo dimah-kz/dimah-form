@@ -33,7 +33,7 @@ describe("formFetchErrorSchema", () => {
 
 describe("protocol payloads", () => {
   it("requires formId on get and start", () => {
-    expect(getFormQuerySchema.safeParse({}).success).toBe(false);
+    expect(getFormQuerySchema.validate({})).toBe(false);
     expect(startResponseBodySchema.parse({ formId: " onboarding " })).toEqual({
       formId: "onboarding",
     });
@@ -46,15 +46,11 @@ describe("protocol payloads", () => {
   });
 
   it("requires id, title, and fields on saveForm", () => {
-    expect(
-      saveFormBodySchema.safeParse({ title: "X", fields: [] }).success,
-    ).toBe(false);
+    expect(saveFormBodySchema.validate({ title: "X", fields: [] })).toBe(false);
   });
 
   it("requires responseId and answers on draft", () => {
-    expect(saveDraftBodySchema.safeParse({ responseId: "r" }).success).toBe(
-      false,
-    );
+    expect(saveDraftBodySchema.validate({ responseId: "r" })).toBe(false);
     expect(
       saveDraftBodySchema.parse({ responseId: "r", answers: { name: "Ada" } }),
     ).toEqual({ responseId: "r", answers: { name: "Ada" } });
@@ -67,7 +63,7 @@ describe("protocol payloads", () => {
   });
 
   it("requires responseId on reopen", () => {
-    expect(reopenResponseBodySchema.safeParse({}).success).toBe(false);
+    expect(reopenResponseBodySchema.validate({})).toBe(false);
     expect(reopenResponseBodySchema.parse({ responseId: "r" })).toEqual({
       responseId: "r",
     });

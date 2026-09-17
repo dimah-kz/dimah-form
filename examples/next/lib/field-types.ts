@@ -12,8 +12,8 @@ export const ratingFieldType = defineFieldType({
   fieldSchema: z
     .looseObject({
       type: z.literal("rating"),
-      min: z.number().int().min(1).optional(),
-      max: z.number().int().min(1).optional(),
+      min: z.int().min(1).optional(),
+      max: z.int().min(1).optional(),
     })
     .check((ctx) => {
       const min = ctx.value.min ?? 1;

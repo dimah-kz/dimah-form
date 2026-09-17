@@ -89,7 +89,9 @@ describe("createFieldTypeRegistry", () => {
 
   it("validates email and date answers", () => {
     expect(emailFieldType.validate("ada@n.com")).toBeUndefined();
+    expect(emailFieldType.validate("user+tag@example.com")).toBeUndefined();
     expect(emailFieldType.validate("nope")).toBe("Expected an email");
+    expect(emailFieldType.validate("ada@n")).toBe("Expected an email");
     expect(dateFieldType.validate("2026-01-02")).toBeUndefined();
     expect(dateFieldType.validate("2024-02-29")).toBeUndefined();
     expect(dateFieldType.validate("2026-02-31")).toBe("Expected a date");

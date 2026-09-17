@@ -13,6 +13,7 @@ import {
 
 /** HTML `type="date"` / ISO calendar date (`YYYY-MM-DD`). */
 const isoDateAnswer = z.iso.date();
+const emailAnswer = z.email();
 
 function asFiniteNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value)
@@ -26,10 +27,6 @@ function asBoolean(value: unknown): boolean | undefined {
 
 function isBlankString(value: unknown): boolean {
   return typeof value === "string" && value.trim() === "";
-}
-
-function isEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
 export const textFieldType = defineFieldType({
@@ -153,7 +150,7 @@ export const emailFieldType = defineFieldType({
   isEmpty: (value) => value == null || isBlankString(value),
   validate: (value) => {
     if (typeof value !== "string") return "Expected a string";
-    return isEmail(value) ? undefined : "Expected an email";
+    return emailAnswer.validate(value) ? undefined : "Expected an email";
   },
   $Infer: "" as string,
 });
@@ -164,9 +161,7 @@ export const dateFieldType = defineFieldType({
   isEmpty: (value) => value == null || isBlankString(value),
   validate: (value) => {
     if (typeof value !== "string") return "Expected a string";
-    return isoDateAnswer.safeParse(value).success
-      ? undefined
-      : "Expected a date";
+    return isoDateAnswer.validate(value) ? undefined : "Expected a date";
   },
   $Infer: "" as string,
 });
