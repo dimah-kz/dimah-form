@@ -53,7 +53,13 @@ export type DimahFormHooks = {
   afterDeleteForm?: (context: FormHookContext) => MaybePromise<void>;
 };
 
-export const FORM_HOOK_KEYS = [
+function listedFormHookKeys<const K extends readonly (keyof DimahFormHooks)[]>(
+  keys: K & (keyof DimahFormHooks extends K[number] ? unknown : never),
+): K {
+  return keys;
+}
+
+export const FORM_HOOK_KEYS = listedFormHookKeys([
   "onStart",
   "onSaveDraft",
   "onSubmit",
@@ -70,16 +76,7 @@ export const FORM_HOOK_KEYS = [
   "afterReopen",
   "afterDeleteResponse",
   "afterDeleteForm",
-] as const satisfies readonly (keyof DimahFormHooks)[];
-
-type MissingFormHook = Exclude<
-  keyof DimahFormHooks,
-  (typeof FORM_HOOK_KEYS)[number]
->;
-const _allHooksListed: [MissingFormHook] extends [never]
-  ? true
-  : MissingFormHook = true;
-void _allHooksListed;
+]);
 
 export type PluginInitContext = {
   id: string;

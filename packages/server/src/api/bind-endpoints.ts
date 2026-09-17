@@ -1,4 +1,4 @@
-import { type Endpoint } from "better-call";
+import type { Endpoint } from "better-call";
 
 import { requestFromHeaders } from "@/helpers/request";
 import type { FormEndpointContext } from "./context";

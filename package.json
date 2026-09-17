@@ -1,7 +1,6 @@
 {
   "name": "dimah-form",
   "private": true,
-  "license": "MIT",
   "homepage": "https://github.com/dimah-kz/dimah-form",
   "bugs": {
     "url": "https://github.com/dimah-kz/dimah-form/issues"
@@ -10,23 +9,26 @@
     "type": "git",
     "url": "git+https://github.com/dimah-kz/dimah-form.git"
   },
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "build": "turbo run build",
     "build:packages": "turbo run build --filter=\"./packages/*\"",
+    "check-types": "turbo run check-types",
     "dev": "turbo run dev",
-    "lint": "eslint --max-warnings 0 scripts && turbo run lint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check-types": "turbo run check-types",
-    "test": "turbo run test",
-    "tegami": "node ./scripts/tegami.mts"
+    "lint": "eslint --max-warnings 0 scripts && turbo run lint",
+    "tegami": "node ./scripts/tegami.mts",
+    "test": "turbo run test"
   },
   "devDependencies": {
+    "@types/node": "catalog:",
     "@workspace/eslint-config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
     "eslint": "catalog:",
     "prettier": "catalog:",
+    "prettier-plugin-packagejson": "catalog:",
     "prettier-plugin-tailwindcss": "catalog:",
     "tegami": "^1.5.0",
     "turbo": "catalog:",

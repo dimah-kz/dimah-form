@@ -6,9 +6,22 @@ const config = {
   tabWidth: 2,
   printWidth: 80,
   endOfLine: "lf",
-  plugins: ["prettier-plugin-tailwindcss"],
+  arrowParens: "always",
+  bracketSameLine: false,
+  // packagejson first; tailwind must stay last so it can process class lists.
+  plugins: ["prettier-plugin-packagejson", "prettier-plugin-tailwindcss"],
   tailwindStylesheet: "./examples/next/app/globals.css",
   tailwindFunctions: ["cn", "cva"],
+  overrides: [
+    {
+      files: ["**/*.md"],
+      options: { proseWrap: "preserve" },
+    },
+    {
+      files: ["**/*.{yml,yaml}"],
+      options: { singleQuote: false },
+    },
+  ],
 };
 
 export default config;

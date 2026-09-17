@@ -7,7 +7,7 @@ import { github } from "tegami/plugins/github";
 function buildOnPublish(): TegamiPlugin {
   return {
     name: "build-on-publish",
-    async willPublish({ pkg }) {
+    willPublish({ pkg }) {
       execFileSync(
         "pnpm",
         ["exec", "turbo", "run", "build", "--filter", pkg.name],

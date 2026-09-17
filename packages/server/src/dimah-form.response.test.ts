@@ -3,7 +3,7 @@ import { describe, expect, expectTypeOf, it } from "vitest";
 import { defineForm, isFormErrorCode } from "@dimah-form/core";
 
 import { dimahForm } from "./dimah-form";
-import { APIError } from "./errors";
+import type { APIError } from "./errors";
 import { memoryAdapter } from "./store";
 import {
   apiUrl,

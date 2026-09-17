@@ -49,7 +49,7 @@ describe("createFieldTypeRegistry", () => {
     );
     expect(
       textFieldType.validate("aa", { type: "text", pattern: "^a+$" }),
-    ).toBe(undefined);
+    ).toBeUndefined();
     expect(
       textFieldType.validate("ab", { type: "text", pattern: "^a+$" }),
     ).toBe("Invalid format");

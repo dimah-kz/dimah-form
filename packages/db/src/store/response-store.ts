@@ -2,7 +2,7 @@ import type { InferFumaDB } from "fumadb";
 import type { FormSnapshot, ResponseRecord } from "@dimah-form/core";
 import type { ResponseStore } from "@dimah-form/server";
 
-import { DimahFormDB, v1 } from "@/fuma-db";
+import { v1, type DimahFormDB } from "@/fuma-db";
 import {
   toFormSnapshot,
   toQuestionnaireColumns,

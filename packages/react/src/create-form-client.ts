@@ -96,7 +96,7 @@ export function createFormClient<
     Provider,
     useFormClient: useBoundFormClient,
     useFormResponse: useBoundFormResponse,
-  } as FormClient<TPlugins, TForms, TFieldTypes, TServer>;
+  };
 }
 
 /**

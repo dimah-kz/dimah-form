@@ -1,7 +1,10 @@
 import type { z } from "zod";
 
-import { formDefinitionSchema, type DocumentMeta } from "./schema/definition";
-import type { FormStatus } from "./schema/definition";
+import {
+  formDefinitionSchema,
+  type DocumentMeta,
+  type FormStatus,
+} from "./schema/definition";
 import type { FormAnswers } from "./schema/protocol";
 
 /** Code-authored form document. Type-specific keys stay on the field; UI extras go in `meta`. */

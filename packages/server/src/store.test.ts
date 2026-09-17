@@ -21,24 +21,24 @@ const row = {
 };
 
 describe("memoryAdapter", () => {
-  it("isolates rows across adapter instances", () => {
+  it("isolates rows across adapter instances", async () => {
     const a = memoryAdapter();
     const b = memoryAdapter();
-    a.create(row);
-    expect(b.get("r1")).toBeUndefined();
-    expect(a.get("r1")).toMatchObject({ id: "r1" });
+    await a.create(row);
+    expect(await b.get("r1")).toBeUndefined();
+    expect(await a.get("r1")).toMatchObject({ id: "r1" });
   });
 
   it("stores live forms without rewriting them on create", async () => {
     const store = memoryAdapter();
-    store.saveForm({
+    await store.saveForm({
       id: "intake",
       slug: "intake",
       status: "active",
       title: "Intake",
       fields: [{ id: "n", type: "text" }],
     });
-    store.create({
+    await store.create({
       ...row,
       formId: "intake",
       definition: {
@@ -55,7 +55,7 @@ describe("memoryAdapter", () => {
 
   it("lists forms by updatedAt descending", async () => {
     const store = memoryAdapter();
-    store.saveForm({
+    await store.saveForm({
       id: "older",
       slug: "older",
       status: "active",
@@ -64,7 +64,7 @@ describe("memoryAdapter", () => {
       createdAt: "2026-01-01T00:00:00.000Z",
       updatedAt: "2026-01-01T00:00:00.000Z",
     });
-    store.saveForm({
+    await store.saveForm({
       id: "newer",
       slug: "newer",
       status: "active",
@@ -81,8 +81,8 @@ describe("memoryAdapter", () => {
 
   it("filters responses by respondentId", async () => {
     const store = memoryAdapter();
-    store.create(row);
-    store.create({ ...row, id: "r2", respondentId: "user-1" });
+    await store.create(row);
+    await store.create({ ...row, id: "r2", respondentId: "user-1" });
     expect(
       (await store.listResponses({ respondentId: "user-1" })).map(
         (item) => item.id,
@@ -92,7 +92,7 @@ describe("memoryAdapter", () => {
 
   it("looks up a live form by slug", async () => {
     const store = memoryAdapter();
-    store.saveForm({
+    await store.saveForm({
       id: "intake",
       slug: "join",
       status: "active",
@@ -107,7 +107,7 @@ describe("memoryAdapter", () => {
 
   it("lists forms by status and paginates", async () => {
     const store = memoryAdapter();
-    store.saveForm({
+    await store.saveForm({
       id: "open",
       slug: "open",
       status: "active",
@@ -115,7 +115,7 @@ describe("memoryAdapter", () => {
       fields: [],
       updatedAt: "2026-01-02T00:00:00.000Z",
     });
-    store.saveForm({
+    await store.saveForm({
       id: "closed",
       slug: "closed",
       status: "archived",
@@ -133,14 +133,14 @@ describe("memoryAdapter", () => {
 
   it("deletes forms and responses", async () => {
     const store = memoryAdapter();
-    store.saveForm({
+    await store.saveForm({
       id: "intake",
       slug: "intake",
       status: "active",
       title: "Intake",
       fields: [],
     });
-    store.create(row);
+    await store.create(row);
     await store.delete("r1");
     await store.deleteForm("intake");
     expect(await store.get("r1")).toBeUndefined();
@@ -149,8 +149,8 @@ describe("memoryAdapter", () => {
 
   it("filters responses by formId and status", async () => {
     const store = memoryAdapter();
-    store.create(row);
-    store.create({
+    await store.create(row);
+    await store.create({
       ...row,
       id: "r2",
       formId: "other",

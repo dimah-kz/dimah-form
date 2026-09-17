@@ -222,7 +222,7 @@ describe("live catalog", () => {
 
   it("does not rewrite a stored live form when starting a code-authored response", async () => {
     const database = memoryAdapter();
-    database.saveForm({
+    await database.saveForm({
       id: "onboarding",
       slug: "onboarding",
       status: "active",
@@ -498,7 +498,7 @@ describe("slug and list", () => {
 
   it("skips invalid stored forms when listing", async () => {
     const database = memoryAdapter();
-    database.saveForm({
+    await database.saveForm({
       id: "broken",
       slug: "broken",
       status: "active",

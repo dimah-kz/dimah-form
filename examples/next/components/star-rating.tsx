@@ -36,6 +36,7 @@ export function StarRating({
     <div className="flex flex-col gap-2">
       <div
         role="radiogroup"
+        tabIndex={0}
         aria-labelledby={`${id}-label`}
         aria-invalid={invalid || undefined}
         aria-required={required || undefined}

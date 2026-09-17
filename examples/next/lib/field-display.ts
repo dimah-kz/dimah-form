@@ -29,5 +29,13 @@ export function formatAnswer(field: FormField, value: unknown) {
       );
     return labels.length ? labels.join(", ") : "—";
   }
-  return String(value);
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    typeof value === "bigint"
+  ) {
+    return String(value);
+  }
+  return "—";
 }

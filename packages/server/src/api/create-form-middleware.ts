@@ -16,9 +16,7 @@ export const formContextMiddleware = createMiddleware(async (ctx) => {
   }
 
   const request =
-    ctx.request ??
-    injected.request ??
-    requestFromHeaders(ctx.headers as HeadersInit | undefined);
+    ctx.request ?? injected.request ?? requestFromHeaders(ctx.headers);
 
   return {
     config: injected.config,

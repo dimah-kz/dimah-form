@@ -1,7 +1,7 @@
 import {
   createFieldTypeRegistry,
   FORM_API_BASE_PATH,
-  FORM_ERROR_CODES,
+  type FORM_ERROR_CODES,
   normalizeFormApiBasePath,
   type FieldTypeDefinition,
   type InferAnswersMap,

@@ -16,7 +16,6 @@ import {
   FORM_HOOK_KEYS,
   type DimahFormHooks,
   type DimahFormPlugin,
-  type PluginInitResult,
   type ResolvedDimahFormConfig,
 } from "@/types";
 
@@ -73,7 +72,7 @@ export function mergeHookBags(bags: DimahFormHooks[]): DimahFormHooks {
       key,
       chainHooks(...bags.map((bag) => bag[key] as never)),
     ]),
-  ) as DimahFormHooks;
+  );
 }
 
 const builtinTypeNames = new Set<string>(
@@ -187,11 +186,11 @@ export function runPluginInits(
       plugins: config.plugins,
     });
     if (result instanceof Promise) {
-      throw new Error(
+      throw new TypeError(
         `dimah-form plugin "${plugin.id}" init() must be synchronous.`,
       );
     }
-    const context = (result as PluginInitResult | void)?.context;
+    const context = result?.context;
     if (context !== undefined) {
       (config.pluginContext as Map<string, unknown>).set(plugin.id, context);
     }

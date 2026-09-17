@@ -1,7 +1,6 @@
 import { isAPIError } from "./error";
 import { isFieldVisible } from "./answers";
-import type { FormField } from "./schema/definition";
-import type { DocumentMeta } from "./schema/definition";
+import type { FormField, DocumentMeta } from "./schema/definition";
 import type { FormAnswers } from "./schema/protocol";
 import type { ValidationIssue } from "./schema/error";
 

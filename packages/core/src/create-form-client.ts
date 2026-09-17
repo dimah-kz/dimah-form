@@ -1,4 +1,4 @@
-import { FORM_ERROR_CODES } from "./error";
+import type { FORM_ERROR_CODES } from "./error";
 import {
   createFormFetch,
   type FormClientFetchOptions,

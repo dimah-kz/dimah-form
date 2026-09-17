@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormSnapshot, type ResponseRecord } from "@dimah-form/react";
+import type { FormSnapshot, ResponseRecord } from "@dimah-form/react";
 import { CircleAlertIcon, CircleCheckIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 
