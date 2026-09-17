@@ -38,6 +38,12 @@ jobs:
       - name: Format
         run: pnpm format:check
 
+      - name: Workspace consistency
+        run: pnpm sherif
+
+      - name: Unused files and dependencies
+        run: pnpm knip
+
   packages:
     name: Build, Test & Types
     runs-on: ubuntu-latest

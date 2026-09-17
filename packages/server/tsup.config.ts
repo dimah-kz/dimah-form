@@ -1,6 +1,6 @@
-import { defineConfig } from "tsup";
+import { packageConfig } from "@workspace/tsup-config";
 
-export default defineConfig({
+export default packageConfig({
   entry: [
     "src/index.ts",
     "src/adapters/next.ts",
@@ -11,19 +11,4 @@ export default defineConfig({
     "src/adapters/elysia.ts",
     "src/adapters/svelte-kit.ts",
   ],
-  format: ["esm"],
-  target: "esnext",
-  dts: false,
-  sourcemap: true,
-  clean: true,
-  splitting: false,
-  treeshake: true,
-  outDir: "dist",
-  skipNodeModulesBundle: true,
-  external: [/^[^./]/],
-  esbuildOptions(options) {
-    options.alias = {
-      "@": "./src",
-    };
-  },
 });

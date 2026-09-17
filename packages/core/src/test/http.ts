@@ -23,7 +23,7 @@ export function captureFetch(
   respond: (input: RequestInfo | URL, init?: RequestInit) => Response = () =>
     jsonResponse({ ok: true }),
 ) {
-  const calls: Array<{ url: string; init: RequestInit }> = [];
+  const calls: { url: string; init: RequestInit }[] = [];
   const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     calls.push({ url: requestUrl(input), init: init ?? {} });
     return respond(input, init);

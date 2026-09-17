@@ -33,6 +33,7 @@ const paper = tegami({
     "dimah-form",
     "@dimah-form/example-next",
     "@workspace/eslint-config",
+    "@workspace/tsup-config",
     "@workspace/typescript-config",
     "@workspace/vitest-config",
   ],

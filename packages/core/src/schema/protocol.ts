@@ -128,7 +128,7 @@ export type FormList = {
   nextOffset: number | null;
 };
 export type ResponseList = {
-  responses: Array<ResponseRecord | ResponseSummary>;
+  responses: (ResponseRecord | ResponseSummary)[];
   limit: number;
   offset: number;
   nextOffset: number | null;

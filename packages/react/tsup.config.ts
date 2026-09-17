@@ -1,21 +1,6 @@
-import { defineConfig } from "tsup";
+import { packageConfig } from "@workspace/tsup-config";
 
-export default defineConfig({
+export default packageConfig({
   entry: ["src/index.ts"],
-  format: ["esm"],
-  target: "esnext",
-  dts: false,
-  sourcemap: true,
-  clean: true,
-  splitting: false,
-  treeshake: true,
-  outDir: "dist",
-  skipNodeModulesBundle: true,
-  external: [/^[^./]/],
   banner: { js: '"use client";' },
-  esbuildOptions(options) {
-    options.alias = {
-      "@": "./src",
-    };
-  },
 });

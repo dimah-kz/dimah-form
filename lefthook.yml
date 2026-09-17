@@ -1,0 +1,7 @@
+pre-commit:
+  parallel: true
+  commands:
+    prettier:
+      glob: "*.{js,jsx,ts,tsx,mjs,cjs,json,md,yml,yaml,css}"
+      run: pnpm prettier --write --cache --cache-location .prettiercache {staged_files}
+      stage_fixed: true

@@ -6,5 +6,6 @@ export default defineConfig(config, {
   rules: {
     // shadcn primitives: association happens at the call site.
     "jsx-a11y/label-has-associated-control": "off",
+    "@typescript-eslint/array-type": "off",
   },
 });

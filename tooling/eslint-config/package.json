@@ -10,15 +10,20 @@
     "./react": "./react.js"
   },
   "scripts": {
-    "lint": "eslint --max-warnings 0"
+    "lint": "eslint --max-warnings 0 --cache"
   },
   "dependencies": {
+    "@eslint-community/eslint-plugin-eslint-comments": "catalog:",
     "@eslint/js": "catalog:",
     "@next/eslint-plugin-next": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
+    "eslint": "catalog:",
     "eslint-config-prettier": "catalog:",
     "eslint-plugin-import-x": "catalog:",
     "eslint-plugin-jsx-a11y": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "eslint-plugin-package-json": "catalog:",
+    "eslint-plugin-pnpm": "catalog:",
     "eslint-plugin-react": "catalog:",
     "eslint-plugin-react-hooks": "catalog:",
     "eslint-plugin-regexp": "catalog:",
@@ -27,8 +32,5 @@
     "globals": "catalog:",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-eslint": "catalog:"
-  },
-  "devDependencies": {
-    "eslint": "catalog:"
   }
 }

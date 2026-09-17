@@ -1,4 +1,4 @@
-/** Build artifacts and generated files — shared by all ESLint configs. */
+/** Build artifacts, caches, and generated files — shared by all ESLint configs. */
 export const ignorePatterns = [
   "**/node_modules/**",
   "**/dist/**",
@@ -9,6 +9,8 @@ export const ignorePatterns = [
   "**/.turbo/**",
   "**/coverage/**",
   "**/.vitest/**",
+  "**/.eslintcache",
+  "**/.prettiercache",
   "**/next-env.d.ts",
   "**/tsup.config.bundled_*.mjs",
 ];

@@ -19,6 +19,9 @@ pnpm install
 pnpm build
 pnpm check-types
 pnpm lint
+pnpm format:check
+pnpm sherif
+pnpm knip
 pnpm test
 ```
 
@@ -70,6 +73,8 @@ A changelog file is created in `.tegami/` and must be committed with your PR. CI
 - [ ] Build passes (`pnpm build`)
 - [ ] Type checks pass (`pnpm check-types`)
 - [ ] Lint passes (`pnpm lint`)
+- [ ] Format check passes (`pnpm format:check`)
+- [ ] Workspace checks pass (`pnpm sherif` / `pnpm knip`)
 - [ ] Tests pass (`pnpm test`)
 - [ ] Docs updated (if needed)
 - [ ] Changelog added (if package behavior changed)

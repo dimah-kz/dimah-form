@@ -9,7 +9,7 @@
     "db:generate": "node ./scripts/generate-schema.mjs",
     "db:push": "drizzle-kit push",
     "dev": "next dev",
-    "lint": "eslint --max-warnings 0",
+    "lint": "eslint --max-warnings 0 --cache",
     "start": "next start"
   },
   "dependencies": {

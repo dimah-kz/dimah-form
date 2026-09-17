@@ -12,6 +12,10 @@ node_modules/
 coverage/
 .vitest/
 
+# Linter / formatter caches
+.eslintcache
+.prettiercache
+
 # Turbo
 .turbo/
 
@@ -48,6 +52,9 @@ local.db-journal
 
 # Cursor / agent artifacts
 skills-lock.json
+
+# Lefthook local overrides
+.lefthook-local.yml
 
 # OS
 .DS_Store

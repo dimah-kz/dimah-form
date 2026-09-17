@@ -52,6 +52,7 @@ pnpm install
 pnpm build
 pnpm check-types
 pnpm lint
+pnpm format:check
 pnpm test
 ```
 

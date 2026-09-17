@@ -1,5 +1,5 @@
 {
-  "name": "@workspace/vitest-config",
+  "name": "@workspace/tsup-config",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
     "lint": "eslint --max-warnings 0 --cache"
   },
   "dependencies": {
-    "vitest": "catalog:"
+    "tsup": "catalog:"
   },
   "devDependencies": {
     "@workspace/eslint-config": "workspace:*",

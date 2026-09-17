@@ -236,7 +236,7 @@ export type SelectOption = {
   meta?: DocumentMeta;
 };
 
-export interface FormField {
+export type FormField = {
   id: string;
   type: string;
   required?: boolean;
@@ -246,7 +246,7 @@ export interface FormField {
   showWhen?: FieldShowWhen;
   meta?: DocumentMeta;
   [key: string]: unknown;
-}
+};
 
 export type FormDefinition = {
   title: string;

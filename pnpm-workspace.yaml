@@ -5,6 +5,10 @@ packages:
   - "tooling/*"
 
 catalog:
+  knip: ^6.36.0
+  lefthook: ^2.1.14
+  sherif: ^1.13.0
+  tegami: ^1.5.0
   typescript: 7.0.2
   eslint: ^10.10.0
   "@eslint/js": ^10.0.1
@@ -20,10 +24,15 @@ catalog:
   eslint-plugin-unicorn: ^75.0.0
   globals: ^17.12.0
   typescript-eslint: ^8.70.0
+  "@eslint-community/eslint-plugin-eslint-comments": ^4.8.1
+  eslint-plugin-n: ^18.3.0
+  eslint-plugin-package-json: ^1.8.1
+  eslint-plugin-pnpm: ^1.9.1
   prettier: ^3.9.6
   prettier-plugin-packagejson: ^3.0.2
   prettier-plugin-tailwindcss: ^0.8.1
   turbo: ^2.10.13
+  tsc-alias: ^1.9.5
   tsup: ^8.5.1
   vitest: ^5.0.1
   react: ^19.3.0
@@ -42,8 +51,10 @@ catalog:
 
 allowBuilds:
   esbuild: true
+  lefthook: true
   msw: true
   unrs-resolver: true
 
 minimumReleaseAgeExclude:
   - eslint-plugin-unicorn@75.0.0
+  - knip@6.36.0

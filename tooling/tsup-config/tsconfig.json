@@ -1,5 +1,5 @@
 {
-  "extends": "@workspace/typescript-config/base.json",
+  "extends": "@workspace/typescript-config/node-library.json",
   "compilerOptions": {
     "noEmit": true,
     "declaration": false,
@@ -7,5 +7,5 @@
     "rootDir": ".",
     "types": ["node"]
   },
-  "include": ["scripts/**/*.mts", "knip.config.ts"]
+  "include": ["index.ts"]
 }
