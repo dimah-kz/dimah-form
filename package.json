@@ -1,6 +1,15 @@
 {
   "name": "dimah-form",
   "private": true,
+  "license": "MIT",
+  "homepage": "https://github.com/dimah-kz/dimah-form",
+  "bugs": {
+    "url": "https://github.com/dimah-kz/dimah-form/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dimah-kz/dimah-form.git"
+  },
   "type": "module",
   "scripts": {
     "build": "turbo run build",

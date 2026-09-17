@@ -1,0 +1,21 @@
+pkg:core:
+  - changed-files:
+      - any-glob-to-any-file: packages/core/**
+
+pkg:server:
+  - changed-files:
+      - any-glob-to-any-file: packages/server/**
+
+pkg:db:
+  - changed-files:
+      - any-glob-to-any-file: packages/db/**
+
+pkg:react:
+  - changed-files:
+      - any-glob-to-any-file: packages/react/**
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.md"
+          - docs/**

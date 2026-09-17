@@ -4,6 +4,19 @@ title: "[Feature]: "
 labels:
   - enhancement
 body:
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      description: Which package would this live in?
+      options:
+        - "@dimah-form/core"
+        - "@dimah-form/server"
+        - "@dimah-form/db"
+        - "@dimah-form/react"
+        - unsure
+    validations:
+      required: true
   - type: textarea
     id: problem
     attributes:

@@ -28,4 +28,6 @@ Project maintainers are responsible for clarifying and enforcing these standards
 
 ## Reporting
 
-If you experience or witness unacceptable behavior, please report it privately to the maintainer.
+Security vulnerabilities: see [SECURITY.md](./SECURITY.md). Do not file a public issue.
+
+Conduct issues: contact the repository owner on GitHub. Do not file a public issue if it would expose private information.

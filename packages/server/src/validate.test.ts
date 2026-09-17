@@ -8,12 +8,13 @@ function expectErrorCode(
   run: () => void,
   code: "RESPONSE_NOT_DRAFT" | "RESPONSE_NOT_LOCKED" | "STALE_UPDATE",
 ) {
+  let thrown: unknown;
   try {
     run();
-    throw new Error(`expected ${code}`);
   } catch (error) {
-    expect(isFormErrorCode(error, code)).toBe(true);
+    thrown = error;
   }
+  expect(isFormErrorCode(thrown, code)).toBe(true);
 }
 
 describe("requireDraft", () => {

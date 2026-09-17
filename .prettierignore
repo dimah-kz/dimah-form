@@ -16,3 +16,6 @@ coverage/
 
 # Misc
 *.tsbuildinfo
+
+# GitHub (no Prettier parser)
+.github/CODEOWNERS

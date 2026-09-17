@@ -1,0 +1,42 @@
+# Source of truth for repo labels. Synced by .github/workflows/sync-labels.yml
+# (existing GitHub defaults not listed here are left in place).
+
+- name: bug
+  color: "d73a4a"
+  description: Something isn't working
+
+- name: enhancement
+  color: "a2eeef"
+  description: New feature or request
+
+- name: documentation
+  color: "0075ca"
+  description: Improvements or additions to documentation
+
+- name: good first issue
+  color: "7057ff"
+  description: Good for newcomers
+
+- name: breaking
+  color: "b60205"
+  description: Breaking change for package consumers
+
+- name: dependencies
+  color: "0366d6"
+  description: Dependency or GitHub Actions updates
+
+- name: pkg:core
+  color: "0e8a16"
+  description: "@dimah-form/core"
+
+- name: pkg:server
+  color: "1d76db"
+  description: "@dimah-form/server"
+
+- name: pkg:db
+  color: "fbca04"
+  description: "@dimah-form/db"
+
+- name: pkg:react
+  color: "d4c5f9"
+  description: "@dimah-form/react"

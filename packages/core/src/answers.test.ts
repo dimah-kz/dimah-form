@@ -239,12 +239,13 @@ describe("collectAnswerIssues", () => {
   });
 
   it("throws VALIDATION_ERROR from parseAnswers", () => {
+    let thrown: unknown;
     try {
       parseAnswers(snapshot, { name: 1 }, "draft");
-      throw new Error("expected VALIDATION_ERROR");
     } catch (error) {
-      expect(isFormErrorCode(error, "VALIDATION_ERROR")).toBe(true);
+      thrown = error;
     }
+    expect(isFormErrorCode(thrown, "VALIDATION_ERROR")).toBe(true);
   });
 });
 

@@ -29,6 +29,12 @@ pnpm --filter @dimah-form/core build
 pnpm --filter @dimah-form/core check-types
 ```
 
+## Issues
+
+Use the **Bug report**, **Feature request**, or **Documentation** forms. Do not file public issues for security problems — see [SECURITY.md](./SECURITY.md).
+
+PRs that touch a published package are labeled `pkg:core`, `pkg:server`, `pkg:db`, or `pkg:react` from the changed paths.
+
 ## Contribution workflow
 
 1. Fork the repository and create a branch from `main`.
