@@ -106,6 +106,18 @@ describe("formDefinitionSchema", () => {
         fields: [{ id: "n", type: "text", minLength: 8, maxLength: 2 }],
       }),
     ).toBe(false);
+    expect(
+      formDefinitionSchema.validate({
+        title: "X",
+        fields: [{ id: "n", type: "text", pattern: "(" }],
+      }),
+    ).toBe(false);
+    expect(
+      formDefinitionSchema.validate({
+        title: "X",
+        fields: [{ id: "age", type: "number", min: 10, max: 1 }],
+      }),
+    ).toBe(false);
   });
 
   it("keeps description and meta on the form document", () => {

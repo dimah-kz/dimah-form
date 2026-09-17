@@ -113,10 +113,14 @@ describe("createFormResponseSession", () => {
 
   it("starts then saves a draft patch, including nulls for hidden keys", async () => {
     const client = mockClient();
+    const onStarted = vi.fn();
+    const onSaved = vi.fn();
     const session = createFormResponseSession({
       client,
       snapshot,
       respondentId: () => "user-1",
+      onStarted,
+      onSaved,
     });
     session.setAnswer("name", "Ada");
     session.setAnswer("team", "Platform");
@@ -133,6 +137,8 @@ describe("createFormResponseSession", () => {
       updatedAt: "2026-01-01T00:00:00.000Z",
     });
     expect(saved?.id).toBe("res-1");
+    expect(onStarted).toHaveBeenCalled();
+    expect(onSaved).toHaveBeenCalled();
     expect(session.getState().dirty).toBe(false);
     expect(session.getState().pending).toBeUndefined();
   });
@@ -233,14 +239,22 @@ describe("createFormResponseSession", () => {
 
   it("reopens a locked row", async () => {
     const client = mockClient();
+    const onReopened = vi.fn();
     const session = createFormResponseSession({
       client,
       snapshot,
       response: row({ status: "submitted" }),
+      onReopened,
     });
     expect(session.getState().locked).toBe(true);
+    session.setAnswer("name", "Ada");
+    expect(session.getState().answers).toEqual({ role: "eng" });
+    expect(session.getState().dirty).toBe(false);
+    await session.saveDraft();
+    expect(client.saveDraft).not.toHaveBeenCalled();
     await session.reopen();
     expect(client.reopenResponse).toHaveBeenCalled();
+    expect(onReopened).toHaveBeenCalled();
     expect(session.getState().status).toBe("draft");
     expect(session.getState().locked).toBe(false);
   });
@@ -294,5 +308,118 @@ describe("createFormResponseSession", () => {
     expect(session.getState().issues).toEqual({
       name: "Expected a string",
     });
+  });
+
+  it("patches answers and notifies subscribers", () => {
+    const session = createFormResponseSession({
+      client: mockClient(),
+      snapshot,
+    });
+    const listener = vi.fn();
+    const stop = session.subscribe(listener);
+    session.setAnswers({ name: "Ada", role: "pm" });
+    expect(session.getState().answers).toEqual({ name: "Ada", role: "pm" });
+    expect(listener).toHaveBeenCalled();
+    stop();
+    session.setAnswer("name", "Bob");
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it("validates on change when configured", () => {
+    const session = createFormResponseSession({
+      client: mockClient(),
+      snapshot,
+      validate: "change",
+    });
+    session.setAnswer("name", "A");
+    expect(session.getState().issues.name).toBe(
+      "Must be at least 2 characters",
+    );
+  });
+
+  it("uses client.fieldTypes when the session omits a registry", () => {
+    const rating = defineFieldType({
+      type: "rating",
+      validate: (value) => (value === 5 ? undefined : "Expected 5"),
+      $Infer: 0 as number,
+    });
+    const session = createFormResponseSession({
+      client: mockClient({ fieldTypes: [rating] }),
+      snapshot: {
+        ...snapshot,
+        fields: [{ id: "score", type: "rating", required: true }],
+      },
+    });
+    session.setAnswer("score", 3);
+    session.validate("draft");
+    expect(session.getState().issues).toEqual({ score: "Expected 5" });
+  });
+
+  it("abandons a draft row", async () => {
+    const client = mockClient();
+    const onAbandoned = vi.fn();
+    const session = createFormResponseSession({
+      client,
+      snapshot,
+      response: row(),
+      onAbandoned,
+    });
+    await session.abandon();
+    expect(client.abandonResponse).toHaveBeenCalledWith({
+      responseId: "res-1",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+    expect(onAbandoned).toHaveBeenCalled();
+    expect(session.getState().status).toBe("abandoned");
+    expect(session.getState().locked).toBe(true);
+  });
+
+  it("does not abandon before a response exists", async () => {
+    const client = mockClient();
+    const session = createFormResponseSession({ client, snapshot });
+    await session.abandon();
+    expect(client.abandonResponse).not.toHaveBeenCalled();
+  });
+
+  it("refreshes from the server", async () => {
+    const fresh = row({
+      answers: { name: "Lin", role: "pm" },
+      updatedAt: "2026-01-01T00:00:09.000Z",
+    });
+    const client = mockClient({
+      getResponse: vi.fn(async () => fresh),
+    });
+    const session = createFormResponseSession({
+      client,
+      snapshot,
+      response: row(),
+    });
+    await session.refresh();
+    expect(client.getResponse).toHaveBeenCalledWith({ responseId: "res-1" });
+    expect(session.getState().answers).toEqual({ name: "Lin", role: "pm" });
+    expect(session.getState().dirty).toBe(false);
+  });
+
+  it("ignores a second save while one is pending", async () => {
+    let release!: (value: ReturnType<typeof row>) => void;
+    const client = mockClient({
+      saveDraft: vi.fn(
+        () =>
+          new Promise<ReturnType<typeof row>>((resolve) => {
+            release = resolve;
+          }),
+      ),
+    });
+    const session = createFormResponseSession({
+      client,
+      snapshot,
+      response: row(),
+    });
+    session.setAnswer("name", "Ada");
+    const first = session.saveDraft();
+    await expect(session.saveDraft()).resolves.toBeUndefined();
+    release(row({ updatedAt: "2026-01-01T00:00:01.000Z" }));
+    await first;
+    expect(client.saveDraft).toHaveBeenCalledTimes(1);
   });
 });

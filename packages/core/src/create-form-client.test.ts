@@ -163,6 +163,38 @@ describe("createFormClient protocol", () => {
     expect(sent.get("authorization")).toBe("Bearer t");
   });
 
+  it("resolves factory headers per request", async () => {
+    const { fetch, calls } = captureFetch(() => jsonResponse(snapshot));
+    const api = createFormClient({
+      fetch,
+      headers: () => ({ authorization: "Bearer t" }),
+    });
+    await api.getForm({ formId: "onboarding" });
+    const sent = new Headers(calls[0]?.init.headers);
+    expect(sent.get("authorization")).toBe("Bearer t");
+  });
+
+  it("throws APIError for a non-protocol error body", async () => {
+    const { fetch } = captureFetch(() =>
+      jsonResponse({ error: "upstream" }, 502),
+    );
+    const api = createFormClient({ fetch });
+    await expect(api.getForm({ formId: "missing" })).rejects.toMatchObject({
+      message: "upstream",
+    });
+  });
+
+  it("sends listForms query params", async () => {
+    const { fetch, calls } = captureFetch(() =>
+      jsonResponse({ forms: [], limit: 10, offset: 20, nextOffset: null }),
+    );
+    const api = createFormClient({ basePath: "/api/form", fetch });
+    await api.listForms({ status: "archived", limit: 10, offset: 20 });
+    expect(calls[0]?.url).toContain("status=archived");
+    expect(calls[0]?.url).toContain("limit=10");
+    expect(calls[0]?.url).toContain("offset=20");
+  });
+
   it("keeps an absolute baseURL", async () => {
     const { fetch, calls } = captureFetch(() => jsonResponse(snapshot));
     const api = createFormClient({
@@ -217,6 +249,20 @@ describe("createFormClient protocol", () => {
     });
     expect(() => createFormClient({ plugins: [bad] })).toThrow(
       /Duplicate dimah-form client endpoint "useFormResponse"/,
+    );
+  });
+
+  it("rejects a plugin endpoint claimed by two plugins", () => {
+    const a = defineClientPlugin({
+      id: "a",
+      endpoints: () => ({ ping: () => Promise.resolve(1) }),
+    });
+    const b = defineClientPlugin({
+      id: "b",
+      endpoints: () => ({ ping: () => Promise.resolve(2) }),
+    });
+    expect(() => createFormClient({ plugins: [a, b] })).toThrow(
+      /Duplicate dimah-form client endpoint "ping"/,
     );
   });
 

@@ -38,6 +38,16 @@ describe("fieldOptions", () => {
   it("returns an empty list when options are missing", () => {
     expect(fieldOptions({ id: "name", type: "text" })).toEqual([]);
   });
+
+  it("keeps option meta", () => {
+    expect(
+      fieldOptions({
+        id: "role",
+        type: "select",
+        options: [{ value: "eng", meta: { icon: "cpu" } }],
+      }),
+    ).toEqual([{ value: "eng", label: "eng", meta: { icon: "cpu" } }]);
+  });
 });
 
 describe("visibleFields", () => {

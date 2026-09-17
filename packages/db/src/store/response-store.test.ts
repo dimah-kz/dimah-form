@@ -28,10 +28,12 @@ function listWhereBuilder(): ListWhereBuilder {
   return b;
 }
 
-function listWhereFromCall(findMany: ReturnType<typeof vi.fn>): unknown {
-  const options = findMany.mock.calls.find(
-    (call) => call[0] === "response",
-  )?.[1] as { where?: (b: ListWhereBuilder) => unknown } | undefined;
+function listWhereFromCall(
+  findMany: ReturnType<typeof vi.fn>,
+  table = "response",
+): unknown {
+  const options = findMany.mock.calls.find((call) => call[0] === table)?.[1] as
+    { where?: (b: ListWhereBuilder) => unknown } | undefined;
   return options?.where?.(listWhereBuilder());
 }
 
@@ -249,5 +251,40 @@ describe("createDbResponseStore", () => {
         fields: [{ id: "name", type: "text", required: true }],
       },
     ]);
+  });
+
+  it("returns undefined for a missing live form", async () => {
+    const { store } = createOrm({ questionnaire: null });
+    await expect(store.getForm("missing")).resolves.toBeUndefined();
+  });
+
+  it("loads a live form by slug after id misses", async () => {
+    const { store, findFirst } = createOrm({ questionnaire: null });
+    findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(questionnaire({ id: "intake", slug: "join" }));
+    await expect(store.getForm("join")).resolves.toMatchObject({
+      id: "intake",
+      slug: "join",
+    });
+  });
+
+  it("filters listForms by status", async () => {
+    const { store, findMany } = createOrm();
+    await store.listForms({ status: "archived" });
+    expect(listWhereFromCall(findMany, "questionnaire")).toEqual({
+      col: "status",
+      op: "=",
+      value: "archived",
+    });
+  });
+
+  it("omits listResponses where when no filters are set", async () => {
+    const { store, findMany } = createOrm();
+    await store.listResponses();
+    const options = findMany.mock.calls.find(
+      (call) => call[0] === "response",
+    )?.[1] as { where?: unknown } | undefined;
+    expect(options?.where).toBeUndefined();
   });
 });

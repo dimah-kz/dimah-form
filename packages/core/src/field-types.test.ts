@@ -39,11 +39,23 @@ describe("createFieldTypeRegistry", () => {
     ).toThrow(/Duplicate dimah-form field type "text"/);
   });
 
-  it("validates minLength on text answers", () => {
+  it("validates minLength, maxLength, and pattern on text answers", () => {
     const registry = createFieldTypeRegistry();
     expect(
       registry.get("text")?.validate("ab", { type: "text", minLength: 3 }),
     ).toBe("Must be at least 3 characters");
+    expect(textFieldType.validate("abcd", { type: "text", maxLength: 3 })).toBe(
+      "Must be at most 3 characters",
+    );
+    expect(
+      textFieldType.validate("aa", { type: "text", pattern: "^a+$" }),
+    ).toBe(undefined);
+    expect(
+      textFieldType.validate("ab", { type: "text", pattern: "^a+$" }),
+    ).toBe("Invalid format");
+    expect(textFieldType.validate("aa", { type: "text", pattern: "(" })).toBe(
+      "Invalid format",
+    );
   });
 
   it("treats blank strings as empty on text", () => {
@@ -62,6 +74,9 @@ describe("createFieldTypeRegistry", () => {
     ).toBe("Expected an integer");
     expect(numberFieldType.validate(-1, { type: "number", min: 0 })).toBe(
       "Must be at least 0",
+    );
+    expect(numberFieldType.validate(11, { type: "number", max: 10 })).toBe(
+      "Must be at most 10",
     );
   });
 

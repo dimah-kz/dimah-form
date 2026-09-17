@@ -2,13 +2,19 @@ import { describe, expect, it } from "vitest";
 
 import { formFetchErrorSchema } from "./error";
 import {
+  LIST_DEFAULT_LIMIT,
   getFormQuerySchema,
+  listFormsQuerySchema,
   listResponsesQuerySchema,
+  normalizeListPage,
+  pageFromOverfetch,
+  paginateItems,
   reopenResponseBodySchema,
   saveDraftBodySchema,
   saveFormBodySchema,
   startResponseBodySchema,
   submitResponseBodySchema,
+  toResponseSummary,
 } from "./protocol";
 
 describe("formFetchErrorSchema", () => {
@@ -76,5 +82,79 @@ describe("protocol payloads", () => {
         respondentId: " user-1 ",
       }),
     ).toEqual({ formId: "onboarding", respondentId: "user-1" });
+  });
+
+  it("accepts listForms status and listResponses include", () => {
+    expect(
+      listFormsQuerySchema.parse({ status: "archived", limit: "10" }),
+    ).toMatchObject({ status: "archived", limit: 10 });
+    expect(
+      listResponsesQuerySchema.parse({
+        include: "full",
+        status: "submitted",
+      }),
+    ).toMatchObject({ include: "full", status: "submitted" });
+  });
+});
+
+describe("list pagination", () => {
+  it("defaults limit and offset", () => {
+    expect(normalizeListPage()).toEqual({
+      limit: LIST_DEFAULT_LIMIT,
+      offset: 0,
+    });
+    expect(normalizeListPage({ limit: 10, offset: 20 })).toEqual({
+      limit: 10,
+      offset: 20,
+    });
+  });
+
+  it("pages in-memory items and overfetched rows", () => {
+    expect(paginateItems(["a", "b", "c"], 2, 0)).toEqual({
+      items: ["a", "b"],
+      nextOffset: 2,
+    });
+    expect(paginateItems(["a", "b"], 2, 0)).toEqual({
+      items: ["a", "b"],
+      nextOffset: null,
+    });
+    expect(pageFromOverfetch(["a", "b", "c"], 2, 0)).toEqual({
+      items: ["a", "b"],
+      nextOffset: 2,
+    });
+    expect(pageFromOverfetch(["a", "b"], 2, 10)).toEqual({
+      items: ["a", "b"],
+      nextOffset: null,
+    });
+  });
+
+  it("strips answers and definition from a summary", () => {
+    expect(
+      toResponseSummary({
+        id: "r1",
+        formId: "onboarding",
+        status: "draft",
+        definition: {
+          id: "onboarding",
+          slug: "onboarding",
+          status: "active",
+          title: "Onboarding",
+          fields: [],
+        },
+        answers: { name: "Ada" },
+        respondentId: null,
+        submittedAt: null,
+        createdAt: "t",
+        updatedAt: "t",
+      }),
+    ).toEqual({
+      id: "r1",
+      formId: "onboarding",
+      status: "draft",
+      respondentId: null,
+      submittedAt: null,
+      createdAt: "t",
+      updatedAt: "t",
+    });
   });
 });

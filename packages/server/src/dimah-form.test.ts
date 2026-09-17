@@ -130,6 +130,38 @@ describe("HTTP envelope", () => {
       message: "blocked",
     });
   });
+
+  it("returns JSON INTERNAL_ERROR when a hook throws", async () => {
+    const form = createInstance({
+      hooks: {
+        onStart: () => {
+          throw new Error("boom");
+        },
+      },
+    });
+    const res = await form.handler(
+      jsonRequest(apiUrl(FORM_API_ROUTES.startResponse), {
+        body: { formId: "onboarding" },
+      }),
+    );
+    await expectErrorCode(res, 500, FORM_ERROR_CODES.INTERNAL_ERROR);
+  });
+
+  it("serves the handler at a custom basePath", async () => {
+    const form = dimahForm({
+      database: memoryAdapter(),
+      basePath: "/forms",
+      forms: { onboarding },
+    });
+    const ok = await form.handler(
+      new Request("http://localhost/forms/form?formId=onboarding"),
+    );
+    expect(ok.status).toBe(200);
+    const missing = await form.handler(
+      new Request("http://localhost/api/form/form?formId=onboarding"),
+    );
+    await expectErrorCode(missing, 404, FORM_ERROR_CODES.NOT_FOUND);
+  });
 });
 
 describe("start / draft / submit", () => {
@@ -498,6 +530,10 @@ describe("live catalog", () => {
     const form = createInstance();
     const listed = await form.api.listForms({});
     expect(listed.forms.some((item) => item.id === "onboarding")).toBe(true);
+    const archived = await form.api.listForms({
+      query: { status: "archived" },
+    });
+    expect(archived.forms.some((item) => item.id === "onboarding")).toBe(false);
 
     const res = await form.handler(
       jsonRequest(apiUrl(FORM_API_ROUTES.form), {
@@ -608,6 +644,12 @@ describe("hooks and plugins", () => {
     const events: string[] = [];
     const form = createInstance({
       hooks: {
+        onStart: () => {
+          events.push("onStart");
+        },
+        afterStart: () => {
+          events.push("afterStart");
+        },
         onSubmit: () => {
           events.push("onSubmit");
         },
@@ -635,6 +677,8 @@ describe("hooks and plugins", () => {
       body: { responseId: submitted.id, updatedAt: submitted.updatedAt },
     });
     expect(events).toEqual([
+      "onStart",
+      "afterStart",
       "onSubmit",
       "afterSubmit",
       "onReopen",
@@ -974,9 +1018,10 @@ describe("hooks and plugins", () => {
     const order: string[] = [];
     const a = definePlugin({
       id: "a",
-      init() {
+      options: { n: 1 },
+      init({ options }) {
         order.push("a");
-        return { context: { n: 1 } };
+        return { context: { n: (options as { n: number }).n } };
       },
     });
     const b = definePlugin({
@@ -1231,5 +1276,184 @@ describe("v1 protocol freeze", () => {
     ).rejects.toSatisfy((error: unknown) =>
       isFormErrorCode(error, "UNKNOWN_FIELD_TYPE"),
     );
+  });
+});
+
+describe("fieldSchema and catalog lookup", () => {
+  it("applies fieldSchema at init and saveForm", async () => {
+    const rating = {
+      type: "rating" as const,
+      fieldSchema: z.looseObject({
+        type: z.literal("rating"),
+        max: z.number(),
+      }),
+      validate: () => undefined,
+      $Infer: 0 as number,
+    };
+    expect(() =>
+      dimahForm({
+        database: memoryAdapter(),
+        fieldTypes: [rating],
+        forms: {
+          scored: defineForm({
+            title: "Scored",
+            fields: [{ id: "score", type: "rating" }],
+          }),
+        },
+      }),
+    ).toThrow(/Invalid form "scored"/);
+
+    const form = dimahForm({
+      database: memoryAdapter(),
+      fieldTypes: [rating],
+    });
+    await expect(
+      form.api.saveForm({
+        body: {
+          id: "scored",
+          title: "Scored",
+          fields: [{ id: "score", type: "rating" }],
+        },
+      }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "VALIDATION_ERROR"),
+    );
+    await expect(
+      form.api.saveForm({
+        body: {
+          id: "scored",
+          title: "Scored",
+          fields: [{ id: "score", type: "rating", max: 5 }],
+        },
+      }),
+    ).resolves.toMatchObject({
+      fields: [{ id: "score", type: "rating", max: 5 }],
+    });
+  });
+
+  it("looks up a stored form by slug for get and start", async () => {
+    const form = dimahForm({ database: memoryAdapter() });
+    await form.api.saveForm({
+      body: {
+        id: "intake",
+        slug: "join",
+        title: "Intake",
+        fields: [{ id: "n", type: "text" }],
+      },
+    });
+    await expect(
+      form.api.getForm({ query: { formId: "join" } }),
+    ).resolves.toMatchObject({ id: "intake", slug: "join" });
+    const started = await form.api.startResponse({
+      body: { formId: "join" },
+    });
+    expect(started.formId).toBe("intake");
+    expect(started.definition.id).toBe("intake");
+  });
+
+  it("filters listForms and listResponses by status", async () => {
+    const form = dimahForm({ database: memoryAdapter() });
+    await form.api.saveForm({
+      body: {
+        id: "open",
+        title: "Open",
+        status: "active",
+        fields: [{ id: "n", type: "text" }],
+      },
+    });
+    await form.api.saveForm({
+      body: {
+        id: "closed",
+        title: "Closed",
+        status: "archived",
+        fields: [{ id: "n", type: "text" }],
+      },
+    });
+    const archived = await form.api.listForms({
+      query: { status: "archived" },
+    });
+    expect(archived.forms.map((item) => item.id)).toEqual(["closed"]);
+
+    const started = await form.api.startResponse({
+      body: { formId: "open" },
+    });
+    await form.api.submitResponse({
+      body: { responseId: started.id, answers: { n: "Ada" } },
+    });
+    const submitted = await form.api.listResponses({
+      query: { formId: "open", status: "submitted" },
+    });
+    expect(submitted.responses.map((item) => item.id)).toEqual([started.id]);
+    const drafts = await form.api.listResponses({
+      query: { formId: "open", status: "draft" },
+    });
+    expect(drafts.responses).toEqual([]);
+  });
+
+  it("keeps createdAt when updating a live form", async () => {
+    const form = dimahForm({ database: memoryAdapter() });
+    const saved = await form.api.saveForm({
+      body: {
+        id: "intake",
+        title: "Intake",
+        fields: [{ id: "n", type: "text" }],
+      },
+    });
+    const updated = await form.api.saveForm({
+      body: {
+        id: "intake",
+        title: "Intake v2",
+        fields: [{ id: "n", type: "text" }],
+        createdAt: saved.createdAt,
+      },
+    });
+    expect(updated.createdAt).toBe(saved.createdAt);
+    expect(updated.title).toBe("Intake v2");
+  });
+
+  it("rejects a slug that collides with a code-authored form", async () => {
+    const form = createInstance();
+    await expect(
+      form.api.saveForm({
+        body: {
+          id: "other",
+          slug: "onboarding",
+          title: "Other",
+          fields: [{ id: "n", type: "text" }],
+        },
+      }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "SLUG_TAKEN"),
+    );
+  });
+
+  it("skips after-persist hooks when persist throws", async () => {
+    const events: string[] = [];
+    const memory = memoryAdapter();
+    const form = createInstance({
+      database: {
+        ...memory,
+        save() {
+          throw new Error("disk full");
+        },
+      },
+      hooks: {
+        onSaveDraft: () => {
+          events.push("on");
+        },
+        afterSaveDraft: () => {
+          events.push("after");
+        },
+      },
+    });
+    const started = await form.api.startResponse({
+      body: { formId: "onboarding" },
+    });
+    await expect(
+      form.api.saveDraft({
+        body: { responseId: started.id, answers: { name: "Ada" } },
+      }),
+    ).rejects.toThrow("disk full");
+    expect(events).toEqual(["on"]);
   });
 });

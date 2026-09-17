@@ -89,4 +89,77 @@ describe("memoryAdapter", () => {
       ),
     ).toEqual(["r2"]);
   });
+
+  it("looks up a live form by slug", async () => {
+    const store = memoryAdapter();
+    store.saveForm({
+      id: "intake",
+      slug: "join",
+      status: "active",
+      title: "Intake",
+      fields: [],
+    });
+    expect(await store.getForm("join")).toMatchObject({
+      id: "intake",
+      slug: "join",
+    });
+  });
+
+  it("lists forms by status and paginates", async () => {
+    const store = memoryAdapter();
+    store.saveForm({
+      id: "open",
+      slug: "open",
+      status: "active",
+      title: "Open",
+      fields: [],
+      updatedAt: "2026-01-02T00:00:00.000Z",
+    });
+    store.saveForm({
+      id: "closed",
+      slug: "closed",
+      status: "archived",
+      title: "Closed",
+      fields: [],
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+    expect(
+      (await store.listForms({ status: "archived" })).map((form) => form.id),
+    ).toEqual(["closed"]);
+    expect(
+      (await store.listForms({ limit: 1, offset: 0 })).map((form) => form.id),
+    ).toEqual(["open"]);
+  });
+
+  it("deletes forms and responses", async () => {
+    const store = memoryAdapter();
+    store.saveForm({
+      id: "intake",
+      slug: "intake",
+      status: "active",
+      title: "Intake",
+      fields: [],
+    });
+    store.create(row);
+    await store.delete("r1");
+    await store.deleteForm("intake");
+    expect(await store.get("r1")).toBeUndefined();
+    expect(await store.getForm("intake")).toBeUndefined();
+  });
+
+  it("filters responses by formId and status", async () => {
+    const store = memoryAdapter();
+    store.create(row);
+    store.create({
+      ...row,
+      id: "r2",
+      formId: "other",
+      status: "submitted",
+    });
+    expect(
+      (
+        await store.listResponses({ formId: "onboarding", status: "draft" })
+      ).map((item) => item.id),
+    ).toEqual(["r1"]);
+  });
 });

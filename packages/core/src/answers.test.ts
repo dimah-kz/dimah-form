@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { defineForm } from "./define";
+import { isFormErrorCode } from "./error";
 import { createFieldTypeRegistry } from "./field-types";
 import {
   applyAnswerPatch,
@@ -225,6 +226,25 @@ describe("collectAnswerIssues", () => {
     expect(collectAnswerIssues(form, { employed: true }, "submit")).toEqual([
       { field: "company", message: "Required" },
     ]);
+  });
+
+  it("rejects an unregistered field type", () => {
+    const form = {
+      ...snapshot,
+      fields: [{ id: "file", type: "file", required: true }],
+    };
+    expect(collectAnswerIssues(form, { file: "x" }, "draft")).toEqual([
+      { field: "file", message: "Unknown field type" },
+    ]);
+  });
+
+  it("throws VALIDATION_ERROR from parseAnswers", () => {
+    try {
+      parseAnswers(snapshot, { name: 1 }, "draft");
+      throw new Error("expected VALIDATION_ERROR");
+    } catch (error) {
+      expect(isFormErrorCode(error, "VALIDATION_ERROR")).toBe(true);
+    }
   });
 });
 
