@@ -9,12 +9,12 @@ Same stack as [dimah-s3](https://github.com/dimah-kz/dimah-s3): pnpm + Turbo, `b
 
 ## Packages
 
-| Package              | Role                                             |
-| -------------------- | ------------------------------------------------ |
-| `@dimah-form/core`   | Protocol, error catalog, typed fetch client      |
-| `@dimah-form/server` | `dimahForm()` — HTTP `handler` + `api`           |
-| `@dimah-form/db`     | FumaDB adapter for `dimahForm({ database })`     |
-| `@dimah-form/react`  | Thin React client (`Provider` / `useFormClient`) |
+| Package              | Role                                           |
+| -------------------- | ---------------------------------------------- |
+| `@dimah-form/core`   | Protocol, error catalog, typed fetch client    |
+| `@dimah-form/server` | `dimahForm()` — HTTP `handler` + `api`         |
+| `@dimah-form/db`     | FumaDB adapter for `dimahForm({ database })`   |
+| `@dimah-form/react`  | Thin React client (`createFormClient` / hooks) |
 
 There is no UI package. Field widgets stay in the consumer app.
 

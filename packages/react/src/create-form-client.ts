@@ -35,15 +35,17 @@ export type FormClient<
 };
 
 /**
- * React client — protocol API, `Provider`, and `useFormResponse`.
+ * React client — protocol API plus typed hooks.
  *
- * Re-export hooks from this instance so `$Infer` stays typed:
+ * Re-export hooks from this instance so `$Infer` stays typed. Bound hooks do
+ * not need `Provider`. Package-level `useFormClient` / `useFormResponse` read
+ * context and are the untyped escape hatch.
  *
  * @example
  * ```ts
  * export type Form = typeof form;
  * export const formClient = createFormClient<Form>({ fieldTypes });
- * export const { Provider, useFormClient, useFormResponse } = formClient;
+ * export const { useFormClient, useFormResponse } = formClient;
  * ```
  */
 export function createFormClient<
@@ -73,16 +75,7 @@ export function createFormClient<
     TFieldTypes,
     TServer
   > {
-    const ctx = useContext(FormClientContext);
-    if (ctx == null) {
-      throw new Error("useFormClient must be used under formClient.Provider");
-    }
-    return ctx as CreateFormClientResult<
-      TPlugins,
-      TForms,
-      TFieldTypes,
-      TServer
-    >;
+    return client;
   }
 
   function useBoundFormResponse(

@@ -22,7 +22,7 @@ Edit the **smallest package that owns the behavior**. Search that package before
 | -------- | --------------------------------------------------------------- |
 | `core`   | Protocol, `createFormClient`, fill session, errors, field types |
 | `server` | HTTP, `dimahForm()`, server plugins, adapters                   |
-| `react`  | Thin client Provider / `useFormResponse`                        |
+| `react`  | Thin client hooks / `useFormResponse`                           |
 | `db`     | FumaDB `database` adapter                                       |
 
 Shared protocol changes start in `core`, then wire `server` and `react`. Do not copy a parallel schema or URL string into another package.

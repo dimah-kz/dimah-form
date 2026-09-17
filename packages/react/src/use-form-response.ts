@@ -29,8 +29,8 @@ function sessionKey(options: UseFormResponseOptions) {
 /**
  * Headless fill session. Bind widgets with `visibleFields` / `field(id)`.
  *
- * Prefer `formClient.useFormResponse` so the protocol client and field types
- * come from your instance.
+ * Prefer `formClient.useFormResponse` (or a re-export) so the protocol client
+ * and field types come from your instance. This unbound hook reads context.
  */
 export function useFormResponse(
   options: UseFormResponseOptions,

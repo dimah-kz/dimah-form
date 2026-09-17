@@ -28,22 +28,17 @@ describe("createFormClient", () => {
     expect(client.$ERROR_CODES.VALIDATION_ERROR.code).toBe("VALIDATION_ERROR");
   });
 
-  it("provides the client through useFormClient", () => {
+  it("returns the instance from useFormClient without a Provider", () => {
     const client = createFormClient({ basePath: "/api/form" });
 
     function Probe() {
-      const inner = client.useFormClient();
-      return inner.baseURL;
+      return client.useFormClient().baseURL;
     }
 
-    expect(
-      renderToString(
-        createElement(client.Provider, null, createElement(Probe)),
-      ),
-    ).toBe("/api/form");
+    expect(renderToString(createElement(Probe))).toBe("/api/form");
   });
 
-  it("throws when useFormClient is used outside Provider", () => {
+  it("throws when the unbound useFormClient is used outside Provider", () => {
     function Probe() {
       return useFormClient().baseURL;
     }

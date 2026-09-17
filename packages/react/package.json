@@ -1,7 +1,7 @@
 {
   "name": "@dimah-form/react",
   "version": "0.0.0",
-  "description": "Thin React client for dimah-form — Provider and protocol access",
+  "description": "Thin React client for dimah-form — typed hooks and protocol access",
   "keywords": [
     "form",
     "questionnaire",

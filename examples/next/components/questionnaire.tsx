@@ -17,7 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import { formClient, respondentId } from "@/lib/client";
+import { respondentId, useFormResponse } from "@/lib/client";
 
 export function Questionnaire({
   form,
@@ -27,7 +27,7 @@ export function Questionnaire({
   response?: ResponseRecord;
 }) {
   const router = useRouter();
-  const q = formClient.useFormResponse({
+  const q = useFormResponse({
     snapshot: form,
     response,
     respondentId,

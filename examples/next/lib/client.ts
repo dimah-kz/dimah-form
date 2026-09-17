@@ -6,6 +6,7 @@ import type { Form } from "./form";
 import { fieldTypes } from "./field-types";
 
 export const formClient = createFormClient<Form>({ fieldTypes });
+export const { useFormClient, useFormResponse } = formClient;
 
 export function respondentId() {
   const key = "dimah-form-demo-respondent";
