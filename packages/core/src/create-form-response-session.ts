@@ -414,7 +414,7 @@ export function createFormResponseSession(
   async function ensureResponse() {
     if (internal.responseId) return;
     if (snapshot.status !== "active") {
-      throw APIError.from("FORBIDDEN", FORM_ERROR_CODES.FORM_INACTIVE);
+      throw APIError.from("CONFLICT", FORM_ERROR_CODES.FORM_INACTIVE);
     }
     const respondentId = resolveRespondentId(config.respondentId);
     const started = await config.client.startResponse({

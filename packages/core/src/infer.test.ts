@@ -40,13 +40,18 @@ describe("InferFormAnswers", () => {
     expect(contact.fields[0]?.id).toBe("name");
     expectTypeOf<InferFormAnswers<typeof contact>>().toEqualTypeOf<{
       name: string;
-      age: number | undefined;
       email: string;
-      born: string | undefined;
       ok: boolean;
-      role: string | undefined;
-      skills: string[] | undefined;
+      age?: number;
+      born?: string;
+      role?: string;
+      skills?: string[];
     }>();
+    expectTypeOf({
+      name: "Ada",
+      email: "ada@example.com",
+      ok: true,
+    }).toMatchTypeOf<InferFormAnswers<typeof contact>>();
   });
 
   it("maps custom field types from $Infer", () => {

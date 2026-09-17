@@ -208,6 +208,18 @@ describe("createFormClient protocol", () => {
     );
   });
 
+  it("rejects a plugin endpoint that collides with a React wrapper key", () => {
+    const bad = defineClientPlugin({
+      id: "bad",
+      endpoints: () => ({
+        useFormResponse: () => Promise.resolve(undefined),
+      }),
+    });
+    expect(() => createFormClient({ plugins: [bad] })).toThrow(
+      /Duplicate dimah-form client endpoint "useFormResponse"/,
+    );
+  });
+
   it("rejects reserved client plugin ids", () => {
     expect(() =>
       createFormClient({

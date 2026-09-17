@@ -16,21 +16,42 @@ type FieldOf<TForm> = TForm extends { fields: readonly (infer F)[] }
   ? F
   : never;
 
-/** Submitted answer shape for one code-authored form. */
+type FieldId<F> = F extends { id: infer Id extends string } ? Id : never;
+
+type RequiredField<F> = F extends { required: true } ? F : never;
+type OptionalField<F> = F extends { required: true } ? never : F;
+
+type AnswerOf<
+  F,
+  TFieldTypes extends readonly FieldTypeDefinition[],
+> = F extends {
+  type: infer Type extends string;
+}
+  ? InferFieldAnswer<Type, TFieldTypes>
+  : unknown;
+
+type Flatten<T> = { [K in keyof T]: T[K] } & {};
+
+/**
+ * Submitted answer shape for one code-authored form.
+ * Optional fields are omitted keys — the same object `parseAnswers` returns.
+ */
 export type InferFormAnswers<
   TForm,
   TFieldTypes extends readonly FieldTypeDefinition[] = [],
-> = {
-  [
-    F in FieldOf<TForm> as F extends { id: infer Id extends string }
-      ? Id
-      : never
-  ]: F extends { type: infer Type extends string }
-    ? F extends { required: true }
-      ? InferFieldAnswer<Type, TFieldTypes>
-      : InferFieldAnswer<Type, TFieldTypes> | undefined
-    : unknown;
-};
+> = Flatten<
+  {
+    [F in RequiredField<FieldOf<TForm>> as FieldId<F>]: AnswerOf<
+      F,
+      TFieldTypes
+    >;
+  } & {
+    [F in OptionalField<FieldOf<TForm>> as FieldId<F>]?: AnswerOf<
+      F,
+      TFieldTypes
+    >;
+  }
+>;
 
 /** `$Infer.answers` map keyed by `forms` record keys. */
 export type InferAnswersMap<

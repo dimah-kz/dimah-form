@@ -46,6 +46,8 @@ export {
   type FormDefinition,
   type FormField,
   type FormFieldBinding,
+  type FormClientFetchOptions,
+  type FormFetch,
   type FormList,
   type FormResponseActions,
   type FormResponsePending,

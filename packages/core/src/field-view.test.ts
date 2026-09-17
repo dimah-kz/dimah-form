@@ -79,7 +79,7 @@ describe("formErrorMessage", () => {
   it("prefers APIError then Error then fallback", () => {
     expect(
       formErrorMessage(
-        APIError.from("FORBIDDEN", FORM_ERROR_CODES.FORM_INACTIVE),
+        APIError.from("CONFLICT", FORM_ERROR_CODES.FORM_INACTIVE),
       ),
     ).toBe("Form is not active");
     expect(formErrorMessage(new Error("boom"), "nope")).toBe("boom");

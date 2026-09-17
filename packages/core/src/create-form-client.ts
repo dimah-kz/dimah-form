@@ -206,6 +206,10 @@ const CORE_CLIENT_KEYS = new Set([
   "$ERROR_CODES",
   "$Infer",
   "fieldTypes",
+  // React wrapper — `@dimah-form/react` overwrites these after merge.
+  "Provider",
+  "useFormClient",
+  "useFormResponse",
 ]);
 
 /**

@@ -4,6 +4,37 @@ import type { DimahFormDbClient } from "./response-store";
 import { createDbResponseStore } from "./response-store";
 import type { QuestionnaireRow, ResponseRow } from "./map-row";
 
+type ListWhereClause = {
+  col: string;
+  op: string;
+  value: string;
+};
+
+type ListWhereBuilder = ((
+  col: string,
+  op: string,
+  value: string,
+) => ListWhereClause) & {
+  and: (...parts: ListWhereClause[]) => { and: ListWhereClause[] };
+};
+
+function listWhereBuilder(): ListWhereBuilder {
+  const b = ((col: string, op: string, value: string) => ({
+    col,
+    op,
+    value,
+  })) as ListWhereBuilder;
+  b.and = (...parts) => ({ and: parts });
+  return b;
+}
+
+function listWhereFromCall(findMany: ReturnType<typeof vi.fn>): unknown {
+  const options = findMany.mock.calls.find(
+    (call) => call[0] === "response",
+  )?.[1] as { where?: (b: ListWhereBuilder) => unknown } | undefined;
+  return options?.where?.(listWhereBuilder());
+}
+
 function row(overrides: Partial<ResponseRow> = {}): ResponseRow {
   return {
     id: "resp-1",
@@ -59,7 +90,7 @@ function createOrm(
     }
     return overrides.response === undefined ? row() : overrides.response;
   });
-  const findMany = vi.fn(async (table: string) => {
+  const findMany = vi.fn(async (table: string, _options?: unknown) => {
     if (table === "questionnaire") {
       return overrides.questionnaires ?? [questionnaire()];
     }
@@ -165,6 +196,30 @@ describe("createDbResponseStore", () => {
     ).resolves.toEqual([record]);
     expect(findMany).toHaveBeenCalledWith("questionnaire", expect.any(Object));
     expect(findMany).toHaveBeenCalledWith("response", expect.any(Object));
+  });
+
+  it("builds listResponses where from provided filters only", async () => {
+    const { store, findMany } = createOrm();
+    await store.listResponses({
+      formId: "onboarding",
+      status: "draft",
+    });
+    expect(listWhereFromCall(findMany)).toEqual({
+      and: [
+        { col: "questionnaireId", op: "=", value: "onboarding" },
+        { col: "status", op: "=", value: "draft" },
+      ],
+    });
+  });
+
+  it("uses a single predicate when only one listResponses filter is set", async () => {
+    const { store, findMany } = createOrm();
+    await store.listResponses({ formId: "onboarding" });
+    expect(listWhereFromCall(findMany)).toEqual({
+      col: "questionnaireId",
+      op: "=",
+      value: "onboarding",
+    });
   });
 
   it("deletes a response and a form", async () => {

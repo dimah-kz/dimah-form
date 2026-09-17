@@ -49,6 +49,7 @@ export {
   type FormClientPlugin,
   type FormServerLike,
 } from "./create-form-client";
+export type { FormClientFetchOptions, FormFetch } from "./create-form-fetch";
 export type { IntersectDefined, PluginErrorCodeMap } from "./plugin/types";
 export { RESERVED_CLIENT_PLUGIN_IDS } from "./client-plugin";
 export { mergeErrorCodes } from "./plugin/merge-error-codes";

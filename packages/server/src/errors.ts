@@ -19,8 +19,6 @@ export {
 export const errors = {
   notFound: () => APIError.from("NOT_FOUND", FORM_ERROR_CODES.NOT_FOUND),
 
-  conflict: () => APIError.from("CONFLICT", FORM_ERROR_CODES.CONFLICT),
-
   staleUpdate: () => APIError.from("CONFLICT", FORM_ERROR_CODES.STALE_UPDATE),
 
   formInactive: (formId: string) =>

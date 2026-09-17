@@ -2,7 +2,7 @@ import type { InferFumaDB } from "fumadb";
 import type { FormSnapshot, ResponseRecord } from "@dimah-form/core";
 import type { ResponseStore } from "@dimah-form/server";
 
-import { DimahFormDB } from "@/fuma-db";
+import { DimahFormDB, v1 } from "@/fuma-db";
 import {
   toFormSnapshot,
   toQuestionnaireColumns,
@@ -15,7 +15,7 @@ export type DimahFormDbClient = InferFumaDB<typeof DimahFormDB>;
 
 /** Persist questionnaires and responses. Start never overwrites a live form. */
 export function createDbResponseStore(db: DimahFormDbClient): ResponseStore {
-  const orm = db.orm("1.0.0");
+  const orm = db.orm(v1.version);
 
   async function upsertResponse(row: ResponseRecord) {
     const columns = toResponseColumns(row);
@@ -125,11 +125,13 @@ export function createDbResponseStore(db: DimahFormDbClient): ResponseStore {
           formId || respondentId || status
             ? (b) => {
                 const parts = [
-                  formId ? b("questionnaireId", "=", formId) : true,
-                  respondentId ? b("respondentId", "=", respondentId) : true,
-                  status ? b("status", "=", status) : true,
+                  ...(formId ? [b("questionnaireId", "=", formId)] : []),
+                  ...(respondentId
+                    ? [b("respondentId", "=", respondentId)]
+                    : []),
+                  ...(status ? [b("status", "=", status)] : []),
                 ];
-                return b.and(...parts);
+                return parts.length === 1 ? parts[0] : b.and(...parts);
               }
             : undefined,
         orderBy: ["updatedAt", "desc"],

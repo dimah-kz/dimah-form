@@ -35,11 +35,14 @@ export type FormClient<
 };
 
 /**
- * React client — protocol API plus typed hooks.
+ * React client — protocol API plus bound hooks.
  *
- * Re-export hooks from this instance so `$Infer` stays typed. Bound hooks do
- * not need `Provider`. Package-level `useFormClient` / `useFormResponse` read
- * context and are the untyped escape hatch.
+ * Re-export hooks from this instance so the protocol client and field types
+ * stay tied to it. `$Infer` lives on the client (`formClient.$Infer` /
+ * `useFormClient`). Bound `useFormResponse` is the headless fill session
+ * (`answers` are `FormAnswers`). Bound hooks do not need `Provider`.
+ * Package-level `useFormClient` / `useFormResponse` read context and are the
+ * untyped escape hatch.
  *
  * @example
  * ```ts
