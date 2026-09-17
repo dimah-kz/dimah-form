@@ -19,6 +19,11 @@ core:packages:
       - 2026-09-17-initial.md
     id: npm:@dimah-form/react
     updated: true
+npm:mark-latest:
+  - id: npm:@dimah-form/db
+  - id: npm:@dimah-form/core
+  - id: npm:@dimah-form/server
+  - id: npm:@dimah-form/react
 npm:packages:
   - id: npm:@dimah-form/db
   - id: npm:@dimah-form/core
