@@ -1,7 +1,4 @@
----
-packages:
-  group:dimah-form: minor
----
+## @dimah-form/docs@0.1.0
 
 ### Require Node.js 24 and ES2025
 
