@@ -1,26 +1,31 @@
 core:changelogs:
-  - content: "---\npackages:\n  group:dimah-form:\n    type: patch\n---\n\n### Align package metadata and TypeScript emit\n\n- npm `author` is `dimah` on every `@dimah-form/*` package.\n- `FormField` is a type alias instead of an interface.\n- Declaration files use `verbatimModuleSyntax` (type-only imports). Runtime API is unchanged.\n"
-    filename: 2026-09-17-c4e91a.md
+  - content: "---\npackages:\n  group:dimah-form:\n    type: major\n---\n\n### Require Node.js 24 and ES2025\n\nPublished packages compile to ES2025. The repo Node.js baseline is 24 or later.\n"
+    filename: 2026-09-18-es2025.md
     v: 0.0.0
 core:packages:
   - changelogIds:
-      - 2026-09-17-c4e91a.md
+      - 2026-09-18-es2025.md
     id: npm:@dimah-form/core
     updated: true
   - changelogIds:
-      - 2026-09-17-c4e91a.md
+      - 2026-09-18-es2025.md
     id: npm:@dimah-form/db
     updated: true
   - changelogIds:
-      - 2026-09-17-c4e91a.md
+      - 2026-09-18-es2025.md
     id: npm:@dimah-form/react
     updated: true
   - changelogIds:
-      - 2026-09-17-c4e91a.md
+      - 2026-09-18-es2025.md
     id: npm:@dimah-form/server
+    updated: true
+  - changelogIds:
+      - 2026-09-18-es2025.md
+    id: npm:@dimah-form/docs
     updated: true
 npm:packages:
   - id: npm:@dimah-form/core
   - id: npm:@dimah-form/db
   - id: npm:@dimah-form/react
   - id: npm:@dimah-form/server
+  - id: npm:@dimah-form/docs
