@@ -1,0 +1,39 @@
+---
+title: Examples
+description: Workspace demo — Next.js App Router, consumer-owned widgets, FumaDB + SQLite.
+icon: AppWindow
+---
+
+`examples/` are workspace demos. They consume `@dimah-form/*` via
+`workspace:*`, not published npm ranges.
+
+## examples/next
+
+Next.js App Router demo: one code-authored form, shadcn Field widgets, live
+answer preview, and Drizzle RC + SQLite via FumaDB.
+
+You own the UI. The library owns snapshots, drafts, and submit validation.
+
+Reads go through `form.api` in Server Components. Writes go through
+`createFormClient<Form>()` in the browser.
+
+```bash
+pnpm install
+pnpm build
+pnpm --filter @dimah-form/example-next db:push
+pnpm --filter @dimah-form/example-next dev
+```
+
+Open http://localhost:3000
+
+| Route        | What it shows                                                              |
+| ------------ | -------------------------------------------------------------------------- |
+| `/`          | Feedback form — built-ins plus `showWhen`; `rating` is a custom field type |
+| `/responses` | Stored answers (`include=full`)                                            |
+| `/r/:id`     | Resume a draft, or reopen a submitted / abandoned response                 |
+
+Draft patches answers. Submit replaces them. Both can send `updatedAt` for
+optimistic concurrency.
+
+The star rating widgets live in the example. They are not part of
+`@dimah-form/react`.

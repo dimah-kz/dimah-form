@@ -1,0 +1,66 @@
+---
+title: Server
+description: dimahForm() — HTTP handler, typed api, adapters, plugins, and hooks.
+icon: Server
+---
+
+[`@dimah-form/server`](https://www.npmjs.com/package/@dimah-form/server)
+is the questionnaire server. `dimahForm(config)` exports an HTTP `handler`
+and a better-call `api`.
+
+## Key features
+
+- **Instance config** — `fieldTypes`, `forms`, `database`, `plugins`, `hooks`, `guard`, `metaSchema`
+- **HTTP + api** — same endpoints for the adapter handler and `form.api`
+- **Adapters** — Next.js App Router, Node, Express, Hono, Fastify, Elysia, SvelteKit
+- **`memoryAdapter()`** — in-memory `database` for tests and ephemeral apps
+- **Plugins** — additive endpoints, hooks, field types, error codes — not persistence
+- **Guard** — consumer auth. The library does not ship auth
+- **Domain hooks** — `on*` after validation before persist; `after*` after persist
+
+## Adapters
+
+Mount the instance with a runtime-specific helper:
+
+| Import                          | Runtime                                |
+| ------------------------------- | -------------------------------------- |
+| `@dimah-form/server/next`       | Next.js App Router (`toNextJsHandler`) |
+| `@dimah-form/server/node`       | Node HTTP                              |
+| `@dimah-form/server/express`    | Express                                |
+| `@dimah-form/server/hono`       | Hono                                   |
+| `@dimah-form/server/fastify`    | Fastify                                |
+| `@dimah-form/server/elysia`     | Elysia                                 |
+| `@dimah-form/server/svelte-kit` | SvelteKit                              |
+
+The HTTP router is internal. Do not export or fork it. Public entry stays
+`dimahForm(config)`.
+
+## Persistence
+
+`database` is required. Official adapters:
+
+- `memoryAdapter()` in this package
+- `db()` in [`@dimah-form/db`](/docs/db)
+
+A custom store can be passed to `database` directly. Do not inject
+persistence through `plugins`.
+
+## Next
+
+<Cards>
+  <Card
+    title="Quickstart"
+    href="/docs/quickstart"
+    description="Minimal dimahForm() + Next.js handler."
+  />
+  <Card
+    title="Database"
+    href="/docs/db"
+    description="FumaDB adapter for questionnaires and responses."
+  />
+  <Card
+    title="React"
+    href="/docs/react"
+    description="Thin client that speaks this protocol."
+  />
+</Cards>

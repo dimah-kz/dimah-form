@@ -1,0 +1,44 @@
+---
+title: "@dimah-form/core"
+description: Shared protocol, field types, error catalog, and isomorphic fetch client.
+icon: Box
+---
+
+[`@dimah-form/core`](https://www.npmjs.com/package/@dimah-form/core) is the
+protocol source of truth shared by `@dimah-form/server` and
+`@dimah-form/react`.
+
+Consumer apps usually import from `server` or `react`. Install `core`
+directly only if you author protocol or client plugins.
+
+## What lives here
+
+- **Route constants and Zod schemas** — one path and payload shape for server and client
+- **`createFormClient`** — isomorphic fetch client (`$ERROR_CODES`, `$fetch`, `$Infer`)
+- **`createFormResponseSession`** — headless fill loop (React wraps this as `useFormResponse`)
+- **`defineFieldType`** — custom field-type validators (not components)
+- **Built-in field types** — `text`, `number`, `boolean`, `select`, `multiSelect`, `email`, `date`
+- **Error catalog** — stable `code` + English `message`. Do not localize library error strings in packages
+- **Client plugins** — `defineClientPlugin` merged in `createFormClient({ plugins })`
+
+## Built-in field types
+
+| Type          | Answer                           |
+| ------------- | -------------------------------- |
+| `text`        | string                           |
+| `number`      | finite number                    |
+| `boolean`     | boolean                          |
+| `select`      | string option value              |
+| `multiSelect` | string[]                         |
+| `email`       | string                           |
+| `date`        | ISO calendar date (`YYYY-MM-DD`) |
+
+Unknown types are allowed in a form document and rejected at `dimahForm()`
+if they are not registered. Duplicate `type` strings throw at init.
+
+## Placement
+
+Shared protocol changes start in `core`, then wire `server` and `react`.
+Do not copy a parallel schema or URL string into another package.
+
+See [Architecture](/docs/architecture) for the package chain.

@@ -1,0 +1,71 @@
+---
+title: Packages
+description: Monorepo layout — published packages, the docs app, examples, and tooling.
+icon: FolderTree
+---
+
+dimah-form is a pnpm + Turbo monorepo. Same stack as
+[dimah-s3](https://github.com/dimah-kz/dimah-s3): `better-call`,
+`@better-fetch/fetch`, Zod, Tegami.
+
+## Published packages
+
+| Package              | Role                                           |
+| -------------------- | ---------------------------------------------- |
+| `@dimah-form/core`   | Protocol, error catalog, typed fetch client    |
+| `@dimah-form/server` | `dimahForm()` — HTTP `handler` + `api`         |
+| `@dimah-form/db`     | FumaDB adapter for `dimahForm({ database })`   |
+| `@dimah-form/react`  | Thin React client (`createFormClient` / hooks) |
+
+There is no CLI and no UI package. Field widgets stay in the consumer app.
+
+Apps import from the package they already use: `@dimah-form/server` on the
+server, `@dimah-form/react` in the browser. Share `$Infer` with
+`export type Form = typeof form` and `createFormClient<Form>()`.
+
+<Cards>
+  <Card title="@dimah-form/core" href="/docs/core" />
+  <Card title="@dimah-form/server" href="/docs/server" />
+  <Card title="@dimah-form/db" href="/docs/db" />
+  <Card title="@dimah-form/react" href="/docs/react" />
+</Cards>
+
+## Repository layout
+
+```
+dimah-form/
+  apps/docs            Product docs (this site) — form.dimah.dev
+  packages/
+    core               Protocol SSOT
+    server             dimahForm(), adapters, memoryAdapter
+    db                 FumaDB database adapter
+    react              Thin React client
+  examples/next        Workspace demo with consumer-owned widgets
+  tooling/             Private ESLint, TypeScript, tsup, Vitest configs
+  docs/agents/         Maintainer checklists (not this site)
+```
+
+| Path           | Published? | Role                                        |
+| -------------- | ---------- | ------------------------------------------- |
+| `packages/*`   | yes        | npm `@dimah-form/*`                         |
+| `apps/docs`    | no         | Fumadocs site                               |
+| `examples/*`   | no         | Workspace demos against workspace packages  |
+| `tooling/*`    | no         | Shared lint / ts / build / test configs     |
+| `docs/agents/` | no         | Checklists when changing published behavior |
+
+## Tooling
+
+Shared configs live under `tooling/` as `@workspace/*` packages:
+
+- `@workspace/eslint-config`
+- `@workspace/typescript-config`
+- `@workspace/tsup-config`
+- `@workspace/vitest-config`
+
+They are not published. Package builds use tsup through `@workspace/tsup-config`.
+
+## Related surfaces
+
+- **This site** — product docs at [form.dimah.dev](https://form.dimah.dev)
+- **Example** — [examples/next](/docs/examples)
+- **Source** — [github.com/dimah-kz/dimah-form](https://github.com/dimah-kz/dimah-form)

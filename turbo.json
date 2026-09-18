@@ -1,7 +1,13 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
-  "globalEnv": ["NODE_ENV", "PORT", "npm_config_user_agent"],
+  "globalEnv": [
+    "NODE_ENV",
+    "PORT",
+    "VERCEL_ENV",
+    "VERCEL_URL",
+    "npm_config_user_agent"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

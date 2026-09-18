@@ -1,0 +1,115 @@
+---
+title: Introduction
+description: Backend-first questionnaires for the React ecosystem — typed protocol, snapshots, and submit validation. You own the UI.
+icon: House
+---
+
+dimah-form is a modular questionnaire engine for React and Node.js runtimes.
+The library owns the protocol, definition snapshots, drafts, and submit
+validation. You own rendering, auth, and the database adapter.
+
+There is no UI package. Field widgets stay in the consumer app.
+
+## Architecture flow
+
+<Flow
+  label="Headless fill loop"
+  steps={[
+    { name: "Browser", kind: "client", note: "your widgets" },
+    { name: "Protocol", kind: "protocol", note: "typed client" },
+    { name: "Server + DB", kind: "server", note: "snapshot + persist" },
+  ]}
+/>
+
+The browser talks through `createFormClient`. The server instance
+(`dimahForm()`) validates against the snapshot stored on the response.
+AWS-style credentials are not involved — this is not an S3 toolkit.
+
+**For coding agents** — [llms.txt](/llms.txt) · [llms-full.txt](/llms-full.txt).
+
+---
+
+## What you get
+
+- **Typed protocol** — one schema shared by `@dimah-form/server` and `@dimah-form/react`
+- **Snapshots** — each response keeps the definition it was started with
+- **Drafts and submit** — patch drafts, replace on submit, optional reopen
+- **Headless React** — `useFormResponse` for the fill session, not a renderer
+- **Required persistence** — `memoryAdapter()` or FumaDB via `@dimah-form/db`
+
+It is not a form builder and not a widget kit. Custom fields are
+`defineFieldType` validators, not components.
+
+## Packages
+
+<Cards>
+  <Card
+    title="@dimah-form/core"
+    href="/docs/core"
+    description="Protocol, field types, errors, and the isomorphic fetch client."
+  />
+  <Card
+    title="@dimah-form/server"
+    href="/docs/server"
+    description="dimahForm() — HTTP handler, typed api, adapters, plugins."
+  />
+  <Card
+    title="@dimah-form/db"
+    href="/docs/db"
+    description="FumaDB adapter for questionnaires and responses."
+  />
+  <Card
+    title="@dimah-form/react"
+    href="/docs/react"
+    description="Thin React client — createFormClient and useFormResponse."
+  />
+</Cards>
+
+## Frequently asked questions
+
+<Accordions>
+
+<Accordion title="When should I choose dimah-form?">
+
+When you need typed questionnaires with drafts, definition snapshots, and
+submit validation, and you already have (or want) your own field widgets.
+
+Skip it if you want a ready-made form renderer, a visual builder, or a
+hosted survey product.
+
+</Accordion>
+
+<Accordion title="Does dimah-form ship field widgets?">
+
+No. Built-in field types are validators (`text`, `number`, `boolean`,
+`select`, `multiSelect`, `email`, `date`). Extra types are
+`defineFieldType`. Rendering stays in the consumer app. See the
+[Next.js example](/docs/examples).
+
+</Accordion>
+
+<Accordion title="Where does auth live?">
+
+In your `guard` hooks on `dimahForm()`. The library does not ship auth.
+
+</Accordion>
+
+<Accordion title="Is the database optional?">
+
+No. `database` is required. Use `memoryAdapter()` from
+`@dimah-form/server` for tests or ephemeral apps, or `db()` from
+`@dimah-form/db` for FumaDB persistence. Plugins do not replace
+persistence.
+
+</Accordion>
+
+<Accordion title="How do I share types between server and React?">
+
+`export type Form = typeof form` on the server instance, then
+`createFormClient<Form>()` in the browser. Pass the same `fieldTypes`
+array on both sides. Apps import from the package they already use —
+`@dimah-form/server` on the server, `@dimah-form/react` in UI.
+
+</Accordion>
+
+</Accordions>

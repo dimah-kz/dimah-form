@@ -10,3 +10,61 @@ html > body[data-scroll-locked] {
   margin-right: 0px !important;
   --removed-body-scroll-bar-size: 0px !important;
 }
+
+.framework {
+  --color-fd-primary: var(--framework-color);
+}
+
+.core {
+  --color-fd-primary: var(--core-color);
+}
+
+.server {
+  --color-fd-primary: var(--server-color);
+}
+
+.db {
+  --color-fd-primary: var(--db-color);
+}
+
+.react {
+  --color-fd-primary: var(--react-color);
+}
+
+:root {
+  --framework-color: hsl(41, 100%, 40%);
+  --core-color: hsl(24, 95%, 40%);
+  --server-color: hsl(158, 58%, 38%);
+  --db-color: hsl(262, 52%, 47%);
+  --react-color: hsl(193, 95%, 43%);
+}
+
+.dark {
+  --framework-color: hsl(54, 100%, 76%);
+  --core-color: hsl(28, 96%, 70%);
+  --server-color: hsl(158, 45%, 58%);
+  --db-color: hsl(262, 60%, 72%);
+  --react-color: hsl(193, 95%, 65%);
+}
+
+@keyframes home-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.home-enter {
+  animation: home-enter 0.7s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-enter {
+    animation: none;
+  }
+}

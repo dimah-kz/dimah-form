@@ -1,0 +1,91 @@
+---
+title: Quickstart
+description: Install the packages, mount dimahForm(), and start a headless fill session.
+icon: Rocket
+---
+
+This is the shortest path. Widget details, hooks, and adapter guides come
+later — this page only wires the packages together.
+
+## Install
+
+```bash
+pnpm add @dimah-form/server @dimah-form/react @dimah-form/db
+```
+
+`@dimah-form/core` is pulled in by the others. Install it directly only if
+you author protocol or client plugins.
+
+## Server
+
+Create an instance. Persistence is required — `memoryAdapter()` is enough
+to try the protocol; switch to `@dimah-form/db` when you want FumaDB.
+
+```ts
+import { defineForm, dimahForm, memoryAdapter } from "@dimah-form/server";
+
+export const form = dimahForm({
+  database: memoryAdapter(),
+  forms: {
+    feedback: defineForm({
+      title: "Feedback",
+      slug: "feedback",
+      status: "active",
+      fields: [{ id: "name", type: "text", required: true, label: "Name" }],
+    }),
+  },
+});
+
+export type Form = typeof form;
+```
+
+Mount the Next.js App Router adapter:
+
+```ts title="app/api/form/[...all]/route.ts"
+import { toNextJsHandler } from "@dimah-form/server/next";
+import { form } from "@/lib/form";
+
+export const { GET, POST, PUT, PATCH, DELETE } = toNextJsHandler(form);
+```
+
+Other runtimes use `@dimah-form/server/hono`, `express`, `fastify`,
+`elysia`, `svelte-kit`, or `node`. See [Server](/docs/server).
+
+## React
+
+Share `$Infer` with the server type. Pass the same `fieldTypes` you
+registered on `dimahForm()` (built-ins are included when you omit extras).
+
+```ts
+"use client";
+
+import { createFormClient } from "@dimah-form/react";
+import type { Form } from "@/lib/form";
+
+export const formClient = createFormClient<Form>();
+export const { useFormResponse } = formClient;
+```
+
+`useFormResponse` is the fill session: answers, local validation, draft,
+and submit. You render inputs. The [Next.js example](/docs/examples) shows
+one way to bind shadcn Field widgets.
+
+## Next
+
+<Cards>
+  <Card
+    title="Architecture"
+    href="/docs/architecture"
+    description="Package chain, snapshots, and what the library does not own."
+  />
+  <Card
+    title="Packages"
+    href="/docs/packages"
+    description="Monorepo layout — published packages, apps, examples, tooling."
+  />
+  <Card
+    title="Example"
+    href="/docs/examples"
+    description="Run examples/next locally."
+  />
+</Cards>

@@ -1,0 +1,7 @@
+{
+  "title": "React",
+  "description": "Thin React client for filling responses",
+  "icon": "Atom",
+  "root": true,
+  "pages": ["index"]
+}

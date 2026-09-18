@@ -1,0 +1,41 @@
+---
+title: React Client
+description: Thin React client — typed createFormClient and useFormResponse. You own the widgets.
+icon: Atom
+---
+
+[`@dimah-form/react`](https://www.npmjs.com/package/@dimah-form/react) is
+the thin React client for dimah-form. It binds the protocol client and the
+headless fill session. It does not render fields.
+
+## Key features
+
+- **`createFormClient<Form>()`** — copies server `$Infer` onto the client
+  (type-only). Do not pass the server instance at runtime.
+- **`useFormResponse`** — answers, local validation, draft, submit, reopen
+- **Same `fieldTypes`** — pass the array you registered on `dimahForm()` so
+  the session can validate locally
+- **Client plugins** — `defineClientPlugin` on `createFormClient({ plugins })`.
+  They are not inferred from server plugins. Share `id` and the error catalog
+  module.
+- **No UI** — consumers own widgets. A later UI package should wrap the
+  fill session, not fork it.
+
+## Typical split
+
+```ts
+"use client";
+
+import { createFormClient } from "@dimah-form/react";
+import type { Form } from "@/lib/form";
+import { fieldTypes } from "@/lib/field-types";
+
+export const formClient = createFormClient<Form>({ fieldTypes });
+export const { useFormClient, useFormResponse } = formClient;
+```
+
+Reads in Server Components can use `form.api` from
+[`@dimah-form/server`](/docs/server). Writes in the browser use this
+client (object args).
+
+See [Quickstart](/docs/quickstart) and the [Next.js example](/docs/examples).

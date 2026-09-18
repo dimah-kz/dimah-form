@@ -21,6 +21,18 @@ const config = {
       files: ["**/*.{yml,yaml}"],
       options: { singleQuote: false },
     },
+    {
+      files: ["apps/docs/**/*.{js,jsx,ts,tsx,css}"],
+      excludeFiles: ["**/src/components/ui/**"],
+      options: {
+        tailwindFunctions: ["cn", "cva"],
+        tailwindStylesheet: "./apps/docs/src/app/global.css",
+      },
+    },
+    {
+      files: ["**/src/components/ui/**/*.{ts,tsx}"],
+      options: { plugins: ["prettier-plugin-packagejson"] },
+    },
   ],
 };
 

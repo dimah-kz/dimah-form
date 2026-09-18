@@ -4,17 +4,23 @@ import { docsContentRoute, docsRoute } from "@/lib/shared";
 
 const { rewrite: rewriteDocs } = rewritePath(
   `${docsRoute}{/*path}`,
-  `${docsContentRoute}{/*path}/content.md`,
+  `${docsContentRoute}{/*path}`,
 );
-const { rewrite: rewriteSuffix } = rewritePath(
+const { rewrite: rewriteMd } = rewritePath(
   `${docsRoute}{/*path}.md`,
-  `${docsContentRoute}{/*path}/content.md`,
+  `${docsContentRoute}{/*path}`,
+);
+const { rewrite: rewriteMdx } = rewritePath(
+  `${docsRoute}{/*path}.mdx`,
+  `${docsContentRoute}{/*path}`,
 );
 
-export default function proxy(request: NextRequest) {
-  const result = rewriteSuffix(request.nextUrl.pathname);
-  if (result) {
-    return NextResponse.rewrite(new URL(result, request.nextUrl));
+export function proxy(request: NextRequest) {
+  for (const rewrite of [rewriteMd, rewriteMdx]) {
+    const result = rewrite(request.nextUrl.pathname);
+    if (result) {
+      return NextResponse.rewrite(new URL(result, request.nextUrl));
+    }
   }
 
   if (isMarkdownPreferred(request)) {
@@ -22,7 +28,6 @@ export default function proxy(request: NextRequest) {
 
     if (result) {
       return NextResponse.rewrite(new URL(result, request.nextUrl), {
-        // this URL has two representations, selected by `Accept`
         headers: { Vary: "Accept" },
       });
     }

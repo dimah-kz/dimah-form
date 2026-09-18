@@ -1,0 +1,7 @@
+{
+  "title": "Framework",
+  "description": "Overview, architecture, and packages",
+  "icon": "Layers",
+  "root": true,
+  "pages": ["index", "quickstart", "architecture", "packages", "examples"]
+}
