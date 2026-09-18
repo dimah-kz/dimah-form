@@ -19,3 +19,4 @@ documentation:
       - any-glob-to-any-file:
           - "**/*.md"
           - docs/**
+          - apps/**

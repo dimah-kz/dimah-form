@@ -292,7 +292,7 @@ export const baseConfig = defineConfig(
     name: "workspace/pnpm-yaml-overrides",
     files: ["pnpm-workspace.yaml"],
     rules: {
-      // `apps/*` is reserved for product docs and may be empty.
+      // `apps/*` is product docs; keep valid even if the glob is empty.
       "pnpm/yaml-valid-packages": "off",
     },
   },

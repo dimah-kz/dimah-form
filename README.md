@@ -45,6 +45,14 @@ pnpm --filter @dimah-form/example-next db:push
 pnpm --filter @dimah-form/example-next dev
 ```
 
+## Docs
+
+`apps/docs` is the product documentation site (Fumadocs).
+
+```bash
+pnpm --filter @dimah-form/docs dev
+```
+
 ## Develop
 
 ```bash

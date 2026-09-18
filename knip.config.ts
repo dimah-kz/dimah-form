@@ -5,6 +5,7 @@ const config: KnipConfig = {
   ignoreUnresolved: ["next"],
   ignoreIssues: {
     "packages/**": ["exports", "types", "duplicates", "nsExports", "nsTypes"],
+    "apps/**": ["exports", "types", "files"],
     "examples/**": ["exports", "types", "files"],
   },
 };

@@ -25,7 +25,7 @@ pnpm knip
 pnpm test
 ```
 
-`pnpm build` compiles workspace packages and examples. Run commands for a specific package:
+`pnpm build` compiles workspace packages, apps, and examples. Run commands for a specific package:
 
 ```bash
 pnpm --filter @dimah-form/core build

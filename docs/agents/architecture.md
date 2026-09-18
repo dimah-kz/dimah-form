@@ -12,7 +12,7 @@ Backend-first questionnaire engine. Consumers own UI, auth, and the database ada
 @dimah-form/db  (peer: server — `db()` adapter for `database`)
 ```
 
-`apps/` and `examples/*` consume workspace packages (not published) when they exist.
+`apps/docs` and `examples/*` consume workspace packages (not published).
 
 ## Placement
 

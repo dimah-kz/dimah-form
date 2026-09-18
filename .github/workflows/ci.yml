@@ -117,3 +117,44 @@ jobs:
       - name: Typecheck examples
         if: steps.filter.outputs.examples == 'true'
         run: pnpm turbo run check-types --affected --filter="./examples/*"
+
+  apps:
+    name: Typecheck Apps
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            apps:
+              - 'apps/**'
+              - 'packages/**'
+              - 'tooling/**'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'turbo.json'
+              - 'package.json'
+
+      - name: Resolve Turbo affected range
+        if: steps.filter.outputs.apps == 'true'
+        uses: ./.github/actions/turbo-affected-range
+
+      - name: Setup
+        if: steps.filter.outputs.apps == 'true'
+        uses: ./.github/actions/setup
+        with:
+          ignore-scripts: "false"
+
+      - name: Build workspace dependencies
+        if: steps.filter.outputs.apps == 'true'
+        run: pnpm turbo run build --filter="./apps/*..." --filter="!./apps/*"
+
+      - name: Typecheck apps
+        if: steps.filter.outputs.apps == 'true'
+        run: pnpm turbo run check-types --affected --filter="./apps/*"

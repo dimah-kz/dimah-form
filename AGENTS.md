@@ -23,7 +23,7 @@ pnpm + Turbo. From the root: `pnpm lint`, `pnpm check-types`, `pnpm test`.
 - Published `@dimah-form/*` behavior, API, or build output change → changelog under `.tegami/` ([release.md](docs/agents/release.md)). Do not edit `.tegami/publish-lock.yaml` or package `CHANGELOG.md` files.
 - Commit when asked. Never `git push` (or force-push) unless the human explicitly asks.
 
-`examples/` = workspace demos. `apps/` = product docs (when added). `docs/agents/` = these maintainer checklists. `tooling/` = private ESLint / TS / Vitest configs.
+`examples/` = workspace demos. `apps/` = product docs site. `docs/agents/` = these maintainer checklists. `tooling/` = private ESLint / TS / Vitest configs.
 
 ## Checklists
 
