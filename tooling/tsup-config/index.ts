@@ -2,7 +2,7 @@ import { defineConfig, type Options } from "tsup";
 
 const defaults = {
   format: ["esm"],
-  target: "esnext",
+  target: "es2025",
   dts: false,
   sourcemap: true,
   clean: true,

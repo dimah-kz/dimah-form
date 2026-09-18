@@ -60,6 +60,9 @@
   "peerDependencies": {
     "@dimah-form/server": "workspace:*"
   },
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "publishConfig": {
     "access": "public"
   }
