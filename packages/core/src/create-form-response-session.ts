@@ -178,7 +178,8 @@ function resolveRespondentId(value: string | (() => string) | undefined) {
 
 function answersPatch(from: FormAnswers, to: FormAnswers): FormAnswers {
   const patch: FormAnswers = {};
-  for (const key of new Set([...Object.keys(from), ...Object.keys(to)])) {
+  const keys = new Set(Object.keys(from)).union(new Set(Object.keys(to)));
+  for (const key of keys) {
     const prev = from[key];
     const next = to[key];
     if (Object.is(prev, next)) continue;

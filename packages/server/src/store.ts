@@ -44,7 +44,7 @@ function clone<T>(value: T): T {
 }
 
 function sortByUpdatedAtDesc<T extends { updatedAt?: string }>(items: T[]) {
-  return [...items].sort((a, b) =>
+  return items.toSorted((a, b) =>
     (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""),
   );
 }
@@ -102,9 +102,10 @@ export function memoryAdapter(): ResponseStore {
     },
     listForms(query) {
       const filtered = sortByUpdatedAtDesc(
-        [...forms.values()].filter(
-          (form) => !query?.status || form.status === query.status,
-        ),
+        forms
+          .values()
+          .filter((form) => !query?.status || form.status === query.status)
+          .toArray(),
       );
       return slicePage(filtered, query).map(clone);
     },
@@ -124,14 +125,20 @@ export function memoryAdapter(): ResponseStore {
     },
     listResponses(query) {
       const filtered = sortByUpdatedAtDesc(
-        [...rows.values()].filter((row) => {
-          if (query?.formId && row.formId !== query.formId) return false;
-          if (query?.respondentId && row.respondentId !== query.respondentId) {
-            return false;
-          }
-          if (query?.status && row.status !== query.status) return false;
-          return true;
-        }),
+        rows
+          .values()
+          .filter((row) => {
+            if (query?.formId && row.formId !== query.formId) return false;
+            if (
+              query?.respondentId &&
+              row.respondentId !== query.respondentId
+            ) {
+              return false;
+            }
+            if (query?.status && row.status !== query.status) return false;
+            return true;
+          })
+          .toArray(),
       );
       return slicePage(filtered, query).map(clone);
     },

@@ -5,8 +5,8 @@ import { CORE_ENDPOINT_NAMES, coreEndpoints } from "./routes";
 
 describe("core protocol", () => {
   it("registers every core endpoint name", () => {
-    expect([...CORE_ENDPOINT_NAMES].sort()).toEqual(
-      Object.keys(FORM_API_OPERATIONS).sort(),
+    expect(CORE_ENDPOINT_NAMES.toSorted()).toEqual(
+      Object.keys(FORM_API_OPERATIONS).toSorted(),
     );
   });
 

@@ -208,9 +208,9 @@ export async function listLiveForms(
       continue;
     }
   }
-  return [...fromConfig, ...extra].sort((a, b) =>
-    (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""),
-  );
+  return fromConfig
+    .concat(extra)
+    .toSorted((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""));
 }
 
 export async function assertSlugAvailable(
