@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" role="img" aria-labelledby="dimah-form-logo-title">
+  <title id="dimah-form-logo-title">dimah-form</title>
+  <!--
+    Logomark: a captured field and an open frame corner.
+    Headless by design — the missing sides are yours to render.
+  -->
+  <rect x="14" y="4.5" width="13" height="13" rx="3.25" fill="#171717"/>
+  <path
+    d="M8.5 16.25V24.5H17"
+    stroke="#171717"
+    stroke-width="5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

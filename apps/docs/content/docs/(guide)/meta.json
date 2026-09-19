@@ -1,17 +1,16 @@
 {
-  "title": "Guide",
-  "icon": "BookOpen",
+  "title": "Guides",
   "defaultOpen": true,
   "pages": [
     "architecture",
     "snapshots",
-    "server",
     "forms",
-    "database",
     "react",
     "widgets",
-    "custom-fields",
+    "server",
+    "database",
     "auth",
+    "custom-fields",
     "plugins"
   ]
 }

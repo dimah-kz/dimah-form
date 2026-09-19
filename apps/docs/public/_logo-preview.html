@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>logo preview</title>
+    <style>
+      body {
+        margin: 0;
+        font:
+          14px/1.4 ui-sans-serif,
+          system-ui,
+          sans-serif;
+        color: #171717;
+      }
+      .row {
+        display: flex;
+        gap: 48px;
+        align-items: center;
+        padding: 48px;
+      }
+      .light {
+        background: #f4f4f5;
+      }
+      .dark {
+        background: #0a0a0a;
+        color: #fafaf9;
+      }
+      figure {
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="row light">
+      <figure>
+        <img src="/logo.svg" width="160" height="160" alt="mark" />
+        <figcaption>logo.svg 160</figcaption>
+      </figure>
+      <figure>
+        <img src="/logo.svg" width="40" height="40" alt="mark small" />
+        <figcaption>logo.svg 40</figcaption>
+      </figure>
+      <figure>
+        <img src="/logo.svg" width="20" height="20" alt="mark tiny" />
+        <figcaption>logo.svg 20</figcaption>
+      </figure>
+      <figure>
+        <img src="/icon.svg" width="80" height="80" alt="icon" />
+        <figcaption>icon.svg 80</figcaption>
+      </figure>
+    </div>
+    <div class="row dark">
+      <figure>
+        <img
+          src="/logo.svg"
+          width="160"
+          height="160"
+          alt="mark invert"
+          style="filter: invert(1)"
+        />
+        <figcaption>mark on dark</figcaption>
+      </figure>
+      <figure>
+        <img src="/icon.svg" width="80" height="80" alt="icon dark" />
+        <figcaption>icon.svg</figcaption>
+      </figure>
+    </div>
+  </body>
+</html>

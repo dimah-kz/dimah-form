@@ -1,56 +1,127 @@
 ---
 title: Quickstart
-description: A working questionnaire in minutes — install, mount dimahForm(), and start a fill session.
+description: Build, mount, and render a complete questionnaire in under 5 minutes with Next.js App Router.
 icon: Rocket
 ---
 
-Next.js App Router, a code-authored form, and `memoryAdapter()`. Switch to
-[`@dimah-form/db`](/docs/database) when you persist for real.
+This guide walks you through setting up a complete, type-safe questionnaire with draft saving, conditional field visibility, and server validation using Next.js App Router.
 
 <Steps>
 
 <Step>
 
-### Install
+### 1. Install Dependencies
 
-```npm
-npm i @dimah-form/server @dimah-form/react
-```
+Install `@dimah-form/server` for backend routes and `@dimah-form/react` for the React client hook:
 
-Add `@dimah-form/db` and `fumadb` when you leave `memoryAdapter()`.
+<Tabs items={["pnpm", "npm", "yarn", "bun"]}>
+
+<Tab value="pnpm">
+  ```bash pnpm add @dimah-form/server @dimah-form/react ```
+</Tab>
+
+<Tab value="npm">
+  ```bash npm install @dimah-form/server @dimah-form/react ```
+</Tab>
+
+<Tab value="yarn">
+  ```bash yarn add @dimah-form/server @dimah-form/react ```
+</Tab>
+
+<Tab value="bun">```bash bun add @dimah-form/server @dimah-form/react ```</Tab>
+
+</Tabs>
 
 </Step>
 
 <Step>
 
-### Create the server instance
+### 2. Define Your Form Schema
+
+Create your form definitions under `lib/forms/`. Each form is defined using `defineForm`:
+
+```ts title="lib/forms/feedback.ts"
+import { defineForm } from "@dimah-form/server";
+
+export const feedbackForm = defineForm({
+  title: "Product Feedback",
+  slug: "feedback",
+  description: "Help us improve our service with your honest feedback.",
+  fields: [
+    {
+      id: "fullName",
+      type: "text",
+      label: "Full Name",
+      required: true,
+    },
+    {
+      id: "rating",
+      type: "select",
+      label: "How would you rate your experience?",
+      required: true,
+      options: [
+        { value: "great", label: "Great" },
+        { value: "ok", label: "Okay" },
+        { value: "poor", label: "Poor" },
+      ],
+    },
+    {
+      id: "improvements",
+      type: "text",
+      label: "What could we improve?",
+      required: true,
+      showWhen: {
+        field: "rating",
+        equals: "poor",
+      },
+    },
+  ],
+});
+```
+
+Export all forms from a central forms catalog:
+
+```ts title="lib/forms/index.ts"
+import { feedbackForm } from "./feedback";
+
+export const forms = {
+  feedback: feedbackForm,
+};
+```
+
+</Step>
+
+<Step>
+
+### 3. Initialize the Server Instance
+
+Configure `dimahForm()` with your forms catalog and a persistence adapter. For this quickstart, we use the built-in `memoryAdapter()`:
 
 ```ts title="lib/form.ts"
-import { defineForm, dimahForm, memoryAdapter } from "@dimah-form/server";
+import { dimahForm, memoryAdapter } from "@dimah-form/server";
+import { forms } from "@/lib/forms";
 
 export const form = dimahForm({
   database: memoryAdapter(),
-  forms: {
-    feedback: defineForm({
-      title: "Feedback",
-      slug: "feedback",
-      fields: [{ id: "name", type: "text", required: true, label: "Name" }],
-    }),
-  },
+  forms,
+  basePath: "/api/form",
 });
 
 export type Form = typeof form;
 ```
 
-The key under `forms` is the form id. Only `active` forms can be started;
-`status` defaults to `active`. `export type Form` is type-only — the
-browser never receives this object.
+<Callout type="info">
+  Exporting `export type Form = typeof form` exposes the inferred `$Infer`
+  answer types so your React client has 100% end-to-end type safety.
+</Callout>
 
 </Step>
 
 <Step>
 
-### Mount the route handler
+### 4. Mount the Route Handler
+
+Create a Next.js App Router catch-all route handler to serve the REST API:
 
 ```ts title="app/api/form/[...all]/route.ts"
 import { toNextJsHandler } from "@dimah-form/server/next";
@@ -59,13 +130,15 @@ import { form } from "@/lib/form";
 export const { GET, POST, PUT, PATCH, DELETE } = toNextJsHandler(form);
 ```
 
-Other runtimes: [Server](/docs/server). Default `basePath` is `/api/form`.
+This single route handler automatically mounts all endpoints for fetching forms, starting response sessions, saving drafts, and submitting answers.
 
 </Step>
 
 <Step>
 
-### Create the client
+### 5. Create the Type-Safe React Client
+
+Initialize your client in a shared client file:
 
 ```ts title="lib/form-client.ts"
 "use client";
@@ -73,79 +146,182 @@ Other runtimes: [Server](/docs/server). Default `basePath` is `/api/form`.
 import { createFormClient } from "@dimah-form/react";
 import type { Form } from "@/lib/form";
 
-export const formClient = createFormClient<Form>();
+export const formClient = createFormClient<Form>({
+  basePath: "/api/form",
+});
+
 export const { useFormResponse } = formClient;
 ```
-
-Pass the same `fieldTypes` you registered on `dimahForm()` when you have extras.
 
 </Step>
 
 <Step>
 
-### Render a questionnaire
+### 6. Build the Questionnaire UI Component
 
-Reads in Server Components can use `form.api`. Writes in the browser use
-the client. You render the inputs.
-
-```tsx title="app/page.tsx"
-import { Questionnaire } from "@/components/questionnaire";
-import { form } from "@/lib/form";
-
-export default async function Page() {
-  const snapshot = await form.api.getForm({ query: { formId: "feedback" } });
-  return <Questionnaire form={snapshot} />;
-}
-```
+Build a React component using `useFormResponse`. The hook manages field visibility (`q.visibleFields`), local state, draft saving, and submit validation:
 
 ```tsx title="components/questionnaire.tsx"
 "use client";
 
-import { emptyToNull, fieldLabel } from "@dimah-form/react";
+import { emptyToNull, fieldLabel, fieldOptions } from "@dimah-form/react";
 import type { FormSnapshot } from "@dimah-form/react";
 import { useFormResponse } from "@/lib/form-client";
 import type { Form } from "@/lib/form";
 
-export function Questionnaire({ form }: { form: FormSnapshot }) {
+interface QuestionnaireProps {
+  form: FormSnapshot;
+}
+
+export function Questionnaire({ form }: QuestionnaireProps) {
   const q = useFormResponse<Form["$Infer"]["answers"]["feedback"]>({
     snapshot: form,
+    autosave: { debounceMs: 1000 },
+    onSubmitted: (res) => {
+      alert(`Thank you! Response recorded with ID: ${res.id}`);
+    },
   });
+
+  if (q.inactive) {
+    return <p className="text-gray-500">This form is currently inactive.</p>;
+  }
+
+  if (q.status === "submitted") {
+    return (
+      <div className="rounded-lg border border-green-200 bg-green-50 p-6 text-center">
+        <h3 className="text-lg font-semibold text-green-900">Submitted!</h3>
+        <p className="mt-1 text-sm text-green-700">
+          Your feedback has been successfully recorded.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <form
-      onSubmit={(event) => {
-        event.preventDefault();
+      onSubmit={(e) => {
+        e.preventDefault();
         void q.submit();
       }}
+      className="mx-auto max-w-lg space-y-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
     >
+      <div>
+        <h2 className="text-xl font-bold text-gray-900">{form.title}</h2>
+        {form.description && (
+          <p className="mt-1 text-sm text-gray-600">{form.description}</p>
+        )}
+      </div>
+
       {q.visibleFields.map((field) => {
         const binding = q.field(field.id);
+
+        if (field.type === "select") {
+          return (
+            <div key={field.id} className="space-y-1.5">
+              <label className="block text-sm font-medium text-gray-800">
+                {fieldLabel(field)}
+                {binding.required && (
+                  <span className="ml-1 text-red-500">*</span>
+                )}
+              </label>
+              <select
+                value={typeof binding.value === "string" ? binding.value : ""}
+                disabled={binding.disabled}
+                onChange={(e) => binding.onChange(emptyToNull(e.target.value))}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-black focus:outline-none"
+              >
+                <option value="">Select an option...</option>
+                {fieldOptions(field).map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              {binding.error && (
+                <p className="text-xs text-red-600">{binding.error}</p>
+              )}
+            </div>
+          );
+        }
+
         return (
-          <label key={field.id}>
-            {fieldLabel(field)}
+          <div key={field.id} className="space-y-1.5">
+            <label className="block text-sm font-medium text-gray-800">
+              {fieldLabel(field)}
+              {binding.required && <span className="ml-1 text-red-500">*</span>}
+            </label>
             <input
+              type="text"
               value={typeof binding.value === "string" ? binding.value : ""}
               disabled={binding.disabled}
-              onChange={(event) =>
-                binding.onChange(emptyToNull(event.target.value))
-              }
+              onChange={(e) => binding.onChange(emptyToNull(e.target.value))}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-black focus:outline-none"
             />
-            {binding.error}
-          </label>
+            {binding.error && (
+              <p className="text-xs text-red-600">{binding.error}</p>
+            )}
+          </div>
         );
       })}
-      <button type="submit" disabled={q.pending != null}>
-        Submit
-      </button>
+
+      {q.error && (
+        <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {q.error}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between pt-2">
+        <button
+          type="button"
+          disabled={q.pending !== undefined || q.locked}
+          onClick={() => void q.saveDraft()}
+          className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+        >
+          {q.pending === "save" ? "Saving..." : "Save Draft"}
+        </button>
+
+        <button
+          type="submit"
+          disabled={q.pending !== undefined || q.locked}
+          className="rounded-md bg-black px-5 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+        >
+          {q.pending === "submit" ? "Submitting..." : "Submit Feedback"}
+        </button>
+      </div>
     </form>
   );
 }
 ```
 
-Clearing an input must send `null` so a later draft patch deletes the key
-(`emptyToNull` does that for `""` and `[]`). The
-[widget map](/docs/widgets) switches on `field.type` the same way — those
-widgets are not part of `@dimah-form/react`.
+</Step>
+
+<Step>
+
+### 7. Render on a Server Page
+
+Fetch the form definition on the server using `form.api.getForm` and pass it directly to the client component:
+
+```tsx title="app/page.tsx"
+import { Questionnaire } from "@/components/questionnaire";
+import { form } from "@/lib/form";
+import { notFound } from "next/navigation";
+
+export default async function Page() {
+  const snapshot = await form.api.getForm({
+    query: { formId: "feedback" },
+  });
+
+  if (!snapshot) {
+    notFound();
+  }
+
+  return (
+    <main className="min-h-screen bg-gray-50 px-4 py-12">
+      <Questionnaire form={snapshot} />
+    </main>
+  );
+}
+```
 
 </Step>
 
@@ -153,91 +329,36 @@ widgets are not part of `@dimah-form/react`.
 
 ---
 
-## Next
+## What Just Happened?
+
+1. **Schema Immutability**: When `useFormResponse` starts or saves a draft, dimah-form freezes the form definition into a snapshot.
+2. **Dynamic Visibility**: Changing the rating to `"poor"` immediately reveals the conditional `improvements` field without custom boolean flags.
+3. **Drafts & Autosave**: The questionnaire debounces changes and persists drafts to the server automatically.
+4. **Server-Side Validation**: Submitting validates the answers strictly against the frozen snapshot schema on the server.
+
+---
+
+## Next Steps
 
 <Cards>
   <Card
     title="Architecture"
     href="/docs/architecture"
-    description="Packages, snapshots, and the request pipeline."
+    description="Learn how the request pipeline, snapshots, and packages interact."
   />
   <Card
-    title="Server"
-    href="/docs/server"
-    description="Adapters, form.api, and dimahForm() config."
+    title="Defining Forms"
+    href="/docs/forms"
+    description="Explore field types, validation rules, and conditional logic with showWhen."
   />
   <Card
-    title="React client"
+    title="React Client"
     href="/docs/react"
-    description="Headless fill session — draft, submit, reopen."
+    description="Deep dive into useFormResponse state, actions, and custom widgets."
+  />
+  <Card
+    title="Database Persistence"
+    href="/docs/database"
+    description="Switch from memoryAdapter to FumaDB with Drizzle or Prisma."
   />
 </Cards>
-
-## Frequently asked questions
-
-<Accordions>
-
-<Accordion title="How do I restrict starts to authenticated users?">
-
-Add a `guard` on the instance. Throw `APIError` — a plain `Error` maps to
-`INTERNAL_ERROR`:
-
-```ts title="lib/form.ts"
-import {
-  APIError,
-  FORM_ERROR_CODES,
-  defineForm,
-  dimahForm,
-  memoryAdapter,
-} from "@dimah-form/server";
-
-export const form = dimahForm({
-  database: memoryAdapter(),
-  guard: async ({ request, operation }) => {
-    // [!code ++]
-    if (operation !== "startResponse") return; // [!code ++]
-    const session = await getSession(request); // [!code ++]
-    if (!session) {
-      // [!code ++]
-      throw APIError.from("UNAUTHORIZED", FORM_ERROR_CODES.UNAUTHORIZED); // [!code ++]
-    } // [!code ++]
-  }, // [!code ++]
-  forms: {
-    feedback: defineForm({
-      title: "Feedback",
-      fields: [{ id: "name", type: "text", required: true }],
-    }),
-  },
-});
-```
-
-See [Auth](/docs/auth).
-
-</Accordion>
-
-<Accordion title="How do I persist questionnaires in a real database?">
-
-Pass `db()` from `@dimah-form/db` instead of `memoryAdapter()`. See
-[Database](/docs/database).
-
-</Accordion>
-
-<Accordion title="How do I change the API path?">
-
-Set `basePath` on `dimahForm()` and the same prefix on the client
-(`basePath`, or `baseURL` when the API is on another origin):
-
-```ts
-export const form = dimahForm({
-  basePath: "/api/questionnaires", // [!code ++]
-  database: memoryAdapter(),
-});
-
-export const formClient = createFormClient<Form>({
-  basePath: "/api/questionnaires", // [!code ++]
-});
-```
-
-</Accordion>
-
-</Accordions>

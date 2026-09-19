@@ -1,167 +1,179 @@
 ---
-title: Plugins
-description: Additive endpoints, hooks, field types, and error codes — not persistence.
+title: Plugins & Extensions
+description: Extend dimah-form with custom HTTP endpoints, lifecycle hooks, error codes, and client companion methods.
 icon: Puzzle
 ---
 
-Use `definePlugin` for additive features: endpoints, hooks, field types,
-and `$ERROR_CODES`. Persistence stays on `database`. Plugins do not add
-tables.
+Plugins provide a modular way to extend **dimah-form** with **additive capabilities**: custom REST endpoints, lifecycle hooks, domain-specific error codes, and client convenience methods.
 
-Prefer a factory that closes over options and returns `definePlugin`.
-`options` is for sibling plugins to read; keep your own config in the
-closure.
+---
 
-```ts title="lib/ping-plugin.ts"
+## 1. Creating a Server Plugin
+
+Use `definePlugin()` and `createFormEndpoint()` from `@dimah-form/server` to build a server extension:
+
+```ts title="lib/plugins/analytics-plugin.ts"
 import {
   createFormEndpoint,
   defineErrorCodes,
   definePlugin,
 } from "@dimah-form/server";
+import * as z from "zod";
 
-const PING_ERROR_CODES = defineErrorCodes({ PING_FAILED: "Ping failed" });
+// 1. Declare domain-specific error codes
+export const ANALYTICS_ERROR_CODES = defineErrorCodes({
+  STATS_UNAVAILABLE: "Analytics data could not be computed",
+});
 
-export const ping = (options?: { token?: string }) =>
+// 2. Define the server plugin
+export const analyticsPlugin = () =>
   definePlugin({
-    id: "ping",
-    options,
-    $ERROR_CODES: PING_ERROR_CODES,
+    id: "analytics",
+    $ERROR_CODES: ANALYTICS_ERROR_CODES,
+
+    // Add custom HTTP endpoints to the dimahForm router
     endpoints: {
-      ping: createFormEndpoint("/ping", { method: "GET" }, async () => ({
-        ok: true,
-      })),
+      getFormStats: createFormEndpoint(
+        "/analytics/stats",
+        {
+          method: "GET",
+          query: z.object({
+            formId: z.string(),
+          }),
+        },
+        async ({ query, store, request }) => {
+          const list = await store.listResponses({
+            formId: query.formId,
+            limit: 100,
+          });
+
+          const total = list.responses.length;
+          const submitted = list.responses.filter(
+            (r) => r.status === "submitted",
+          ).length;
+
+          return {
+            formId: query.formId,
+            totalResponses: total,
+            completionRate: total > 0 ? (submitted / total) * 100 : 0,
+          };
+        },
+      ),
+    },
+
+    // Optional lifecycle hooks contributed by this plugin
+    hooks: {
+      afterSubmit: async ({ response }) => {
+        console.log(`[Analytics] Response ${response.id} submitted.`);
+      },
     },
   });
 ```
 
+---
+
+## 2. Registering on the Server
+
+Pass the plugin to `dimahForm({ plugins: [...] })`:
+
 ```ts title="lib/form.ts"
 import { dimahForm, memoryAdapter } from "@dimah-form/server";
-import { ping } from "./ping-plugin";
+import { analyticsPlugin } from "@/lib/plugins/analytics-plugin";
+import { forms } from "@/lib/forms";
 
 export const form = dimahForm({
   database: memoryAdapter(),
-  plugins: [ping()],
+  forms,
+  plugins: [analyticsPlugin()],
 });
 
-await form.api.ping({});
+export type Form = typeof form;
 ```
 
-Plugins merge **once** in `dimahForm()`, never inside an endpoint. Feature
-plugins belong in their own package and peer-depend on server. Duplicate
-`id`, missing `dependsOn`, and cycles throw at init.
-
-Reserved plugin ids include `handler`, `api`, `$ERROR_CODES`, and `$Infer`.
-
----
-
-## Endpoints
-
-`createFormEndpoint` paths are absolute under `basePath`. Zod `body` /
-`query` failures throw `VALIDATION_ERROR`. Plugin routes cannot shadow
-core names or paths.
-
-Guard `operation` is the `endpoints` key (`"ping"`) unless
-`metadata.operation` is set:
+You can now call the plugin endpoint directly through `form.api`:
 
 ```ts
-ping: createFormEndpoint(
-  "/ping",
-  { method: "GET", metadata: { operation: "health" } },
-  async () => ({ ok: true }),
-);
+const stats = await form.api.getFormStats({
+  query: { formId: "feedback" },
+});
 ```
 
 ---
 
-## Init and context
+## 3. Creating a Companion Client Plugin
 
-`init` runs once in `dimahForm()`, after plugins are sorted. It must be
-**synchronous**. Return `{ context }` for request handlers.
+To expose typed methods on `createFormClient`, create a companion client plugin using `defineClientPlugin()`:
 
-```ts
-import {
-  createFormEndpoint,
-  definePlugin,
-  getPluginContext,
-} from "@dimah-form/server";
+```ts title="lib/plugins/analytics-client.ts"
+import { defineClientPlugin } from "@dimah-form/react";
+import { ANALYTICS_ERROR_CODES } from "./analytics-plugin";
 
-const a = definePlugin({
-  id: "a",
-  options: { n: 1 },
-  init({ options }) {
-    return { context: { n: (options as { n: number }).n } };
-  },
-});
-
-const b = definePlugin({
-  id: "b",
-  dependsOn: ["a"],
-  endpoints: {
-    peek: createFormEndpoint("/peek", { method: "GET" }, async (ctx) => ({
-      a: getPluginContext<{ n: number }>(ctx.context.config, "a"),
-    })),
-  },
-});
-```
-
-`dependsOn` is a topological order for `init`, hooks, field types, and
-endpoints.
-
-Plugin `on*` / `after*` run first (`dependsOn`, then registration order),
-then instance hooks. Plugins may also contribute `fieldTypes` (same
-`defineFieldType` contract).
-
----
-
-## Client companion
-
-Browser plugins are **not** inferred from the server plugin. Share `id`
-and the error catalog module. Register them on
-`createFormClient({ plugins })`. Do not copy core route strings.
-
-```ts
-import { defineClientPlugin, defineErrorCodes } from "@dimah-form/react";
-
-const PING_ERROR_CODES = defineErrorCodes({ PING_FAILED: "Ping failed" });
-
-export const pingClient = () =>
+export const analyticsClientPlugin = () =>
   defineClientPlugin({
-    id: "ping",
-    $ERROR_CODES: PING_ERROR_CODES,
+    id: "analytics",
+    $ERROR_CODES: ANALYTICS_ERROR_CODES,
     endpoints: ({ $fetch }) => ({
-      ping: () => $fetch<{ ok: true }>("/ping", { method: "GET" }),
+      getStats: (formId: string) =>
+        $fetch<{
+          formId: string;
+          totalResponses: number;
+          completionRate: number;
+        }>(`/analytics/stats?formId=${encodeURIComponent(formId)}`, {
+          method: "GET",
+        }),
     }),
   });
 ```
 
-```ts
+Register the client plugin with `createFormClient`:
+
+```ts title="lib/form-client.ts"
+"use client";
+
+import { createFormClient } from "@dimah-form/react";
+import type { Form } from "@/lib/form";
+import { analyticsClientPlugin } from "@/lib/plugins/analytics-client";
+
 export const formClient = createFormClient<Form>({
-  plugins: [pingClient()],
+  basePath: "/api/form",
+  plugins: [analyticsClientPlugin()],
 });
 
-await formClient.ping();
+// Call the plugin method from client components
+const stats = await formClient.getStats("feedback");
 ```
-
-Codes cannot shadow core or another plugin. Keep ORM off the client entry.
 
 ---
 
-## See also
+## Plugin Options Reference
+
+| Property           | Type                           | Description                                                          |
+| :----------------- | :----------------------------- | :------------------------------------------------------------------- |
+| **`id`**           | `string`                       | Unique alphanumeric identifier for the plugin.                       |
+| **`$ERROR_CODES`** | `ErrorCodeCatalog`             | Custom error codes declared via `defineErrorCodes()`.                |
+| **`endpoints`**    | `Record<string, FormEndpoint>` | Map of custom route handlers.                                        |
+| **`hooks`**        | `DimahFormHooks`               | Pre-write and post-write lifecycle hooks.                            |
+| **`fieldTypes`**   | `FieldTypeDefinition[]`        | Custom field validators added by this plugin.                        |
+| **`dependsOn`**    | `string[]`                     | Array of required plugin IDs that must be loaded before this plugin. |
+
+---
+
+## Next Steps
 
 <Cards>
   <Card
-    title="Errors"
-    href="/docs/errors"
-    description="defineErrorCodes and isFormErrorCode."
-  />
-  <Card
-    title="Auth and hooks"
+    title="Authentication & Guard"
     href="/docs/auth"
-    description="Guard operation names for plugin routes."
+    description="Learn how guard hooks secure plugin endpoints."
   />
   <Card
-    title="Architecture"
-    href="/docs/architecture"
-    description="Plugins are additive; database is not a plugin."
+    title="Custom Field Types"
+    href="/docs/custom-fields"
+    description="Package reusable validators inside plugins."
+  />
+  <Card
+    title="Error Codes Reference"
+    href="/docs/errors"
+    description="Understand how custom error codes merge with core error catalogs."
   />
 </Cards>

@@ -1,102 +1,130 @@
 ---
-title: Protocol
-description: HTTP routes and payloads shared by form.api and createFormClient.
+title: HTTP Protocol & Endpoints
+description: Complete REST API specification for Form and Response endpoints, parameters, and payloads.
 icon: Waypoints
 ---
 
-Route strings and Zod payloads live in `@dimah-form/core`
-(`FORM_API_ROUTES`, `FORM_API_OPERATIONS`). Server handlers and the
-browser client import them — they do not copy paths.
-
-Default prefix: `/api/form` (`FORM_API_BASE_PATH`). Paths below are
-relative to `basePath`.
-
-**Call shape**
-
-| Caller                     | Arguments                                                     |
-| -------------------------- | ------------------------------------------------------------- |
-| Browser `createFormClient` | Object args (`{ formId }`, body fields at the top level)      |
-| `form.api`                 | better-call `{ query }` / `{ body }`, plus optional `headers` |
-
-Optional `headers` on the client object args are request headers, not JSON.
-
-List endpoints return `{ …, limit, offset, nextOffset }`. Default `limit`
-is 50, max 100. `nextOffset` is `null` when there is no next page.
+All route paths, request payloads, and response schemas are defined in `@dimah-form/core`. The default endpoint base path is `/api/form`.
 
 ---
 
-## Forms
+## Form Management Endpoints
 
-| Client                                    | `form.api`              | Method | Path           | Notes                          |
-| ----------------------------------------- | ----------------------- | ------ | -------------- | ------------------------------ |
-| `getForm({ formId })`                     | `{ query: { formId } }` | GET    | `/form`        | id or slug                     |
-| `saveForm(snapshot)`                      | `{ body: snapshot }`    | POST   | `/form`        | optional `updatedAt` CAS       |
-| `deleteForm({ formId })`                  | `{ body: { formId } }`  | POST   | `/form/delete` | stored forms with no responses |
-| `listForms({ status?, limit?, offset? })` | `{ query }`             | GET    | `/forms`       | `status`, pagination           |
-
-`saveForm` / `deleteForm` on a code-authored id throw `CODE_AUTHORED_FORM`.
-`deleteForm` while responses exist throws `FORM_HAS_RESPONSES`. Optional
-`updatedAt` on `saveForm` is the same CAS token as response mutations
-(`STALE_UPDATE`). Omit it for last-write-wins.
+| Method | Path           | Client Method                             | `form.api` Method      | Description                                      |
+| :----- | :------------- | :---------------------------------------- | :--------------------- | :----------------------------------------------- |
+| `GET`  | `/form`        | `getForm({ formId })`                     | `getForm({ query })`   | Retrieve form definition snapshot by ID or slug. |
+| `POST` | `/form`        | `saveForm(form)`                          | `saveForm({ body })`   | Upsert dynamic form definition in database.      |
+| `POST` | `/form/delete` | `deleteForm({ formId })`                  | `deleteForm({ body })` | Delete form (rejected if responses exist).       |
+| `GET`  | `/forms`       | `listForms({ status?, limit?, offset? })` | `listForms({ query })` | List forms (default limit: 50, max: 100).        |
 
 ---
 
-## Responses
+## Response Lifecycle Endpoints
 
-| Client                                                                          | `form.api`                  | Method | Path                | Notes                                            |
-| ------------------------------------------------------------------------------- | --------------------------- | ------ | ------------------- | ------------------------------------------------ |
-| `startResponse({ formId, respondentId?, resume? })`                             | `{ body }`                  | POST   | `/response/start`   | id or slug; `resume` returns the latest draft    |
-| `getResponse({ responseId })`                                                   | `{ query: { responseId } }` | GET    | `/response`         | full record                                      |
-| `listResponses({ formId?, respondentId?, status?, include?, limit?, offset? })` | `{ query }`                 | GET    | `/responses`        | default summaries; `include: "full"` for answers |
-| `saveDraft({ responseId, answers, updatedAt? })`                                | `{ body }`                  | POST   | `/response/draft`   | patch; `null` deletes a key                      |
-| `submitResponse({ responseId, answers?, updatedAt? })`                          | `{ body }`                  | POST   | `/response/submit`  | omit `answers` to submit the stored draft        |
-| `abandonResponse({ responseId, updatedAt? })`                                   | `{ body }`                  | POST   | `/response/abandon` | draft only                                       |
-| `reopenResponse({ responseId, updatedAt? })`                                    | `{ body }`                  | POST   | `/response/reopen`  | submitted / abandoned; snapshot unchanged        |
-| `deleteResponse({ responseId })`                                                | `{ body }`                  | POST   | `/response/delete`  | any status                                       |
-
-Submit and draft validate against `response.definition`. See
-[Snapshots](/docs/snapshots).
+| Method | Path                | Client Method                                                         | `form.api` Method           | Description                                                 |
+| :----- | :------------------ | :-------------------------------------------------------------------- | :-------------------------- | :---------------------------------------------------------- |
+| `POST` | `/response/start`   | `startResponse({ formId, respondentId?, resume? })`                   | `startResponse({ body })`   | Start fill session and freeze definition snapshot.          |
+| `GET`  | `/response`         | `getResponse({ responseId })`                                         | `getResponse({ query })`    | Retrieve a full response record by ID.                      |
+| `GET`  | `/responses`        | `listResponses({ formId?, respondentId?, status?, limit?, offset? })` | `listResponses({ query })`  | List response summaries (or full rows with `include=full`). |
+| `POST` | `/response/draft`   | `saveDraft({ responseId, answers, updatedAt? })`                      | `saveDraft({ body })`       | Save partial answers patch on active draft.                 |
+| `POST` | `/response/submit`  | `submitResponse({ responseId, answers?, updatedAt? })`                | `submitResponse({ body })`  | Validate answers vs snapshot and finalize submission.       |
+| `POST` | `/response/abandon` | `abandonResponse({ responseId, updatedAt? })`                         | `abandonResponse({ body })` | Lock draft response as abandoned.                           |
+| `POST` | `/response/reopen`  | `reopenResponse({ responseId, updatedAt? })`                          | `reopenResponse({ body })`  | Unlock submitted/abandoned response back to draft.          |
+| `POST` | `/response/delete`  | `deleteResponse({ responseId })`                                      | `deleteResponse({ body })`  | Delete a response record.                                   |
 
 ---
 
-## Payloads
+## Endpoint Details & Payloads
 
-`startResponse` body: `{ formId, respondentId?, resume? }`. `resume: true`
-requires `respondentId` and returns that respondent's latest draft when
-one exists (same snapshot and answers). Concurrent resumes keep one
-draft. Otherwise it creates a new response. Does not run `onStart` when
-an existing draft is returned.
+### 1. `POST /response/start`
 
-Draft body: `{ responseId, answers, updatedAt? }` where `answers` is
-`Record<string, unknown>`.
+Starts a new fill session for a questionnaire.
 
-Submit body: `{ responseId, answers?, updatedAt? }`.
-
-`listResponses` query: `formId`, `respondentId`, `status` (`draft` \|
-`submitted` \| `abandoned`), `include` (`summary` \| `full`), `limit`,
-`offset`. Default `include` is summary (no `answers` / `definition`).
-
-`ResponseRecord` and `FormSnapshot` types are exported from `server` /
-`react`.
+- **Request Body**:
+  ```json
+  {
+    "formId": "feedback",
+    "respondentId": "user-123",
+    "resume": true
+  }
+  ```
+- **Response Body (`200 OK`)**:
+  ```json
+  {
+    "id": "resp_01h8x...",
+    "formId": "feedback",
+    "status": "draft",
+    "definition": {
+      "id": "feedback",
+      "slug": "feedback",
+      "title": "Product Feedback",
+      "fields": [...]
+    },
+    "answers": {},
+    "respondentId": "user-123",
+    "submittedAt": null,
+    "createdAt": "2026-09-19T10:00:00.000Z",
+    "updatedAt": "2026-09-19T10:00:00.000Z"
+  }
+  ```
 
 ---
 
-## See also
+### 2. `POST /response/draft`
+
+Saves a partial patch of answers. Setting a key to `null` deletes that answer.
+
+- **Request Body**:
+  ```json
+  {
+    "responseId": "resp_01h8x...",
+    "answers": {
+      "fullName": "Jane Doe",
+      "rating": "great"
+    },
+    "updatedAt": "2026-09-19T10:00:00.000Z"
+  }
+  ```
+- **Response Body (`200 OK`)**: Updated `ResponseRecord`.
+
+---
+
+### 3. `POST /response/submit`
+
+Validates all visible required answers against the snapshot schema and locks the response to `"submitted"`.
+
+- **Request Body**:
+  ```json
+  {
+    "responseId": "resp_01h8x...",
+    "answers": {
+      "fullName": "Jane Doe",
+      "rating": "poor",
+      "improvements": "Please improve loading speed."
+    },
+    "updatedAt": "2026-09-19T10:05:00.000Z"
+  }
+  ```
+- **Response Body (`200 OK`)**: Updated `ResponseRecord` with `status: "submitted"`.
+
+---
+
+## Next Steps
 
 <Cards>
   <Card
-    title="Errors"
+    title="Error Codes Reference"
     href="/docs/errors"
-    description="Status codes and catalog entries."
+    description="Inspect machine-readable error codes returned on failed requests."
   />
   <Card
-    title="Forms"
-    href="/docs/forms"
-    description="Resolution order and code-authored ids."
+    title="Snapshots & Lifecycle"
+    href="/docs/snapshots"
+    description="Learn how snapshots ensure safe draft lifecycles."
   />
   <Card
-    title="Server"
-    href="/docs/server"
-    description="form.api headers and adapters."
+    title="Configuration Reference"
+    href="/docs/configuration"
+    description="View full client and server options."
   />
 </Cards>

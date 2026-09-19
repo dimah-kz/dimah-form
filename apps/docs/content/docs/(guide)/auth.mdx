@@ -1,30 +1,43 @@
 ---
-title: Auth and hooks
-description: guard is your auth. Domain hooks run on* before persist and after* after persist.
+title: Authentication & Lifecycle Hooks
+description: Secure endpoints with guard, protect respondent records, and execute pre/post-persistence lifecycle hooks.
 icon: Shield
 ---
 
-Auth lives in `guard`. Domain side effects live in `hooks`. The library
-packages do not ship sessions, cookies, or an auth plugin.
+In **dimah-form**, authentication and authorization live entirely in the consumer-provided **`guard`** hook. Persistence hooks (`on*` and `after*`) let you enrich records and trigger side-effects like emails or webhooks.
 
 <Flow
-  label="Request pipeline"
+  label="Security & Execution Pipeline"
   steps={[
-    { name: "guard", kind: "server", note: "auth / policy" },
-    { name: "validate", kind: "protocol", note: "payload + snapshot" },
-    { name: "on*", kind: "server", note: "before persist" },
-    { name: "database", kind: "data", note: "write" },
-    { name: "after*", kind: "server", note: "after persist" },
+    {
+      name: "1. Guard",
+      kind: "server",
+      note: "Authenticate & check permissions",
+    },
+    {
+      name: "2. Validate",
+      kind: "protocol",
+      note: "Validate answers vs snapshot",
+    },
+    {
+      name: "3. on* Hook",
+      kind: "server",
+      note: "Pre-write mutation (e.g. set respondentId)",
+    },
+    { name: "4. Persist", kind: "data", note: "Atomic database write & CAS" },
+    {
+      name: "5. after* Hook",
+      kind: "server",
+      note: "Post-write side effects (email, webhook)",
+    },
   ]}
 />
 
 ---
 
-## Guard
+## The `guard` Security Hook
 
-`guard` runs before every core and plugin operation, after query/body
-parse. Throw `APIError` to reject. A plain `Error` becomes
-`INTERNAL_ERROR`.
+The `guard` hook executes before any database operation or endpoint handler. If `guard` throws an `APIError`, the request is immediately rejected:
 
 ```ts title="lib/form.ts"
 import {
@@ -33,119 +46,138 @@ import {
   dimahForm,
   memoryAdapter,
 } from "@dimah-form/server";
+import { forms } from "@/lib/forms";
+import { getAuthSession } from "@/lib/auth";
 
 export const form = dimahForm({
   database: memoryAdapter(),
+  forms,
   guard: async ({ request, operation, formId, responseId, getResponse }) => {
-    if (operation !== "startResponse") return;
-    const session = await getSession(request);
-    if (!session) {
-      throw APIError.from("UNAUTHORIZED", FORM_ERROR_CODES.UNAUTHORIZED);
-    }
-    if (responseId) {
-      const row = await getResponse(responseId);
-      if (row && row.respondentId !== session.userId) {
+    // 1. Authenticate user from session cookies or Bearer token
+    const session = await getAuthSession(request);
+
+    // 2. Restrict administrative endpoints to Admins
+    const adminOperations = ["saveForm", "deleteForm", "listResponses"];
+    if (adminOperations.includes(operation)) {
+      if (!session || session.user.role !== "admin") {
         throw APIError.from("FORBIDDEN", FORM_ERROR_CODES.FORBIDDEN);
+      }
+    }
+
+    // 3. Enforce Row-Level Respondent Ownership on response mutations
+    if (responseId) {
+      const record = await getResponse(responseId);
+
+      if (record && record.respondentId) {
+        if (!session || session.user.id !== record.respondentId) {
+          throw APIError.from("FORBIDDEN", FORM_ERROR_CODES.FORBIDDEN);
+        }
       }
     }
   },
 });
 ```
 
-There is no `errors.unauthorized()` helper on the public package export.
-Use `APIError.from` with `FORM_ERROR_CODES`.
+### Context Passed to `guard`
 
-Override `message` when you need a specific English string. Keep `code`
-stable and localize in the UI from `code`:
+| Argument          | Type                                                   | Description                                                                 |
+| :---------------- | :----------------------------------------------------- | :-------------------------------------------------------------------------- |
+| **`request`**     | `Request`                                              | Standard Fetch `Request` object with headers, cookies, and URL.             |
+| **`operation`**   | `FormApiOperation \| string`                           | Name of the active operation (e.g., `"startResponse"`, `"submitResponse"`). |
+| **`formId`**      | `string \| undefined`                                  | Form identifier if present in the query or body payload.                    |
+| **`responseId`**  | `string \| undefined`                                  | Response identifier if present in the query or body payload.                |
+| **`getResponse`** | `(id: string) => Promise<ResponseRecord \| undefined>` | Helper to fetch the current response record from the store.                 |
 
-```ts
-throw APIError.from("FORBIDDEN", {
-  ...FORM_ERROR_CODES.FORBIDDEN,
-  message: "Staff only",
-});
-```
+---
 
-| Field         | Set when                                                                 |
-| ------------- | ------------------------------------------------------------------------ |
-| `request`     | Always                                                                   |
-| `operation`   | Core name (`startResponse`) or plugin endpoint key                       |
-| `formId`      | Form routes and start — from `query.formId`, `body.formId`, or `body.id` |
-| `responseId`  | Present on response routes                                               |
-| `getResponse` | `(id) =>` store `get` — no HTTP, no guard re-entry                       |
-| `getForm`     | Code-authored catalog first, then `database.getForm`                     |
+## Sending Client Credentials & Headers
 
-Guard `operation` for a plugin route is the `endpoints` object key unless
-`metadata.operation` is set. See [Plugins](/docs/plugins).
+Configure `createFormClient` to automatically include auth tokens or session cookies with every request:
 
-Pass `headers` on `form.api` and `headers` / `credentials` on
-`createFormClient` so the guard can read cookies or `Authorization`.
+```ts title="lib/form-client.ts"
+"use client";
 
-```ts
+import { createFormClient } from "@dimah-form/react";
+import type { Form } from "@/lib/form";
+import { getClientToken } from "@/lib/auth-client";
+
 export const formClient = createFormClient<Form>({
-  credentials: "include",
-  headers: async () => ({
-    Authorization: `Bearer ${await getToken()}`,
-  }),
+  basePath: "/api/form",
+  credentials: "include", // Include browser session cookies
+  headers: async () => {
+    const token = await getClientToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  },
 });
 ```
 
 ---
 
-## Domain hooks
+## Pre-Write & Post-Write Lifecycle Hooks
 
-`on*` runs after validation, before persist. `after*` runs after persist.
-If persist throws, `after*` is skipped.
-
-Skip irreversible I/O in `on*` — use `after*` for mail, queues, and
-webhooks. `onStart` may assign `response.respondentId` before the row is
-written.
+Lifecycle hooks allow you to mutate records before persistence or run side-effects after persistence:
 
 ```ts title="lib/form.ts"
+import { dimahForm, memoryAdapter } from "@dimah-form/server";
+import { sendEmailNotification } from "@/lib/notifications";
+import { getAuthSession } from "@/lib/auth";
+
 export const form = dimahForm({
   database: memoryAdapter(),
   hooks: {
-    onStart: ({ response, request }) => {
-      response.respondentId = sessionFrom(request)?.userId ?? null;
+    // 1. Pre-write: Runs before creating a new response in DB
+    onStart: async ({ request, response }) => {
+      const session = await getAuthSession(request);
+      if (session) {
+        response.respondentId = session.user.id;
+      }
     },
+
+    // 2. Pre-write: Runs before saving a draft
+    onDraft: async ({ request, response, patch }) => {
+      console.log(`User updating draft for response ${response.id}`);
+    },
+
+    // 3. Post-write: Runs after successful submit transaction
     afterSubmit: async ({ response }) => {
-      await notifyOps(response.id);
+      await sendEmailNotification({
+        to: "team@company.com",
+        subject: `New response submitted for form ${response.formId}`,
+        responseId: response.id,
+      });
+    },
+
+    // 4. Post-write: Runs after response is deleted
+    afterDelete: async ({ responseId }) => {
+      console.log(`Response ${responseId} was deleted.`);
     },
   },
 });
 ```
 
-| Hook               | Context                 |
-| ------------------ | ----------------------- |
-| `onStart`          | `{ request, response }` |
-| `onSaveDraft`      | `{ request, response }` |
-| `onSubmit`         | `{ request, response }` |
-| `onAbandon`        | `{ request, response }` |
-| `onReopen`         | `{ request, response }` |
-| `onDeleteResponse` | `{ request, response }` |
-| `onSaveForm`       | `{ request, form }`     |
-| `onDeleteForm`     | `{ request, form }`     |
+### Hook Execution Rules
 
-Each `on*` hook has a matching `after*` with the same context. Plugin
-hooks run first, then instance hooks.
+- **Pre-write (`on*`)**: Synchronously or asynchronously mutates the `response` record before the database write commits. If an error is thrown, the write is aborted.
+- **Post-write (`after*`)**: Executes after the database write has succeeded. Safe for external network calls, transactional emails, or message queues.
 
 ---
 
-## See also
+## Next Steps
 
 <Cards>
   <Card
-    title="Errors"
+    title="Error Codes Reference"
     href="/docs/errors"
-    description="UNAUTHORIZED, FORBIDDEN, and the rest of the catalog."
+    description="Review UNAUTHORIZED, FORBIDDEN, and standard error shapes."
   />
   <Card
-    title="Architecture"
-    href="/docs/architecture"
-    description="Where guard sits in the pipeline."
+    title="Plugins & Extensions"
+    href="/docs/plugins"
+    description="Learn how plugins can contribute custom endpoints and guard checks."
   />
   <Card
-    title="React client"
+    title="React Client"
     href="/docs/react"
-    description="credentials and headers on createFormClient."
+    description="Pass credentials and handle authentication errors in useFormResponse."
   />
 </Cards>

@@ -1,5 +1,5 @@
 {
   "title": "Reference",
-  "icon": "Library",
-  "pages": ["protocol", "field-types", "errors", "configuration"]
+  "defaultOpen": true,
+  "pages": ["configuration", "field-types", "protocol", "errors"]
 }

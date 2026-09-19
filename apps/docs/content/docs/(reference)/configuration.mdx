@@ -1,109 +1,158 @@
 ---
-title: Configuration
-description: dimahForm(), createFormClient, and ResponseStore options.
+title: Configuration Reference
+description: Complete options reference for dimahForm(), createFormClient(), and the ResponseStore interface.
 icon: Settings
 ---
 
-Option tables. Walkthroughs: [Server](/docs/server),
-[React client](/docs/react), [Database](/docs/database).
-
-## `dimahForm()`
-
-Imported from `@dimah-form/server`.
-
-| Option            | Role                                                                   |
-| ----------------- | ---------------------------------------------------------------------- |
-| `database`        | Required persistence (`memoryAdapter()`, `db()`, or a `ResponseStore`) |
-| `forms`           | Code-authored catalog — feeds `$Infer`. Optional                       |
-| `fieldTypes`      | Extra validators on this instance                                      |
-| `basePath`        | HTTP prefix. Default `/api/form`                                       |
-| `guard`           | Runs before every operation. Throw `APIError` to reject                |
-| `hooks`           | `on*` after validation before persist; `after*` after persist          |
-| `validateAnswers` | Extra `{ field, message, code? }[]` after per-field validators         |
-| `plugins`         | Additive endpoints, hooks, field types, `$ERROR_CODES`                 |
-| `metaSchema`      | Optional Zod for opaque `meta` on form / field / option documents      |
-
-Returns `{ handler, api, $ERROR_CODES, $Infer }`.
-
-`metaSchema` is `{ form?: ZodType, field?: ZodType, option?: ZodType }`.
-Applied at init and `saveForm`. Protocol already requires a JSON object;
-these tighten the contents.
+This page provides the full API configuration reference for server instances, client builders, and custom persistence adapters.
 
 ---
 
-## `createFormClient()`
+## `dimahForm(config)`
 
-Imported from `@dimah-form/react` (or `@dimah-form/core` for non-React).
-Generic `createFormClient<Form>()` copies server `$Infer`.
+The primary server instance initializer from `@dimah-form/server`.
 
-| Option            | Role                                                                                         |
-| ----------------- | -------------------------------------------------------------------------------------------- |
-| `basePath`        | Must match server `basePath`. Default `/api/form`                                            |
-| `baseURL`         | Absolute origin + path. Wins over `basePath`                                                 |
-| `fieldTypes`      | Runtime extras for the fill session; skip for `$Infer` when using `createFormClient<Form>()` |
-| `validateAnswers` | Same function as `dimahForm({ validateAnswers })` for local session checks                   |
-| `forms`           | Type-only catalog when you do not have the server instance type                              |
-| `plugins`         | `defineClientPlugin` companions — not inferred from the server                               |
-| `credentials`     | e.g. `"include"` for cookies                                                                 |
-| `headers`         | Static headers or `() => HeadersInit \| Promise<HeadersInit>` per request                    |
-| `fetch`           | Override global `fetch` (SSR, tests)                                                         |
+```ts
+import { dimahForm } from "@dimah-form/server";
 
-React wrapper also adds `Provider`, `useFormClient`, and bound
-`useFormResponse`.
+export const form = dimahForm({
+  database: memoryAdapter(),
+  forms: { ... },
+  basePath: "/api/form",
+});
+```
 
----
+### Configuration Options
 
-## `ResponseStore`
-
-Pass to `dimahForm({ database })`. Methods may return `T` or `Promise<T>`.
-
-| Method                                      | Role                                                                                                   |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `getForm(idOrSlug)`                         | Live questionnaire or `undefined`                                                                      |
-| `saveForm(form, options?)`                  | Upsert live questionnaire. `expectedUpdatedAt` CAS → `StoreConflictError`                              |
-| `deleteForm(id)`                            | Remove live questionnaire                                                                              |
-| `listForms(query?)`                         | `status?`, `limit?`, `offset?`                                                                         |
-| `create(row)`                               | Insert a response. Insert parent questionnaire if missing; do not overwrite live definition            |
-| `get(id)`                                   | Response or `undefined`                                                                                |
-| `save(row, options?)`                       | Update a response. `expectedUpdatedAt` CAS → `StoreConflictError`                                      |
-| `delete(id)`                                | Remove a response                                                                                      |
-| `listResponses(query?)`                     | `formId?`, `respondentId?`, `status?`, `include?` (`summary` skips snapshot JSON), `limit?`, `offset?` |
-| `findLatestDraft({ formId, respondentId })` | Latest `draft` for that pair, or `undefined`                                                           |
-| `getOrCreateDraft(row)`                     | Insert if no draft for `formId` + `respondentId`; concurrent losers are deleted                        |
-
-`memoryAdapter()` implements this in process. `db()` from
-`@dimah-form/db` implements it on FumaDB. Adapters throw
-`StoreConflictError` when a CAS token does not match.
+| Option                | Type                                  | Required | Default       | Description                                                                                                               |
+| :-------------------- | :------------------------------------ | :------- | :------------ | :------------------------------------------------------------------------------------------------------------------------ |
+| **`database`**        | `ResponseStore`                       | **Yes**  | —             | Persistence adapter (`memoryAdapter()`, `db(formDb)` from `@dimah-form/db`, or a custom `ResponseStore`).                 |
+| **`forms`**           | `Record<string, FormDefinitionInput>` | No       | `{}`          | Catalog of code-authored forms created with `defineForm()`. Feeds `$Infer`.                                               |
+| **`fieldTypes`**      | `FieldTypeDefinition[]`               | No       | `[]`          | Custom field type definitions created with `defineFieldType()`.                                                           |
+| **`basePath`**        | `string`                              | No       | `"/api/form"` | Base path prefix for HTTP route mounting.                                                                                 |
+| **`guard`**           | `DimahFormGuard`                      | No       | `undefined`   | Security callback executed before every query or mutation.                                                                |
+| **`hooks`**           | `DimahFormHooks`                      | No       | `{}`          | Pre-write (`onStart`, `onDraft`, `onSubmit`) and post-write (`afterSubmit`, `afterDraft`, `afterDelete`) lifecycle hooks. |
+| **`validateAnswers`** | `AnswersValidator`                    | No       | `undefined`   | Custom cross-field validation function running on submit.                                                                 |
+| **`plugins`**         | `DimahFormPlugin[]`                   | No       | `[]`          | Server plugins created with `definePlugin()`.                                                                             |
+| **`metaSchema`**      | `DimahFormMetaSchema`                 | No       | `undefined`   | Custom Zod schemas for validating `meta` dictionaries on forms and fields.                                                |
 
 ---
 
-## `defineForm` / `FormSnapshot`
+## `createFormClient<T>(options)`
 
-`defineForm` input: `title`, `fields`, optional `slug`, `status`,
-`description`, `meta`. No `id` — that is the `forms` record key.
+Initializes the typed client runtime from `@dimah-form/react`.
 
-Normalized `FormSnapshot` always has `id`, `slug` (defaults to `id`),
-`status` (defaults to `active`), `title`, `fields`, optional
-`description`, `meta`, `createdAt`, `updatedAt`.
+```ts
+import { createFormClient } from "@dimah-form/react";
+import type { Form } from "@/lib/form";
+
+export const formClient = createFormClient<Form>({
+  basePath: "/api/form",
+});
+```
+
+### Configuration Options
+
+| Option            | Type                                               | Default            | Description                                                                             |
+| :---------------- | :------------------------------------------------- | :----------------- | :-------------------------------------------------------------------------------------- |
+| **`basePath`**    | `string`                                           | `"/api/form"`      | Relative URL path prefix matching the server's `basePath`.                              |
+| **`baseURL`**     | `string`                                           | `undefined`        | Absolute URL prefix (e.g., `"https://api.example.com/api/form"`). Overrides `basePath`. |
+| **`credentials`** | `RequestCredentials`                               | `"same-origin"`    | Fetch credentials policy (e.g. `"include"` for cross-origin cookies).                   |
+| **`headers`**     | `HeadersInit \| (() => MaybePromise<HeadersInit>)` | `undefined`        | Static headers or dynamic header generator for auth tokens.                             |
+| **`fieldTypes`**  | `FieldTypeDefinition[]`                            | `[]`               | Custom field types matching the server configuration.                                   |
+| **`plugins`**     | `DimahFormClientPlugin[]`                          | `[]`               | Companion client plugins created with `defineClientPlugin()`.                           |
+| **`fetch`**       | `typeof fetch`                                     | `globalThis.fetch` | Custom fetch implementation for SSR or testing harnesses.                               |
 
 ---
 
-## See also
+## `useFormResponse(options)`
+
+Headless React hook for managing fill sessions.
+
+### Options
+
+| Option             | Type                                 | Required | Description                                                          |
+| :----------------- | :----------------------------------- | :------- | :------------------------------------------------------------------- |
+| **`snapshot`**     | `FormSnapshot`                       | **Yes**  | Form definition snapshot (retrieved from server).                    |
+| **`response`**     | `ResponseRecord`                     | No       | Existing response row to edit or view.                               |
+| **`respondentId`** | `string \| (() => string)`           | No       | User identifier for draft ownership.                                 |
+| **`resume`**       | `boolean`                            | No       | If `true`, reconnects to the user's latest draft on first write.     |
+| **`autosave`**     | `boolean \| { debounceMs?: number }` | No       | Enables debounced background draft saving (default debounce: 600ms). |
+| **`validate`**     | `"submit" \| "change"`               | No       | `"submit"` (default) or `"change"` (real-time validation on edit).   |
+| **`onStarted`**    | `(record: ResponseRecord) => void`   | No       | Callback invoked after `startResponse` completes.                    |
+| **`onSaved`**      | `(record: ResponseRecord) => void`   | No       | Callback invoked after `saveDraft` completes.                        |
+| **`onSubmitted`**  | `(record: ResponseRecord) => void`   | No       | Callback invoked after `submitResponse` completes.                   |
+| **`onReopened`**   | `(record: ResponseRecord) => void`   | No       | Callback invoked after `reopenResponse` completes.                   |
+| **`onAbandoned`**  | `(record: ResponseRecord) => void`   | No       | Callback invoked after `abandonResponse` completes.                  |
+
+---
+
+## The `ResponseStore` Interface
+
+Any database adapter passed to `dimahForm({ database })` must satisfy the following interface:
+
+```ts
+interface ResponseStore {
+  // Form Definitions
+  getForm(idOrSlug: string): MaybePromise<FormSnapshot | undefined>;
+  saveForm(
+    form: FormSnapshot,
+    options?: { expectedUpdatedAt?: string },
+  ): MaybePromise<void>;
+  deleteForm(id: string): MaybePromise<void>;
+  listForms(query?: {
+    status?: FormStatus;
+    limit?: number;
+    offset?: number;
+  }): MaybePromise<{
+    forms: FormSnapshot[];
+    limit: number;
+    offset: number;
+    nextOffset: number | null;
+  }>;
+
+  // Response Sessions
+  create(row: ResponseRecord): MaybePromise<void>;
+  get(id: string): MaybePromise<ResponseRecord | undefined>;
+  save(
+    row: ResponseRecord,
+    options?: { expectedUpdatedAt?: string },
+  ): MaybePromise<void>;
+  delete(id: string): MaybePromise<void>;
+  listResponses(query?: ListResponsesQuery): MaybePromise<{
+    responses: (ResponseRecord | ResponseSummary)[];
+    limit: number;
+    offset: number;
+    nextOffset: number | null;
+  }>;
+
+  // Draft Helpers
+  findLatestDraft(query: {
+    formId: string;
+    respondentId: string;
+  }): MaybePromise<ResponseRecord | undefined>;
+  getOrCreateDraft(row: ResponseRecord): MaybePromise<ResponseRecord>;
+}
+```
+
+---
+
+## Next Steps
 
 <Cards>
   <Card
-    title="Architecture"
-    href="/docs/architecture"
-    description="Why these slots exist."
-  />
-  <Card
-    title="Protocol"
-    href="/docs/protocol"
-    description="HTTP paths those options serve."
-  />
-  <Card
-    title="Field types"
+    title="Field Types Reference"
     href="/docs/field-types"
-    description="defineFieldType keys."
+    description="Explore built-in field types, validation rules, and showWhen operators."
+  />
+  <Card
+    title="HTTP Protocol"
+    href="/docs/protocol"
+    description="Review REST route schemas, parameters, and payload structures."
+  />
+  <Card
+    title="Error Codes"
+    href="/docs/errors"
+    description="Inspect machine-readable error codes and field validation issues."
   />
 </Cards>

@@ -1,138 +1,187 @@
 ---
-title: Field types
-description: Built-in validators, showWhen visibility, and $Infer answer shapes.
+title: Field Types & showWhen Reference
+description: Built-in field types, validation constraints, conditional visibility rules, and $Infer type mappings.
 icon: ListTree
 ---
 
-Field types are validators on the instance, not React components. How to
-add one: [Custom fields](/docs/custom-fields).
-
-Built-ins are always registered. Extra types go in
-`dimahForm({ fieldTypes })`. Duplicate `type` strings throw at init.
+**dimah-form** includes 7 built-in field types in `@dimah-form/core`. Each type defines a Zod definition schema, a server validation rule, and a TypeScript inference mapping.
 
 ---
 
-## Built-ins
+## Built-In Field Types Catalog
 
-| Type          | Answer                           | Extra keys                               |
-| ------------- | -------------------------------- | ---------------------------------------- |
-| `text`        | string                           | `minLength`, `maxLength`, `pattern`      |
-| `number`      | finite number                    | `min`, `max`, `integer`                  |
-| `boolean`     | boolean                          | —                                        |
-| `select`      | string option value              | `options` (`{ value, label?, meta? }[]`) |
-| `multiSelect` | `string[]`                       | `options` (unique values)                |
-| `email`       | string                           | —                                        |
-| `date`        | ISO calendar date (`YYYY-MM-DD`) | `min`, `max` (ISO dates)                 |
-
-Shared field keys: `id`, `type`, `required`, `label`, `description`,
-`defaultValue`, `showWhen`, `meta`.
-
-Blank strings are empty for `text`, `number`, `select`, `email`, and
-`date`. An empty array is empty for `multiSelect`. Required checks run on
-**submit** for **visible** fields. Draft allows empty required fields.
-
-Select / multiSelect `options` need at least one entry. Duplicate option
-`value`s are rejected on the document.
-
-`pattern` on `text` must be a valid `RegExp` source. `minLength` must be
-`<= maxLength` when both are set. `number` `min` must be `<= max`. `date` `min` must be `<= max`.
+| Type              | Answer Type | Schema Constraints                                                             | Description                                                                                                     |
+| :---------------- | :---------- | :----------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- |
+| **`text`**        | `string`    | `minLength?: number`<br />`maxLength?: number`<br />`pattern?: string` (regex) | Single-line or multi-line text input. Validates length and regex pattern.                                       |
+| **`number`**      | `number`    | `min?: number`<br />`max?: number`<br />`integer?: boolean`                    | Numeric input. Validates minimum, maximum, and integer constraints.                                             |
+| **`boolean`**     | `boolean`   | —                                                                              | Checkbox or toggle switch. Values are strictly `true` or `false`.                                               |
+| **`select`**      | `string`    | `options: SelectOption[]`                                                      | Single-choice dropdown or radio group. Answer must match an option `value`.                                     |
+| **`multiSelect`** | `string[]`  | `options: SelectOption[]`                                                      | Multi-choice checkbox group or tag selector. Answer must be an array of valid option values without duplicates. |
+| **`email`**       | `string`    | —                                                                              | Email address input. Validates standard RFC 5322 email formatting.                                              |
+| **`date`**        | `string`    | `min?: string` (YYYY-MM-DD)<br />`max?: string` (YYYY-MM-DD)                   | Calendar date in `YYYY-MM-DD` ISO format. Validates date boundaries.                                            |
 
 ---
 
-## Visibility (`showWhen`)
+## Select Option Structure
 
-Skip a field when the sibling answer does not match. Hidden answers are
-stripped before validation.
-
-```ts
-{
-  id: "team",
-  type: "text",
-  label: "Team",
-  showWhen: { field: "role", equals: "eng" },
-}
-```
+Options passed to `select` or `multiSelect` fields follow this schema:
 
 ```ts
-{
-  id: "apiNote",
-  type: "text",
-  showWhen: { field: "highlights", includes: "api" },
-}
+type SelectOption = {
+  /** The persisted answer value (e.g., "us", "uk", "de") */
+  value: string;
+
+  /** Display label for the UI (defaults to value if omitted) */
+  label?: string;
+
+  /** Custom metadata for icons, descriptions, or badge tags */
+  meta?: Record<string, unknown>;
+};
 ```
-
-`equals` uses `Object.is`. `notEquals` is the inverse. `includes` matches a
-value inside an array sibling (`multiSelect`). At least one compare key is
-required on a leaf; both `equals` and `includes` may be set (AND).
-
-Compound rules:
-
-```ts
-{
-  id: "note",
-  type: "text",
-  showWhen: {
-    all: [
-      { field: "role", equals: "eng" },
-      { field: "level", notEquals: "intern" },
-    ],
-  },
-}
-```
-
-`any` is OR. Nested `showWhen` on a referenced sibling still hides the
-dependent field.
-
-`defaultValue` seeds a new response, then hidden fields are dropped.
 
 ---
 
-## Type inference
+## Conditional Visibility (`showWhen`)
 
-Code-authored forms produce `form.$Infer.answers[formKey]`. Required
-fields are required keys; optional fields are omitted keys — the same
-object `parseAnswers` returns on submit.
+The `showWhen` property dynamically hides or shows fields based on the respondent's answers.
 
-Custom types contribute through `$Infer` on `defineFieldType` and the
-`fieldTypes` generic on the instance. Plugin `fieldTypes` merge into that
-union.
+<Callout type="info">
+  **Automatic Cleanup**: When a field is conditionally hidden, its answer is
+  automatically stripped from the submitted response so outdated answers never
+  persist to your database.
+</Callout>
+
+### 1. Leaf Conditions
+
+#### `equals`
+
+Matches when the target field's answer strictly equals the specified value:
 
 ```ts
-type Feedback = Form["$Infer"]["answers"]["feedback"];
-// { name: string; ok: boolean; role?: "eng" | "pm"; team?: string }
+{
+  id: "githubHandle",
+  type: "text",
+  label: "GitHub Handle",
+  showWhen: { field: "role", equals: "developer" },
+}
 ```
 
-Browser `$Infer` is `createFormClient<typeof form>()` (type-only). Pass
-`forms` / `fieldTypes` on the client only when you do not have the server
-instance type. Still pass `fieldTypes` at **runtime** for
-`useFormResponse` local validation.
+#### `notEquals`
 
-Type the fill session with the same catalog key:
+Matches when the target field's answer is not equal to the specified value:
 
 ```ts
-const q = useFormResponse<Form["$Infer"]["answers"]["feedback"]>({
-  snapshot,
+{
+  id: "reason",
+  type: "text",
+  label: "Reason for cancellation",
+  showWhen: { field: "plan", notEquals: "free" },
+}
+```
+
+#### `includes`
+
+Matches when a `multiSelect` array answer contains the specified value:
+
+```ts
+{
+  id: "reactExperience",
+  type: "number",
+  label: "Years of React Experience",
+  showWhen: { field: "skills", includes: "react" },
+}
+```
+
+### 2. Compound Conditions (`all` / `any`)
+
+#### `all` (Logical AND)
+
+Matches only when **all** nested conditions evaluate to `true`:
+
+```ts
+showWhen: {
+  all: [
+    { field: "department", equals: "engineering" },
+    { field: "isLead", equals: true },
+  ],
+}
+```
+
+#### `any` (Logical OR)
+
+Matches when **at least one** nested condition evaluates to `true`:
+
+```ts
+showWhen: {
+  any: [
+    { field: "country", equals: "US" },
+    { field: "country", equals: "CA" },
+  ],
+}
+```
+
+---
+
+## Type Inference (`$Infer`) Mapping
+
+When defining forms with `defineForm()`, TypeScript derives the answer type automatically:
+
+```ts title="lib/forms/example.ts"
+import { defineForm } from "@dimah-form/server";
+
+export const exampleForm = defineForm({
+  title: "Example",
+  slug: "example",
+  fields: [
+    { id: "name", type: "text", required: true },
+    { id: "age", type: "number" }, // Optional because required is omitted
+    {
+      id: "role",
+      type: "select",
+      required: true,
+      options: [{ value: "admin" }, { value: "user" }],
+    },
+    {
+      id: "tags",
+      type: "multiSelect",
+      options: [{ value: "frontend" }, { value: "backend" }],
+    },
+  ],
 });
 ```
 
+The resulting `$Infer` answer type is strictly typed:
+
+```ts
+type ExampleAnswers = Form["$Infer"]["answers"]["example"];
+
+// Resolves to:
+// {
+//   name: string;
+//   role: "admin" | "user";
+//   age?: number;
+//   tags?: ("frontend" | "backend")[];
+// }
+```
+
 ---
 
-## See also
+## Next Steps
 
 <Cards>
   <Card
-    title="Custom fields"
+    title="Custom Field Types"
     href="/docs/custom-fields"
-    description="defineFieldType, fieldSchema, isEmpty."
+    description="Create custom validators and $Infer type mappings with defineFieldType."
   />
   <Card
-    title="Forms"
-    href="/docs/forms"
-    description="meta vs type-specific keys."
+    title="Headless Widgets"
+    href="/docs/widgets"
+    description="Render UI widgets for all 7 built-in field types."
   />
   <Card
-    title="React client"
-    href="/docs/react"
-    description="visibleFields and field(id)."
+    title="HTTP Protocol"
+    href="/docs/protocol"
+    description="Inspect request and response payload schemas."
   />
 </Cards>

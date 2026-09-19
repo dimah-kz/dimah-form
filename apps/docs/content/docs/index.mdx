@@ -1,143 +1,105 @@
 ---
 title: Introduction
-description: Backend-first questionnaires for the React ecosystem — typed protocol, snapshots, and submit validation. You own the UI.
+description: Headless, backend-first questionnaire engine for React and Node.js.
 icon: House
 ---
 
-dimah-form is a modular questionnaire engine for React and Node.js runtimes.
-It owns the protocol, definition snapshots, drafts, and submit validation.
-You own rendering, auth, and the database adapter.
-
-## Architecture flow
+**dimah-form** is a headless, type-safe questionnaire engine. It provides the backend runtime, schema snapshots, draft management, and validation pipeline for complex forms and surveys—while leaving UI widgets, authentication, and database persistence completely in your control.
 
 <Flow
-  label="Headless fill loop"
+  label="System Data Flow"
   steps={[
-    { name: "Browser", kind: "client", note: "your widgets" },
-    { name: "Server", kind: "server", note: "dimahForm()" },
-    { name: "Database", kind: "data", note: "snapshot + persist" },
+    {
+      name: "React Client",
+      kind: "client",
+      note: "useFormResponse + your UI widgets",
+    },
+    {
+      name: "HTTP Handler",
+      kind: "server",
+      note: "dimahForm() + guard security",
+    },
+    { name: "Persistence", kind: "data", note: "Snapshots & ResponseStore" },
   ]}
 />
 
-The browser talks through `createFormClient`. The server instance
-(`dimahForm()`) validates answers against the snapshot stored on the
-response — not the live questionnaire.
+---
 
-**For coding agents** — [llms.txt](/llms.txt) · [llms-full.txt](/llms-full.txt).
+## Why dimah-form?
+
+Building multi-step questionnaires, surveys, and onboarding flows is deceptively complex. Real-world forms face three major challenges that standard client-side form libraries cannot solve:
+
+1. **Schema Drift During Long Fills**: If an admin updates a questionnaire while a user is filling out a draft, validating against the live schema breaks the draft. dimah-form freezes an exact snapshot of the definition at fill start time.
+2. **Drafts & Optimistic Concurrency**: Respondents switch devices or have unstable network connections. dimah-form provides automated draft saving with `updatedAt` Compare-And-Swap (CAS) tokens to prevent overwrites.
+3. **Headless Freedom with Server Validation**: You build your own UI using your design system (Tailwind, shadcn/ui, Radix), while dimah-form ensures answers are strictly validated on the server against the frozen snapshot.
 
 ---
 
-## What you get
+## Core Pillars
 
-- **Typed protocol** — one schema in `@dimah-form/core`, used by server and React
-- **Snapshots** — each response keeps the definition it was started with
-- **Drafts and submit** — patch drafts, replace on submit, optional reopen
-- **Headless React** — `useFormResponse` binds your widgets; it is not a renderer
-- **Persistence** — `memoryAdapter()` to try the protocol, or FumaDB via `@dimah-form/db`
+<Cards>
+  <Card
+    title="Snapshot Immutability"
+    description="Every response freezes the form schema at start time. Schema updates to active forms never corrupt in-flight responses."
+  />
+  <Card
+    title="End-to-End Type Safety"
+    description="Code-authored forms automatically infer TypeScript answer types ($Infer) across server endpoints and React hooks."
+  />
+  <Card
+    title="Headless & UI-Agnostic"
+    description="Zero bundled CSS or opinionated form widgets. Render with Tailwind CSS, shadcn/ui, or plain HTML elements."
+  />
+  <Card
+    title="Database & Framework Agnostic"
+    description="Ready-made adapters for Next.js, Hono, Express, Fastify, SvelteKit, and Elysia. Store with Drizzle, Prisma, or custom stores."
+  />
+</Cards>
 
-Custom fields are `defineFieldType` validators, not components. There is
-no form renderer and no shadcn registry.
+---
 
-## Packages
+## Package Ecosystem
 
-| Package              | Role                                                                                  |
-| -------------------- | ------------------------------------------------------------------------------------- |
-| `@dimah-form/server` | `dimahForm()`, HTTP `handler`, `form.api`, adapters                                   |
-| `@dimah-form/react`  | `createFormClient`, `useFormResponse` — no widgets                                    |
-| `@dimah-form/db`     | FumaDB `database` adapter (`db()`)                                                    |
-| `@dimah-form/core`   | Protocol SSOT. App code imports `server` or `react`; shared field types import `core` |
+The repository is structured as a focused TypeScript monorepo with distinct separation of concerns:
 
 ```
-@dimah-form/core
+@dimah-form/core (Protocol SSOT, Schemas, Validators, Types)
         ↓
-@dimah-form/server | @dimah-form/react
-        ↑
-@dimah-form/db   (peer of server)
+@dimah-form/server  ←───  @dimah-form/db (FumaDB / Drizzle / Prisma)
+        │
+@dimah-form/react   (useFormResponse, Form client)
 ```
 
-`database` is required: `memoryAdapter()` from server, or `db()` from
-`@dimah-form/db`. Custom stores implement `ResponseStore`.
-
-Share types with `export type Form = typeof form` and
-`createFormClient<Form>()`. Do not pass the server instance into the browser.
-
----
-
-## Frequently asked questions
-
-<Accordions>
-
-<Accordion title="When should I choose dimah-form?">
-
-When you need typed questionnaires with drafts, definition snapshots, and
-submit validation, and you already have (or want) your own field widgets.
-
-Skip it if you want a ready-made form renderer, a visual builder, or a
-hosted survey product.
-
-</Accordion>
-
-<Accordion title="Does dimah-form ship field widgets?">
-
-No. Built-in field types are validators (`text`, `number`, `boolean`,
-`select`, `multiSelect`, `email`, `date`). Extra types are
-`defineFieldType`. Rendering stays in your app.
-
-</Accordion>
-
-<Accordion title="Where does auth live?">
-
-In your `guard` on `dimahForm()`. Throw `APIError` with a catalog code —
-a plain `Error` becomes `INTERNAL_ERROR`. See [Auth](/docs/auth).
-
-</Accordion>
-
-<Accordion title="Is the database optional?">
-
-No. `database` is required. Use `memoryAdapter()` from
-`@dimah-form/server` for tests or ephemeral apps, or `db()` from
-`@dimah-form/db` for FumaDB persistence.
-
-</Accordion>
-
-<Accordion title="How do I share types between server and React?">
-
-`export type Form = typeof form` on the server instance, then
-`createFormClient<Form>()` in the browser. Pass the same `fieldTypes`
-array on both sides when you have extras.
-
-</Accordion>
-
-</Accordions>
+| Package                  | Environment              | Purpose                                                                                 |
+| :----------------------- | :----------------------- | :-------------------------------------------------------------------------------------- |
+| **`@dimah-form/core`**   | Shared (Universal)       | Protocol SSOT, Zod schemas, field validators, error codes, and TypeScript types.        |
+| **`@dimah-form/server`** | Server (Node / Edge)     | `dimahForm()` engine, HTTP framework adapters, `form.api`, and `memoryAdapter()`.       |
+| **`@dimah-form/react`**  | Browser (`"use client"`) | `createFormClient()`, `useFormResponse()`, field binding helpers, and state management. |
+| **`@dimah-form/db`**     | Server                   | Production persistence adapter powered by FumaDB (supports Drizzle and Prisma).         |
 
 ---
 
-## Explore documentation
+## Explore the Documentation
 
 <Cards>
   <Card
     title="Quickstart"
     href="/docs/quickstart"
-    description="Install the packages and start a fill session."
+    description="Build and render a complete questionnaire in 5 minutes with Next.js."
   />
   <Card
     title="Architecture"
     href="/docs/architecture"
-    description="Packages, snapshots, and the request pipeline."
+    description="Understand the execution pipeline, package boundaries, and data flow."
   />
   <Card
-    title="Server"
-    href="/docs/server"
-    description="Create dimahForm() and mount it on your runtime."
-  />
-  <Card
-    title="React client"
+    title="React Client"
     href="/docs/react"
-    description="Headless fill session — draft, submit, and reopen."
+    description="Learn how to manage fill sessions, draft autosaving, and visibility with useFormResponse."
   />
   <Card
-    title="Protocol"
-    href="/docs/protocol"
-    description="Every endpoint, client args vs form.api."
+    title="Defining Forms"
+    href="/docs/forms"
+    description="Author typed forms with defineForm, configure field rules, and use $Infer."
   />
 </Cards>

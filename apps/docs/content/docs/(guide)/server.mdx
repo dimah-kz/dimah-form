@@ -1,55 +1,41 @@
 ---
-title: Server
-description: Create dimahForm(), mount an HTTP adapter, and call form.api on the server.
+title: Server & Adapters
+description: Configure dimahForm(), mount HTTP route adapters across frameworks, and invoke form.api directly.
 icon: Server
 ---
 
-`@dimah-form/server` is the Node/edge entry: `dimahForm()` returns
-`handler`, typed `api`, `$ERROR_CODES`, and `$Infer`.
+`@dimah-form/server` is the backend engine for Node.js, Bun, Deno, and Edge runtimes. It handles HTTP protocol routing, form definitions, snapshot freezing, security guards, and validation pipelines.
 
-## Install
+---
 
-```npm
-npm i @dimah-form/server
-```
+## Initializing `dimahForm()`
 
-Add [`@dimah-form/db`](/docs/database) when you want FumaDB. `database` is
-always required.
-
-## Configure
+Create a centralized `dimahForm()` instance in your project:
 
 ```ts title="lib/form.ts"
-import { defineForm, dimahForm, memoryAdapter } from "@dimah-form/server";
+import { dimahForm, memoryAdapter } from "@dimah-form/server";
+import { forms } from "@/lib/forms";
 
 export const form = dimahForm({
-  database: memoryAdapter(),
-  forms: {
-    feedback: defineForm({
-      title: "Feedback",
-      slug: "feedback",
-      fields: [{ id: "name", type: "text", required: true, label: "Name" }],
-    }),
-  },
+  database: memoryAdapter(), // or db(formDb) from @dimah-form/db
+  forms,
+  basePath: "/api/form", // Default base path
 });
 
 export type Form = typeof form;
 ```
 
-Pair `export type Form = typeof form` with `createFormClient<Form>()` so
-the browser reuses `$Infer` without a runtime catalog copy.
-
-Full option list: [Configuration](/docs/configuration).
-
 ---
 
-## Mount the handler
+## HTTP Framework Adapters
 
-Adapters are structural (no framework peer dependencies). Default
-`basePath` is `/api/form`.
+`@dimah-form/server` provides dedicated adapters for all major JavaScript backend frameworks:
 
-<Tabs items={["Next.js", "Express", "Hono", "SvelteKit", "Fastify", "Elysia", "Node", "Web"]}>
+<Tabs items={["Next.js", "Hono", "Express", "Fastify", "SvelteKit", "Elysia", "Node.js", "Web Fetch"]}>
 
 <Tab value="Next.js">
+
+Mount a catch-all route handler in the Next.js App Router:
 
 ```ts title="app/api/form/[...all]/route.ts"
 import { toNextJsHandler } from "@dimah-form/server/next";
@@ -60,34 +46,56 @@ export const { GET, POST, PUT, PATCH, DELETE } = toNextJsHandler(form);
 
 </Tab>
 
-<Tab value="Express">
-
-```ts title="server.ts"
-import express from "express";
-import { toExpressHandler } from "@dimah-form/server/express";
-import { form } from "./form";
-
-const app = express();
-// The adapter reads the raw stream — mount it before JSON middleware.
-app.all("/api/form/*", toExpressHandler(form));
-app.use(express.json());
-```
-
-</Tab>
-
 <Tab value="Hono">
 
 ```ts title="src/index.ts"
 import { Hono } from "hono";
 import { toHonoHandler } from "@dimah-form/server/hono";
-import { form } from "./form";
+import { form } from "./lib/form";
 
 const app = new Hono();
+
 app.on(
   ["GET", "POST", "PUT", "PATCH", "DELETE"],
   "/api/form/*",
   toHonoHandler(form),
 );
+
+export default app;
+```
+
+</Tab>
+
+<Tab value="Express">
+
+```ts title="src/server.ts"
+import express from "express";
+import { toExpressHandler } from "@dimah-form/server/express";
+import { form } from "./lib/form";
+
+const app = express();
+
+// Mount dimahForm BEFORE express.json() so it can read raw stream payloads
+app.all("/api/form/*", toExpressHandler(form));
+
+app.use(express.json());
+app.listen(3000, () => console.log("Server listening on port 3000"));
+```
+
+</Tab>
+
+<Tab value="Fastify">
+
+```ts title="src/server.ts"
+import Fastify from "fastify";
+import { toFastifyHandler } from "@dimah-form/server/fastify";
+import { form } from "./lib/form";
+
+const app = Fastify();
+
+app.all("/api/form/*", toFastifyHandler(form));
+
+await app.listen({ port: 3000 });
 ```
 
 </Tab>
@@ -96,9 +104,10 @@ app.on(
 
 ```ts title="src/routes/api/form/[...path]/+server.ts"
 import { toSvelteKitHandler } from "@dimah-form/server/svelte-kit";
-import { form } from "$lib/form";
+import { form } from "$lib/server/form";
 
 const handler = toSvelteKitHandler(form);
+
 export const GET = handler;
 export const POST = handler;
 export const PUT = handler;
@@ -108,60 +117,53 @@ export const DELETE = handler;
 
 </Tab>
 
-<Tab value="Fastify">
-
-```ts title="server.ts"
-import Fastify from "fastify";
-import { toFastifyHandler } from "@dimah-form/server/fastify";
-import { form } from "./form";
-
-const app = Fastify();
-// Mount before body parsers, or disable JSON parsing for this path.
-app.all("/api/form/*", toFastifyHandler(form));
-```
-
-</Tab>
-
 <Tab value="Elysia">
 
 ```ts title="src/index.ts"
 import { Elysia } from "elysia";
 import { toElysiaHandler } from "@dimah-form/server/elysia";
-import { form } from "./form";
+import { form } from "./lib/form";
 
 new Elysia().all("/api/form/*", toElysiaHandler(form)).listen(3000);
 ```
 
 </Tab>
 
-<Tab value="Node">
+<Tab value="Node.js">
 
-```ts title="server.ts"
+```ts title="src/server.ts"
 import { createServer } from "node:http";
 import { toNodeHandler } from "@dimah-form/server/node";
-import { form } from "./form";
+import { form } from "./lib/form";
 
 const handler = toNodeHandler(form);
 
-createServer((req, res) => {
-  if (req.url?.startsWith("/api/form")) return handler(req, res);
+const server = createServer((req, res) => {
+  if (req.url?.startsWith("/api/form")) {
+    return handler(req, res);
+  }
   res.statusCode = 404;
-  res.end("Not found");
-}).listen(3000);
+  res.end("Not Found");
+});
+
+server.listen(3000);
 ```
 
 </Tab>
 
-<Tab value="Web">
+<Tab value="Web Fetch">
 
-```ts
+Use standard `Request` / `Response` directly (Cloudflare Workers, Deno, Bun):
+
+```ts title="src/worker.ts"
+import { form } from "./lib/form";
+
 export default {
   fetch(request: Request) {
-    const url = new URL(request.url);
-    if (url.pathname.startsWith("/api/form")) {
+    if (new URL(request.url).pathname.startsWith("/api/form")) {
       return form.handler(request);
     }
-    return new Response("Not found", { status: 404 });
+    return new Response("Not Found", { status: 404 });
   },
 };
 ```
@@ -172,97 +174,72 @@ export default {
 
 ---
 
-## Server-side API (`form.api`)
+## Direct Server API (`form.api`)
 
-Invoke endpoints without HTTP. The map uses better-call `{ body, query }`
-— not the browser client's object args. Pass `headers` so `guard` sees
-cookies or `Authorization`.
+In addition to serving HTTP requests, `dimahForm()` provides a typed, internal API (`form.api`) that you can call directly in Next.js Server Actions, React Server Components, or backend services without any HTTP network overhead:
 
-```ts title="app/actions.ts"
-"use server";
-
-import { headers } from "next/headers";
+```tsx title="app/survey/[slug]/page.tsx"
 import { form } from "@/lib/form";
+import { notFound } from "next/navigation";
+import { headers } from "next/headers";
+import { Questionnaire } from "@/components/questionnaire";
 
-export async function loadFeedback() {
-  return form.api.getForm({
-    query: { formId: "feedback" },
-    headers: await headers(),
+interface PageProps {
+  params: Promise<{ slug: string }>;
+}
+
+export default async function SurveyPage({ params }: PageProps) {
+  const { slug } = await params;
+
+  // Direct server call — runs validation and security guards internally
+  const snapshot = await form.api.getForm({
+    query: { formId: slug },
+    headers: await headers(), // Forwards session cookies/headers to guard
   });
+
+  if (!snapshot) {
+    notFound();
+  }
+
+  return <Questionnaire form={snapshot} />;
 }
 ```
 
-```ts
-await form.api.startResponse({
-  body: { formId: "feedback", respondentId: "user_1" },
-  headers: await headers(),
-});
-```
+### Available `form.api` Methods
 
-From Node / Express, convert incoming headers with `fromNodeHeaders`
-(`@dimah-form/server/node`).
-
----
-
-## Frequently asked questions
-
-<Accordions>
-
-<Accordion title="How do error handling and status codes work?">
-
-Failed requests return JSON `{ message, code?, params?, issues? }`.
-Unknown throws become `INTERNAL_ERROR` (500). Unmatched paths return
-`NOT_FOUND` (404).
-
-Use `APIError.from` and `FORM_ERROR_CODES`. The `errors.*` helpers are
-**not** part of the public `@dimah-form/server` export. See
-[Errors](/docs/errors).
-
-</Accordion>
-
-<Accordion title="How do I change the base path or call a cross-origin API?">
-
-Set `basePath` on `dimahForm()`. The client must use the same prefix
-(`basePath`), or a full `baseURL` when the API is hosted elsewhere:
-
-```ts
-export const form = dimahForm({
-  basePath: "/api/questionnaires", // [!code ++]
-  database: memoryAdapter(),
-});
-```
-
-```ts
-export const formClient = createFormClient<Form>({
-  baseURL: "https://api.example.com/api/questionnaires", // [!code ++]
-  credentials: "include",
-});
-```
-
-`baseURL` wins over `basePath` on the client.
-
-</Accordion>
-
-</Accordions>
+| Method                | Payload                                          | Returns          | Description                                         |
+| :-------------------- | :----------------------------------------------- | :--------------- | :-------------------------------------------------- |
+| **`getForm`**         | `{ query: { formId } }`                          | `FormSnapshot`   | Retrieves form definition by ID or slug.            |
+| **`listForms`**       | `{ query?: { status?, limit?, offset? } }`       | `FormList`       | Returns paginated list of forms.                    |
+| **`saveForm`**        | `{ body: FormSnapshot }`                         | `FormSnapshot`   | Upserts dynamic form in database.                   |
+| **`deleteForm`**      | `{ body: { formId } }`                           | `{ ok: true }`   | Deletes a dynamic form (must have no responses).    |
+| **`startResponse`**   | `{ body: { formId, respondentId?, resume? } }`   | `ResponseRecord` | Starts response session and freezes snapshot.       |
+| **`getResponse`**     | `{ query: { responseId } }`                      | `ResponseRecord` | Fetches a response record.                          |
+| **`listResponses`**   | `{ query?: ListResponsesQuery }`                 | `ResponseList`   | Lists response summaries or full records.           |
+| **`saveDraft`**       | `{ body: { responseId, answers, updatedAt? } }`  | `ResponseRecord` | Patches partial answers on an active draft.         |
+| **`submitResponse`**  | `{ body: { responseId, answers?, updatedAt? } }` | `ResponseRecord` | Validates visible answers and finalizes response.   |
+| **`abandonResponse`** | `{ body: { responseId, updatedAt? } }`           | `ResponseRecord` | Marks draft as abandoned.                           |
+| **`reopenResponse`**  | `{ body: { responseId, updatedAt? } }`           | `ResponseRecord` | Unlocks submitted/abandoned response back to draft. |
+| **`deleteResponse`**  | `{ body: { responseId } }`                       | `{ ok: true }`   | Deletes response record.                            |
 
 ---
 
-## See also
+## Next Steps
 
 <Cards>
   <Card
-    title="Forms"
-    href="/docs/forms"
-    description="defineForm, status, slug, code-authored vs stored."
-  />
-  <Card
-    title="Database"
+    title="Database & Storage"
     href="/docs/database"
-    description="memoryAdapter, FumaDB, custom ResponseStore."
+    description="Connect dimahForm to Drizzle, Prisma, or custom database stores."
   />
   <Card
-    title="Protocol"
-    href="/docs/protocol"
-    description="Every path and payload."
+    title="Authentication & Guard"
+    href="/docs/auth"
+    description="Secure form operations and respondent data with guard hooks."
+  />
+  <Card
+    title="Configuration Reference"
+    href="/docs/configuration"
+    description="Explore all available dimahForm configuration parameters."
   />
 </Cards>

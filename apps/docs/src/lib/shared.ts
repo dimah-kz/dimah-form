@@ -120,6 +120,7 @@ export function siteJsonLd(origin: string) {
         "@id": orgId,
         name: appName,
         url: origin,
+        logo: `${origin}/logo.svg`,
         sameAs,
       },
       {

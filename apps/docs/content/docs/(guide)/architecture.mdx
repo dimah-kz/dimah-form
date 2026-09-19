@@ -1,30 +1,67 @@
 ---
 title: Architecture
-description: What the library owns, why snapshots exist, and how packages stay in lockstep.
+description: Core principles, package boundaries, data flow, and the 6-stage request pipeline.
 icon: Network
 ---
 
-Backend-first questionnaire engine. You own widgets, auth, and the
-database adapter. The library owns the protocol, definition snapshots,
-and submit validation.
+dimah-form is designed around a **headless, backend-first** architecture. The library manages the protocol, form definitions, snapshot freezing, draft tracking, and validation, while giving you 100% control over the user interface, authentication, and database layer.
 
-Start copies the live questionnaire onto the response. Draft and submit
-validate that copy — not tonight's `saveForm`. There is no version table.
-Lifecycle detail: [Snapshots](/docs/snapshots).
+---
+
+## Architectural Principles
+
+<Cards>
+  <Card
+    title="Headless by Design"
+    description="Zero UI components, styles, or widget registries. You render fields using your existing design system."
+  />
+  <Card
+    title="Snapshot Invariant"
+    description="Fill sessions freeze the form schema at start time. In-flight drafts never break when forms are edited."
+  />
+  <Card
+    title="Protocol Single Source of Truth"
+    description="@dimah-form/core defines all routes, payloads, and validators. Server and client never drift."
+  />
+  <Card
+    title="Zero-ORM Server Engine"
+    description="@dimah-form/server has no database dependencies. Storage is abstracted through the ResponseStore interface."
+  />
+</Cards>
+
+---
+
+## System Flow
+
+The diagram below illustrates how client interactions, HTTP routes, security guards, validation engines, and database stores interact:
 
 <ArchitectureDiagram />
 
 <Accordions>
-<Accordion title="Mermaid source for this diagram">
+<Accordion title="View Mermaid Diagram">
 
 ```mermaid
 flowchart TD
-  UI["Your widgets"] --> Client["createFormClient / useFormResponse"]
-  Client --> Guard["guard"]
-  Guard --> Server["dimahForm()"]
-  Server --> Snap["Response.definition snapshot"]
-  Snap --> DB["database adapter"]
-  Live["Live questionnaire"] -.->|"copied at start only"| Snap
+  subgraph Client ["Browser / React App"]
+    UI["Your UI Widgets / Stepper"] --> Hook["useFormResponse"]
+    Hook --> HTTPClient["createFormClient"]
+  end
+
+  subgraph Server ["Backend Runtime (@dimah-form/server)"]
+    HTTPClient --> Route["HTTP Handler (Next.js / Hono / Express)"]
+    Route --> Guard["guard ({ request, operation, ... })"]
+    Guard --> Engine["dimahForm() Router"]
+    Engine --> SnapshotVal["Validate vs response.definition Snapshot"]
+    SnapshotVal --> PreHooks["on* Pre-Write Lifecycle Hooks"]
+  end
+
+  subgraph Storage ["Database Layer (@dimah-form/db)"]
+    PreHooks --> Store["ResponseStore Adapter"]
+    Store --> Tables[("questionnaire & response tables")]
+    Store --> PostHooks["after* Post-Write Lifecycle Hooks"]
+  end
+
+  LiveDoc["Code Forms / DB Form"] -.->|"freezes snapshot at start"| Tables
 ```
 
 </Accordion>
@@ -32,104 +69,82 @@ flowchart TD
 
 ---
 
-## Packages
+## Package Boundaries
 
-```
-@dimah-form/core          protocol, errors, createFormClient, fill session
-        ↓
-@dimah-form/server        dimahForm(), HTTP adapters, server plugins
-@dimah-form/react         thin hooks around the same client
-        ↑
-@dimah-form/db            FumaDB adapter (peer of server)
-```
+Each package in the `dimah-form` monorepo has a strictly defined responsibility and dependency direction:
 
-| Package              | When to import it                                                                            |
-| -------------------- | -------------------------------------------------------------------------------------------- |
-| `@dimah-form/server` | Node / edge modules: `dimahForm`, `defineForm`, adapters                                     |
-| `@dimah-form/react`  | Client components. The package is `"use client"`                                             |
-| `@dimah-form/core`   | Shared `defineFieldType` modules used by **both** server and client; protocol/plugin authors |
-| `@dimah-form/db`     | `DimahFormDB.client(…)` then `db(client)` as `database`                                      |
-
-Apps do not pass the server instance into `createFormClient`. Copy `$Infer`
-with `export type Form = typeof form` and `createFormClient<Form>()`.
-
-Do not copy `FORM_API_ROUTES` or Zod payload schemas into `server` or
-`react` — both import them from `core`. Browser client methods use object
-args; `form.api` uses better-call `{ query }` / `{ body }`.
-
-Config is instance-based:
-
-```ts
-dimahForm({
-  database, // required
-  forms, // optional code-authored catalog; feeds $Infer
-  fieldTypes, // extra validators on this instance
-  guard, // auth / policy — not a library feature
-  hooks, // on* before persist, after* after persist
-  plugins, // additive endpoints / hooks / field types / error codes
-  metaSchema, // optional Zod for opaque meta bags
-  validateAnswers, // extra issues after per-field validators
-  basePath, // default /api/form
-});
-```
-
-Plugins merge once in `dimahForm()`. They do not replace `database` and
-must not add tables.
+| Package                  | Environment | Responsibility                                                                                         | Key Exports                                                             |
+| :----------------------- | :---------- | :----------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------- |
+| **`@dimah-form/core`**   | Universal   | Protocol SSOT, Zod schemas, field definitions, answer validation, error codes, and type inference.     | `defineForm`, `defineFieldType`, `APIError`, `FORM_ERROR_CODES`         |
+| **`@dimah-form/server`** | Server      | Backend router, HTTP framework adapters, `form.api`, lifecycle hook dispatcher, and `memoryAdapter()`. | `dimahForm()`, `toNextJsHandler`, `toHonoHandler`, `memoryAdapter`      |
+| **`@dimah-form/react`**  | Browser     | Headless React client, session state machine, visibility resolver, field bindings, and autosave.       | `createFormClient()`, `useFormResponse()`, `fieldLabel`, `fieldOptions` |
+| **`@dimah-form/db`**     | Server      | Production persistence adapter using FumaDB for Drizzle ORM and Prisma ORM.                            | `DimahFormDB`, `db()`                                                   |
 
 ---
 
-## Request pipeline
+## The 6-Stage Request Pipeline
+
+Every incoming mutation or query follows a deterministic, 6-stage execution lifecycle:
 
 <Flow
-  label="Every operation"
+  label="Execution Lifecycle"
   steps={[
-    { name: "parse", kind: "protocol", note: "query / body" },
-    { name: "guard", kind: "server", note: "your policy" },
-    { name: "on*", kind: "server", note: "after validate" },
-    { name: "persist", kind: "data", note: "database" },
-    { name: "after*", kind: "server", note: "side effects" },
+    { name: "1. Parse", kind: "protocol", note: "Zod query / body check" },
+    { name: "2. Guard", kind: "server", note: "Auth & permissions" },
+    { name: "3. Validate", kind: "protocol", note: "Against snapshot" },
+    { name: "4. on* Hook", kind: "server", note: "Pre-write mutation" },
+    { name: "5. Persist", kind: "data", note: "Store write & CAS" },
+    { name: "6. after* Hook", kind: "server", note: "Side-effects" },
   ]}
 />
 
-1. Query/body parse. Zod failures throw `VALIDATION_ERROR`.
-2. `guard({ request, operation, formId?, responseId?, getResponse, getForm })`. Throw `APIError`
-   to reject. A plain `Error` becomes `INTERNAL_ERROR`. `getResponse` / `getForm`
-   read the store (and code catalog) without HTTP or guard re-entry.
-3. Handler logic. For submit, `parseAnswers` runs against
-   **`existing.definition`**, not `config.forms`.
-4. `on*` hooks (may mutate the row, e.g. `respondentId` on start).
-5. Persist. If this throws, `after*` is skipped.
-6. `after*` hooks — mail, queues, webhooks.
+### 1. Inbound Parse & Schema Validation
 
-Plugin `on*` / `after*` run first (`dependsOn`, then registration order),
-then instance hooks.
+The HTTP adapter parses the incoming HTTP request and validates query parameters or body payloads against the Zod schemas defined in `@dimah-form/core`. Malformed requests immediately return `400 VALIDATION_ERROR`.
+
+### 2. Security Guard
+
+The optional `guard` hook executes before any database or form logic. You inspect the `request`, `operation`, `formId`, or `responseId`, verify user session cookies/tokens, and enforce permissions. Throwing an `APIError` halts execution and sends a structured error response.
+
+### 3. Snapshot Validation
+
+When saving drafts or submitting responses, answer values are validated **against the frozen `response.definition` snapshot**, never against the live form schema. Submitting verifies that all visible required fields are populated and valid. Hidden fields (per `showWhen`) are automatically stripped.
+
+### 4. Pre-Write Hooks (`on*`)
+
+Pre-persistence hooks (such as `onStart`, `onDraft`, `onSubmit`) run before the database transaction. You can attach user identifiers (`response.respondentId = user.id`) or enrich metadata directly on the in-memory record.
+
+### 5. Persistence & Optimistic Concurrency (CAS)
+
+The `ResponseStore` writes the record to the database. If an `expectedUpdatedAt` timestamp was provided, the store verifies that the row has not been modified by another client in the meantime. If the timestamp differs, a `STALE_UPDATE` (409) conflict is raised.
+
+### 6. Post-Write Hooks (`after*`)
+
+After the database write successfully commits, post-persistence hooks (such as `afterSubmit`, `afterDraft`) trigger side-effects, such as sending confirmation emails, posting webhooks, or enqueuing background worker jobs.
 
 ---
 
-## Headless fill
-
-`useFormResponse` (React) and `createFormResponseSession` (core) are the
-fill loop: visibility, local validation, draft, submit, reopen, abandon.
-They expose `visibleFields` and `field(id)` — a binding, not a widget.
-
----
-
-## See also
+## Next Steps
 
 <Cards>
   <Card
-    title="Snapshots"
+    title="Snapshots & Lifecycle"
     href="/docs/snapshots"
-    description="Response lifecycle, concurrency, record shape."
+    description="Learn how snapshots ensure schema immutability and handle draft lifecycles."
   />
   <Card
-    title="Server"
+    title="Defining Forms"
+    href="/docs/forms"
+    description="Author schemas with defineForm, configure field types, and enable $Infer."
+  />
+  <Card
+    title="React Client"
+    href="/docs/react"
+    description="Deep dive into useFormResponse, visible fields, and draft actions."
+  />
+  <Card
+    title="Server Integration"
     href="/docs/server"
-    description="Mount the handler and call form.api."
-  />
-  <Card
-    title="Configuration"
-    href="/docs/configuration"
-    description="dimahForm, client, and ResponseStore options."
+    description="Mount HTTP adapters across Next.js, Hono, Express, Fastify, and SvelteKit."
   />
 </Cards>

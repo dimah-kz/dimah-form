@@ -1,17 +1,38 @@
 ---
-title: Widget map
-description: Switch on field.type, bind FormFieldBinding, and use headless helpers — no library widgets.
+title: Headless UI & Widget Binding
+description: Connect form state to your design system using FormFieldBinding, widget dispatchers, and multi-step steppers.
 icon: Blocks
 ---
 
-The fill loop is `useFormResponse`. You own the controls. Switch on
-`field.type` and bind `field(id)` — `value`, `onChange`, `error`,
-`disabled`, `required`, `visible`.
+**dimah-form** is intentionally headless: it does not ship with any bundled CSS or pre-styled UI widgets. Instead, it exposes a typed binding interface (`FormFieldBinding`) that lets you connect any input component—from standard HTML `<input>` tags to shadcn/ui, Radix, or custom design system primitives.
 
-`meta` is opaque JSON for your UI (`multiline`, placeholders). Type
-config (`minLength`, `options`) stays on the field document.
+---
 
-```tsx title="components/fields.tsx"
+## Anatomy of `FormFieldBinding`
+
+When you call `q.field(field.id)`, `useFormResponse` returns a binding object tailored for input components:
+
+```ts
+type FormFieldBinding = {
+  field?: FormField; // Field schema definition
+  value: unknown; // Current value from answers map
+  error?: string; // Active error message string
+  errorCode?: string; // Machine-readable issue code (e.g., "REQUIRED")
+  errorParams?: Record<string, string | number>; // Interpolation params
+  disabled: boolean; // true if locked, pending, or disabled
+  required: boolean; // true if required by schema
+  onChange: (value: unknown) => void; // Value updater (pass null to clear)
+  onBlur: () => void; // Blur handler for touch tracking
+};
+```
+
+---
+
+## Building a Unified Widget Dispatcher
+
+A common and scalable pattern is to create a single `FormFieldControl` component that branches on `field.type`:
+
+```tsx title="components/form-field-control.tsx"
 "use client";
 
 import {
@@ -19,107 +40,269 @@ import {
   fieldLabel,
   fieldOptions,
   type FormFieldBinding,
-  type FormResponseApi,
 } from "@dimah-form/react";
 
-function FormFieldControl({
-  field,
-  value,
-  error,
-  disabled,
-  onChange,
-}: FormFieldBinding) {
+export function FormFieldControl(binding: FormFieldBinding) {
+  const { field, value, error, disabled, required, onChange } = binding;
   if (!field) return null;
 
+  const label = (
+    <label className="block text-sm font-semibold text-gray-800">
+      {fieldLabel(field)}
+      {required && <span className="ml-1 text-red-500">*</span>}
+    </label>
+  );
+
+  // 1. Boolean (Checkbox)
   if (field.type === "boolean") {
     return (
-      <label>
-        <input
-          type="checkbox"
-          checked={value === true}
-          disabled={disabled}
-          onChange={(event) => onChange(event.target.checked ? true : null)}
-        />
-        {fieldLabel(field)}
-        {error}
-      </label>
+      <div className="space-y-1">
+        <label className="flex cursor-pointer items-center gap-2">
+          <input
+            type="checkbox"
+            checked={value === true}
+            disabled={disabled}
+            onChange={(e) => onChange(e.target.checked ? true : null)}
+            className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+          />
+          <span className="text-sm text-gray-800">{fieldLabel(field)}</span>
+        </label>
+        {error && <p className="text-xs text-red-500">{error}</p>}
+      </div>
     );
   }
 
+  // 2. Select (Dropdown)
   if (field.type === "select") {
     return (
-      <label>
-        {fieldLabel(field)}
+      <div className="space-y-1">
+        {label}
         <select
-          disabled={disabled}
           value={typeof value === "string" ? value : ""}
-          onChange={(event) => onChange(emptyToNull(event.target.value))}
+          disabled={disabled}
+          onChange={(e) => onChange(emptyToNull(e.target.value))}
+          className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 focus:ring-2 focus:ring-black focus:outline-none"
         >
-          <option value="">Select…</option>
-          {fieldOptions(field).map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
+          <option value="">Select an option...</option>
+          {fieldOptions(field).map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
             </option>
           ))}
         </select>
-        {error}
-      </label>
+        {error && <p className="text-xs text-red-500">{error}</p>}
+      </div>
     );
   }
 
+  // 3. Multi-Select (Checkbox Group)
+  if (field.type === "multiSelect") {
+    const selected = Array.isArray(value) ? (value as string[]) : [];
+
+    const toggleOption = (optValue: string) => {
+      const next = selected.includes(optValue)
+        ? selected.filter((v) => v !== optValue)
+        : [...selected, optValue];
+      onChange(next.length > 0 ? next : null);
+    };
+
+    return (
+      <div className="space-y-2">
+        {label}
+        <div className="grid grid-cols-2 gap-2">
+          {fieldOptions(field).map((opt) => (
+            <label
+              key={opt.value}
+              className="flex cursor-pointer items-center gap-2 text-sm text-gray-700"
+            >
+              <input
+                type="checkbox"
+                checked={selected.includes(opt.value)}
+                disabled={disabled}
+                onChange={() => toggleOption(opt.value)}
+                className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+              />
+              {opt.label}
+            </label>
+          ))}
+        </div>
+        {error && <p className="text-xs text-red-500">{error}</p>}
+      </div>
+    );
+  }
+
+  // 4. Number Input
+  if (field.type === "number") {
+    return (
+      <div className="space-y-1">
+        {label}
+        <input
+          type="number"
+          value={typeof value === "number" ? value : ""}
+          disabled={disabled}
+          onChange={(e) => {
+            const raw = e.target.value;
+            onChange(raw === "" ? null : Number(raw));
+          }}
+          className="w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-black focus:outline-none"
+        />
+        {error && <p className="text-xs text-red-500">{error}</p>}
+      </div>
+    );
+  }
+
+  // 5. Date Input (YYYY-MM-DD)
+  if (field.type === "date") {
+    return (
+      <div className="space-y-1">
+        {label}
+        <input
+          type="date"
+          value={typeof value === "string" ? value : ""}
+          disabled={disabled}
+          onChange={(e) => onChange(emptyToNull(e.target.value))}
+          className="w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-black focus:outline-none"
+        />
+        {error && <p className="text-xs text-red-500">{error}</p>}
+      </div>
+    );
+  }
+
+  // 6. Text & Email Input (Default)
   return (
-    <label>
-      {fieldLabel(field)}
+    <div className="space-y-1">
+      {label}
       <input
+        type={field.type === "email" ? "email" : "text"}
         value={typeof value === "string" ? value : ""}
         disabled={disabled}
-        onChange={(event) => onChange(emptyToNull(event.target.value))}
+        onChange={(e) => onChange(emptyToNull(e.target.value))}
+        className="w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-black focus:outline-none"
       />
-      {error}
-    </label>
-  );
-}
-
-export function FormFields({ form }: { form: FormResponseApi }) {
-  return (
-    <>
-      {form.visibleFields.map((field) => (
-        <FormFieldControl key={field.id} {...form.field(field.id)} />
-      ))}
-    </>
+      {error && <p className="text-xs text-red-500">{error}</p>}
+    </div>
   );
 }
 ```
 
-`emptyToNull("")` (and `[]`) so a draft patch deletes the key. Localize
-`binding.error` from `binding.errorCode` (`FIELD_ISSUE_CODES`) when the
-UI is not English.
+---
 
-`formatAnswer(field, value)` turns builtin answers into English labels
-(select option text, Yes/No). Empty values are `""` — pick your own
-placeholder. Custom types stringify primitives; format those in the app.
+## Utility Functions
 
-`formCompletion(snapshot, answers)` counts visible required fields.
-`useFormResponse` also exposes that as `completion` on session state.
+`@dimah-form/react` and `@dimah-form/core` export helpful formatting utilities:
+
+| Helper                           | Signature                                      | Description                                                                 |
+| :------------------------------- | :--------------------------------------------- | :-------------------------------------------------------------------------- |
+| **`fieldLabel(field)`**          | `(field: FormField) => string`                 | Returns `field.label ?? field.id`.                                          |
+| **`fieldOptions(field)`**        | `(field: FormField) => FieldOption[]`          | Normalizes `{ value, label?, meta? }` arrays with label fallbacks.          |
+| **`emptyToNull(value)`**         | `(value: unknown) => unknown`                  | Converts empty strings `""` to `null` so draft patches delete empty values. |
+| **`formatAnswer(field, value)`** | `(field: FormField, value: unknown) => string` | Returns a human-friendly formatted string representation for summary views. |
 
 ---
 
-## See also
+## Advanced Pattern: Multi-Step Questionnaire Wizard
+
+You can organize long questionnaires into multi-step wizards using `field.meta.step` or splitting `q.visibleFields`:
+
+```tsx title="components/questionnaire-wizard.tsx"
+"use client";
+
+import { useState } from "react";
+import { useFormResponse } from "@/lib/form-client";
+import { FormFieldControl } from "./form-field-control";
+import type { FormSnapshot } from "@dimah-form/react";
+
+export function QuestionnaireWizard({ form }: { form: FormSnapshot }) {
+  const [currentStep, setCurrentStep] = useState(1);
+  const q = useFormResponse({ snapshot: form });
+
+  // Filter visible fields belonging to the current step (default step: 1)
+  const stepFields = q.visibleFields.filter(
+    (f) => (Number(f.meta?.step) || 1) === currentStep,
+  );
+
+  const totalSteps = Math.max(
+    ...q.visibleFields.map((f) => Number(f.meta?.step) || 1),
+  );
+
+  return (
+    <div className="mx-auto max-w-lg space-y-6">
+      {/* Progress Bar */}
+      <div>
+        <div className="mb-1 flex justify-between text-xs text-gray-500">
+          <span>
+            Step {currentStep} of {totalSteps}
+          </span>
+          <span>{q.completion.percent}% Complete</span>
+        </div>
+        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+          <div
+            className="h-full bg-black transition-all duration-300"
+            style={{ width: `${q.completion.percent}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Current Step Fields */}
+      <div className="space-y-4">
+        {stepFields.map((field) => (
+          <FormFieldControl key={field.id} {...q.field(field.id)} />
+        ))}
+      </div>
+
+      {/* Navigation Controls */}
+      <div className="flex justify-between border-t pt-4">
+        <button
+          type="button"
+          disabled={currentStep === 1}
+          onClick={() => setCurrentStep((s) => s - 1)}
+          className="rounded border px-4 py-2 disabled:opacity-30"
+        >
+          Previous
+        </button>
+
+        {currentStep < totalSteps ? (
+          <button
+            type="button"
+            onClick={() => setCurrentStep((s) => s + 1)}
+            className="rounded bg-black px-5 py-2 text-white"
+          >
+            Next Step
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={q.pending !== undefined}
+            onClick={() => void q.submit()}
+            className="rounded bg-green-600 px-5 py-2 text-white"
+          >
+            {q.pending === "submit" ? "Submitting..." : "Submit Questionnaire"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+## Next Steps
 
 <Cards>
   <Card
-    title="React client"
-    href="/docs/react"
-    description="Session options, state, and helpers."
-  />
-  <Card
-    title="Custom fields"
+    title="Custom Field Types"
     href="/docs/custom-fields"
-    description="Add a type, then a branch in your map."
+    description="Create custom server validators and render unique widgets like star ratings."
   />
   <Card
-    title="Errors"
+    title="Error Handling"
     href="/docs/errors"
-    description="FIELD_ISSUE_CODES for per-field localization."
+    description="Customize error messages and display localized validation feedback."
+  />
+  <Card
+    title="React Client"
+    href="/docs/react"
+    description="Review all useFormResponse options and reactive state properties."
   />
 </Cards>
