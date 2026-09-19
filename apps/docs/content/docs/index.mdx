@@ -1,10 +1,10 @@
 ---
 title: Introduction
-description: Headless, backend-first questionnaire engine for React and Node.js.
+description: A headless questionnaire engine. You own the UI. The library owns snapshots, drafts, and submit validation.
 icon: House
 ---
 
-**dimah-form** is a headless, type-safe questionnaire engine. It provides the backend runtime, schema snapshots, draft management, and validation pipeline for complex forms and surveys—while leaving UI widgets, authentication, and database persistence completely in your control.
+**dimah-form** is a backend-first questionnaire engine. It freezes the form definition onto every response, validates answers against that snapshot, and gives React a thin fill-session hook. It does not render fields, ship widgets, or own your auth.
 
 <Flow
   label="System Data Flow"
@@ -12,94 +12,82 @@ icon: House
     {
       name: "React Client",
       kind: "client",
-      note: "useFormResponse + your UI widgets",
+      note: "useFormResponse + your widgets",
     },
     {
       name: "HTTP Handler",
       kind: "server",
-      note: "dimahForm() + guard security",
+      note: "dimahForm() + your guard",
     },
-    { name: "Persistence", kind: "data", note: "Snapshots & ResponseStore" },
+    { name: "Persistence", kind: "data", note: "Snapshots and responses" },
   ]}
 />
 
 ---
 
-## Why dimah-form?
+## When to use it
 
-Building multi-step questionnaires, surveys, and onboarding flows is deceptively complex. Real-world forms face three major challenges that standard client-side form libraries cannot solve:
+Use it when you need typed questionnaires with drafts and server-side validation, and you already have a design system.
 
-1. **Schema Drift During Long Fills**: If an admin updates a questionnaire while a user is filling out a draft, validating against the live schema breaks the draft. dimah-form freezes an exact snapshot of the definition at fill start time.
-2. **Drafts & Optimistic Concurrency**: Respondents switch devices or have unstable network connections. dimah-form provides automated draft saving with `updatedAt` Compare-And-Swap (CAS) tokens to prevent overwrites.
-3. **Headless Freedom with Server Validation**: You build your own UI using your design system (Tailwind, shadcn/ui, Radix), while dimah-form ensures answers are strictly validated on the server against the frozen snapshot.
+Skip it if you want a form renderer, a visual builder, or hosted survey SaaS.
 
----
+The problems it is built around:
 
-## Core Pillars
-
-<Cards>
-  <Card
-    title="Snapshot Immutability"
-    description="Every response freezes the form schema at start time. Schema updates to active forms never corrupt in-flight responses."
-  />
-  <Card
-    title="End-to-End Type Safety"
-    description="Code-authored forms automatically infer TypeScript answer types ($Infer) across server endpoints and React hooks."
-  />
-  <Card
-    title="Headless & UI-Agnostic"
-    description="Zero bundled CSS or opinionated form widgets. Render with Tailwind CSS, shadcn/ui, or plain HTML elements."
-  />
-  <Card
-    title="Database & Framework Agnostic"
-    description="Ready-made adapters for Next.js, Hono, Express, Fastify, SvelteKit, and Elysia. Store with Drizzle, Prisma, or custom stores."
-  />
-</Cards>
+1. **Schema drift** — an admin can change a live form while someone is still filling a draft. dimah-form validates against the snapshot taken at start, not the live definition.
+2. **Drafts** — respondents leave, switch devices, or drop packets. Drafts save incrementally, with `updatedAt` compare-and-swap so two tabs do not silently overwrite each other.
+3. **Headless validation** — you render with Tailwind, shadcn/ui, or plain HTML. The server still checks required visible fields against the frozen snapshot.
 
 ---
 
-## Package Ecosystem
-
-The repository is structured as a focused TypeScript monorepo with distinct separation of concerns:
+## Packages
 
 ```
-@dimah-form/core (Protocol SSOT, Schemas, Validators, Types)
+@dimah-form/core
         ↓
-@dimah-form/server  ←───  @dimah-form/db (FumaDB / Drizzle / Prisma)
+@dimah-form/server  ←  @dimah-form/db
         │
-@dimah-form/react   (useFormResponse, Form client)
+@dimah-form/react
 ```
 
-| Package                  | Environment              | Purpose                                                                                 |
-| :----------------------- | :----------------------- | :-------------------------------------------------------------------------------------- |
-| **`@dimah-form/core`**   | Shared (Universal)       | Protocol SSOT, Zod schemas, field validators, error codes, and TypeScript types.        |
-| **`@dimah-form/server`** | Server (Node / Edge)     | `dimahForm()` engine, HTTP framework adapters, `form.api`, and `memoryAdapter()`.       |
-| **`@dimah-form/react`**  | Browser (`"use client"`) | `createFormClient()`, `useFormResponse()`, field binding helpers, and state management. |
-| **`@dimah-form/db`**     | Server                   | Production persistence adapter powered by FumaDB (supports Drizzle and Prisma).         |
+| Package                  | Where                    | What you import it for                                                             |
+| :----------------------- | :----------------------- | :--------------------------------------------------------------------------------- |
+| **`@dimah-form/core`**   | Shared                   | Protocol types, field validators, error codes. Server and React both depend on it. |
+| **`@dimah-form/server`** | Node / Edge              | `dimahForm()`, HTTP adapters, `form.api`, `memoryAdapter()`.                       |
+| **`@dimah-form/react`**  | Browser (`"use client"`) | `createFormClient()`, `useFormResponse()`, field helpers.                          |
+| **`@dimah-form/db`**     | Server                   | Production `database` adapter via FumaDB.                                          |
 
 ---
 
-## Explore the Documentation
+## How to read these docs
+
+Start with the **Quickstart** if you want a working Next.js form. Read **Architecture** and **Snapshots** when you need the model, not just the copy-paste.
 
 <Cards>
   <Card
     title="Quickstart"
     href="/docs/quickstart"
-    description="Build and render a complete questionnaire in 5 minutes with Next.js."
+    description="Install, define a form, mount the handler, and render a fill UI."
   />
   <Card
     title="Architecture"
     href="/docs/architecture"
-    description="Understand the execution pipeline, package boundaries, and data flow."
+    description="Package boundaries, data flow, and the request pipeline."
+  />
+  <Card
+    title="Forms"
+    href="/docs/forms"
+    description="defineForm, field rules, showWhen, and $Infer."
   />
   <Card
     title="React Client"
     href="/docs/react"
-    description="Learn how to manage fill sessions, draft autosaving, and visibility with useFormResponse."
-  />
-  <Card
-    title="Defining Forms"
-    href="/docs/forms"
-    description="Author typed forms with defineForm, configure field rules, and use $Infer."
+    description="useFormResponse: visibility, drafts, and submit."
   />
 </Cards>
+
+After that, pick the layer you are implementing:
+
+- **Client** — [React](/docs/react) and [Widgets](/docs/widgets)
+- **Backend** — [Server](/docs/server), [Database](/docs/database), [Auth](/docs/auth)
+- **Extending** — [Custom Fields](/docs/custom-fields) and [Plugins](/docs/plugins)
+- **Reference** — [Configuration](/docs/configuration), [Field Types](/docs/field-types), [Protocol](/docs/protocol), [Errors](/docs/errors)

@@ -1,10 +1,10 @@
 ---
-title: Error Handling & Error Codes
-description: Standard error response format, core API error codes, field issue codes, and localization helpers.
+title: Errors
+description: Stable error codes, field issues, and helpers for mapping them in the UI.
 icon: CircleAlert
 ---
 
-All failed requests in **dimah-form** return JSON with a stable machine-readable `code`, an English `message`, and optional structured `issues`.
+Failed requests return JSON with a stable `code`, an English `message`, and optional `issues`.
 
 ---
 
@@ -123,12 +123,12 @@ export const CUSTOM_ERROR_CODES = defineErrorCodes({
 
 <Cards>
   <Card
-    title="Authentication & Guard"
+    title="Auth"
     href="/docs/auth"
     description="Learn how to throw UNAUTHORIZED and FORBIDDEN errors in guards."
   />
   <Card
-    title="HTTP Protocol"
+    title="Protocol"
     href="/docs/protocol"
     description="Review all route endpoints and HTTP status codes."
   />

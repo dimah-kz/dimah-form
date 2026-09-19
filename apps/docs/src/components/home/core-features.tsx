@@ -11,11 +11,11 @@ export function CoreFeatures() {
           id="features-title"
           className="text-2xl font-bold tracking-tight text-fd-foreground sm:text-3xl"
         >
-          Why dimah-form?
+          Engineered for reliable form lifecycles
         </h2>
-        <p className="mt-2.5 text-sm text-fd-muted-foreground sm:text-base">
-          Built for teams that need robust backend lifecycle without sacrificing
-          UI freedom.
+        <p className="mt-2.5 text-sm leading-relaxed text-fd-muted-foreground sm:text-base">
+          Robust backend guarantees for multi-step questionnaires, surveys, and
+          onboarding flows without sacrificing UI freedom.
         </p>
       </div>
 
@@ -27,7 +27,7 @@ export function CoreFeatures() {
               <div className="flex size-10 items-center justify-center rounded-xl border border-fd-border/80 bg-fd-background text-fd-primary shadow-xs">
                 <ShieldCheck className="size-5" />
               </div>
-              <span className="rounded-full border border-fd-border bg-fd-muted/50 px-2 py-0.5 font-mono text-[11px] text-fd-muted-foreground">
+              <span className="rounded-full border border-fd-border bg-fd-muted/50 px-2.5 py-0.5 font-mono text-[11px] text-fd-muted-foreground">
                 Zero Schema Drift
               </span>
             </div>
@@ -36,9 +36,9 @@ export function CoreFeatures() {
               Snapshot Isolation
             </h3>
             <p className="mt-2 text-xs leading-relaxed text-fd-muted-foreground sm:text-sm">
-              Every response session freezes the form definition at start.
-              Updates to the live questionnaire never break active drafts or
-              submissions.
+              Every response session captures an immutable definition snapshot
+              at initialization. Live form updates never corrupt in-progress
+              drafts or past submissions.
             </p>
           </div>
         </div>
@@ -50,17 +50,18 @@ export function CoreFeatures() {
               <div className="flex size-10 items-center justify-center rounded-xl border border-fd-border/80 bg-fd-background text-fd-primary shadow-xs">
                 <Palette className="size-5" />
               </div>
-              <span className="rounded-full border border-fd-border bg-fd-muted/50 px-2 py-0.5 font-mono text-[11px] text-fd-muted-foreground">
+              <span className="rounded-full border border-fd-border bg-fd-muted/50 px-2.5 py-0.5 font-mono text-[11px] text-fd-muted-foreground">
                 You Own the UI
               </span>
             </div>
 
             <h3 className="mt-5 text-base font-semibold text-fd-foreground sm:text-lg">
-              100% Headless UI
+              100% Headless React
             </h3>
             <p className="mt-2 text-xs leading-relaxed text-fd-muted-foreground sm:text-sm">
-              Zero forced widgets or CSS opinions. Seamlessly bind your own
-              Tailwind, shadcn/ui, Radix, or custom components.
+              Zero forced widgets, registries, or opinionated CSS. Seamlessly
+              bind headless hooks into Tailwind, shadcn/ui, Radix, or custom
+              design components.
             </p>
           </div>
         </div>
@@ -72,18 +73,21 @@ export function CoreFeatures() {
               <div className="flex size-10 items-center justify-center rounded-xl border border-fd-border/80 bg-fd-background text-fd-primary shadow-xs">
                 <Code2 className="size-5" />
               </div>
-              <span className="rounded-full border border-fd-border bg-fd-muted/50 px-2 py-0.5 font-mono text-[11px] text-fd-muted-foreground">
-                Zero Codegen
+              <span className="rounded-full border border-fd-border bg-fd-muted/50 px-2.5 py-0.5 font-mono text-[11px] text-fd-muted-foreground">
+                Pure TypeScript
               </span>
             </div>
 
             <h3 className="mt-5 text-base font-semibold text-fd-foreground sm:text-lg">
-              Type-Safe Protocol
+              End-to-End Type Safety
             </h3>
             <p className="mt-2 text-xs leading-relaxed text-fd-muted-foreground sm:text-sm">
-              Export server types directly to the client. Enjoy full
-              autocompletion and compile-time validation without CLI generation
-              steps.
+              Export server form types directly to your client via{" "}
+              <code className="font-mono font-medium text-fd-foreground">
+                $Infer
+              </code>
+              . Enjoy complete autocomplete, dynamic field checking, and
+              validation without codegen steps.
             </p>
           </div>
         </div>

@@ -19,14 +19,11 @@ export default function AppleIcon() {
         backgroundColor: "#0A0A0A",
       }}
     >
-      <svg width="120" height="120" viewBox="0 0 32 32" fill="none">
-        <rect x="14" y="4.5" width="13" height="13" rx="3.25" fill="#FAFAF9" />
+      <svg width="118" height="118" viewBox="0 0 32 32" fill="none">
         <path
-          d="M8.5 16.25V24.5H17"
-          stroke="#FAFAF9"
-          strokeWidth="5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+          fill="#FAFAF9"
+          fillRule="evenodd"
+          d="M6 4h14c5.523 0 10 4.477 10 10v4c0 5.523-4.477 10-10 10H6A4 4 0 0 1 2 24V8a4 4 0 0 1 4-4zm10.5 8h5a2.5 2.5 0 0 1 2.5 2.5v3a2.5 2.5 0 0 1-2.5 2.5h-5a2.5 2.5 0 0 1-2.5-2.5v-3a2.5 2.5 0 0 1 2.5-2.5z"
         />
       </svg>
     </div>,

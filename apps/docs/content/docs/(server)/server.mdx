@@ -1,10 +1,10 @@
 ---
-title: Server & Adapters
-description: Configure dimahForm(), mount HTTP route adapters across frameworks, and invoke form.api directly.
+title: Server
+description: Create dimahForm(), mount HTTP adapters, and call form.api without a round trip.
 icon: Server
 ---
 
-`@dimah-form/server` is the backend engine for Node.js, Bun, Deno, and Edge runtimes. It handles HTTP protocol routing, form definitions, snapshot freezing, security guards, and validation pipelines.
+`@dimah-form/server` is the Node / Edge engine: routing, snapshots, guards, and validation. Mount it on your framework, or call `form.api` in a server component with no extra HTTP hop.
 
 ---
 
@@ -228,17 +228,17 @@ export default async function SurveyPage({ params }: PageProps) {
 
 <Cards>
   <Card
-    title="Database & Storage"
+    title="Database"
     href="/docs/database"
     description="Connect dimahForm to Drizzle, Prisma, or custom database stores."
   />
   <Card
-    title="Authentication & Guard"
+    title="Auth"
     href="/docs/auth"
     description="Secure form operations and respondent data with guard hooks."
   />
   <Card
-    title="Configuration Reference"
+    title="Configuration"
     href="/docs/configuration"
     description="Explore all available dimahForm configuration parameters."
   />

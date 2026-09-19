@@ -1,10 +1,10 @@
 ---
-title: Field Types & showWhen Reference
-description: Built-in field types, validation constraints, conditional visibility rules, and $Infer type mappings.
+title: Field Types
+description: Built-in types, validation constraints, showWhen operators, and $Infer mappings.
 icon: ListTree
 ---
 
-**dimah-form** includes 7 built-in field types in `@dimah-form/core`. Each type defines a Zod definition schema, a server validation rule, and a TypeScript inference mapping.
+Seven built-in types in `@dimah-form/core`. Each one has a definition schema, a server validator, and an `$Infer` mapping.
 
 ---
 
@@ -170,17 +170,17 @@ type ExampleAnswers = Form["$Infer"]["answers"]["example"];
 
 <Cards>
   <Card
-    title="Custom Field Types"
+    title="Custom Fields"
     href="/docs/custom-fields"
     description="Create custom validators and $Infer type mappings with defineFieldType."
   />
   <Card
-    title="Headless Widgets"
+    title="Widgets"
     href="/docs/widgets"
     description="Render UI widgets for all 7 built-in field types."
   />
   <Card
-    title="HTTP Protocol"
+    title="Protocol"
     href="/docs/protocol"
     description="Inspect request and response payload schemas."
   />

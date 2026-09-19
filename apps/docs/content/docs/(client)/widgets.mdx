@@ -1,10 +1,10 @@
 ---
-title: Headless UI & Widget Binding
-description: Connect form state to your design system using FormFieldBinding, widget dispatchers, and multi-step steppers.
+title: Widgets
+description: Bind FormFieldBinding to your inputs, build a type dispatcher, and split long forms into steps.
 icon: Blocks
 ---
 
-**dimah-form** is intentionally headless: it does not ship with any bundled CSS or pre-styled UI widgets. Instead, it exposes a typed binding interface (`FormFieldBinding`) that lets you connect any input component—from standard HTML `<input>` tags to shadcn/ui, Radix, or custom design system primitives.
+dimah-form does not ship CSS or widgets. `q.field(id)` returns a `FormFieldBinding` you pass to your own `<input>`, shadcn/ui, Radix, or design-system control.
 
 ---
 
@@ -291,12 +291,12 @@ export function QuestionnaireWizard({ form }: { form: FormSnapshot }) {
 
 <Cards>
   <Card
-    title="Custom Field Types"
+    title="Custom Fields"
     href="/docs/custom-fields"
     description="Create custom server validators and render unique widgets like star ratings."
   />
   <Card
-    title="Error Handling"
+    title="Errors"
     href="/docs/errors"
     description="Customize error messages and display localized validation feedback."
   />

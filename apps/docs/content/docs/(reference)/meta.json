@@ -1,5 +1,4 @@
 {
   "title": "Reference",
-  "defaultOpen": true,
   "pages": ["configuration", "field-types", "protocol", "errors"]
 }

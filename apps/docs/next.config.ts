@@ -20,7 +20,7 @@ const pageMoves: [string, string][] = [
   ["/docs/guides/custom-fields", "/docs/custom-fields"],
   ["/docs/guides/auth", "/docs/auth"],
   ["/docs/guides/plugins", "/docs/plugins"],
-  ["/docs/guides", "/docs/server"],
+  ["/docs/guides", "/docs"],
   ["/docs/reference/protocol", "/docs/protocol"],
   ["/docs/reference/field-types", "/docs/field-types"],
   ["/docs/reference/errors", "/docs/errors"],

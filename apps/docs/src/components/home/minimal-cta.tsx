@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { githubRepoUrl } from "@/lib/shared";
@@ -16,37 +16,26 @@ export function MinimalCta() {
   const githubUrl = githubRepoUrl();
 
   return (
-    <section className="relative border-t border-fd-border/60 py-14 text-center sm:py-20">
+    <section className="relative border-t border-fd-border/60 py-16 text-center sm:py-20">
       <div className="mx-auto max-w-xl">
-        <h2 className="text-xl font-bold tracking-tight text-fd-foreground sm:text-2xl">
+        <h2 className="text-2xl font-bold tracking-tight text-fd-foreground sm:text-3xl">
           Ready to build with dimah-form?
         </h2>
-        <p className="mt-2 text-xs text-fd-muted-foreground sm:text-sm">
-          Get up and running in minutes with Next.js, Hono, Express, or any
-          React stack.
+        <p className="mt-2.5 text-sm leading-relaxed text-fd-muted-foreground sm:text-base">
+          Start building type-safe forms with Next.js App Router, Hono, Express,
+          Fastify, Elysia, or SvelteKit.
         </p>
 
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <Link
-            href="/docs/quickstart"
-            className={cn(
-              buttonVariants(),
-              "h-10 rounded-full px-5 text-xs font-semibold sm:text-sm",
-            )}
-          >
-            Read Quickstart
-            <ArrowRight className="size-3.5 rtl:rotate-180" />
-          </Link>
-
+        <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
           <Link
             href="/docs"
             className={cn(
-              buttonVariants({ variant: "outline" }),
-              "h-10 rounded-full px-5 text-xs font-medium sm:text-sm",
+              buttonVariants(),
+              "h-10 rounded-full px-5 text-xs font-semibold sm:h-11 sm:px-6 sm:text-sm",
             )}
           >
-            <BookOpen className="size-3.5" />
-            Documentation
+            Explore Documentation
+            <ArrowRight className="size-3.5 rtl:rotate-180" />
           </Link>
 
           <Link
@@ -55,11 +44,11 @@ export function MinimalCta() {
             rel="noreferrer"
             className={cn(
               buttonVariants({ variant: "outline" }),
-              "h-10 rounded-full px-5 text-xs font-medium text-fd-muted-foreground hover:text-fd-foreground sm:text-sm",
+              "h-10 rounded-full px-5 text-xs font-medium sm:h-11 sm:text-sm",
             )}
           >
             <GitHubIcon />
-            GitHub
+            Star on GitHub
           </Link>
         </div>
       </div>

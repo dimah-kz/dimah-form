@@ -1,10 +1,10 @@
 ---
-title: Plugins & Extensions
-description: Extend dimah-form with custom HTTP endpoints, lifecycle hooks, error codes, and client companion methods.
+title: Plugins
+description: Add endpoints, hooks, error codes, field types, and matching client methods.
 icon: Puzzle
 ---
 
-Plugins provide a modular way to extend **dimah-form** with **additive capabilities**: custom REST endpoints, lifecycle hooks, domain-specific error codes, and client convenience methods.
+A plugin can add HTTP endpoints, lifecycle hooks, error codes, field types, and matching methods on `createFormClient`.
 
 ---
 
@@ -162,17 +162,17 @@ const stats = await formClient.getStats("feedback");
 
 <Cards>
   <Card
-    title="Authentication & Guard"
+    title="Auth"
     href="/docs/auth"
     description="Learn how guard hooks secure plugin endpoints."
   />
   <Card
-    title="Custom Field Types"
+    title="Custom Fields"
     href="/docs/custom-fields"
     description="Package reusable validators inside plugins."
   />
   <Card
-    title="Error Codes Reference"
+    title="Errors"
     href="/docs/errors"
     description="Understand how custom error codes merge with core error catalogs."
   />

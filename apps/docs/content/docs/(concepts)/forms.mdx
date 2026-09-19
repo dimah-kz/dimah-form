@@ -1,10 +1,10 @@
 ---
-title: Defining Forms
-description: Author modular form schemas with defineForm, configure status, and leverage compile-time $Infer typing.
+title: Forms
+description: Author questionnaires with defineForm, field rules, showWhen, and $Infer.
 icon: FileText
 ---
 
-In **dimah-form**, forms can be authored directly in TypeScript code using `defineForm()`, or created dynamically in your database via the `saveForm` API.
+Forms are TypeScript (`defineForm`) or rows in your database (`saveForm`). Code-authored forms feed `$Infer`. Database forms do not.
 
 ---
 
@@ -234,7 +234,7 @@ const q = useFormResponse<Form["$Infer"]["answers"]["onboarding"]>({
     description="Learn how useFormResponse handles visible fields and answer bindings."
   />
   <Card
-    title="Headless Widgets"
+    title="Widgets"
     href="/docs/widgets"
     description="Build reusable UI widgets for text, select, and boolean fields."
   />

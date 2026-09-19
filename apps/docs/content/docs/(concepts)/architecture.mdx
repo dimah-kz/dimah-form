@@ -1,23 +1,23 @@
 ---
 title: Architecture
-description: Core principles, package boundaries, data flow, and the 6-stage request pipeline.
+description: Package boundaries, data flow, and the six-stage request pipeline.
 icon: Network
 ---
 
-dimah-form is designed around a **headless, backend-first** architecture. The library manages the protocol, form definitions, snapshot freezing, draft tracking, and validation, while giving you 100% control over the user interface, authentication, and database layer.
+The library owns the protocol, definition snapshots, and submit validation. Your app owns widgets, auth, and the database adapter. Those four boundaries are the architecture.
 
 ---
 
-## Architectural Principles
+## Principles
 
 <Cards>
   <Card
     title="Headless by Design"
-    description="Zero UI components, styles, or widget registries. You render fields using your existing design system."
+    description="No widgets, CSS, or component registry. Render fields with the design system you already have."
   />
   <Card
     title="Snapshot Invariant"
-    description="Fill sessions freeze the form schema at start time. In-flight drafts never break when forms are edited."
+    description="A fill freezes the definition at start. Editing the live form does not break in-flight drafts."
   />
   <Card
     title="Protocol Single Source of Truth"
@@ -33,7 +33,7 @@ dimah-form is designed around a **headless, backend-first** architecture. The li
 
 ## System Flow
 
-The diagram below illustrates how client interactions, HTTP routes, security guards, validation engines, and database stores interact:
+The diagram shows how widgets, HTTP routes, `guard`, validation, and the store fit together:
 
 <ArchitectureDiagram />
 
@@ -71,7 +71,7 @@ flowchart TD
 
 ## Package Boundaries
 
-Each package in the `dimah-form` monorepo has a strictly defined responsibility and dependency direction:
+Each package has one job and a one-way dependency graph:
 
 | Package                  | Environment | Responsibility                                                                                         | Key Exports                                                             |
 | :----------------------- | :---------- | :----------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------- |
@@ -82,9 +82,9 @@ Each package in the `dimah-form` monorepo has a strictly defined responsibility 
 
 ---
 
-## The 6-Stage Request Pipeline
+## Request Pipeline
 
-Every incoming mutation or query follows a deterministic, 6-stage execution lifecycle:
+Every mutation and query runs the same six stages:
 
 <Flow
   label="Execution Lifecycle"
@@ -128,12 +128,12 @@ After the database write successfully commits, post-persistence hooks (such as `
 
 <Cards>
   <Card
-    title="Snapshots & Lifecycle"
+    title="Snapshots"
     href="/docs/snapshots"
     description="Learn how snapshots ensure schema immutability and handle draft lifecycles."
   />
   <Card
-    title="Defining Forms"
+    title="Forms"
     href="/docs/forms"
     description="Author schemas with defineForm, configure field types, and enable $Infer."
   />
@@ -143,7 +143,7 @@ After the database write successfully commits, post-persistence hooks (such as `
     description="Deep dive into useFormResponse, visible fields, and draft actions."
   />
   <Card
-    title="Server Integration"
+    title="Server"
     href="/docs/server"
     description="Mount HTTP adapters across Next.js, Hono, Express, Fastify, and SvelteKit."
   />

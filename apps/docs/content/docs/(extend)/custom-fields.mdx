@@ -1,10 +1,10 @@
 ---
-title: Custom Field Types
-description: Extend dimah-form with custom validators, Zod schemas, and compile-time $Infer type definitions.
+title: Custom Fields
+description: Add a server validator with defineFieldType. The UI widget stays in your app.
 icon: ListPlus
 ---
 
-In **dimah-form**, custom field types are **server validators and type providers**, not React components. You define how the field is validated and typed on the server, and then render whatever UI widget you desire in your client application.
+Custom field types are **server validators**, not React components. You define how the answer is checked and typed. You render whatever control you want.
 
 ---
 
@@ -199,17 +199,17 @@ export function FormFieldControl(binding: FormFieldBinding) {
 
 <Cards>
   <Card
-    title="Built-in Field Types"
+    title="Field Types"
     href="/docs/field-types"
     description="Explore all 7 built-in field types and showWhen conditional rules."
   />
   <Card
-    title="Headless Widgets"
+    title="Widgets"
     href="/docs/widgets"
     description="Discover patterns for rendering complex, interactive inputs."
   />
   <Card
-    title="Plugins & Extensions"
+    title="Plugins"
     href="/docs/plugins"
     description="Bundle custom field types and custom endpoints into reusable plugins."
   />

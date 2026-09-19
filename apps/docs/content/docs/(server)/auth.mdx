@@ -1,10 +1,10 @@
 ---
-title: Authentication & Lifecycle Hooks
-description: Secure endpoints with guard, protect respondent records, and execute pre/post-persistence lifecycle hooks.
+title: Auth
+description: Guard every operation in your app. Use on* / after* hooks to stamp ownership and run side effects.
 icon: Shield
 ---
 
-In **dimah-form**, authentication and authorization live entirely in the consumer-provided **`guard`** hook. Persistence hooks (`on*` and `after*`) let you enrich records and trigger side-effects like emails or webhooks.
+Auth is not a library feature. Put it in `guard`. Use `on*` / `after*` hooks to stamp `respondentId` and fire emails or webhooks after a successful write.
 
 <Flow
   label="Security & Execution Pipeline"
@@ -166,12 +166,12 @@ export const form = dimahForm({
 
 <Cards>
   <Card
-    title="Error Codes Reference"
+    title="Errors"
     href="/docs/errors"
     description="Review UNAUTHORIZED, FORBIDDEN, and standard error shapes."
   />
   <Card
-    title="Plugins & Extensions"
+    title="Plugins"
     href="/docs/plugins"
     description="Learn how plugins can contribute custom endpoints and guard checks."
   />

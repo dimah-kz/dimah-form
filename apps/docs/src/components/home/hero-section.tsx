@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { Logo } from "@/components/logo";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { githubRepoUrl } from "@/lib/shared";
@@ -22,12 +21,20 @@ export function HeroSection() {
     <div className="relative pt-12 pb-10 sm:pt-20 sm:pb-14">
       {/* Hero Header */}
       <div className="mx-auto flex max-w-4xl flex-col items-center text-center">
-        <Logo className="size-9 text-fd-foreground sm:size-10" />
+        {/* Minimal Pill Badge */}
+        <Link
+          href="/docs"
+          className="group inline-flex items-center gap-2 rounded-full border border-fd-border/80 bg-fd-card/60 px-3.5 py-1 text-xs font-medium text-fd-muted-foreground backdrop-blur-sm transition-all hover:border-fd-foreground/25 hover:text-fd-foreground"
+        >
+          <Sparkles className="size-3 text-fd-primary" />
+          <span>TypeScript-First Form Infrastructure</span>
+          <ArrowRight className="size-3 text-fd-muted-foreground transition-transform group-hover:translate-x-0.5 rtl:rotate-180" />
+        </Link>
 
         {/* Main Headline */}
         <h1
           id="hero-heading"
-          className="mt-5 text-4xl font-extrabold tracking-[-0.035em] text-balance text-fd-foreground sm:mt-6 sm:text-5xl lg:text-6xl"
+          className="mt-6 text-4xl font-extrabold tracking-[-0.035em] text-balance text-fd-foreground sm:text-5xl lg:text-6xl"
         >
           Backend-first questionnaires.{" "}
           <span className="bg-gradient-to-r from-fd-primary via-amber-500 to-orange-500 bg-clip-text text-transparent">
@@ -36,13 +43,14 @@ export function HeroSection() {
         </h1>
 
         {/* Subtitle */}
-        <p className="mt-5 max-w-xl text-base leading-relaxed text-fd-muted-foreground sm:text-lg">
-          Headless React hooks, immutable snapshot isolation, drafts, and typed
-          server validation for modern web applications.
+        <p className="mt-5 max-w-2xl text-base leading-relaxed text-balance text-fd-muted-foreground sm:text-lg">
+          Headless React hooks, immutable snapshot isolation, draft sessions,
+          and typed server validation — without forcing any UI components or
+          styling opinions.
         </p>
 
         {/* Action Buttons & Install Snippet */}
-        <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link
             href="/docs"
             className={cn(
@@ -69,7 +77,7 @@ export function HeroSection() {
         </div>
 
         {/* Copy Install */}
-        <div className="mt-5 flex justify-center">
+        <div className="mt-6 flex justify-center">
           <CopyInstall />
         </div>
       </div>

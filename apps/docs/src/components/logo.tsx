@@ -9,14 +9,10 @@ export function Logo({ className }: { className?: string }) {
       className={cn("size-5 shrink-0", className)}
       aria-hidden
     >
-      <rect x="14" y="4.5" width="13" height="13" rx="3.25" />
       <path
-        d="M8.5 16.25V24.5H17"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        fill="currentColor"
+        fillRule="evenodd"
+        d="M6 4h14c5.523 0 10 4.477 10 10v4c0 5.523-4.477 10-10 10H6A4 4 0 0 1 2 24V8a4 4 0 0 1 4-4zm10.5 8h5a2.5 2.5 0 0 1 2.5 2.5v3a2.5 2.5 0 0 1-2.5 2.5h-5a2.5 2.5 0 0 1-2.5-2.5v-3a2.5 2.5 0 0 1 2.5-2.5z"
       />
     </svg>
   );

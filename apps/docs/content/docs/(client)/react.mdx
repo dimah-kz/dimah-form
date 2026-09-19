@@ -1,10 +1,10 @@
 ---
-title: React Client & useFormResponse
-description: Headless questionnaire state, dynamic field visibility, autosave, and submission with useFormResponse.
+title: React Client
+description: useFormResponse — visibility, drafts, validation timing, and submit.
 icon: PenLine
 ---
 
-`@dimah-form/react` provides a headless, reactive runtime for questionnaire forms. It manages the entire lifecycle of a response session—tracking visible fields, handling user input, debouncing draft saves, validating against the snapshot, and managing submit state—without imposing any UI components or styling.
+`@dimah-form/react` is a headless fill-session runtime. It tracks visible fields, local answers, draft autosave, and submit state. It does not ship inputs or CSS.
 
 ---
 
@@ -232,17 +232,17 @@ const q = useFormResponse({
 
 <Cards>
   <Card
-    title="Headless Widgets"
+    title="Widgets"
     href="/docs/widgets"
     description="Build a reusable widget dispatcher with Tailwind CSS and shadcn/ui."
   />
   <Card
-    title="Authentication & Guard"
+    title="Auth"
     href="/docs/auth"
     description="Protect endpoints and associate respondentId with server sessions."
   />
   <Card
-    title="Error Handling"
+    title="Errors"
     href="/docs/errors"
     description="Handle validation issue codes and internationalize error messages."
   />
