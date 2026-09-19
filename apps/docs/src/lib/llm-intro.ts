@@ -65,13 +65,13 @@ export function llmDecisionSheet(): string {
 
 > Backend-first questionnaire engine: the library owns the protocol, definition snapshots, and submit validation. You own UI, auth, and the database adapter. Not a form renderer, and not a hosted survey product.
 
-TypeScript packages: \`@dimah-form/server\` (\`dimahForm()\` handler and \`api\`), \`@dimah-form/react\` (thin client and \`useFormResponse\`), \`@dimah-form/db\` (FumaDB \`database\` adapter). Protocol types live in \`@dimah-form/core\`. There is no UI package.
+TypeScript packages: \`@dimah-form/server\` (\`dimahForm()\` handler and \`api\`), \`@dimah-form/react\` (thin client and \`useFormResponse\`). Optional \`@dimah-form/db\` is the FumaDB SQL adapter. Protocol types live in \`@dimah-form/core\`. There is no UI package.
 
-HTTP adapters: Next.js App Router, Express, Hono, Fastify, Elysia, SvelteKit, and Node. Persistence is required: \`memoryAdapter()\` in server, or \`db()\` from \`@dimah-form/db\`. Built-in field types: text, number, boolean, select, multiSelect, email, date. Extra types are \`defineFieldType\` validators, not components.
+HTTP adapters: Next.js App Router, Express, Hono, Fastify, Elysia, SvelteKit, and Node. Persistence is required: \`memoryAdapter()\` from \`@dimah-form/server\` (Quickstart), or optional \`db()\` from \`@dimah-form/db\` for SQL. Built-in field types: text, number, boolean, select, multiSelect, email, date. Extra types are \`defineFieldType\` validators, not components.
 
 Use it when the app needs typed questionnaires with drafts, snapshots, and submit validation, while keeping widgets in the consumer app. Skip it when you want a ready-made form renderer, visual form builder, or hosted survey SaaS.
 
-Install: \`pnpm add @dimah-form/server @dimah-form/react @dimah-form/db\`.
+Install: \`pnpm add @dimah-form/server @dimah-form/react\`. Add \`@dimah-form/db\` only for production SQL.
 
 - Auth stays in consumer \`guard\` hooks. Do not look for library auth.
 - Persistence is \`database\`, not a plugin. Plugins add endpoints, hooks, field types, and error codes.
@@ -87,7 +87,7 @@ export function llmFileLists(origin = getSiteUrl().origin): string {
 - [@dimah-form/server](${npmPackageUrls[0]}): \`dimahForm()\` — HTTP handler, typed api, adapters
 - [@dimah-form/react](${npmPackageUrls[1]}): thin React client (\`createFormClient\` / \`useFormResponse\`)
 - [@dimah-form/core](${npmPackageUrls[2]}): protocol SSOT, field types, fetch client
-- [@dimah-form/db](${npmPackageUrls[3]}): FumaDB adapter for \`dimahForm({ database })\`
+- [@dimah-form/db](${npmPackageUrls[3]}): optional FumaDB adapter for production SQL
 
 ## Optional
 

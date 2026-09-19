@@ -1,14 +1,22 @@
 ---
 title: Database
-description: memoryAdapter for tests, FumaDB for production, or your own ResponseStore.
+description: Persistence is required. A SQL database is not.
 icon: Database
 ---
 
-`@dimah-form/server` has no ORM. Persistence is the `ResponseStore` you pass to `dimahForm({ database })`.
+`dimahForm({ database })` needs a `ResponseStore`. `@dimah-form/server` has no ORM. `@dimah-form/db` is optional — install it only when drafts must survive a restart.
+
+| Adapter           | Package              | When                                             |
+| :---------------- | :------------------- | :----------------------------------------------- |
+| `memoryAdapter()` | `@dimah-form/server` | Tests, local, [Quickstart](/docs/quickstart)     |
+| `db(formDb)`      | `@dimah-form/db`     | Production (FumaDB + Drizzle, Prisma, or Kysely) |
+| Custom            | your code            | Implement [`ResponseStore`](/docs/configuration) |
 
 ---
 
 ## 1. In-memory
+
+No extra packages. Data lives in the process and is gone on restart.
 
 ```ts title="lib/form.ts"
 import { dimahForm, memoryAdapter } from "@dimah-form/server";
@@ -24,6 +32,8 @@ export const form = dimahForm({
 
 ## 2. Production
 
+Install `@dimah-form/db` and `fumadb` when you need SQL:
+
 <Tabs items={["pnpm", "npm", "yarn", "bun"]}>
   <Tab value="pnpm">```bash pnpm add @dimah-form/db fumadb ```</Tab>
   <Tab value="npm">```bash npm install @dimah-form/db fumadb ```</Tab>
@@ -37,6 +47,8 @@ export const form = dimahForm({
 
 ### Schema
 
+Copy these tables, or generate with the [CLI](#cli) and re-add the indexes (FumaDB `generate` does not emit them).
+
 <Tabs items={["Drizzle", "Prisma", "Kysely"]}>
 
 <Tab value="Drizzle">
@@ -48,7 +60,11 @@ export const form = dimahForm({
 </Tab>
 
 <Tab value="Kysely">
-  <include>../../_includes/db/indexes-sql.mdx</include>
+
+Generate Kysely types with the CLI, then add these indexes:
+
+<include>../../_includes/db/indexes-sql.mdx</include>
+
 </Tab>
 
 </Tabs>
@@ -171,7 +187,7 @@ node --import tsx scripts/db-cli.mts generate latest -o ./lib/schema.ts
 
 ## Custom store
 
-Implement [`ResponseStore`](/docs/configuration) and pass it to `dimahForm({ database })` directly.
+Implement [`ResponseStore`](/docs/configuration) and pass it to `dimahForm({ database })` directly. Do not wrap it in `db()`.
 
 ---
 

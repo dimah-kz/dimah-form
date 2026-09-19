@@ -44,7 +44,7 @@ The problems it is built around:
 ```
 @dimah-form/core
         ↓
-@dimah-form/server  ←  @dimah-form/db
+@dimah-form/server  ←  @dimah-form/db (optional)
         │
 @dimah-form/react
 ```
@@ -54,7 +54,7 @@ The problems it is built around:
 | **`@dimah-form/core`**   | Shared                   | Protocol types, field validators, error codes. Server and React both depend on it. |
 | **`@dimah-form/server`** | Node / Edge              | `dimahForm()`, HTTP adapters, `form.api`, `memoryAdapter()`.                       |
 | **`@dimah-form/react`**  | Browser (`"use client"`) | `createFormClient()`, `useFormResponse()`, field helpers.                          |
-| **`@dimah-form/db`**     | Server                   | Production `database` adapter via FumaDB.                                          |
+| **`@dimah-form/db`**     | Server                   | Optional. Production SQL adapter via FumaDB.                                       |
 
 ---
 

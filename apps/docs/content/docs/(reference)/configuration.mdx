@@ -10,7 +10,7 @@ Options for the server instance, the React client, the fill hook, and a custom `
 
 ## `dimahForm(config)`
 
-The primary server instance initializer from `@dimah-form/server`.
+The primary server instance initializer from `@dimah-form/server`. `database` is required. `@dimah-form/db` is not — `memoryAdapter()` ships in `@dimah-form/server`.
 
 ```ts
 import { dimahForm } from "@dimah-form/server";

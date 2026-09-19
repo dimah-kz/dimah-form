@@ -55,9 +55,9 @@ flowchart TD
     SnapshotVal --> PreHooks["on* Pre-Write Lifecycle Hooks"]
   end
 
-  subgraph Storage ["Database Layer (@dimah-form/db)"]
-    PreHooks --> Store["ResponseStore Adapter"]
-    Store --> Tables[("questionnaire & response tables")]
+  subgraph Storage ["Persistence (ResponseStore)"]
+    PreHooks --> Store["memoryAdapter, db, or custom"]
+    Store --> Tables[("questionnaire & response rows")]
     Store --> PostHooks["after* Post-Write Lifecycle Hooks"]
   end
 
@@ -78,7 +78,7 @@ Each package has one job and a one-way dependency graph:
 | **`@dimah-form/core`**   | Universal   | Protocol SSOT, Zod schemas, field definitions, answer validation, error codes, and type inference.     | `defineForm`, `defineFieldType`, `APIError`, `FORM_ERROR_CODES`         |
 | **`@dimah-form/server`** | Server      | Backend router, HTTP framework adapters, `form.api`, lifecycle hook dispatcher, and `memoryAdapter()`. | `dimahForm()`, `toNextJsHandler`, `toHonoHandler`, `memoryAdapter`      |
 | **`@dimah-form/react`**  | Browser     | Headless React client, session state machine, visibility resolver, field bindings, and autosave.       | `createFormClient()`, `useFormResponse()`, `fieldLabel`, `fieldOptions` |
-| **`@dimah-form/db`**     | Server      | Production persistence adapter using FumaDB for Drizzle, Prisma, and Kysely.                           | `DimahFormDB`, `db()`                                                   |
+| **`@dimah-form/db`**     | Server      | Optional. Production SQL adapter using FumaDB for Drizzle, Prisma, and Kysely.                         | `DimahFormDB`, `db()`                                                   |
 
 ---
 

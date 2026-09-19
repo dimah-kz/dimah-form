@@ -25,6 +25,8 @@ export const form = dimahForm({
 export type Form = typeof form;
 ```
 
+`database` is required. A SQL database is not. `memoryAdapter()` is enough to run. For production SQL, see [Database](/docs/database).
+
 ---
 
 ## HTTP Framework Adapters
@@ -230,7 +232,7 @@ export default async function SurveyPage({ params }: PageProps) {
   <Card
     title="Database"
     href="/docs/database"
-    description="Connect dimahForm to Drizzle, Prisma, or custom database stores."
+    description="Required adapter: memory, optional FumaDB, or a custom store."
   />
   <Card
     title="Auth"

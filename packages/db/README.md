@@ -1,6 +1,6 @@
 # @dimah-form/db
 
-FumaDB adapter for [dimah-form](https://github.com/dimah-kz/dimah-form). Pass `db(client)` as `database`.
+Optional production SQL adapter for [dimah-form](https://github.com/dimah-kz/dimah-form). Pass `db(client)` as `database`. Quickstart uses `memoryAdapter()` from `@dimah-form/server` instead.
 
 **Docs:** [Database](https://form.dimah.dev/docs/database)
 

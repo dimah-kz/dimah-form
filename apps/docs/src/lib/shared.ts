@@ -157,7 +157,7 @@ export function siteJsonLd(origin: string) {
           "Typed protocol shared by server and React",
           "Definition snapshots with draft and submit validation",
           "Built-in field types plus defineFieldType",
-          "Required database via memoryAdapter or FumaDB",
+          "Required persistence adapter: memoryAdapter or optional FumaDB",
           "Headless React fill session — you own widgets",
           "Next.js App Router, Hono, Express, Fastify, Elysia, and SvelteKit adapters",
           "Server plugins, domain hooks, and consumer guard auth",

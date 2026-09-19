@@ -13,7 +13,7 @@ const packages = [
   },
   {
     name: "@dimah-form/db",
-    role: "FumaDB persistence",
+    role: "Optional FumaDB SQL",
   },
 ] as const;
 

@@ -8,6 +8,8 @@
 pnpm add @dimah-form/server
 ```
 
+`database` is required. A SQL database is not. `memoryAdapter()` is enough to start; `@dimah-form/db` is optional production SQL.
+
 ```ts
 import { db, DimahFormDB } from "@dimah-form/db";
 import { dimahForm, defineForm, memoryAdapter } from "@dimah-form/server";

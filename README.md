@@ -11,7 +11,7 @@
 
 **Backend-first questionnaires for the React ecosystem.**
 
-Server instance, typed protocol client, and [FumaDB](https://github.com/fuma-nama/fumadb) persistence via `database`.
+Server instance, typed protocol client, and a `database` adapter (`memoryAdapter()` or optional [FumaDB](https://github.com/fuma-nama/fumadb)).
 You own rendering. The library owns definition snapshots, drafts, and submit validation.
 
 Same stack as [dimah-s3](https://github.com/dimah-kz/dimah-s3): pnpm + Turbo, `better-call`, `@better-fetch/fetch`, Zod, Tegami.
@@ -21,8 +21,9 @@ Same stack as [dimah-s3](https://github.com/dimah-kz/dimah-s3): pnpm + Turbo, `b
 ```bash
 pnpm add @dimah-form/server
 pnpm add @dimah-form/react
-pnpm add @dimah-form/db
 ```
+
+`database` is required. A SQL database is not. Pass `memoryAdapter()` from `@dimah-form/server`, or add `@dimah-form/db` for production SQL.
 
 `@dimah-form/core` is pulled in by the others. Install it directly only if you author protocol or client plugins.
 
@@ -32,7 +33,7 @@ pnpm add @dimah-form/db
 | -------------------- | ---------------------------------------------- |
 | `@dimah-form/core`   | Protocol, error catalog, typed fetch client    |
 | `@dimah-form/server` | `dimahForm()` — HTTP `handler` + `api`         |
-| `@dimah-form/db`     | FumaDB adapter for `dimahForm({ database })`   |
+| `@dimah-form/db`     | Optional. FumaDB adapter for production SQL    |
 | `@dimah-form/react`  | Thin React client (`createFormClient` / hooks) |
 
 There is no UI package. Field widgets stay in the consumer app.

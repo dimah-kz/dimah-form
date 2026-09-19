@@ -4,41 +4,34 @@ description: Define a form, mount the handler, and render a fill session in Next
 icon: Rocket
 ---
 
-A working questionnaire with drafts, `showWhen` visibility, and server validation. After this page, read [Architecture](/docs/architecture) for the model or [React](/docs/react) for the fill hook.
+A fill session in Next.js App Router — drafts, `showWhen`, and snapshot validation.
 
 <Steps>
 
 <Step>
 
-### 1. Install Dependencies
-
-Install `@dimah-form/server` for backend routes and `@dimah-form/react` for the React client hook:
+### Install
 
 <Tabs items={["pnpm", "npm", "yarn", "bun"]}>
-
-<Tab value="pnpm">
-  ```bash pnpm add @dimah-form/server @dimah-form/react ```
-</Tab>
-
-<Tab value="npm">
-  ```bash npm install @dimah-form/server @dimah-form/react ```
-</Tab>
-
-<Tab value="yarn">
-  ```bash yarn add @dimah-form/server @dimah-form/react ```
-</Tab>
-
-<Tab value="bun">```bash bun add @dimah-form/server @dimah-form/react ```</Tab>
-
+  <Tab value="pnpm">
+    ```bash pnpm add @dimah-form/server @dimah-form/react ```
+  </Tab>
+  <Tab value="npm">
+    ```bash npm install @dimah-form/server @dimah-form/react ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash yarn add @dimah-form/server @dimah-form/react ```
+  </Tab>
+  <Tab value="bun">
+    ```bash bun add @dimah-form/server @dimah-form/react ```
+  </Tab>
 </Tabs>
 
 </Step>
 
 <Step>
 
-### 2. Define Your Form Schema
-
-Create your form definitions under `lib/forms/`. Each form is defined using `defineForm`:
+### Define a form
 
 ```ts title="lib/forms/feedback.ts"
 import { defineForm } from "@dimah-form/server";
@@ -46,18 +39,12 @@ import { defineForm } from "@dimah-form/server";
 export const feedbackForm = defineForm({
   title: "Product Feedback",
   slug: "feedback",
-  description: "Help us improve our service with your honest feedback.",
   fields: [
-    {
-      id: "fullName",
-      type: "text",
-      label: "Full Name",
-      required: true,
-    },
+    { id: "fullName", type: "text", label: "Full name", required: true },
     {
       id: "rating",
       type: "select",
-      label: "How would you rate your experience?",
+      label: "Rating",
       required: true,
       options: [
         { value: "great", label: "Great" },
@@ -70,16 +57,11 @@ export const feedbackForm = defineForm({
       type: "text",
       label: "What could we improve?",
       required: true,
-      showWhen: {
-        field: "rating",
-        equals: "poor",
-      },
+      showWhen: { field: "rating", equals: "poor" },
     },
   ],
 });
 ```
-
-Export all forms from a central forms catalog:
 
 ```ts title="lib/forms/index.ts"
 import { feedbackForm } from "./feedback";
@@ -93,9 +75,7 @@ export const forms = {
 
 <Step>
 
-### 3. Initialize the Server Instance
-
-Configure `dimahForm()` with your forms catalog and a persistence adapter. For this quickstart, we use the built-in `memoryAdapter()`:
+### Create the instance
 
 ```ts title="lib/form.ts"
 import { dimahForm, memoryAdapter } from "@dimah-form/server";
@@ -110,18 +90,13 @@ export const form = dimahForm({
 export type Form = typeof form;
 ```
 
-<Callout type="info">
-  Exporting `export type Form = typeof form` exposes the inferred `$Infer`
-  answer types so your React client has 100% end-to-end type safety.
-</Callout>
+`memoryAdapter()` is process-local. For SQL, see [Database](/docs/database).
 
 </Step>
 
 <Step>
 
-### 4. Mount the Route Handler
-
-Create a Next.js App Router catch-all route handler to serve the REST API:
+### Mount the handler
 
 ```ts title="app/api/form/[...all]/route.ts"
 import { toNextJsHandler } from "@dimah-form/server/next";
@@ -130,15 +105,11 @@ import { form } from "@/lib/form";
 export const { GET, POST, PUT, PATCH, DELETE } = toNextJsHandler(form);
 ```
 
-This single route handler automatically mounts all endpoints for fetching forms, starting response sessions, saving drafts, and submitting answers.
-
 </Step>
 
 <Step>
 
-### 5. Create the Type-Safe React Client
-
-Initialize your client in a shared client file:
+### Create the client
 
 ```ts title="lib/form-client.ts"
 "use client";
@@ -157,9 +128,7 @@ export const { useFormResponse } = formClient;
 
 <Step>
 
-### 6. Build the Questionnaire UI Component
-
-Build a React component using `useFormResponse`. The hook manages field visibility (`q.visibleFields`), local state, draft saving, and submit validation:
+### Build the fill UI
 
 ```tsx title="components/questionnaire.tsx"
 "use client";
@@ -169,33 +138,14 @@ import type { FormSnapshot } from "@dimah-form/react";
 import { useFormResponse } from "@/lib/form-client";
 import type { Form } from "@/lib/form";
 
-interface QuestionnaireProps {
-  form: FormSnapshot;
-}
-
-export function Questionnaire({ form }: QuestionnaireProps) {
+export function Questionnaire({ form }: { form: FormSnapshot }) {
   const q = useFormResponse<Form["$Infer"]["answers"]["feedback"]>({
     snapshot: form,
     autosave: { debounceMs: 1000 },
-    onSubmitted: (res) => {
-      alert(`Thank you! Response recorded with ID: ${res.id}`);
-    },
   });
 
-  if (q.inactive) {
-    return <p className="text-gray-500">This form is currently inactive.</p>;
-  }
-
-  if (q.status === "submitted") {
-    return (
-      <div className="rounded-lg border border-green-200 bg-green-50 p-6 text-center">
-        <h3 className="text-lg font-semibold text-green-900">Submitted!</h3>
-        <p className="mt-1 text-sm text-green-700">
-          Your feedback has been successfully recorded.
-        </p>
-      </div>
-    );
-  }
+  if (q.inactive) return <p>This form is inactive.</p>;
+  if (q.status === "submitted") return <p>Submitted.</p>;
 
   return (
     <form
@@ -203,89 +153,66 @@ export function Questionnaire({ form }: QuestionnaireProps) {
         e.preventDefault();
         void q.submit();
       }}
-      className="mx-auto max-w-lg space-y-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+      className="mx-auto max-w-md space-y-4"
     >
-      <div>
-        <h2 className="text-xl font-bold text-gray-900">{form.title}</h2>
-        {form.description && (
-          <p className="mt-1 text-sm text-gray-600">{form.description}</p>
-        )}
-      </div>
+      <h1 className="text-xl font-bold">{form.title}</h1>
 
       {q.visibleFields.map((field) => {
         const binding = q.field(field.id);
+        const value = typeof binding.value === "string" ? binding.value : "";
 
-        if (field.type === "select") {
-          return (
-            <div key={field.id} className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-800">
-                {fieldLabel(field)}
-                {binding.required && (
-                  <span className="ml-1 text-red-500">*</span>
-                )}
-              </label>
+        return (
+          <div key={field.id} className="space-y-1">
+            <label className="block text-sm font-medium">
+              {fieldLabel(field)}
+              {binding.required && <span className="ml-1 text-red-500">*</span>}
+            </label>
+            {field.type === "select" ? (
               <select
-                value={typeof binding.value === "string" ? binding.value : ""}
+                value={value}
                 disabled={binding.disabled}
                 onChange={(e) => binding.onChange(emptyToNull(e.target.value))}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-black focus:outline-none"
+                className="w-full rounded border p-2"
               >
-                <option value="">Select an option...</option>
+                <option value="">Select...</option>
                 {fieldOptions(field).map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
                   </option>
                 ))}
               </select>
-              {binding.error && (
-                <p className="text-xs text-red-600">{binding.error}</p>
-              )}
-            </div>
-          );
-        }
-
-        return (
-          <div key={field.id} className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-800">
-              {fieldLabel(field)}
-              {binding.required && <span className="ml-1 text-red-500">*</span>}
-            </label>
-            <input
-              type="text"
-              value={typeof binding.value === "string" ? binding.value : ""}
-              disabled={binding.disabled}
-              onChange={(e) => binding.onChange(emptyToNull(e.target.value))}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-black focus:outline-none"
-            />
+            ) : (
+              <input
+                value={value}
+                disabled={binding.disabled}
+                onChange={(e) => binding.onChange(emptyToNull(e.target.value))}
+                className="w-full rounded border p-2"
+              />
+            )}
             {binding.error && (
-              <p className="text-xs text-red-600">{binding.error}</p>
+              <p className="text-xs text-red-500">{binding.error}</p>
             )}
           </div>
         );
       })}
 
-      {q.error && (
-        <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          {q.error}
-        </div>
-      )}
+      {q.error && <p className="text-sm text-red-500">{q.error}</p>}
 
-      <div className="flex items-center justify-between pt-2">
+      <div className="flex gap-2">
         <button
           type="button"
           disabled={q.pending !== undefined || q.locked}
           onClick={() => void q.saveDraft()}
-          className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          className="rounded border px-4 py-2"
         >
-          {q.pending === "save" ? "Saving..." : "Save Draft"}
+          {q.pending === "save" ? "Saving..." : "Save draft"}
         </button>
-
         <button
           type="submit"
           disabled={q.pending !== undefined || q.locked}
-          className="rounded-md bg-black px-5 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+          className="rounded bg-black px-4 py-2 text-white"
         >
-          {q.pending === "submit" ? "Submitting..." : "Submit Feedback"}
+          {q.pending === "submit" ? "Submitting..." : "Submit"}
         </button>
       </div>
     </form>
@@ -297,9 +224,7 @@ export function Questionnaire({ form }: QuestionnaireProps) {
 
 <Step>
 
-### 7. Render on a Server Page
-
-Fetch the form definition on the server using `form.api.getForm` and pass it directly to the client component:
+### Render on a page
 
 ```tsx title="app/page.tsx"
 import { Questionnaire } from "@/components/questionnaire";
@@ -311,15 +236,9 @@ export default async function Page() {
     query: { formId: "feedback" },
   });
 
-  if (!snapshot) {
-    notFound();
-  }
+  if (!snapshot) notFound();
 
-  return (
-    <main className="min-h-screen bg-gray-50 px-4 py-12">
-      <Questionnaire form={snapshot} />
-    </main>
-  );
+  return <Questionnaire form={snapshot} />;
 }
 ```
 
@@ -329,36 +248,27 @@ export default async function Page() {
 
 ---
 
-## What Just Happened?
-
-1. **Schema Immutability**: When `useFormResponse` starts or saves a draft, dimah-form freezes the form definition into a snapshot.
-2. **Dynamic Visibility**: Changing the rating to `"poor"` immediately reveals the conditional `improvements` field without custom boolean flags.
-3. **Drafts & Autosave**: The questionnaire debounces changes and persists drafts to the server automatically.
-4. **Server-Side Validation**: Submitting validates the answers strictly against the frozen snapshot schema on the server.
-
----
-
 ## Next Steps
 
 <Cards>
   <Card
     title="Architecture"
     href="/docs/architecture"
-    description="Learn how the request pipeline, snapshots, and packages interact."
+    description="Package boundaries, snapshots, and the request pipeline."
   />
   <Card
     title="Forms"
     href="/docs/forms"
-    description="Explore field types, validation rules, and conditional logic with showWhen."
+    description="defineForm, field rules, and showWhen."
   />
   <Card
     title="React Client"
     href="/docs/react"
-    description="Deep dive into useFormResponse state, actions, and custom widgets."
+    description="useFormResponse: visibility, drafts, and submit."
   />
   <Card
     title="Database"
     href="/docs/database"
-    description="Switch from memoryAdapter to FumaDB with Drizzle, Prisma, or Kysely."
+    description="Keep memoryAdapter, or add SQL with FumaDB."
   />
 </Cards>
