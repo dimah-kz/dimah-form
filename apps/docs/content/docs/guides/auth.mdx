@@ -52,12 +52,12 @@ throw APIError.from("FORBIDDEN", {
 });
 ```
 
-| Field | Set when |
-| --- | --- |
-| `request` | Always |
-| `operation` | Core name (`startResponse`) or plugin endpoint key |
-| `formId` | Form routes and start — from `query.formId`, `body.formId`, or `body.id` |
-| `responseId` | Present on response routes |
+| Field        | Set when                                                                 |
+| ------------ | ------------------------------------------------------------------------ |
+| `request`    | Always                                                                   |
+| `operation`  | Core name (`startResponse`) or plugin endpoint key                       |
+| `formId`     | Form routes and start — from `query.formId`, `body.formId`, or `body.id` |
+| `responseId` | Present on response routes                                               |
 
 Guard `operation` for a plugin route is the `endpoints` object key unless `metadata.operation` is set. See [Plugins](/docs/guides/plugins).
 
@@ -92,16 +92,16 @@ export const form = dimahForm({
 });
 ```
 
-| Hook | Context |
-| --- | --- |
-| `onStart` | `{ request, response }` |
-| `onSaveDraft` | `{ request, response }` |
-| `onSubmit` | `{ request, response }` |
-| `onAbandon` | `{ request, response }` |
-| `onReopen` | `{ request, response }` |
+| Hook               | Context                 |
+| ------------------ | ----------------------- |
+| `onStart`          | `{ request, response }` |
+| `onSaveDraft`      | `{ request, response }` |
+| `onSubmit`         | `{ request, response }` |
+| `onAbandon`        | `{ request, response }` |
+| `onReopen`         | `{ request, response }` |
 | `onDeleteResponse` | `{ request, response }` |
-| `onSaveForm` | `{ request, form }` |
-| `onDeleteForm` | `{ request, form }` |
+| `onSaveForm`       | `{ request, form }`     |
+| `onDeleteForm`     | `{ request, form }`     |
 
 Each `on*` hook has a matching `after*` with the same context. Plugin hooks run first, then instance hooks.
 

@@ -40,30 +40,32 @@ if (isFormErrorCode(err, "STALE_UPDATE")) {
 A plain `Error` thrown from `guard` or `on*` maps to `INTERNAL_ERROR` (500). Throw `APIError` for a stable `code`.
 
 <Callout>
-  `errors.*` helpers exist inside the server package for route handlers. They are **not** part of the public `@dimah-form/server` export. Consumer code should use `APIError.from` and `FORM_ERROR_CODES`.
+  `errors.*` helpers exist inside the server package for route handlers. They
+  are **not** part of the public `@dimah-form/server` export. Consumer code
+  should use `APIError.from` and `FORM_ERROR_CODES`.
 </Callout>
 
 ## Error catalog
 
 Codes core endpoints throw (or that you throw from `guard`):
 
-| `code` | HTTP | Trigger |
-| --- | --- | --- |
-| `NOT_FOUND` | 404 | Unknown API path |
-| `UNKNOWN_FORM` | 404 | `formId` / slug is not in config or the database |
-| `UNKNOWN_RESPONSE` | 404 | `responseId` does not exist |
-| `UNAUTHORIZED` | 401 | Thrown by your `guard` |
-| `FORBIDDEN` | 403 | Thrown by your `guard` |
-| `STALE_UPDATE` | 409 | `updatedAt` does not match the stored row |
-| `FORM_INACTIVE` | 409 | Start on a form that is not `active` |
-| `RESPONSE_NOT_DRAFT` | 409 | Draft / submit / abandon on a locked row |
-| `RESPONSE_NOT_LOCKED` | 409 | Reopen on a row that is already `draft` |
-| `CODE_AUTHORED_FORM` | 409 | `saveForm` / `deleteForm` on a config id |
-| `FORM_HAS_RESPONSES` | 409 | `deleteForm` while responses still exist |
-| `SLUG_TAKEN` | 409 | `saveForm` slug collides |
-| `VALIDATION_ERROR` | 400 | Invalid payload or answer issues (`issues[]`) |
-| `UNKNOWN_FIELD_TYPE` | 400 | Field `type` is not registered (request path) |
-| `INTERNAL_ERROR` | 500 | Unhandled throw or failed `on*` / persist |
+| `code`                | HTTP | Trigger                                          |
+| --------------------- | ---- | ------------------------------------------------ |
+| `NOT_FOUND`           | 404  | Unknown API path                                 |
+| `UNKNOWN_FORM`        | 404  | `formId` / slug is not in config or the database |
+| `UNKNOWN_RESPONSE`    | 404  | `responseId` does not exist                      |
+| `UNAUTHORIZED`        | 401  | Thrown by your `guard`                           |
+| `FORBIDDEN`           | 403  | Thrown by your `guard`                           |
+| `STALE_UPDATE`        | 409  | `updatedAt` does not match the stored row        |
+| `FORM_INACTIVE`       | 409  | Start on a form that is not `active`             |
+| `RESPONSE_NOT_DRAFT`  | 409  | Draft / submit / abandon on a locked row         |
+| `RESPONSE_NOT_LOCKED` | 409  | Reopen on a row that is already `draft`          |
+| `CODE_AUTHORED_FORM`  | 409  | `saveForm` / `deleteForm` on a config id         |
+| `FORM_HAS_RESPONSES`  | 409  | `deleteForm` while responses still exist         |
+| `SLUG_TAKEN`          | 409  | `saveForm` slug collides                         |
+| `VALIDATION_ERROR`    | 400  | Invalid payload or answer issues (`issues[]`)    |
+| `UNKNOWN_FIELD_TYPE`  | 400  | Field `type` is not registered (request path)    |
+| `INTERNAL_ERROR`      | 500  | Unhandled throw or failed `on*` / persist        |
 
 `params` carries ids when relevant (`formId`, `responseId`, `slug`, `type`). `VALIDATION_ERROR` may include `issues: { field, message }[]`.
 

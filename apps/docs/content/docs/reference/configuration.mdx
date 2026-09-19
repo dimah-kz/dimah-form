@@ -10,16 +10,16 @@ Scannable option tables. For setup walkthroughs see [Server](/docs/guides/server
 
 Imported from `@dimah-form/server`.
 
-| Option | Role |
-| --- | --- |
-| `database` | Required persistence (`memoryAdapter()`, `db()`, or a `ResponseStore`) |
-| `forms` | Code-authored catalog — feeds `$Infer`. Optional |
-| `fieldTypes` | Extra validators on this instance |
-| `basePath` | HTTP prefix. Default `/api/form` |
-| `guard` | Runs before every operation. Throw `APIError` to reject |
-| `hooks` | `on*` after validation before persist; `after*` after persist |
-| `plugins` | Additive endpoints, hooks, field types, `$ERROR_CODES` |
-| `metaSchema` | Optional Zod for opaque `meta` on form / field / option documents |
+| Option       | Role                                                                   |
+| ------------ | ---------------------------------------------------------------------- |
+| `database`   | Required persistence (`memoryAdapter()`, `db()`, or a `ResponseStore`) |
+| `forms`      | Code-authored catalog — feeds `$Infer`. Optional                       |
+| `fieldTypes` | Extra validators on this instance                                      |
+| `basePath`   | HTTP prefix. Default `/api/form`                                       |
+| `guard`      | Runs before every operation. Throw `APIError` to reject                |
+| `hooks`      | `on*` after validation before persist; `after*` after persist          |
+| `plugins`    | Additive endpoints, hooks, field types, `$ERROR_CODES`                 |
+| `metaSchema` | Optional Zod for opaque `meta` on form / field / option documents      |
 
 Returns `{ handler, api, $ERROR_CODES, $Infer }`.
 
@@ -29,16 +29,16 @@ Returns `{ handler, api, $ERROR_CODES, $Infer }`.
 
 Imported from `@dimah-form/react` (or `@dimah-form/core` for non-React). Generic `createFormClient<Form>()` copies server `$Infer`.
 
-| Option | Role |
-| --- | --- |
-| `basePath` | Must match server `basePath`. Default `/api/form` |
-| `baseURL` | Absolute origin + path. Wins over `basePath` |
-| `fieldTypes` | Runtime extras for the fill session; skip for `$Infer` when using `createFormClient<Form>()` |
-| `forms` | Type-only catalog when you do not have the server instance type |
-| `plugins` | `defineClientPlugin` companions — not inferred from the server |
-| `credentials` | e.g. `"include"` for cookies |
-| `headers` | Static headers or `() => HeadersInit \| Promise<HeadersInit>` per request |
-| `fetch` | Override global `fetch` (SSR, tests) |
+| Option        | Role                                                                                         |
+| ------------- | -------------------------------------------------------------------------------------------- |
+| `basePath`    | Must match server `basePath`. Default `/api/form`                                            |
+| `baseURL`     | Absolute origin + path. Wins over `basePath`                                                 |
+| `fieldTypes`  | Runtime extras for the fill session; skip for `$Infer` when using `createFormClient<Form>()` |
+| `forms`       | Type-only catalog when you do not have the server instance type                              |
+| `plugins`     | `defineClientPlugin` companions — not inferred from the server                               |
+| `credentials` | e.g. `"include"` for cookies                                                                 |
+| `headers`     | Static headers or `() => HeadersInit \| Promise<HeadersInit>` per request                    |
+| `fetch`       | Override global `fetch` (SSR, tests)                                                         |
 
 React wrapper also adds `Provider`, `useFormClient`, and bound `useFormResponse`.
 
@@ -46,17 +46,17 @@ React wrapper also adds `Provider`, `useFormClient`, and bound `useFormResponse`
 
 Pass to `dimahForm({ database })`. Methods may return `T` or `Promise<T>`.
 
-| Method | Role |
-| --- | --- |
-| `getForm(idOrSlug)` | Live questionnaire or `undefined` |
-| `saveForm(form)` | Upsert live questionnaire |
-| `deleteForm(id)` | Remove live questionnaire |
-| `listForms(query?)` | `status?`, `limit?`, `offset?` |
-| `create(row)` | Insert a response. Insert parent questionnaire if missing; do not overwrite live definition |
-| `get(id)` | Response or `undefined` |
-| `save(row)` | Update a response |
-| `delete(id)` | Remove a response |
-| `listResponses(query?)` | `formId?`, `respondentId?`, `status?`, `limit?`, `offset?` |
+| Method                  | Role                                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------------------- |
+| `getForm(idOrSlug)`     | Live questionnaire or `undefined`                                                           |
+| `saveForm(form)`        | Upsert live questionnaire                                                                   |
+| `deleteForm(id)`        | Remove live questionnaire                                                                   |
+| `listForms(query?)`     | `status?`, `limit?`, `offset?`                                                              |
+| `create(row)`           | Insert a response. Insert parent questionnaire if missing; do not overwrite live definition |
+| `get(id)`               | Response or `undefined`                                                                     |
+| `save(row)`             | Update a response                                                                           |
+| `delete(id)`            | Remove a response                                                                           |
+| `listResponses(query?)` | `formId?`, `respondentId?`, `status?`, `limit?`, `offset?`                                  |
 
 `memoryAdapter()` implements this in process. `db()` from `@dimah-form/db` implements it on FumaDB.
 

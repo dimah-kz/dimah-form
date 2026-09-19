@@ -9,7 +9,8 @@ dimah-form is a **backend-first questionnaire engine**. It owns the HTTP protoco
 It is not a form renderer, not a field-widget kit, and not a hosted survey product. There is no shadcn registry.
 
 <Callout>
-  Two rules everything else hangs on: **consumers own UI**, and **submit validates the snapshot stored on the response**, not the live questionnaire.
+  Two rules everything else hangs on: **consumers own UI**, and **submit
+  validates the snapshot stored on the response**, not the live questionnaire.
 </Callout>
 
 ## What it is not
@@ -23,12 +24,12 @@ Use it when you need typed questionnaires with drafts and snapshot-safe submit, 
 
 ## Package map
 
-| Package | You use it for |
-| --- | --- |
-| `@dimah-form/server` | `dimahForm()`, HTTP `handler`, `form.api`, adapters |
-| `@dimah-form/react` | `createFormClient`, `useFormResponse` — no widgets |
-| `@dimah-form/db` | FumaDB `database` adapter (`db()`) |
-| `@dimah-form/core` | Protocol SSOT. App code imports `server` or `react`; shared `defineFieldType` modules import `core` |
+| Package              | You use it for                                                                                      |
+| -------------------- | --------------------------------------------------------------------------------------------------- |
+| `@dimah-form/server` | `dimahForm()`, HTTP `handler`, `form.api`, adapters                                                 |
+| `@dimah-form/react`  | `createFormClient`, `useFormResponse` — no widgets                                                  |
+| `@dimah-form/db`     | FumaDB `database` adapter (`db()`)                                                                  |
+| `@dimah-form/core`   | Protocol SSOT. App code imports `server` or `react`; shared `defineFieldType` modules import `core` |
 
 ```
 @dimah-form/core

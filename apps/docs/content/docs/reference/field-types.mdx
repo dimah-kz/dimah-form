@@ -10,15 +10,15 @@ Built-ins are always registered. Extra types go in `dimahForm({ fieldTypes })`. 
 
 ## Built-ins
 
-| Type | Answer | Extra keys |
-| --- | --- | --- |
-| `text` | string | `minLength`, `maxLength`, `pattern` |
-| `number` | finite number | `min`, `max`, `integer` |
-| `boolean` | boolean | — |
-| `select` | string option value | `options` (`{ value, label?, meta? }[]`) |
-| `multiSelect` | `string[]` | `options` (unique values) |
-| `email` | string | — |
-| `date` | ISO calendar date (`YYYY-MM-DD`) | — |
+| Type          | Answer                           | Extra keys                               |
+| ------------- | -------------------------------- | ---------------------------------------- |
+| `text`        | string                           | `minLength`, `maxLength`, `pattern`      |
+| `number`      | finite number                    | `min`, `max`, `integer`                  |
+| `boolean`     | boolean                          | —                                        |
+| `select`      | string option value              | `options` (`{ value, label?, meta? }[]`) |
+| `multiSelect` | `string[]`                       | `options` (unique values)                |
+| `email`       | string                           | —                                        |
+| `date`        | ISO calendar date (`YYYY-MM-DD`) | —                                        |
 
 Shared field keys: `id`, `type`, `required`, `label`, `description`, `defaultValue`, `showWhen`, `meta`.
 

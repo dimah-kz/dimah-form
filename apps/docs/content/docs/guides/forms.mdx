@@ -32,10 +32,10 @@ Duplicate field ids throw. Unknown field types are allowed in `defineForm` and r
 
 ## Status and slug
 
-| Field | Default | Notes |
-| --- | --- | --- |
-| `status` | `"active"` | `draft` \| `active` \| `archived`. Only `active` forms can be started |
-| `slug` | the form id | Unique. `getForm` and `startResponse` accept id or slug |
+| Field    | Default     | Notes                                                                 |
+| -------- | ----------- | --------------------------------------------------------------------- |
+| `status` | `"active"`  | `draft` \| `active` \| `archived`. Only `active` forms can be started |
+| `slug`   | the form id | Unique. `getForm` and `startResponse` accept id or slug               |
 
 `saveForm` rejects a slug that collides with another form (`SLUG_TAKEN`). Snapshots always include `slug` and `status` after normalize.
 
@@ -43,13 +43,13 @@ Duplicate field ids throw. Unknown field types are allowed in `defineForm` and r
 
 Forms in config feed TypeScript inference (`form.$Infer`). The live catalog is read on each get/start — it is not copied at init.
 
-| Operation | Behavior |
-| --- | --- |
-| `getForm` | Config first (id, then slug), then `database.getForm` |
-| `startResponse` | Same resolution. Copies the live definition onto the response |
-| `listForms` | Code-authored first, then stored rows whose ids are not already present |
-| `saveForm` | Upserts the live questionnaire. Cannot overwrite a code-authored id (`CODE_AUTHORED_FORM`) |
-| `deleteForm` | Refuses code-authored ids and forms that still have responses (`FORM_HAS_RESPONSES`). Archive with `status` |
+| Operation       | Behavior                                                                                                    |
+| --------------- | ----------------------------------------------------------------------------------------------------------- |
+| `getForm`       | Config first (id, then slug), then `database.getForm`                                                       |
+| `startResponse` | Same resolution. Copies the live definition onto the response                                               |
+| `listForms`     | Code-authored first, then stored rows whose ids are not already present                                     |
+| `saveForm`      | Upserts the live questionnaire. Cannot overwrite a code-authored id (`CODE_AUTHORED_FORM`)                  |
+| `deleteForm`    | Refuses code-authored ids and forms that still have responses (`FORM_HAS_RESPONSES`). Archive with `status` |
 
 Starting a response never overwrites the live definition. Submit still uses the **response** snapshot — see [Snapshots](/docs/concepts/snapshots).
 

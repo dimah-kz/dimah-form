@@ -75,13 +75,13 @@ In your widget map, `field.type === "rating"` is your cue to render stars (or an
 
 ## `defineFieldType` contract
 
-| Key | Role |
-| --- | --- |
-| `type` | Unique string. Shadows of built-ins throw |
-| `validate` | When the answer is present, English error or `undefined`. Third argument `context.answers` is the full payload |
-| `isEmpty` | Treat other values as unanswered (blank strings, empty arrays). `null` / `undefined` are always empty |
-| `fieldSchema` | Optional Zod for the field document. Applied at `dimahForm()` / `saveForm` |
-| `$Infer` | Phantom answer type for `form.$Infer.answers` |
+| Key           | Role                                                                                                           |
+| ------------- | -------------------------------------------------------------------------------------------------------------- |
+| `type`        | Unique string. Shadows of built-ins throw                                                                      |
+| `validate`    | When the answer is present, English error or `undefined`. Third argument `context.answers` is the full payload |
+| `isEmpty`     | Treat other values as unanswered (blank strings, empty arrays). `null` / `undefined` are always empty          |
+| `fieldSchema` | Optional Zod for the field document. Applied at `dimahForm()` / `saveForm`                                     |
+| `$Infer`      | Phantom answer type for `form.$Infer.answers`                                                                  |
 
 `validate` must not be a React component. Type-specific keys (`min`, `max`, `options`) stay on the field document. UI-only hints go in `meta`.
 

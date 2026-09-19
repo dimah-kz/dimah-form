@@ -1,9 +1,5 @@
 export type DocsSection =
-  | "framework"
-  | "concepts"
-  | "guides"
-  | "reference"
-  | "examples";
+  "framework" | "concepts" | "guides" | "reference" | "examples";
 
 export function getSection(path: string | undefined): DocsSection {
   if (!path) return "framework";

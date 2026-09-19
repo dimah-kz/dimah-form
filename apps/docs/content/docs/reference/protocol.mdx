@@ -10,10 +10,10 @@ Default prefix: `/api/form` (`FORM_API_BASE_PATH`). Paths below are relative to 
 
 **Call shape**
 
-| Caller | Arguments |
-| --- | --- |
-| Browser `createFormClient` | Object args (`{ formId }`, body fields at the top level) |
-| `form.api` | better-call `{ query }` / `{ body }`, plus optional `headers` |
+| Caller                     | Arguments                                                     |
+| -------------------------- | ------------------------------------------------------------- |
+| Browser `createFormClient` | Object args (`{ formId }`, body fields at the top level)      |
+| `form.api`                 | better-call `{ query }` / `{ body }`, plus optional `headers` |
 
 Optional `headers` on the client object args are request headers, not JSON.
 
@@ -21,27 +21,27 @@ List endpoints return `{ …, limit, offset, nextOffset }`. Default `limit` is 5
 
 ## Forms
 
-| Client | `form.api` | Method | Path | Notes |
-| --- | --- | --- | --- | --- |
-| `getForm({ formId })` | `{ query: { formId } }` | GET | `/form` | id or slug |
-| `saveForm(snapshot)` | `{ body: snapshot }` | POST | `/form` | `FormSnapshot` (`id` required) |
-| `deleteForm({ formId })` | `{ body: { formId } }` | POST | `/form/delete` | stored forms with no responses |
-| `listForms({ status?, limit?, offset? })` | `{ query }` | GET | `/forms` | `status`, pagination |
+| Client                                    | `form.api`              | Method | Path           | Notes                          |
+| ----------------------------------------- | ----------------------- | ------ | -------------- | ------------------------------ |
+| `getForm({ formId })`                     | `{ query: { formId } }` | GET    | `/form`        | id or slug                     |
+| `saveForm(snapshot)`                      | `{ body: snapshot }`    | POST   | `/form`        | `FormSnapshot` (`id` required) |
+| `deleteForm({ formId })`                  | `{ body: { formId } }`  | POST   | `/form/delete` | stored forms with no responses |
+| `listForms({ status?, limit?, offset? })` | `{ query }`             | GET    | `/forms`       | `status`, pagination           |
 
 `saveForm` / `deleteForm` on a code-authored id throw `CODE_AUTHORED_FORM`. `deleteForm` while responses exist throws `FORM_HAS_RESPONSES`.
 
 ## Responses
 
-| Client | `form.api` | Method | Path | Notes |
-| --- | --- | --- | --- | --- |
-| `startResponse({ formId, respondentId? })` | `{ body }` | POST | `/response/start` | id or slug; copies live definition |
-| `getResponse({ responseId })` | `{ query: { responseId } }` | GET | `/response` | full record |
-| `listResponses({ formId?, respondentId?, status?, include?, limit?, offset? })` | `{ query }` | GET | `/responses` | default summaries; `include: "full"` for answers |
-| `saveDraft({ responseId, answers, updatedAt? })` | `{ body }` | POST | `/response/draft` | patch; `null` deletes a key |
-| `submitResponse({ responseId, answers?, updatedAt? })` | `{ body }` | POST | `/response/submit` | omit `answers` to submit the stored draft |
-| `abandonResponse({ responseId, updatedAt? })` | `{ body }` | POST | `/response/abandon` | draft only |
-| `reopenResponse({ responseId, updatedAt? })` | `{ body }` | POST | `/response/reopen` | submitted / abandoned; snapshot unchanged |
-| `deleteResponse({ responseId })` | `{ body }` | POST | `/response/delete` | any status |
+| Client                                                                          | `form.api`                  | Method | Path                | Notes                                            |
+| ------------------------------------------------------------------------------- | --------------------------- | ------ | ------------------- | ------------------------------------------------ |
+| `startResponse({ formId, respondentId? })`                                      | `{ body }`                  | POST   | `/response/start`   | id or slug; copies live definition               |
+| `getResponse({ responseId })`                                                   | `{ query: { responseId } }` | GET    | `/response`         | full record                                      |
+| `listResponses({ formId?, respondentId?, status?, include?, limit?, offset? })` | `{ query }`                 | GET    | `/responses`        | default summaries; `include: "full"` for answers |
+| `saveDraft({ responseId, answers, updatedAt? })`                                | `{ body }`                  | POST   | `/response/draft`   | patch; `null` deletes a key                      |
+| `submitResponse({ responseId, answers?, updatedAt? })`                          | `{ body }`                  | POST   | `/response/submit`  | omit `answers` to submit the stored draft        |
+| `abandonResponse({ responseId, updatedAt? })`                                   | `{ body }`                  | POST   | `/response/abandon` | draft only                                       |
+| `reopenResponse({ responseId, updatedAt? })`                                    | `{ body }`                  | POST   | `/response/reopen`  | submitted / abandoned; snapshot unchanged        |
+| `deleteResponse({ responseId })`                                                | `{ body }`                  | POST   | `/response/delete`  | any status                                       |
 
 Submit and draft validate against `response.definition`. See [Snapshots](/docs/concepts/snapshots).
 

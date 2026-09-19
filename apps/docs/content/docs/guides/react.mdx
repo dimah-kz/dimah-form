@@ -104,45 +104,45 @@ The same session exists as `createFormResponseSession` from `@dimah-form/core` (
 
 ## Options
 
-| Option | Role |
-| --- | --- |
-| `snapshot` | Live form. When `response` is passed, the row's `definition` wins field values |
-| `response` | Existing row (`id`, `answers`, `status`, `updatedAt`, `definition`) |
-| `respondentId` | String or `() => string`, sent on `startResponse` |
-| `fieldTypes` | Same extras as `dimahForm({ fieldTypes })`. Falls back to `client.fieldTypes` |
-| `validate` | `"submit"` (default) or `"change"` |
-| `onStarted` | After `startResponse`. Do not navigate here if a save/submit follows |
-| `onSaved` / `onSubmitted` | After a successful draft / submit |
-| `onReopened` / `onAbandoned` | After reopen / abandon |
+| Option                       | Role                                                                           |
+| ---------------------------- | ------------------------------------------------------------------------------ |
+| `snapshot`                   | Live form. When `response` is passed, the row's `definition` wins field values |
+| `response`                   | Existing row (`id`, `answers`, `status`, `updatedAt`, `definition`)            |
+| `respondentId`               | String or `() => string`, sent on `startResponse`                              |
+| `fieldTypes`                 | Same extras as `dimahForm({ fieldTypes })`. Falls back to `client.fieldTypes`  |
+| `validate`                   | `"submit"` (default) or `"change"`                                             |
+| `onStarted`                  | After `startResponse`. Do not navigate here if a save/submit follows           |
+| `onSaved` / `onSubmitted`    | After a successful draft / submit                                              |
+| `onReopened` / `onAbandoned` | After reopen / abandon                                                         |
 
 Client fetch options (`basePath`, `baseURL`, `credentials`, `headers`, `fetch`) live on `createFormClient`. See [Configuration](/docs/reference/configuration).
 
 ## State and actions
 
-| Field | Meaning |
-| --- | --- |
-| `snapshot` | Definition in use (from the response once started) |
-| `responseId` | Undefined until start |
-| `answers` | Current values (`FormAnswers`) |
-| `status` | `draft` \| `submitted` \| `abandoned` |
-| `locked` | Submitted or abandoned |
-| `inactive` | No row yet and the live form is not `active` |
-| `dirty` | Local answers differ from last persist |
-| `pending` | `"save"` \| `"submit"` \| `"reopen"` \| `"abandon"` \| `"refresh"` |
-| `issues` | Per-field messages |
-| `error` | Request-level English message |
-| `visibleFields` | Fields whose `showWhen` matches |
+| Field           | Meaning                                                            |
+| --------------- | ------------------------------------------------------------------ |
+| `snapshot`      | Definition in use (from the response once started)                 |
+| `responseId`    | Undefined until start                                              |
+| `answers`       | Current values (`FormAnswers`)                                     |
+| `status`        | `draft` \| `submitted` \| `abandoned`                              |
+| `locked`        | Submitted or abandoned                                             |
+| `inactive`      | No row yet and the live form is not `active`                       |
+| `dirty`         | Local answers differ from last persist                             |
+| `pending`       | `"save"` \| `"submit"` \| `"reopen"` \| `"abandon"` \| `"refresh"` |
+| `issues`        | Per-field messages                                                 |
+| `error`         | Request-level English message                                      |
+| `visibleFields` | Fields whose `showWhen` matches                                    |
 
-| Action | Behavior |
-| --- | --- |
-| `field(id)` | `{ value, error, invalid, required, disabled, visible, onChange, field }` |
-| `setAnswer` / `setAnswers` | Patch. No-op when `locked` |
-| `validate()` | Collect issues (`submit` mode by default) |
-| `saveDraft()` | Start if needed, send an answers patch + `updatedAt` |
-| `submit()` | Local submit validation, then full replace + `updatedAt` |
-| `reopen()` | Locked rows only |
-| `abandon()` | Draft with an id |
-| `refresh()` | `getResponse` and replace local state |
+| Action                     | Behavior                                                                  |
+| -------------------------- | ------------------------------------------------------------------------- |
+| `field(id)`                | `{ value, error, invalid, required, disabled, visible, onChange, field }` |
+| `setAnswer` / `setAnswers` | Patch. No-op when `locked`                                                |
+| `validate()`               | Collect issues (`submit` mode by default)                                 |
+| `saveDraft()`              | Start if needed, send an answers patch + `updatedAt`                      |
+| `submit()`                 | Local submit validation, then full replace + `updatedAt`                  |
+| `reopen()`                 | Locked rows only                                                          |
+| `abandon()`                | Draft with an id                                                          |
+| `refresh()`                | `getResponse` and replace local state                                     |
 
 Actions return `undefined` when a request is already pending, the row is in the wrong status, or local submit validation fails.
 
@@ -177,13 +177,13 @@ issuesByField(issues); // { [fieldId]: message } — array or APIError
 formErrorMessage(error, "Request failed");
 ```
 
-| Helper | Role |
-| --- | --- |
-| `applyAnswerPatch` | Merge a draft patch. `null` / `undefined` deletes a key |
-| `stripHiddenAnswers` | Drop keys hidden by `showWhen` |
-| `seedDefaultAnswers` | Start payload from `defaultValue`, then strip hidden |
-| `collectAnswerIssues` | `{ field, message }[]` for `"draft"` or `"submit"` |
-| `parseAnswers` | Strip, validate, drop empty keys. Throws `VALIDATION_ERROR` |
+| Helper                | Role                                                        |
+| --------------------- | ----------------------------------------------------------- |
+| `applyAnswerPatch`    | Merge a draft patch. `null` / `undefined` deletes a key     |
+| `stripHiddenAnswers`  | Drop keys hidden by `showWhen`                              |
+| `seedDefaultAnswers`  | Start payload from `defaultValue`, then strip hidden        |
+| `collectAnswerIssues` | `{ field, message }[]` for `"draft"` or `"submit"`          |
+| `parseAnswers`        | Strip, validate, drop empty keys. Throws `VALIDATION_ERROR` |
 
 Submit validation against a snapshot belongs on the server. These helpers are for local checks and for stores that speak the same protocol.
 

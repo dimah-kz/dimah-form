@@ -7,7 +7,9 @@ icon: Camera
 A **response** is one fill of a form. It stores a **definition snapshot** plus **answers**.
 
 <Callout type="warn">
-  Submit validates `response.definition`, not the live questionnaire in config or `database`. Editing the live form does not rewrite in-flight or submitted responses. There is no version table.
+  Submit validates `response.definition`, not the live questionnaire in config
+  or `database`. Editing the live form does not rewrite in-flight or submitted
+  responses. There is no version table.
 </Callout>
 
 Starting a response **copies** the live definition onto the new row. It inserts a parent questionnaire row if that id is missing. It **never overwrites** an existing live definition.
@@ -22,11 +24,11 @@ The live catalog is still what `getForm` / `startResponse` resolve **now** (code
 
 ## Response statuses
 
-| Status | Meaning | Allowed mutations |
-| --- | --- | --- |
-| `draft` | In progress | draft, submit, abandon |
-| `submitted` | Locked after a successful submit | reopen, delete |
-| `abandoned` | Locked without submit | reopen, delete |
+| Status      | Meaning                          | Allowed mutations      |
+| ----------- | -------------------------------- | ---------------------- |
+| `draft`     | In progress                      | draft, submit, abandon |
+| `submitted` | Locked after a successful submit | reopen, delete         |
+| `abandoned` | Locked without submit            | reopen, delete         |
 
 <Flow
   label="Response lifecycle"

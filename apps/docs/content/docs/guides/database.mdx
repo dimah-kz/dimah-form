@@ -16,10 +16,10 @@ The [Next.js example](/docs/examples) uses FumaDB + Drizzle + local SQLite.
 
 Two application tables. There is no version table — old responses keep their snapshot on `response.definition`.
 
-| Table | Role |
-| --- | --- |
-| `questionnaire` | Live form (`id`, `slug`, `title`, `definition`, `status`, timestamps) |
-| `response` | Fill (`definition` copy at start, `answers`, `status`, `respondentId`) |
+| Table           | Role                                                                   |
+| --------------- | ---------------------------------------------------------------------- |
+| `questionnaire` | Live form (`id`, `slug`, `title`, `definition`, `status`, timestamps)  |
+| `response`      | Fill (`definition` copy at start, `answers`, `status`, `respondentId`) |
 
 FumaDB also keeps a private settings row (`private_dimah_form_settings`). Do not write to it from application code.
 

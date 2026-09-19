@@ -20,12 +20,12 @@ pnpm --filter @dimah-form/example-next dev
 
 Open http://localhost:3000
 
-| Route | What it shows |
-| --- | --- |
-| `/` | Feedback form — built-ins plus `showWhen`; `rating` is a custom field type |
-| `/f/:formId` | Same questionnaire, resolved by id or slug |
-| `/responses` | Stored answers (`include=full`) |
-| `/r/:id` | Resume a draft, or reopen a submitted / abandoned response |
+| Route        | What it shows                                                              |
+| ------------ | -------------------------------------------------------------------------- |
+| `/`          | Feedback form — built-ins plus `showWhen`; `rating` is a custom field type |
+| `/f/:formId` | Same questionnaire, resolved by id or slug                                 |
+| `/responses` | Stored answers (`include=full`)                                            |
+| `/r/:id`     | Resume a draft, or reopen a submitted / abandoned response                 |
 
 Save draft patches answers; submit replaces them. Both send `updatedAt`. Edit on `/r/:id` calls `reopenResponse` (same snapshot and answers) — it does not start a new response.
 
