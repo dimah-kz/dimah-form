@@ -1,6 +1,6 @@
 import type { FormField } from "@dimah-form/react";
 
-import { fieldMetaNumber, fieldMetaString } from "@/lib/field-attr";
+import { readFieldUiMeta, type FormUiMeta } from "@/lib/field-ui-meta";
 
 export type FieldGroupBucket = {
   key: string;
@@ -25,17 +25,22 @@ export function selectVisibleFields(
 }
 
 export function fieldSectionTitle(field: FormField): string | undefined {
-  return fieldMetaString(field, "section");
+  return readFieldUiMeta(field).section;
 }
 
 export function fieldStepKey(field: FormField): string {
-  const asNumber = fieldMetaNumber(field, "step");
-  if (asNumber !== undefined) return String(asNumber);
-  return fieldMetaString(field, "step") ?? "1";
+  const step = readFieldUiMeta(field).step;
+  return step === undefined ? "1" : String(step);
 }
 
-export function fieldStepTitle(field: FormField): string | undefined {
-  return fieldMetaString(field, "stepTitle");
+export function fieldStepTitle(
+  field: FormField,
+  stepTitles?: FormUiMeta["steps"],
+): string | undefined {
+  const title = stepTitles?.[fieldStepKey(field)];
+  return typeof title === "string" && title.trim() !== ""
+    ? title.trim()
+    : undefined;
 }
 
 export function shouldGroupBySection(fields: readonly FormField[]): boolean {
@@ -92,12 +97,19 @@ function compareStepKeys(left: string, right: string): number {
 /** Group by `meta.step` (number or string). Missing step is `"1"`. */
 export function groupFieldsByStep(
   fields: readonly FormField[],
+  stepTitles?: FormUiMeta["steps"],
 ): FieldGroupBucket[] {
   const groups: FieldGroupBucket[] = [];
   const indexByKey = new Map<string, number>();
   for (const field of fields) {
     const key = fieldStepKey(field);
-    pushGroup(groups, indexByKey, key, fieldStepTitle(field), field);
+    pushGroup(
+      groups,
+      indexByKey,
+      key,
+      fieldStepTitle(field, stepTitles),
+      field,
+    );
   }
   return groups.sort((left, right) => compareStepKeys(left.key, right.key));
 }

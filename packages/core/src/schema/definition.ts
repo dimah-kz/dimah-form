@@ -132,6 +132,11 @@ export const numberFieldSchema = z
 export const booleanFieldSchema = z.strictObject({
   ...fieldDocument,
   type: z.literal("boolean"),
+  /**
+   * Unchecked control writes `null` (empty / consent). Default off writes
+   * `false` so a required yes/no can submit “No”.
+   */
+  unsetOnOff: z.boolean().optional(),
 });
 
 export const selectOptionSchema = z.strictObject({

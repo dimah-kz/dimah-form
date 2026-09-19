@@ -17,7 +17,6 @@ import { useFieldIssue } from "@/hooks/use-field-issue";
 import {
   fieldDescriptionId,
   fieldErrorId,
-  fieldHelpId,
   fieldWidget,
 } from "@/lib/field-attr";
 import { readFieldUiMeta } from "@/lib/field-ui-meta";
@@ -104,14 +103,6 @@ export function FormFieldFrame<TValue = unknown>({
   const errorContent = error === false ? null : (error ?? issue ?? null);
   const Mark = RequiredMarkSlot ?? RequiredMark;
   const requiredMark = requiredIndicator && binding.required ? <Mark /> : null;
-  const helpNode = ui.help ? (
-    <p
-      id={fieldHelpId(field.id)}
-      className="text-sm text-dimah-form-muted-foreground"
-    >
-      {ui.help}
-    </p>
-  ) : null;
   const descriptionNode = descriptionContent ? (
     <FieldDescription id={fieldDescriptionId(field.id)}>
       {descriptionContent}
@@ -138,7 +129,6 @@ export function FormFieldFrame<TValue = unknown>({
             {requiredMark}
           </FieldLegend>
         ) : null}
-        {helpNode}
         {children}
         {descriptionNode}
         {errorNode}
@@ -157,7 +147,6 @@ export function FormFieldFrame<TValue = unknown>({
               {requiredMark}
             </FieldLabel>
           ) : null}
-          {helpNode}
           {descriptionNode}
           {errorNode}
         </FieldContent>
@@ -173,7 +162,6 @@ export function FormFieldFrame<TValue = unknown>({
           {requiredMark}
         </FieldLabel>
       ) : null}
-      {helpNode}
       {children}
       {descriptionNode}
       {errorNode}

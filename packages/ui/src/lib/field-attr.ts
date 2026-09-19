@@ -1,5 +1,7 @@
 import type { FormField, FormFieldBinding } from "@dimah-form/react";
 
+import { readFieldUiMeta } from "@/lib/field-ui-meta";
+
 export function fieldNumber(
   field: FormField | undefined,
   key: string,
@@ -62,7 +64,7 @@ export function fieldMetaNumber(
  * `switch` (boolean), `chips` (multiSelect).
  */
 export function fieldWidget(field: FormField | undefined): string | undefined {
-  return fieldMetaString(field, "widget");
+  return readFieldUiMeta(field).widget;
 }
 
 export function fieldDescriptionId(id: string) {
@@ -82,14 +84,14 @@ function hasDescription(field: FormField | undefined) {
 }
 
 function defaultAutoComplete(field: FormField | undefined): string | undefined {
-  const fromMeta = fieldMetaString(field, "autocomplete");
+  const fromMeta = readFieldUiMeta(field).autocomplete;
   if (fromMeta) return fromMeta;
   if (field?.type === "email") return "email";
   return undefined;
 }
 
 function defaultInputMode(field: FormField | undefined): string | undefined {
-  const fromMeta = fieldMetaString(field, "inputMode");
+  const fromMeta = readFieldUiMeta(field).inputMode;
   if (fromMeta) return fromMeta;
   if (field?.type === "email") return "email";
   if (field?.type === "number") {
@@ -104,7 +106,6 @@ export function fieldControlProps(binding: FormFieldBinding) {
   const id = field?.id ?? binding.id;
   const describedBy = [
     hasDescription(field) ? fieldDescriptionId(id) : undefined,
-    fieldMetaString(field, "help") ? fieldHelpId(id) : undefined,
     binding.invalid ? fieldErrorId(id) : undefined,
   ]
     .filter((value): value is string => Boolean(value))

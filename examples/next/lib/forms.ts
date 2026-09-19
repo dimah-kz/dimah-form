@@ -1,4 +1,5 @@
 import { defineForm } from "@dimah-form/server";
+import type { FormDefinitionUi } from "@dimah-form/ui";
 
 export const forms = {
   feedback: defineForm({
@@ -91,7 +92,8 @@ export const forms = {
         type: "boolean",
         required: true,
         label: "This is my own feedback",
-        meta: { widget: "switch", unsetOnOff: true },
+        unsetOnOff: true,
+        meta: { widget: "switch" },
       },
       {
         id: "note",
@@ -101,5 +103,5 @@ export const forms = {
         meta: { multiline: true },
       },
     ],
-  }),
+  } satisfies FormDefinitionUi),
 };

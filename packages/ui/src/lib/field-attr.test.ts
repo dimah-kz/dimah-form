@@ -5,7 +5,6 @@ import {
   fieldControlProps,
   fieldDescriptionId,
   fieldErrorId,
-  fieldHelpId,
   fieldMetaNumber,
   fieldMetaString,
   fieldWidget,
@@ -68,19 +67,18 @@ describe("fieldControlProps", () => {
     expect(props["aria-invalid"]).toBe(true);
   });
 
-  it("adds autocomplete, help describedby, and email inputMode", () => {
+  it("adds autocomplete and email inputMode", () => {
     const email = fieldControlProps(
       binding({
         field: field({
           id: "email",
           type: "email",
-          meta: { help: "Work inbox" },
+          meta: { autocomplete: "username" },
         }),
       }),
     );
-    expect(email.autoComplete).toBe("email");
+    expect(email.autoComplete).toBe("username");
     expect(email.inputMode).toBe("email");
-    expect(email["aria-describedby"]).toBe(fieldHelpId("email"));
   });
 
   it("omits describedby when there is nothing to point at", () => {

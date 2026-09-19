@@ -17,6 +17,7 @@ import {
 } from "@/components/dimah-form/form-fields";
 import { useFormUi } from "@/hooks/use-form-ui";
 import { groupFieldsByStep } from "@/lib/field-groups";
+import { readFormUiMeta } from "@/lib/field-ui-meta";
 import { scheduleFocusInvalidField } from "@/lib/focus-invalid";
 
 export type FormStep = {
@@ -73,11 +74,14 @@ export function FormSteps<TAnswers extends FormAnswers = FormAnswers>({
   children,
 }: FormStepsProps<TAnswers>) {
   const session = useFormSession(form);
-  const steps = groupFieldsByStep(session.visibleFields).map((group) => ({
-    key: group.key,
-    title: group.title ?? group.key,
-    fields: group.fields,
-  }));
+  const stepTitles = readFormUiMeta(session.snapshot).steps;
+  const steps = groupFieldsByStep(session.visibleFields, stepTitles).map(
+    (group) => ({
+      key: group.key,
+      title: group.title ?? group.key,
+      fields: group.fields,
+    }),
+  );
   const [index, setIndex] = useState(0);
   const total = steps.length;
   const safe = total === 0 ? 0 : Math.min(index, total - 1);

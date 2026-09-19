@@ -8,6 +8,7 @@ import {
   readFieldUiMeta,
   readFormUiMeta,
   readOptionUiMeta,
+  type FormDefinitionUi,
 } from "@/lib/field-ui-meta";
 
 function field(
@@ -29,15 +30,12 @@ describe("readFieldUiMeta", () => {
           rows: 4,
           section: "About",
           step: 2,
-          stepTitle: "Profile",
           autocomplete: "name",
           inputMode: "text",
           prefix: "@",
           suffix: "kg",
           width: "half",
           orientation: "horizontal",
-          help: "Shown on your badge",
-          unsetOnOff: true,
           extra: "ok",
         },
       }),
@@ -49,15 +47,12 @@ describe("readFieldUiMeta", () => {
       rows: 4,
       section: "About",
       step: 2,
-      stepTitle: "Profile",
       autocomplete: "name",
       inputMode: "text",
       prefix: "@",
       suffix: "kg",
       width: "half",
       orientation: "horizontal",
-      help: "Shown on your badge",
-      unsetOnOff: true,
     });
   });
 
@@ -75,15 +70,22 @@ describe("readFieldUiMeta", () => {
 });
 
 describe("readOptionUiMeta / readFormUiMeta", () => {
-  it("reads option description and form layout", () => {
+  it("reads option description, form layout, and step titles", () => {
     expect(
       readOptionUiMeta({ meta: { description: " Ships in 2 days " } }),
     ).toEqual({ description: "Ships in 2 days" });
     expect(
-      readFormUiMeta({ meta: { layout: "steps", submitLabel: "Send" } }),
+      readFormUiMeta({
+        meta: {
+          layout: "steps",
+          submitLabel: "Send",
+          steps: { "1": " About ", "2": "  " },
+        },
+      }),
     ).toEqual({
       layout: "steps",
       submitLabel: "Send",
+      steps: { "1": "About" },
     });
     expect(
       readFormUiMeta({ meta: { layout: "wizard" } }).layout,
@@ -95,9 +97,7 @@ describe("booleanOffValue", () => {
   it("defaults to false and nulls when unsetOnOff", () => {
     expect(booleanOffValue(field({ id: "ok", type: "boolean" }))).toBe(false);
     expect(
-      booleanOffValue(
-        field({ id: "ok", type: "boolean", meta: { unsetOnOff: true } }),
-      ),
+      booleanOffValue(field({ id: "ok", type: "boolean", unsetOnOff: true })),
     ).toBeNull();
   });
 });
@@ -117,5 +117,48 @@ describe("field width helpers", () => {
       "@min-[32rem]/field-group:col-span-2",
     );
     expect(fieldWidthClass(half, true)).toBeUndefined();
+  });
+});
+
+describe("FormDefinitionUi", () => {
+  it("accepts UI meta and type-specific field keys", () => {
+    const form = {
+      title: "X",
+      meta: { layout: "steps", steps: { "1": "About" } },
+      fields: [
+        {
+          id: "name",
+          type: "text",
+          minLength: 2,
+          meta: { placeholder: "Ada", width: "half" },
+        },
+        {
+          id: "ok",
+          type: "boolean",
+          unsetOnOff: true,
+          meta: { widget: "switch" },
+        },
+        { id: "file", type: "file", accept: ".pdf" },
+      ],
+    } satisfies FormDefinitionUi;
+    expect(form.fields[0]?.meta?.placeholder).toBe("Ada");
+    expect(form.meta?.steps?.["1"]).toBe("About");
+  });
+
+  it("rejects unknown field meta keys", () => {
+    const form = {
+      title: "X",
+      fields: [
+        {
+          id: "n",
+          type: "text",
+          meta: {
+            // @ts-expect-error unknown UI meta key
+            placeholer: "Ada",
+          },
+        },
+      ],
+    } satisfies FormDefinitionUi;
+    expect(form.fields[0]?.id).toBe("n");
   });
 });

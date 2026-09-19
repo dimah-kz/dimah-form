@@ -1,11 +1,9 @@
-import type { FieldOption, FormField, FormSnapshot } from "@dimah-form/react";
-
-import {
-  fieldMetaFlag,
-  fieldMetaNumber,
-  fieldMetaString,
-  fieldWidget,
-} from "@/lib/field-attr";
+import type {
+  FieldOption,
+  FormField,
+  FormSnapshot,
+  FormStatus,
+} from "@dimah-form/react";
 
 /** Built-in `meta.widget` values. Other strings are ignored by stock widgets. */
 export const FIELD_UI_WIDGETS = ["radio", "switch", "chips"] as const;
@@ -20,7 +18,7 @@ export type FormViewLayout = "auto" | "fill" | "steps" | "review";
 
 /**
  * Presentation bag on `field.meta`. Validation stays on the field document.
- * Pass a matching Zod object to `dimahForm({ metaSchema: { field } })`.
+ * Author with `defineForm({ ... } satisfies FormDefinitionUi)`.
  */
 export type FieldUiMeta = {
   widget?: string;
@@ -29,19 +27,12 @@ export type FieldUiMeta = {
   rows?: number;
   section?: string;
   step?: number | string;
-  stepTitle?: string;
   autocomplete?: string;
   inputMode?: string;
   prefix?: string;
   suffix?: string;
   width?: FieldUiWidth;
   orientation?: FieldUiOrientation;
-  help?: string;
-  /**
-   * Boolean widgets send `null` when off (consent / opt-in). Default off
-   * writes `false` so a required yes/no can submit “No”.
-   */
-  unsetOnOff?: boolean;
 };
 
 /** Presentation bag on `option.meta`. */
@@ -53,6 +44,41 @@ export type OptionUiMeta = {
 export type FormUiMeta = {
   layout?: FormViewLayout;
   submitLabel?: string;
+  /** Step key (`meta.step`, default `"1"`) → heading for {@link FormSteps}. */
+  steps?: Record<string, string>;
+};
+
+/**
+ * `defineForm({ ... } satisfies FormDefinitionUi)` when using this package.
+ * `meta` autocompletes; unknown UI keys fail. Type-specific field keys
+ * (`minLength`, `unsetOnOff`, custom `defineFieldType` props) stay allowed.
+ */
+export type FormDefinitionUi = {
+  title: string;
+  description?: string;
+  slug?: string;
+  status?: FormStatus;
+  meta?: FormUiMeta;
+  fields: readonly FormDefinitionUiField[];
+};
+
+export type FormDefinitionUiOption = {
+  value: string;
+  label?: string;
+  meta?: OptionUiMeta;
+};
+
+export type FormDefinitionUiField = {
+  [key: string]: unknown;
+  id: string;
+  type: string;
+  required?: boolean;
+  label?: string;
+  description?: string;
+  defaultValue?: unknown;
+  showWhen?: FormField["showWhen"];
+  meta?: FieldUiMeta;
+  options?: readonly FormDefinitionUiOption[];
 };
 
 const WIDTHS = new Set<string>(["full", "half"]);
@@ -76,31 +102,61 @@ function metaString(
     : undefined;
 }
 
+function metaFlag(
+  meta: Record<string, unknown> | undefined,
+  key: string,
+): boolean {
+  return meta?.[key] === true;
+}
+
+function metaNumber(
+  meta: Record<string, unknown> | undefined,
+  key: string,
+): number | undefined {
+  const value = meta?.[key];
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+function metaSteps(
+  meta: Record<string, unknown> | undefined,
+): Record<string, string> | undefined {
+  const value = meta?.steps;
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  const steps: Record<string, string> = {};
+  for (const [key, title] of Object.entries(value)) {
+    if (typeof title === "string" && title.trim() !== "") {
+      steps[key] = title.trim();
+    }
+  }
+  return Object.keys(steps).length > 0 ? steps : undefined;
+}
+
 /** Read known UI keys from `field.meta`. Unknown keys are ignored. */
 export function readFieldUiMeta(field: FormField | undefined): FieldUiMeta {
-  const stepNumber = fieldMetaNumber(field, "step");
-  const width = fieldMetaString(field, "width");
-  const orientation = fieldMetaString(field, "orientation");
-  const rows = fieldMetaNumber(field, "rows");
+  const meta = metaRecord(field?.meta);
+  const stepNumber = metaNumber(meta, "step");
+  const width = metaString(meta, "width");
+  const orientation = metaString(meta, "orientation");
   return {
-    widget: fieldWidget(field),
-    placeholder: fieldMetaString(field, "placeholder"),
-    multiline: fieldMetaFlag(field, "multiline") || undefined,
-    rows,
-    section: fieldMetaString(field, "section"),
-    step: stepNumber ?? fieldMetaString(field, "step"),
-    stepTitle: fieldMetaString(field, "stepTitle"),
-    autocomplete: fieldMetaString(field, "autocomplete"),
-    inputMode: fieldMetaString(field, "inputMode"),
-    prefix: fieldMetaString(field, "prefix"),
-    suffix: fieldMetaString(field, "suffix"),
+    widget: metaString(meta, "widget"),
+    placeholder: metaString(meta, "placeholder"),
+    multiline: metaFlag(meta, "multiline") || undefined,
+    rows: metaNumber(meta, "rows"),
+    section: metaString(meta, "section"),
+    step: stepNumber ?? metaString(meta, "step"),
+    autocomplete: metaString(meta, "autocomplete"),
+    inputMode: metaString(meta, "inputMode"),
+    prefix: metaString(meta, "prefix"),
+    suffix: metaString(meta, "suffix"),
     width: width && WIDTHS.has(width) ? (width as FieldUiWidth) : undefined,
     orientation:
       orientation && ORIENTATIONS.has(orientation)
         ? (orientation as FieldUiOrientation)
         : undefined,
-    help: fieldMetaString(field, "help"),
-    unsetOnOff: fieldMetaFlag(field, "unsetOnOff") || undefined,
   };
 }
 
@@ -121,12 +177,13 @@ export function readFormUiMeta(
     layout:
       layout && LAYOUTS.has(layout) ? (layout as FormViewLayout) : undefined,
     submitLabel: metaString(meta, "submitLabel"),
+    steps: metaSteps(meta),
   };
 }
 
-/** Unchecked boolean: `false`, or `null` when `meta.unsetOnOff`. */
+/** Unchecked boolean: `false`, or `null` when `field.unsetOnOff`. */
 export function booleanOffValue(field: FormField | undefined): false | null {
-  return readFieldUiMeta(field).unsetOnOff ? null : false;
+  return field?.unsetOnOff === true ? null : false;
 }
 
 export function fieldWidthClass(

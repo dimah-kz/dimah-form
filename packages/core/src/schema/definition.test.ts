@@ -172,6 +172,24 @@ describe("formDefinitionSchema", () => {
     });
   });
 
+  it("keeps unsetOnOff on boolean fields and rejects it on text", () => {
+    expect(
+      formDefinitionSchema.parse({
+        title: "X",
+        fields: [{ id: "ok", type: "boolean", unsetOnOff: true }],
+      }),
+    ).toEqual({
+      title: "X",
+      fields: [{ id: "ok", type: "boolean", unsetOnOff: true }],
+    });
+    expect(
+      formDefinitionSchema.validate({
+        title: "X",
+        fields: [{ id: "n", type: "text", unsetOnOff: true }],
+      }),
+    ).toBe(false);
+  });
+
   it("rejects unknown keys on builtin fields and options", () => {
     expect(
       formDefinitionSchema.validate({

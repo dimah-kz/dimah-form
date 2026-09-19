@@ -64,8 +64,9 @@ required-field mark with `components.RequiredMark`. Built-in types (`text`,
 `email`, `date`, `number`, `boolean`, `select`, `multiSelect`) ship with the
 package. `FormView layout="auto"` picks a wizard when `meta.step` groups, and
 review when locked. Presentation lives on `meta` (`widget`, `placeholder`,
-`section`, `step`, `width`, `help`, …) — see `FieldUiMeta`. Compose
-`FormScope` + primitives when the default template is not enough.
+`section`, `step`, `width`, …) — `defineForm({ ... } satisfies FormDefinitionUi)`
+so those keys type-check. Compose `FormScope` + primitives when the default
+template is not enough.
 
 ## License
 

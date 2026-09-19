@@ -10,10 +10,11 @@ Forms are TypeScript (`defineForm`) or rows in your database (`saveForm`). Code-
 
 ## Authoring Forms in TypeScript
 
-We recommend defining each questionnaire in a dedicated file under `lib/forms/`:
+We recommend defining each questionnaire in a dedicated file under `lib/forms/`. If you render with `@dimah-form/ui`, `satisfies FormDefinitionUi` types `meta` against that package:
 
 ```ts title="lib/forms/onboarding.ts"
 import { defineForm } from "@dimah-form/server";
+import type { FormDefinitionUi } from "@dimah-form/ui";
 
 export const onboardingForm = defineForm({
   title: "Employee Onboarding",
@@ -66,7 +67,7 @@ export const onboardingForm = defineForm({
       defaultValue: true,
     },
   ],
-});
+} satisfies FormDefinitionUi);
 ```
 
 Export your forms from a central index:
@@ -127,9 +128,9 @@ Each item in `fields` requires an `id`, a `type`, and an optional `label`:
   label: "Work Email Address",
   required: true,
   defaultValue: "user@example.com",
+  description: "We will send your onboarding packet here.",
   meta: {
     placeholder: "you@company.com",
-    help: "We will send your onboarding packet here.",
   },
 }
 ```
@@ -142,7 +143,8 @@ Each item in `fields` requires an `id`, a `type`, and an optional `label`:
 - **`required`**: If `true`, the field must be non-empty when submitting the form (if visible).
 - **`defaultValue`**: Seeded into the answers map upon calling `startResponse`.
 - **`showWhen`**: Conditional visibility rules.
-- **`meta`**: Opaque JSON for UI. `@dimah-form/ui` reads a typed `FieldUiMeta` bag: `placeholder`, `multiline`, `rows`, `widget` (`radio` / `switch` / `chips`), `section`, `step`, `stepTitle`, `width`, `prefix` / `suffix`, `autocomplete`, `inputMode`, `orientation`, `help`, `unsetOnOff`. See [UI](/docs/ui).
+- **`description`**: Helper copy under the control in `@dimah-form/ui`.
+- **`meta`**: Opaque JSON for UI. When you use `@dimah-form/ui`, type the document with `satisfies FormDefinitionUi` so `placeholder`, `widget`, `section`, `step`, `width`, … autocomplete. See [UI](/docs/ui). Boolean `unsetOnOff` is a field key, not meta.
 
 ---
 
