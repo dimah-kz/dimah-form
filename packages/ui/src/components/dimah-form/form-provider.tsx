@@ -30,8 +30,10 @@ export type FormUiProviderProps = {
  *   "Submit(form action)": "ارسال",
  * } satisfies Partial<Translations>;
  *
+ * const widgets = { rating: StarRatingField };
+ *
  * <formClient.Provider>
- *   <FormUiProvider translations={fa} widgets={{ rating: StarRatingField }}>
+ *   <FormUiProvider translations={fa} widgets={widgets}>
  *     {children}
  *   </FormUiProvider>
  * </formClient.Provider>

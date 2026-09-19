@@ -1,20 +1,28 @@
 "use client";
 
-import { FormFieldFrame, type FieldWidgetProps } from "@dimah-form/ui";
+import {
+  FormFieldFrame,
+  fieldNumber,
+  type FieldWidgetProps,
+} from "@dimah-form/ui";
 
-import { StarRating } from "@/components/star-rating";
-import { ratingMax } from "@/lib/field-display";
+import { StarRating } from "@/components/fields/star-rating";
 
-export function StarRatingField({ className, ...binding }: FieldWidgetProps) {
+export function StarRatingField({
+  binding,
+  className,
+}: FieldWidgetProps<number>) {
   const field = binding.field;
   if (!field) return null;
+
+  const max = fieldNumber(field, "max");
 
   return (
     <FormFieldFrame binding={binding} className={className}>
       <StarRating
         id={field.id}
         value={binding.value}
-        max={ratingMax(field)}
+        max={max && max > 0 ? max : 5}
         disabled={binding.disabled}
         invalid={binding.invalid}
         required={binding.required}

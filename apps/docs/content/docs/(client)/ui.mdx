@@ -36,10 +36,11 @@ pnpm dlx shadcn@latest add dimah-kz/dimah-form/form
 ```tsx
 import { FormUiProvider, FormView } from "@dimah-form/ui";
 
+const widgets = { rating: StarRatingField };
 const form = useFormResponse({ snapshot });
 
 return (
-  <FormUiProvider translations={fa} widgets={{ rating: StarRatingField }}>
+  <FormUiProvider translations={fa} widgets={widgets}>
     <FormView form={form} />
   </FormUiProvider>
 );
@@ -54,7 +55,7 @@ return (
 Every chrome piece is a primitive. `FormScope` provides the session so they do not need a `form` prop:
 
 ```tsx
-<FormScope form={form} widgets={{ rating: StarRatingField }}>
+<FormScope form={form}>
   <FormRoot>
     <FormHeader />
     <FormFields />
@@ -64,11 +65,11 @@ Every chrome piece is a primitive. `FormScope` provides the session so they do n
 ```
 
 - `FormField` — looks up the widget for `binding.field.type`. Pass `children` to replace that widget.
-- `FormFieldFrame` — default shadcn `Field` label / description / issue. Use this when writing a custom widget.
+- `FormFieldFrame` — label / description / issue chrome. `layout="stack"` (default), `"choice"` (checkbox), or `"group"` (fieldset). Use this when writing a custom widget.
 - `FormFields` — maps `visibleFields`. `renderField` keeps the loop and swaps chrome per field.
 - Built-in widgets (`TextField`, `BooleanField`, …) are usable on their own: `<EmailField binding={form.field("email")} />`.
 
-`text` with `meta.multiline` renders a textarea. `boolean` and `multiSelect` use their own `Field` / `FieldSet` anatomy — they do not go through `FormFieldFrame`.
+A widget receives `{ binding, className }` — not a spread `FormFieldBinding`. `text` with `meta.multiline` renders a textarea.
 
 RTL: logical CSS from day one (`text-start`, `ms-*`, `ps-*`). Colors: `*-dimah-form-*` (defaults to your shadcn theme).
 

@@ -4,7 +4,11 @@ import { emptyToNull } from "@dimah-form/react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FormFieldFrame } from "@/components/dimah-form/form-field-frame";
-import { fieldMetaFlag, fieldString } from "@/lib/field-attr";
+import {
+  fieldControlProps,
+  fieldMetaFlag,
+  fieldString,
+} from "@/lib/field-attr";
 import type { FieldWidgetProps } from "@/lib/widget-registry";
 
 export type StringFieldProps = FieldWidgetProps & {
@@ -13,21 +17,16 @@ export type StringFieldProps = FieldWidgetProps & {
 
 /** Shared control for `text` / `email` / `date`. Not a registry type. */
 export function StringField({
-  inputType,
+  binding,
   className,
-  ...binding
+  inputType,
 }: StringFieldProps) {
   const field = binding.field;
   if (!field) return null;
 
-  const invalid = binding.invalid;
   const value = typeof binding.value === "string" ? binding.value : "";
   const controlProps = {
-    id: field.id,
-    name: field.id,
-    disabled: binding.disabled,
-    "aria-invalid": invalid || undefined,
-    "aria-required": binding.required || undefined,
+    ...fieldControlProps(binding),
     value,
     onChange: (event: { target: { value: string } }) => {
       binding.onChange(emptyToNull(event.target.value));

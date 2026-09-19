@@ -12,7 +12,7 @@ import {
 
 /**
  * Built-in `type` → widget. Pass overrides to {@link createFieldWidgets} or
- * `FormUiProvider` / `FormView` / `FormField` — later layers win.
+ * `FormUiProvider` / `FormView` / `FormScope` — later layers win.
  */
 export const defaultFieldWidgets: FieldWidgetRegistry = {
   text: TextField,

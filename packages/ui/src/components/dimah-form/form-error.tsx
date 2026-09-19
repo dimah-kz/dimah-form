@@ -24,7 +24,7 @@ export function FormError<TAnswers extends FormAnswers = FormAnswers>({
     <Alert variant="destructive" className={className}>
       <CircleAlertIcon />
       <AlertTitle>{t("Request failed", { note: "session error" })}</AlertTitle>
-      <AlertDescription className="[overflow-wrap:anywhere]">
+      <AlertDescription className="wrap-anywhere">
         {session.error}
       </AlertDescription>
     </Alert>

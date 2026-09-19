@@ -1,4 +1,4 @@
-import type { FormField } from "@dimah-form/react";
+import type { FormField, FormFieldBinding } from "@dimah-form/react";
 
 export function fieldNumber(
   field: FormField | undefined,
@@ -29,4 +29,16 @@ export function fieldMetaFlag(
 ): boolean {
   const meta = field?.meta;
   return Boolean(meta && typeof meta === "object" && meta[key] === true);
+}
+
+/** Native control attributes derived from a binding. */
+export function fieldControlProps(binding: FormFieldBinding) {
+  const id = binding.field?.id ?? binding.id;
+  return {
+    id,
+    name: id,
+    disabled: binding.disabled,
+    "aria-invalid": binding.invalid || undefined,
+    "aria-required": binding.required || undefined,
+  };
 }

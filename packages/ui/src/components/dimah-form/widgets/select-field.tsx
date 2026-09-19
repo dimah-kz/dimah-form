@@ -11,9 +11,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FormFieldFrame } from "@/components/dimah-form/form-field-frame";
+import { fieldControlProps } from "@/lib/field-attr";
 import type { FieldWidgetProps } from "@/lib/widget-registry";
 
-export function SelectField({ className, ...binding }: FieldWidgetProps) {
+export function SelectField({ binding, className }: FieldWidgetProps) {
   const t = useTranslations();
   const field = binding.field;
   if (!field) return null;
@@ -29,22 +30,23 @@ export function SelectField({ className, ...binding }: FieldWidgetProps) {
       value: option.value,
     })),
   ];
+  const { id, disabled, ...control } = fieldControlProps(binding);
 
   return (
     <FormFieldFrame binding={binding} className={className}>
       <Select
         items={items}
         value={typeof binding.value === "string" ? binding.value : null}
-        disabled={binding.disabled}
+        disabled={disabled}
         onValueChange={(value) => {
           binding.onChange(typeof value === "string" ? value : null);
         }}
       >
         <SelectTrigger
-          id={field.id}
+          id={id}
           className="w-full"
-          aria-invalid={binding.invalid || undefined}
-          aria-required={binding.required || undefined}
+          aria-invalid={control["aria-invalid"]}
+          aria-required={control["aria-required"]}
         >
           <SelectValue />
         </SelectTrigger>

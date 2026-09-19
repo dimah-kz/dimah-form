@@ -23,6 +23,7 @@ export {
 export {
   FormFieldFrame,
   RequiredMark,
+  type FormFieldFrameLayout,
   type FormFieldFrameProps,
 } from "@/components/dimah-form/form-field-frame";
 export {
@@ -68,6 +69,13 @@ export {
   type FieldWidgetProps,
   type FieldWidgetRegistry,
 } from "@/lib/widget-registry";
+export {
+  fieldControlProps,
+  fieldFlag,
+  fieldMetaFlag,
+  fieldNumber,
+  fieldString,
+} from "@/lib/field-attr";
 export type { FormSlot } from "@/lib/form-slot";
 export { useFormUi } from "@/hooks/use-form-ui";
 export { useFieldIssue } from "@/hooks/use-field-issue";

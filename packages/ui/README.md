@@ -42,12 +42,14 @@ import { FormUiProvider, FormView } from "@dimah-form/ui";
 export const formClient = createFormClient();
 export const { useFormResponse } = formClient;
 
+const widgets = { rating: StarRatingField };
+
 export function IntakeForm({ snapshot }) {
   const form = useFormResponse({ snapshot });
 
   return (
     <formClient.Provider>
-      <FormUiProvider widgets={{ rating: StarRatingField }}>
+      <FormUiProvider widgets={widgets}>
         <FormView form={form} />
       </FormUiProvider>
     </formClient.Provider>
@@ -55,11 +57,12 @@ export function IntakeForm({ snapshot }) {
 }
 ```
 
-Register custom `defineFieldType` widgets once on `FormUiProvider` (or per
-`FormView` / `FormScope`). Built-in types (`text`, `email`, `date`, `number`,
-`boolean`, `select`, `multiSelect`) ship with the package. Compose
-`FormScope` + `FormFields` / `TextField` / `FormActions` when the default
-template is not enough.
+A widget is `{ binding, className }`. Wrap the control in `FormFieldFrame`
+(`layout`: `stack` | `choice` | `group`). Register custom `defineFieldType`
+widgets once on `FormUiProvider` (or per `FormView` / `FormScope`). Built-in
+types (`text`, `email`, `date`, `number`, `boolean`, `select`, `multiSelect`)
+ship with the package. Compose `FormScope` + `FormFields` / `TextField` /
+`FormActions` when the default template is not enough.
 
 ## License
 

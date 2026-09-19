@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { UnknownField } from "@/components/dimah-form/widgets/unknown-field";
-import { mergeFieldWidgets, resolveFieldWidget } from "@/lib/widget-registry";
+import {
+  mergeFieldWidgets,
+  resolveFieldWidget,
+  sameFieldWidgets,
+} from "@/lib/widget-registry";
 
 function WidgetA() {
   return null;
@@ -35,7 +38,23 @@ describe("resolveFieldWidget", () => {
     expect(resolveFieldWidget("text", { text: WidgetA })).toBe(WidgetA);
   });
 
-  it("falls back when the type is missing", () => {
-    expect(resolveFieldWidget("rating", { text: WidgetA })).toBe(UnknownField);
+  it("returns undefined when the type is missing", () => {
+    expect(resolveFieldWidget("rating", { text: WidgetA })).toBeUndefined();
+    expect(resolveFieldWidget(undefined, { text: WidgetA })).toBeUndefined();
+  });
+});
+
+describe("sameFieldWidgets", () => {
+  it("treats matching component identity as equal", () => {
+    expect(
+      sameFieldWidgets(
+        { text: WidgetA, rating: WidgetB },
+        { text: WidgetA, rating: WidgetB },
+      ),
+    ).toBe(true);
+  });
+
+  it("detects a replaced widget", () => {
+    expect(sameFieldWidgets({ text: WidgetA }, { text: WidgetB })).toBe(false);
   });
 });

@@ -5,9 +5,12 @@ import { fieldLabel, type FormFieldBinding } from "@dimah-form/react";
 import { cn } from "cn";
 import {
   Field,
+  FieldContent,
   FieldDescription,
   FieldError,
   FieldLabel,
+  FieldLegend,
+  FieldSet,
 } from "@/components/ui/field";
 import { useFieldIssue } from "@/hooks/use-field-issue";
 
@@ -19,10 +22,18 @@ export function RequiredMark() {
   );
 }
 
+export type FormFieldFrameLayout = "stack" | "choice" | "group";
+
 export type FormFieldFrameProps<TValue = unknown> = {
   binding: FormFieldBinding<TValue>;
   children?: ReactNode;
   className?: string;
+  /**
+   * `stack` — label, control, description, issue (default).
+   * `choice` — control, then label / description / issue (checkbox, switch).
+   * `group` — `FieldSet` + legend (checkbox / radio lists).
+   */
+  layout?: FormFieldFrameLayout;
   orientation?: "vertical" | "horizontal" | "responsive";
   /** `false` hides. Omit for `field.label` (or the field id). */
   label?: ReactNode | false;
@@ -34,14 +45,27 @@ export type FormFieldFrameProps<TValue = unknown> = {
   requiredIndicator?: boolean;
 };
 
+function FrameError({ content }: { content: ReactNode }) {
+  if (!content) return null;
+  return (
+    <FieldError
+      className="wrap-anywhere"
+      errors={typeof content === "string" ? [{ message: content }] : undefined}
+    >
+      {typeof content === "string" ? undefined : content}
+    </FieldError>
+  );
+}
+
 /**
- * Default shadcn `Field` chrome (label / description / issue) around a control.
- * Type widgets that need different anatomy (`boolean`, `multiSelect`) skip this.
+ * shadcn field chrome around a control. Built-in widgets use this;
+ * custom widgets should too.
  */
 export function FormFieldFrame<TValue = unknown>({
   binding,
   children,
   className,
+  layout = "stack",
   orientation = "vertical",
   label,
   description,
@@ -53,6 +77,7 @@ export function FormFieldFrame<TValue = unknown>({
   if (!field) return null;
 
   const invalid = binding.invalid || Boolean(issue);
+  const labelId = `${field.id}-label`;
   const labelContent = label === false ? null : (label ?? fieldLabel(field));
   const descriptionContent =
     description === false
@@ -60,36 +85,63 @@ export function FormFieldFrame<TValue = unknown>({
       : (description ??
         (typeof field.description === "string" ? field.description : null));
   const errorContent = error === false ? null : (error ?? issue ?? null);
+  const requiredMark =
+    requiredIndicator && binding.required ? <RequiredMark /> : null;
+  const descriptionNode = descriptionContent ? (
+    <FieldDescription>{descriptionContent}</FieldDescription>
+  ) : null;
+  const errorNode = <FrameError content={errorContent} />;
+  const invalidProps = {
+    className: cn(className),
+    "data-invalid": invalid || undefined,
+    "data-disabled": binding.disabled || undefined,
+  };
+
+  if (layout === "group") {
+    return (
+      <FieldSet {...invalidProps}>
+        {labelContent ? (
+          <FieldLegend id={labelId} variant="label">
+            {labelContent}
+            {requiredMark}
+          </FieldLegend>
+        ) : null}
+        {children}
+        {descriptionNode}
+        {errorNode}
+      </FieldSet>
+    );
+  }
+
+  if (layout === "choice") {
+    return (
+      <Field {...invalidProps} orientation="horizontal">
+        {children}
+        <FieldContent>
+          {labelContent ? (
+            <FieldLabel id={labelId} htmlFor={field.id} className="font-normal">
+              {labelContent}
+              {requiredMark}
+            </FieldLabel>
+          ) : null}
+          {descriptionNode}
+          {errorNode}
+        </FieldContent>
+      </Field>
+    );
+  }
 
   return (
-    <Field
-      className={cn(className)}
-      orientation={orientation}
-      data-invalid={invalid || undefined}
-      data-disabled={binding.disabled || undefined}
-    >
+    <Field {...invalidProps} orientation={orientation}>
       {labelContent ? (
-        <FieldLabel htmlFor={field.id}>
+        <FieldLabel id={labelId} htmlFor={field.id}>
           {labelContent}
-          {requiredIndicator && binding.required ? <RequiredMark /> : null}
+          {requiredMark}
         </FieldLabel>
       ) : null}
       {children}
-      {descriptionContent ? (
-        <FieldDescription>{descriptionContent}</FieldDescription>
-      ) : null}
-      {errorContent ? (
-        <FieldError
-          className="[overflow-wrap:anywhere]"
-          errors={
-            typeof errorContent === "string"
-              ? [{ message: errorContent }]
-              : undefined
-          }
-        >
-          {typeof errorContent === "string" ? undefined : errorContent}
-        </FieldError>
-      ) : null}
+      {descriptionNode}
+      {errorNode}
     </Field>
   );
 }

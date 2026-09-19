@@ -1,8 +1,8 @@
 import type { ComponentType } from "react";
 import type { FormFieldBinding } from "@dimah-form/react";
-import { UnknownField } from "@/components/dimah-form/widgets/unknown-field";
 
-export type FieldWidgetProps<TValue = unknown> = FormFieldBinding<TValue> & {
+export type FieldWidgetProps<TValue = unknown> = {
+  binding: FormFieldBinding<TValue>;
   className?: string;
 };
 
@@ -36,10 +36,21 @@ export function mergeFieldWidgets(
 export function resolveFieldWidget(
   type: string | undefined,
   widgets: FieldWidgetRegistry,
-): AnyFieldWidget {
-  if (type) {
-    const widget = widgets[type];
-    if (widget) return widget;
+): AnyFieldWidget | undefined {
+  return type ? widgets[type] : undefined;
+}
+
+/** Component-identity compare so inline `{ rating: StarRatingField }` stays stable. */
+export function sameFieldWidgets(
+  left?: FieldWidgetRegistry,
+  right?: FieldWidgetRegistry,
+): boolean {
+  if (left === right) return true;
+  if (!left || !right) return false;
+  const keys = Object.keys(left);
+  if (keys.length !== Object.keys(right).length) return false;
+  for (const key of keys) {
+    if (left[key] !== right[key]) return false;
   }
-  return UnknownField;
+  return true;
 }

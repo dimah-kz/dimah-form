@@ -3,6 +3,7 @@
 import { createElement, type ReactNode } from "react";
 import type { FormFieldBinding } from "@dimah-form/react";
 import { useFieldWidgets } from "@/components/dimah-form/form-context";
+import { UnknownField } from "@/components/dimah-form/widgets/unknown-field";
 import {
   resolveFieldWidget,
   type FieldWidgetRegistry,
@@ -33,8 +34,8 @@ export function FormField<TValue = unknown>({
   if (!binding.visible || !field) return null;
   if (children) return children;
 
-  return createElement(resolveFieldWidget(field.type, widgets), {
-    ...binding,
-    className,
-  });
+  return createElement(
+    resolveFieldWidget(field.type, widgets) ?? UnknownField,
+    { binding, className },
+  );
 }

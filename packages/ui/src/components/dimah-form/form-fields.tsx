@@ -4,7 +4,10 @@ import { Fragment, type ReactNode } from "react";
 import type { FormAnswers, FormResponseApi } from "@dimah-form/react";
 import { cn } from "cn";
 import { FieldGroup } from "@/components/ui/field";
-import { useFormSession } from "@/components/dimah-form/form-context";
+import {
+  FieldWidgetsProvider,
+  useFormSession,
+} from "@/components/dimah-form/form-context";
 import { FormField } from "@/components/dimah-form/form-field";
 import type { FieldWidgetRegistry } from "@/lib/widget-registry";
 
@@ -30,15 +33,20 @@ export function FormFields<TAnswers extends FormAnswers = FormAnswers>({
 }: FormFieldsProps<TAnswers>) {
   const session = useFormSession(form);
 
-  return (
+  const fields = (
     <FieldGroup className={cn(className)}>
       {session.visibleFields.map((field) => {
         const binding = session.field(field.id);
         if (renderField) {
           return <Fragment key={field.id}>{renderField(binding)}</Fragment>;
         }
-        return <FormField key={field.id} binding={binding} widgets={widgets} />;
+        return <FormField key={field.id} binding={binding} />;
       })}
     </FieldGroup>
+  );
+
+  if (!widgets) return fields;
+  return (
+    <FieldWidgetsProvider widgets={widgets}>{fields}</FieldWidgetsProvider>
   );
 }

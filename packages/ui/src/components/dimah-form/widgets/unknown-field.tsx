@@ -10,7 +10,7 @@ import type { FieldWidgetProps } from "@/lib/widget-registry";
  * Custom types register on {@link FieldWidgetRegistry} with the same string
  * as `defineFieldType`.
  */
-export function UnknownField({ className, ...binding }: FieldWidgetProps) {
+export function UnknownField({ binding, className }: FieldWidgetProps) {
   const t = useTranslations();
   const type = binding.field?.type ?? binding.id;
 

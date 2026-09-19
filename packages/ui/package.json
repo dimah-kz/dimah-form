@@ -46,13 +46,13 @@
     "check-types": "pnpm compile:translations && tsc --noEmit && pnpm registry:validate",
     "compile:translations": "node ./scripts/compile-translations.mjs",
     "lint": "eslint --max-warnings 0 --cache",
-    "test": "vitest run",
     "normalize-imports": "node ./scripts/enforce-src-alias-imports.mjs",
     "registry:build": "pnpm registry:validate && shadcn build --output apps/docs/public/r --cwd ../..",
     "registry:check": "tsx scripts/check-registry-items.ts",
     "registry:items": "tsx scripts/build-registry-items.ts && pnpm -w exec prettier --write packages/ui/registry.json",
     "registry:validate": "pnpm registry:items && pnpm registry:check && shadcn registry validate --cwd ../..",
-    "sync:shadcn": "node scripts/sync-shadcn.mjs"
+    "sync:shadcn": "node scripts/sync-shadcn.mjs",
+    "test": "vitest run"
   },
   "dependencies": {
     "@dimah-form/react": "workspace:*"

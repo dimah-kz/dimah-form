@@ -32,7 +32,7 @@ export function Questionnaire({
   response?: ResponseRecord;
 }) {
   const router = useRouter();
-  const q = useFormResponse<Form["$Infer"]["answers"]["feedback"]>({
+  const session = useFormResponse<Form["$Infer"]["answers"]["feedback"]>({
     snapshot: form,
     response,
     respondentId,
@@ -46,12 +46,12 @@ export function Questionnaire({
   });
 
   return (
-    <FormScope form={q}>
-      {q.inactive ? (
+    <FormScope form={session}>
+      {session.inactive ? (
         <FormInactive />
       ) : (
-        <FormRoot>
-          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <FormRoot>
             <Card>
               <CardHeader>
                 <CardTitle>{form.title}</CardTitle>
@@ -69,15 +69,15 @@ export function Questionnaire({
                 <FormActions className="w-full" />
               </CardFooter>
             </Card>
-            <div className="lg:sticky lg:top-6">
-              <AnswersPreview
-                form={q.snapshot}
-                answers={q.answers}
-                status={q.status}
-              />
-            </div>
+          </FormRoot>
+          <div className="lg:sticky lg:top-6">
+            <AnswersPreview
+              form={session.snapshot}
+              answers={session.answers}
+              status={session.status}
+            />
           </div>
-        </FormRoot>
+        </div>
       )}
     </FormScope>
   );

@@ -3,7 +3,7 @@ import {
   type FormField,
 } from "@dimah-form/core";
 
-export function ratingMax(field: FormField) {
+function ratingMax(field: FormField) {
   return typeof field.max === "number" &&
     Number.isInteger(field.max) &&
     field.max > 0

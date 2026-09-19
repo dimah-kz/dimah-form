@@ -1,30 +1,45 @@
 "use client";
 
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import type { FormAnswers, FormResponseApi } from "@dimah-form/react";
 import { defaultFieldWidgets } from "@/lib/default-field-widgets";
 import {
   mergeFieldWidgets,
+  sameFieldWidgets,
   type FieldWidgetRegistry,
 } from "@/lib/widget-registry";
 
-const FieldWidgetsContext = createContext<FieldWidgetRegistry | undefined>(
-  undefined,
-);
+const FieldWidgetsContext =
+  createContext<FieldWidgetRegistry>(defaultFieldWidgets);
 const FormSessionContext = createContext<FormResponseApi | null>(null);
 
+function useStableWidgets(widgets?: FieldWidgetRegistry) {
+  const [stable, setStable] = useState(widgets);
+  if (!sameFieldWidgets(stable, widgets)) {
+    setStable(widgets);
+  }
+  return sameFieldWidgets(stable, widgets) ? stable : widgets;
+}
+
 /**
- * Merged widget map: built-ins, then `FormUiProvider` / `FormScope`, then
- * `override`. Safe to call without a provider.
+ * Merged widget map: nearest provider, then `override`.
+ * Safe to call without a provider (built-ins).
  */
 export function useFieldWidgets(
   override?: FieldWidgetRegistry,
 ): FieldWidgetRegistry {
-  const fromContext = useContext(FieldWidgetsContext);
-  return useMemo(
-    () => mergeFieldWidgets(defaultFieldWidgets, fromContext, override),
-    [fromContext, override],
-  );
+  const parent = useContext(FieldWidgetsContext);
+  const stable = useStableWidgets(override);
+  return useMemo(() => {
+    if (!stable || Object.keys(stable).length === 0) return parent;
+    return mergeFieldWidgets(parent, stable);
+  }, [parent, stable]);
 }
 
 /**
@@ -53,6 +68,7 @@ export function FieldWidgetsProvider({
   children: ReactNode;
 }) {
   const merged = useFieldWidgets(widgets);
+  if (!widgets || Object.keys(widgets).length === 0) return children;
   return (
     <FieldWidgetsContext.Provider value={merged}>
       {children}

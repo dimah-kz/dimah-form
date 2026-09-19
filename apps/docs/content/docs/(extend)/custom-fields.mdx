@@ -151,12 +151,42 @@ TypeScript automatically infers `Form["$Infer"]["answers"]["review"]["score"]` a
 If you use `@dimah-form/ui`, register the widget once — same `type` string as the validator:
 
 ```tsx
-<FormUiProvider widgets={{ rating: StarRatingField }}>
+const widgets = { rating: StarRatingField };
+
+<FormUiProvider widgets={widgets}>
   <FormView form={form} />
-</FormUiProvider>
+</FormUiProvider>;
 ```
 
-`StarRatingField` receives a `FormFieldBinding`. Wrap the control in `FormFieldFrame` for the default label / description / issue chrome.
+The widget is `{ binding, className }`. Wrap the control in `FormFieldFrame` (`layout="stack"` | `"choice"` | `"group"`):
+
+```tsx
+import {
+  FormFieldFrame,
+  fieldNumber,
+  type FieldWidgetProps,
+} from "@dimah-form/ui";
+
+export function StarRatingField({
+  binding,
+  className,
+}: FieldWidgetProps<number>) {
+  const field = binding.field;
+  if (!field) return null;
+
+  return (
+    <FormFieldFrame binding={binding} className={className}>
+      <StarRating
+        id={field.id}
+        value={binding.value}
+        max={fieldNumber(field, "max") ?? 5}
+        disabled={binding.disabled}
+        onChange={(value) => binding.onChange(value)}
+      />
+    </FormFieldFrame>
+  );
+}
+```
 
 On the headless path, add a branch to your dispatcher:
 

@@ -1,8 +1,25 @@
 # Next.js example
 
-Workspace demo for `@dimah-form/*`. Optional `@dimah-form/ui` renders the fill session; you still own custom widgets (the `rating` stars) and layout.
+Workspace demo of `@dimah-form/ui` on a headless `useFormResponse` session. Custom
+`rating` is a server validator plus a widget — not a library field.
 
-Reads go through `form.api` in Server Components (`{ query }` / `{ body }`). Writes go through `createFormClient<Form>()` in the browser (object args). Persistence is [FumaDB](https://github.com/fuma-nama/fumadb) + [Drizzle ORM 1.0 RC](https://orm.drizzle.team) + local SQLite (`local.db`).
+```
+lib/form.ts              dimahForm() + database
+lib/client.ts            createFormClient<Form>()
+lib/forms.ts             defineForm
+lib/field-types.ts       defineFieldType("rating")
+components/providers.tsx theme + formClient.Provider + FormUiProvider
+components/questionnaire.tsx  FormScope + chrome around app layout
+components/fields/       widget for type "rating" (same string as the validator)
+```
+
+`FormView` is the default template; this app composes `FormScope` / `FormRoot` /
+`FormFields` so the Card and answers preview stay outside the library.
+
+Reads go through `form.api` in Server Components (`{ query }` / `{ body }`).
+Writes go through `createFormClient<Form>()` in the browser. Persistence is
+[FumaDB](https://github.com/fuma-nama/fumadb) + [Drizzle ORM 1.0 RC](https://orm.drizzle.team) +
+local SQLite (`local.db`).
 
 ```bash
 pnpm install
@@ -12,9 +29,9 @@ pnpm --filter @dimah-form/example-next db:push
 pnpm --filter @dimah-form/example-next dev
 ```
 
-Open http://localhost:3000
+Open http://localhost:3000 — header toggle switches light / dark (`next-themes`).
 
-- `/` — one feedback form. Built-in field types plus `showWhen`; `rating` is the only custom type (stars are example UI)
+- `/` — feedback form. Built-in types plus `showWhen`; `rating` is the only custom type
 - Save draft patches answers; Submit replaces them. Both send `updatedAt` for optimistic concurrency
 - `/responses` lists stored answers (`include=full`)
-- `/r/:id` resumes a draft or shows a submitted / abandoned response. Edit calls `reopenResponse` (same snapshot and answers) — it does not start a new response
+- `/r/:id` resumes a draft or shows a submitted / abandoned response. Edit calls `reopenResponse` (same snapshot and answers)
