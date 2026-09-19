@@ -68,7 +68,7 @@ export const forms = {
         min: 0,
         max: 40,
         integer: true,
-        meta: { suffix: "h" },
+        meta: { suffix: "h", help: "Whole hours only" },
       },
       {
         id: "highlights",

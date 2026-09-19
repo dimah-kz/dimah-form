@@ -22,9 +22,10 @@ export type FormFieldProps<TValue = unknown> = {
 };
 
 /**
- * Dispatches one `form.field(id)` binding to the widget for `field.type`.
- * Hidden / unknown documents render nothing. Chrome lives on the widget
- * ({@link FormFieldFrame} for the default anatomy).
+ * Dispatches one `form.field(id)` binding to the widget for `meta.widget`
+ * (when registered) or `field.type`. Hidden / unknown documents render
+ * nothing. Chrome lives on the widget ({@link FormFieldFrame} for the
+ * default anatomy).
  */
 export function FormField<TValue = unknown>({
   binding,
@@ -38,8 +39,9 @@ export function FormField<TValue = unknown>({
   if (!binding.visible || !field) return null;
   if (children) return children;
 
-  return createElement(
-    resolveFieldWidget(field.type, widgets) ?? UnknownField,
-    { binding, className, mode },
-  );
+  return createElement(resolveFieldWidget(field, widgets) ?? UnknownField, {
+    binding,
+    className,
+    mode,
+  });
 }

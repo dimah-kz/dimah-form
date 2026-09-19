@@ -61,7 +61,8 @@ export function fieldMetaNumber(
 
 /**
  * Presentation hint on `meta.widget`. Built-ins: `radio` (select),
- * `switch` (boolean), `chips` (multiSelect).
+ * `switch` (boolean), `chips` (multiSelect). A matching registry key wins
+ * over `field.type`.
  */
 export function fieldWidget(field: FormField | undefined): string | undefined {
   return readFieldUiMeta(field).widget;
@@ -104,8 +105,10 @@ function defaultInputMode(field: FormField | undefined): string | undefined {
 export function fieldControlProps(binding: FormFieldBinding) {
   const field = binding.field;
   const id = field?.id ?? binding.id;
+  const ui = readFieldUiMeta(field);
   const describedBy = [
     hasDescription(field) ? fieldDescriptionId(id) : undefined,
+    ui.help ? fieldHelpId(id) : undefined,
     binding.invalid ? fieldErrorId(id) : undefined,
   ]
     .filter((value): value is string => Boolean(value))
@@ -129,4 +132,11 @@ export function fieldControlProps(binding: FormFieldBinding) {
     ...(inputMode ? { inputMode: inputMode as never } : {}),
     ...(pattern ? { pattern } : {}),
   };
+}
+
+/** Empty / non-finite number inputs persist as `null`. */
+export function parseNumberInput(raw: string): number | null {
+  if (raw.trim() === "") return null;
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : null;
 }

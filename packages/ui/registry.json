@@ -7,6 +7,7 @@
       "title": "Form",
       "description": "Optional questionnaire renderer. Pass a useFormResponse return as `form`. Built-in field widgets are included; custom types register once on FormUiProvider.",
       "dependencies": [
+        "@base-ui/react",
         "@dimah-form/react",
         "@fuma-translate/react",
         "cn",
@@ -81,6 +82,11 @@
           "path": "src/components/dimah-form/form-field-frame.tsx",
           "type": "registry:component",
           "target": "@components/dimah-form/form-field-frame.tsx"
+        },
+        {
+          "path": "src/components/dimah-form/field-review-value.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/field-review-value.tsx"
         },
         {
           "path": "src/components/dimah-form/field-control-affix.tsx",
@@ -246,6 +252,11 @@
           "path": "src/lib/form-slot.ts",
           "type": "registry:lib",
           "target": "@lib/form-slot.ts"
+        },
+        {
+          "path": "src/lib/review-value.ts",
+          "type": "registry:lib",
+          "target": "@lib/review-value.ts"
         },
         {
           "path": "src/lib/dimah-form-translations.ts",

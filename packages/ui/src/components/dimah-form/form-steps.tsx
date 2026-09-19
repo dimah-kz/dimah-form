@@ -16,7 +16,7 @@ import {
   type FormFieldsProps,
 } from "@/components/dimah-form/form-fields";
 import { useFormUi } from "@/hooks/use-form-ui";
-import { groupFieldsByStep } from "@/lib/field-groups";
+import { visibleSteps } from "@/lib/field-groups";
 import { readFormUiMeta } from "@/lib/field-ui-meta";
 import { scheduleFocusInvalidField } from "@/lib/focus-invalid";
 
@@ -29,6 +29,8 @@ export type FormStep = {
 export type FormStepsApi<TAnswers extends FormAnswers = FormAnswers> = {
   form: FormResponseApi<TAnswers>;
   steps: FormStep[];
+  /** Stable page id (`meta.step`, default `"1"`). */
+  key: string;
   index: number;
   step: FormStep | undefined;
   total: number;
@@ -38,7 +40,7 @@ export type FormStepsApi<TAnswers extends FormAnswers = FormAnswers> = {
   complete: boolean;
   next: () => Promise<boolean>;
   prev: () => void;
-  goTo: (index: number) => Promise<boolean>;
+  goTo: (indexOrKey: number | string) => Promise<boolean>;
 };
 
 const FormStepsContext = createContext<FormStepsApi | null>(null);
@@ -62,66 +64,108 @@ export function useFormStepsOptional<
 
 export type FormStepsProps<TAnswers extends FormAnswers = FormAnswers> = {
   form?: FormResponseApi<TAnswers>;
+  /** Controlled step key. */
+  step?: string;
+  /** Uncontrolled initial step key. */
+  defaultStep?: string;
+  onStepChange?: (step: string) => void;
   children: ReactNode;
 };
 
+function resolveStepKey(
+  keys: readonly string[],
+  requested: string | undefined,
+): string {
+  if (requested && keys.includes(requested)) return requested;
+  return keys[0] ?? "";
+}
+
 /**
- * Groups `visibleFields` by `meta.step` (number or string; default `"1"`).
+ * Groups snapshot fields by `meta.step` (number or string; default `"1"`).
+ * Hidden fields drop out of the page; empty pages are omitted.
  * Compose {@link FormStepFields} + {@link FormStepNav} inside it.
  */
 export function FormSteps<TAnswers extends FormAnswers = FormAnswers>({
   form,
+  step: stepKey,
+  defaultStep,
+  onStepChange,
   children,
 }: FormStepsProps<TAnswers>) {
   const session = useFormSession(form);
   const stepTitles = readFormUiMeta(session.snapshot).steps;
-  const steps = groupFieldsByStep(session.visibleFields, stepTitles).map(
-    (group) => ({
-      key: group.key,
-      title: group.title ?? group.key,
-      fields: group.fields,
-    }),
-  );
-  const [index, setIndex] = useState(0);
-  const total = steps.length;
-  const safe = total === 0 ? 0 : Math.min(index, total - 1);
-  if (safe !== index) setIndex(safe);
+  const steps = visibleSteps(
+    session.snapshot.fields,
+    session.visibleFields,
+    stepTitles,
+  ).map((group) => ({
+    key: group.key,
+    title: group.title ?? group.key,
+    fields: group.fields,
+  }));
+  const keys = steps.map((item) => item.key);
+  const [uncontrolled, setUncontrolled] = useState(defaultStep);
+  const requested = stepKey ?? uncontrolled;
+  const currentKey = resolveStepKey(keys, requested);
 
-  const step = steps[safe];
-  const complete = step
-    ? formCompletion({ fields: step.fields }, session.answers).complete
+  if (stepKey === undefined && uncontrolled !== currentKey && currentKey) {
+    setUncontrolled(currentKey);
+  }
+
+  const index = currentKey ? Math.max(0, keys.indexOf(currentKey)) : 0;
+  const total = steps.length;
+  const current = steps[index];
+  const complete = current
+    ? formCompletion({ fields: current.fields }, session.answers).complete
     : true;
 
+  function setCurrent(nextKey: string) {
+    onStepChange?.(nextKey);
+    if (stepKey === undefined) setUncontrolled(nextKey);
+  }
+
   async function validateStep(): Promise<boolean> {
-    if (!step) return true;
+    if (!current) return true;
     const issues = await session.validate("submit", {
-      fields: step.fields.map((field) => field.id),
+      fields: current.fields.map((field) => field.id),
     });
     return issues.length === 0;
+  }
+
+  function resolveIndex(indexOrKey: number | string): number {
+    if (typeof indexOrKey === "number") return indexOrKey;
+    return keys.indexOf(indexOrKey);
   }
 
   const api: FormStepsApi<TAnswers> = {
     form: session,
     steps,
-    index: safe,
-    step,
+    key: currentKey,
+    index,
+    step: current,
     total,
-    isFirst: safe <= 0,
-    isLast: total === 0 || safe >= total - 1,
+    isFirst: index <= 0,
+    isLast: total === 0 || index >= total - 1,
     complete,
     next: async () => {
-      if (total === 0 || safe >= total - 1) return false;
+      if (total === 0 || index >= total - 1) return false;
       if (!(await validateStep())) return false;
-      setIndex((value) => Math.min(value + 1, Math.max(total - 1, 0)));
+      const nextKey = keys[index + 1];
+      if (!nextKey) return false;
+      setCurrent(nextKey);
       return true;
     },
     prev: () => {
-      setIndex((value) => Math.max(value - 1, 0));
+      const prevKey = keys[Math.max(index - 1, 0)];
+      if (prevKey) setCurrent(prevKey);
     },
-    goTo: async (nextIndex) => {
+    goTo: async (indexOrKey) => {
+      const nextIndex = resolveIndex(indexOrKey);
       if (nextIndex < 0 || nextIndex >= total) return false;
-      if (nextIndex > safe && !(await validateStep())) return false;
-      setIndex(nextIndex);
+      if (nextIndex > index && !(await validateStep())) return false;
+      const nextKey = keys[nextIndex];
+      if (!nextKey) return false;
+      setCurrent(nextKey);
       return true;
     },
   };
@@ -168,7 +212,12 @@ export function FormStepHeading({ className }: FormStepHeadingProps) {
     });
 
   return (
-    <p className={cn("text-sm font-medium text-balance", className)}>{label}</p>
+    <p
+      data-slot="form-step-heading"
+      className={cn("text-sm font-medium text-balance", className)}
+    >
+      {label}
+    </p>
   );
 }
 
@@ -191,6 +240,7 @@ export function FormStepNav({ className, children }: FormStepNavProps) {
 
   return (
     <div
+      data-slot="form-step-nav"
       className={cn(
         "gap-2 flex flex-wrap items-center justify-between",
         className,
@@ -221,5 +271,40 @@ export function FormStepNav({ className, children }: FormStepNavProps) {
         </Button>
       )}
     </div>
+  );
+}
+
+export type FormStepListProps = {
+  className?: string;
+};
+
+/** Jump list of step titles. Hidden when there is only one step. */
+export function FormStepList({ className }: FormStepListProps) {
+  const steps = useFormSteps();
+  const ui = useFormUi(steps.form);
+  if (steps.total <= 1) return null;
+
+  return (
+    <ol
+      data-slot="form-step-list"
+      className={cn("gap-1 flex flex-wrap", className)}
+    >
+      {steps.steps.map((item, index) => (
+        <li key={item.key}>
+          <Button
+            type="button"
+            size="sm"
+            variant={index === steps.index ? "default" : "ghost"}
+            disabled={ui.busy}
+            aria-current={index === steps.index ? "step" : undefined}
+            onClick={() => {
+              void steps.goTo(item.key);
+            }}
+          >
+            {item.title}
+          </Button>
+        </li>
+      ))}
+    </ol>
   );
 }

@@ -58,15 +58,17 @@ export function IntakeForm({ snapshot }) {
 ```
 
 A widget is `{ binding, className, mode? }`. Wrap the control in `FormFieldFrame`
-(`layout`: `stack` | `choice` | `group`). Register custom `defineFieldType`
-widgets once on `FormUiProvider` (or per `FormView` / `FormScope`). Swap the
-required-field mark with `components.RequiredMark`. Built-in types (`text`,
-`email`, `date`, `number`, `boolean`, `select`, `multiSelect`) ship with the
-package. `FormView layout="auto"` picks a wizard when `meta.step` groups, and
-review when locked. Presentation lives on `meta` (`widget`, `placeholder`,
-`section`, `step`, `width`, …) — `defineForm({ ... } satisfies FormDefinitionUi)`
-so those keys type-check. Compose `FormScope` + primitives when the default
-template is not enough.
+(`layout`: `stack` | `choice` | `group`) so `components.FieldFrame` applies. Register custom `defineFieldType`
+widgets once on `FormUiProvider` (or per `FormView` / `FormScope`) — same `type`
+string, or a `meta.widget` key. Swap chrome with `components` (`RequiredMark`,
+`FieldFrame`, …) and localize extra issue codes with `formatIssue`. Built-in
+types (`text`, `email`, `date`, `number`, `boolean`, `select`, `multiSelect`)
+ship with the package. `FormView layout="auto"` picks a wizard when `meta.step`
+groups, and review when locked. `render` / wrap-style slots keep the template
+while you own layout. Presentation lives on `meta` (`widget`, `placeholder`,
+`section`, `step`, `width`, `help`, …) — `defineForm({ ... } satisfies FormDefinitionUi)`
+so those keys autocomplete; extra keys stay allowed. Compose `FormScope` +
+primitives when you want every piece by hand.
 
 ## License
 

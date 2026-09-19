@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { FieldGroup } from "@/components/ui/field";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ChoiceOption } from "@/components/dimah-form/choice-option";
+import { FieldReviewValue } from "@/components/dimah-form/field-review-value";
 import { FormFieldFrame } from "@/components/dimah-form/form-field-frame";
 import { fieldControlProps, fieldWidget } from "@/lib/field-attr";
 import { readOptionUiMeta } from "@/lib/field-ui-meta";
@@ -54,7 +55,16 @@ function ChipSelectField({ binding, className }: FieldWidgetProps) {
   );
 }
 
-export function MultiSelectField({ binding, className }: FieldWidgetProps) {
+export function MultiSelectField({
+  binding,
+  className,
+  mode,
+}: FieldWidgetProps) {
+  if (mode === "review") {
+    return (
+      <FieldReviewValue binding={binding} className={className} mode={mode} />
+    );
+  }
   if (fieldWidget(binding.field) === "chips") {
     return <ChipSelectField binding={binding} className={className} />;
   }

@@ -42,7 +42,7 @@ Shared protocol changes start in `core`, then wire `server` and `react`. Do not 
 - Code-authored `forms` feed `$Infer`. `getForm` / `startResponse` read config first, then the live questionnaire row. `saveForm` writes that row and cannot overwrite a code-authored id.
 - Browser `$Infer` is `createFormClient<typeof form>()` (type-only). Apps import from `server` or `react`; `core` is protocol/plugin internals.
 - Each response stores the definition it was started with. Submit validates that snapshot. Starting a response does not rewrite the live questionnaire row.
-- Custom fields are `defineFieldType` validators in `core`. Optional UI widgets register by the same `type` string.
+- Custom fields are `defineFieldType` validators in `core`. Optional UI widgets register by the same `type` string, or a `meta.widget` key.
 - Server plugins may add `endpoints`, `hooks`, `fieldTypes`, and `$ERROR_CODES`. Optional `dependsOn` (topological order), `options`, and synchronous `init` (`{ context }` → `config.pluginContext`). Browser companions use `defineClientPlugin` on `createFormClient({ plugins })`. They are not inferred from the server plugin.
 
 ## Do not

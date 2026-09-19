@@ -42,6 +42,18 @@ describe("resolveFieldWidget", () => {
     expect(resolveFieldWidget("rating", { text: WidgetA })).toBeUndefined();
     expect(resolveFieldWidget(undefined, { text: WidgetA })).toBeUndefined();
   });
+
+  it("prefers a registered meta.widget over field.type", () => {
+    const field = {
+      id: "phone",
+      type: "text",
+      meta: { widget: "text.mask" },
+    };
+    expect(
+      resolveFieldWidget(field, { text: WidgetA, "text.mask": WidgetB }),
+    ).toBe(WidgetB);
+    expect(resolveFieldWidget(field, { text: WidgetA })).toBe(WidgetA);
+  });
 });
 
 describe("sameFieldWidgets", () => {

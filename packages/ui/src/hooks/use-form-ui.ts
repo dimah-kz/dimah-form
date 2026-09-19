@@ -32,6 +32,10 @@ export function useFormUi<TAnswers extends FormAnswers = FormAnswers>(
       session.pending === "reopen"
         ? t("Reopening…", { note: "form action" })
         : t("Edit", { note: "form action" }),
+    abandonLabel:
+      session.pending === "abandon"
+        ? t("Abandoning…", { note: "form action" })
+        : t("Abandon", { note: "form action" }),
     previousLabel: t("Previous", { note: "step nav" }),
     nextLabel: t("Next", { note: "step nav" }),
     inactiveTitle: t("Form unavailable", { note: "inactive" }),

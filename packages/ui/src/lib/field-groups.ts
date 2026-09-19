@@ -113,3 +113,22 @@ export function groupFieldsByStep(
   }
   return groups.sort((left, right) => compareStepKeys(left.key, right.key));
 }
+
+/**
+ * Wizard pages from the snapshot, with hidden answers stripped per page.
+ * Empty steps (every field hidden) are omitted so `showWhen` does not
+ * collapse the current page identity.
+ */
+export function visibleSteps(
+  fields: readonly FormField[],
+  visible: readonly FormField[],
+  stepTitles?: FormUiMeta["steps"],
+): FieldGroupBucket[] {
+  const allow = new Set(visible.map((field) => field.id));
+  return groupFieldsByStep(fields, stepTitles)
+    .map((group) => ({
+      ...group,
+      fields: group.fields.filter((field) => allow.has(field.id)),
+    }))
+    .filter((group) => group.fields.length > 0);
+}

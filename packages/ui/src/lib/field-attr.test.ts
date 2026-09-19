@@ -5,9 +5,11 @@ import {
   fieldControlProps,
   fieldDescriptionId,
   fieldErrorId,
+  fieldHelpId,
   fieldMetaNumber,
   fieldMetaString,
   fieldWidget,
+  parseNumberInput,
 } from "@/lib/field-attr";
 
 function field(
@@ -86,5 +88,27 @@ describe("fieldControlProps", () => {
       binding({ field: field({ id: "n", type: "text" }) }),
     );
     expect(props["aria-describedby"]).toBeUndefined();
+  });
+
+  it("includes help in describedby", () => {
+    const props = fieldControlProps(
+      binding({
+        field: field({
+          id: "hours",
+          type: "number",
+          meta: { help: "0–40" },
+        }),
+      }),
+    );
+    expect(props["aria-describedby"]).toBe(fieldHelpId("hours"));
+  });
+});
+
+describe("parseNumberInput", () => {
+  it("nulls empty and non-finite values", () => {
+    expect(parseNumberInput("")).toBeNull();
+    expect(parseNumberInput("  ")).toBeNull();
+    expect(parseNumberInput("1e")).toBeNull();
+    expect(parseNumberInput("12.5")).toBe(12.5);
   });
 });

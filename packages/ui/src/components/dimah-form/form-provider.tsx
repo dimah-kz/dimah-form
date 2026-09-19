@@ -5,6 +5,9 @@ import { TranslationProvider } from "@fuma-translate/react";
 import { FieldWidgetsProvider } from "@/components/dimah-form/form-context";
 import {
   FormUiComponentsProvider,
+  FormUiFormattersProvider,
+  type FormIssueFormatter,
+  type FormSessionErrorFormatter,
   type FormUiComponents,
 } from "@/components/dimah-form/form-ui-components";
 import type { Translations } from "@/lib/dimah-form-translations";
@@ -18,15 +21,19 @@ export type FormUiProviderProps = {
    */
   translations?: Partial<Translations>;
   /**
-   * Custom / override widgets keyed by field `type`. Merged on top of
-   * built-ins. Register custom `defineFieldType` widgets once here.
+   * Custom / override widgets keyed by field `type` or `meta.widget`.
+   * Merged on top of built-ins. Register custom `defineFieldType` widgets
+   * once here.
    */
   widgets?: FieldWidgetRegistry;
   /**
-   * Swap built-in chrome. `RequiredMark` replaces the asterisk on required
-   * field labels. Nested providers merge — later keys win.
+   * Swap built-in chrome. Nested providers merge — later keys win.
    */
   components?: FormUiComponents;
+  /** Override / extend field issue copy. Return `undefined` to use the catalog. */
+  formatIssue?: FormIssueFormatter;
+  /** Override / extend session request error copy. */
+  formatSessionError?: FormSessionErrorFormatter;
   children: ReactNode;
 };
 
@@ -40,7 +47,7 @@ export type FormUiProviderProps = {
  *   "Submit(form action)": "ارسال",
  * } satisfies Partial<Translations>;
  *
- * const widgets = { rating: StarRatingField };
+ * const widgets = { rating: StarRatingField, "text.mask": MaskedTextField };
  *
  * function RequiredMark() {
  *   return <span className="ms-1" aria-hidden>*</span>;
@@ -61,12 +68,19 @@ export function FormUiProvider({
   translations,
   widgets,
   components,
+  formatIssue,
+  formatSessionError,
   children,
 }: FormUiProviderProps) {
   const tree = (
     <FieldWidgetsProvider widgets={widgets}>
       <FormUiComponentsProvider components={components}>
-        {children}
+        <FormUiFormattersProvider
+          formatIssue={formatIssue}
+          formatSessionError={formatSessionError}
+        >
+          {children}
+        </FormUiFormattersProvider>
       </FormUiComponentsProvider>
     </FieldWidgetsProvider>
   );

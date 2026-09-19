@@ -11,7 +11,6 @@ import { CircleAlertIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useFormSession } from "@/components/dimah-form/form-context";
 import { useFieldIssue } from "@/hooks/use-field-issue";
-import { scheduleFocusInvalidField } from "@/lib/focus-invalid";
 
 export type FormErrorSummaryProps<TAnswers extends FormAnswers = FormAnswers> =
   {
@@ -38,9 +37,11 @@ function IssueLink({
         className="underline underline-offset-4"
         onClick={(event) => {
           event.preventDefault();
-          const root = event.currentTarget.closest("form") ?? document;
-          scheduleFocusInvalidField(root);
           document.getElementById(field.id)?.focus();
+          document.getElementById(field.id)?.scrollIntoView({
+            block: "nearest",
+            inline: "nearest",
+          });
         }}
       >
         {fieldLabel(field)}
@@ -69,7 +70,12 @@ export function FormErrorSummary<TAnswers extends FormAnswers = FormAnswers>({
   });
 
   return (
-    <Alert variant="destructive" className={className} aria-live="assertive">
+    <Alert
+      variant="destructive"
+      data-slot="form-error-summary"
+      className={className}
+      aria-live="assertive"
+    >
       <CircleAlertIcon />
       <AlertTitle>{title}</AlertTitle>
       <AlertDescription>

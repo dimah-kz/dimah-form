@@ -4,6 +4,7 @@ import { emptyToNull } from "@dimah-form/react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FieldControlAffix } from "@/components/dimah-form/field-control-affix";
+import { FieldReviewValue } from "@/components/dimah-form/field-review-value";
 import { FormFieldFrame } from "@/components/dimah-form/form-field-frame";
 import { fieldControlProps, fieldNumber, fieldString } from "@/lib/field-attr";
 import { readFieldUiMeta } from "@/lib/field-ui-meta";
@@ -17,10 +18,14 @@ export type StringFieldProps = FieldWidgetProps & {
 export function StringField({
   binding,
   className,
+  mode,
   inputType,
 }: StringFieldProps) {
   const field = binding.field;
   if (!field) return null;
+  if (mode === "review") {
+    return <FieldReviewValue binding={binding} className={className} />;
+  }
 
   const ui = readFieldUiMeta(field);
   const value = typeof binding.value === "string" ? binding.value : "";

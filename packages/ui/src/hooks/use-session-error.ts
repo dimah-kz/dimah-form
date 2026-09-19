@@ -2,16 +2,23 @@
 
 import { FORM_ERROR_CODES } from "@dimah-form/react";
 import { useTranslations } from "@fuma-translate/react";
+import { useFormUiFormatters } from "@/components/dimah-form/form-ui-components";
 
 /**
  * Localize a session request error from `errorCode`.
+ * `FormUiProvider` `formatSessionError` wins when it returns a string.
  * Falls back to the English `error` string from the session.
  */
 export function useSessionError(session: {
   error?: string;
   errorCode?: string;
+  errorParams?: Record<string, string | number>;
 }): string | undefined {
   const t = useTranslations();
+  const { formatSessionError } = useFormUiFormatters();
+  const custom = formatSessionError?.(session);
+  if (custom) return custom;
+
   const code = session.errorCode;
   if (!code) return session.error;
 

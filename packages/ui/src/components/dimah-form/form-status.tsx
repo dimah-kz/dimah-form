@@ -21,7 +21,7 @@ export function FormStatus<TAnswers extends FormAnswers = FormAnswers>({
 
   if (session.status === "submitted") {
     return (
-      <Alert className={className}>
+      <Alert data-slot="form-status" className={className}>
         <CircleCheckIcon />
         <AlertTitle>{ui.submittedTitle}</AlertTitle>
         <AlertDescription>{ui.submittedMessage}</AlertDescription>
@@ -31,7 +31,7 @@ export function FormStatus<TAnswers extends FormAnswers = FormAnswers>({
 
   if (session.status === "abandoned") {
     return (
-      <Alert className={className}>
+      <Alert data-slot="form-status" className={className}>
         <CircleAlertIcon />
         <AlertTitle>{ui.abandonedTitle}</AlertTitle>
         <AlertDescription>{ui.abandonedMessage}</AlertDescription>

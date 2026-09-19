@@ -12,7 +12,11 @@ export {
 } from "@/components/dimah-form/form-context";
 export {
   useFormUiComponents,
+  useFormUiFormatters,
+  type FormIssueFormatter,
+  type FormSessionErrorFormatter,
   type FormUiComponents,
+  type FormUiFormatters,
 } from "@/components/dimah-form/form-ui-components";
 export {
   FormRoot,
@@ -20,6 +24,7 @@ export {
 } from "@/components/dimah-form/form-root";
 export {
   FormView,
+  type FormViewParts,
   type FormViewProps,
 } from "@/components/dimah-form/form-view";
 export {
@@ -29,11 +34,14 @@ export {
 export {
   FormFieldFrame,
   RequiredMark,
+  useFieldFrame,
+  type FormFieldFrameClassNames,
   type FormFieldFrameLayout,
   type FormFieldFrameProps,
 } from "@/components/dimah-form/form-field-frame";
 export {
   FormFields,
+  type FormFieldRenderHelpers,
   type FormFieldsProps,
 } from "@/components/dimah-form/form-fields";
 export {
@@ -54,6 +62,7 @@ export {
 } from "@/components/dimah-form/form-error-summary";
 export {
   FormActions,
+  type FormActionsClassNames,
   type FormActionsProps,
 } from "@/components/dimah-form/form-actions";
 export {
@@ -62,6 +71,7 @@ export {
 } from "@/components/dimah-form/form-inactive";
 export {
   FormProgress,
+  type FormProgressClassNames,
   type FormProgressProps,
 } from "@/components/dimah-form/form-progress";
 export {
@@ -80,11 +90,13 @@ export {
   FormSteps,
   FormStepFields,
   FormStepHeading,
+  FormStepList,
   FormStepNav,
   useFormSteps,
   useFormStepsOptional,
   type FormStep,
   type FormStepHeadingProps,
+  type FormStepListProps,
   type FormStepNavProps,
   type FormStepsApi,
   type FormStepsProps,
@@ -97,6 +109,13 @@ export { BooleanField } from "@/components/dimah-form/widgets/boolean-field";
 export { SelectField } from "@/components/dimah-form/widgets/select-field";
 export { MultiSelectField } from "@/components/dimah-form/widgets/multi-select-field";
 export { UnknownField } from "@/components/dimah-form/widgets/unknown-field";
+export { StringField } from "@/components/dimah-form/widgets/string-field";
+export { FieldReviewValue } from "@/components/dimah-form/field-review-value";
+export {
+  FieldControlAffix,
+  type FieldControlAffixProps,
+} from "@/components/dimah-form/field-control-affix";
+export { ChoiceOption } from "@/components/dimah-form/choice-option";
 export {
   defaultFieldWidgets,
   createFieldWidgets,
@@ -120,6 +139,7 @@ export {
   fieldNumber,
   fieldString,
   fieldWidget,
+  parseNumberInput,
 } from "@/lib/field-attr";
 export {
   fieldSectionTitle,
@@ -130,11 +150,13 @@ export {
   selectVisibleFields,
   shouldGroupBySection,
   shouldGroupByStep,
+  visibleSteps,
   type FieldGroupBucket,
 } from "@/lib/field-groups";
 export {
   booleanOffValue,
   FIELD_UI_WIDGETS,
+  fieldsUseGrid,
   fieldsUseHalfWidth,
   fieldWidthClass,
   readFieldUiMeta,
@@ -155,7 +177,12 @@ export {
   focusInvalidField,
   scheduleFocusInvalidField,
 } from "@/lib/focus-invalid";
-export { renderFormSlot, type FormSlot } from "@/lib/form-slot";
+export {
+  renderFormSlot,
+  type FormSlot,
+  type FormSlotRender,
+} from "@/lib/form-slot";
+export { reviewValue, type ReviewValueLabels } from "@/lib/review-value";
 export { useFormUi } from "@/hooks/use-form-ui";
 export { useFieldIssue } from "@/hooks/use-field-issue";
 export { useSessionError } from "@/hooks/use-session-error";

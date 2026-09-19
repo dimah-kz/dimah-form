@@ -23,7 +23,12 @@ export function FormError<TAnswers extends FormAnswers = FormAnswers>({
   if (!message) return null;
 
   return (
-    <Alert variant="destructive" className={className} aria-live="assertive">
+    <Alert
+      variant="destructive"
+      data-slot="form-error"
+      className={className}
+      aria-live="assertive"
+    >
       <CircleAlertIcon />
       <AlertTitle>{t("Request failed", { note: "session error" })}</AlertTitle>
       <AlertDescription className="wrap-anywhere">{message}</AlertDescription>

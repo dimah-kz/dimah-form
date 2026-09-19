@@ -31,6 +31,7 @@ export function FormSaveState<TAnswers extends FormAnswers = FormAnswers>({
 
   return (
     <p
+      data-slot="form-save-state"
       className={cn("text-sm text-dimah-form-muted-foreground", className)}
       aria-live="polite"
     >

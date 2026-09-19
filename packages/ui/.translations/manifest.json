@@ -1,6 +1,8 @@
 {
   "translationKeys": [
+    "Abandon(form action)",
     "Abandoned(status)",
+    "Abandoning…(form action)",
     "Cannot modify a code-authored form(session error)",
     "Conflict(session error)",
     "Duplicate option(field issue)",

@@ -3,6 +3,7 @@ import type { FormField } from "@dimah-form/react";
 
 import {
   booleanOffValue,
+  fieldsUseGrid,
   fieldsUseHalfWidth,
   fieldWidthClass,
   readFieldUiMeta,
@@ -36,6 +37,7 @@ describe("readFieldUiMeta", () => {
           suffix: "kg",
           width: "half",
           orientation: "horizontal",
+          help: "  Shown under the control  ",
           extra: "ok",
         },
       }),
@@ -53,6 +55,7 @@ describe("readFieldUiMeta", () => {
       suffix: "kg",
       width: "half",
       orientation: "horizontal",
+      help: "Shown under the control",
     });
   });
 
@@ -61,7 +64,7 @@ describe("readFieldUiMeta", () => {
       field({
         id: "n",
         type: "text",
-        meta: { width: "third", orientation: "diagonal" },
+        meta: { width: "quarter", orientation: "diagonal" },
       }),
     );
     expect(meta.width).toBeUndefined();
@@ -110,13 +113,24 @@ describe("field width helpers", () => {
       type: "text",
       meta: { width: "half" },
     });
-    expect(fieldsUseHalfWidth([full])).toBe(false);
+    const third = field({
+      id: "c",
+      type: "text",
+      meta: { width: "third" },
+    });
+    expect(fieldsUseGrid([full])).toBe(false);
     expect(fieldsUseHalfWidth([full, half])).toBe(true);
+    expect(fieldsUseGrid([third])).toBe(true);
     expect(fieldWidthClass(full, false)).toBeUndefined();
     expect(fieldWidthClass(full, true)).toBe(
+      "@min-[32rem]/field-group:col-span-6",
+    );
+    expect(fieldWidthClass(half, true)).toBe(
+      "@min-[32rem]/field-group:col-span-3",
+    );
+    expect(fieldWidthClass(third, true)).toBe(
       "@min-[32rem]/field-group:col-span-2",
     );
-    expect(fieldWidthClass(half, true)).toBeUndefined();
   });
 });
 
@@ -145,7 +159,7 @@ describe("FormDefinitionUi", () => {
     expect(form.meta?.steps?.["1"]).toBe("About");
   });
 
-  it("rejects unknown field meta keys", () => {
+  it("allows extra field meta keys next to known UI keys", () => {
     const form = {
       title: "X",
       fields: [
@@ -153,12 +167,12 @@ describe("FormDefinitionUi", () => {
           id: "n",
           type: "text",
           meta: {
-            // @ts-expect-error unknown UI meta key
-            placeholer: "Ada",
+            placeholder: "Ada",
+            icon: "user",
           },
         },
       ],
     } satisfies FormDefinitionUi;
-    expect(form.fields[0]?.id).toBe("n");
+    expect(form.fields[0]?.meta?.icon).toBe("user");
   });
 });

@@ -1,5 +1,7 @@
 import type { ComponentType } from "react";
-import type { FormFieldBinding } from "@dimah-form/react";
+import type { FormField, FormFieldBinding } from "@dimah-form/react";
+
+import { readFieldUiMeta } from "@/lib/field-ui-meta";
 
 export type FieldWidgetProps<TValue = unknown> = {
   binding: FormFieldBinding<TValue>;
@@ -17,9 +19,10 @@ export type FieldWidget<TValue = unknown> = ComponentType<
 export type AnyFieldWidget = FieldWidget<any>;
 
 /**
- * Field `type` string → widget. Same keys as `defineFieldType`.
+ * Field `type` or `meta.widget` string → widget. Same keys as `defineFieldType`.
  * Built-ins: `text`, `email`, `date`, `number`, `boolean`, `select`,
  * `multiSelect`. Custom types use the same string as the server validator.
+ * Register a `meta.widget` key to swap one field without replacing the type.
  */
 export type FieldWidgetRegistry = Record<string, AnyFieldWidget>;
 
@@ -35,11 +38,19 @@ export function mergeFieldWidgets(
   return merged;
 }
 
+/**
+ * `meta.widget` when that key is registered, else `field.type`.
+ * A type string still resolves as before.
+ */
 export function resolveFieldWidget(
-  type: string | undefined,
+  fieldOrType: FormField | string | undefined,
   widgets: FieldWidgetRegistry,
 ): AnyFieldWidget | undefined {
-  return type ? widgets[type] : undefined;
+  if (fieldOrType == null || fieldOrType === "") return undefined;
+  if (typeof fieldOrType === "string") return widgets[fieldOrType];
+  const widget = readFieldUiMeta(fieldOrType).widget;
+  if (widget && widgets[widget]) return widgets[widget];
+  return fieldOrType.type ? widgets[fieldOrType.type] : undefined;
 }
 
 /** Component-identity compare so inline `{ rating: StarRatingField }` stays stable. */

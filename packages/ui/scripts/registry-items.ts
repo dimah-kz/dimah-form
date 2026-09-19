@@ -19,6 +19,7 @@ const formFiles = [
   srcFile("components/dimah-form/form-view.tsx", "registry:component"),
   srcFile("components/dimah-form/form-field.tsx", "registry:component"),
   srcFile("components/dimah-form/form-field-frame.tsx", "registry:component"),
+  srcFile("components/dimah-form/field-review-value.tsx", "registry:component"),
   srcFile(
     "components/dimah-form/field-control-affix.tsx",
     "registry:component",
@@ -76,10 +77,12 @@ const formFiles = [
   srcFile("lib/field-groups.ts", "registry:lib"),
   srcFile("lib/focus-invalid.ts", "registry:lib"),
   srcFile("lib/form-slot.ts", "registry:lib"),
+  srcFile("lib/review-value.ts", "registry:lib"),
   srcFile("lib/dimah-form-translations.ts", "registry:lib"),
 ] as const satisfies RegistryItem["files"];
 
 const componentDependencies = [
+  "@base-ui/react",
   "@dimah-form/react",
   "@fuma-translate/react",
   "cn",

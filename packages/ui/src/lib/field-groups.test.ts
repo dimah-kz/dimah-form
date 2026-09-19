@@ -8,6 +8,7 @@ import {
   groupFieldsByStep,
   selectVisibleFields,
   shouldGroupBySection,
+  visibleSteps,
 } from "@/lib/field-groups";
 
 function field(
@@ -101,5 +102,24 @@ describe("groupFieldsByStep", () => {
         "1": "About you",
       }),
     ).toBe("About you");
+  });
+});
+
+describe("visibleSteps", () => {
+  it("keeps page keys from the snapshot when a later step is hidden", () => {
+    const name = field({ id: "name", type: "text", meta: { step: 1 } });
+    const team = field({ id: "team", type: "text", meta: { step: 2 } });
+    const steps = visibleSteps([name, team], [name], { "2": "Work" });
+    expect(steps.map((group) => group.key)).toEqual(["1"]);
+    expect(
+      visibleSteps([name, team], [name, team], { "2": "Work" }).map((group) => [
+        group.key,
+        group.title,
+        group.fields.map((item) => item.id),
+      ]),
+    ).toEqual([
+      ["1", undefined, ["name"]],
+      ["2", "Work", ["team"]],
+    ]);
   });
 });

@@ -1,6 +1,11 @@
 "use client";
 
-import type { ReactNode } from "react";
+import {
+  createContext,
+  createElement,
+  useContext,
+  type ReactNode,
+} from "react";
 import { fieldLabel, type FormFieldBinding } from "@dimah-form/react";
 import { cn } from "cn";
 import { useFormUiComponents } from "@/components/dimah-form/form-ui-components";
@@ -17,6 +22,7 @@ import { useFieldIssue } from "@/hooks/use-field-issue";
 import {
   fieldDescriptionId,
   fieldErrorId,
+  fieldHelpId,
   fieldWidget,
 } from "@/lib/field-attr";
 import { readFieldUiMeta } from "@/lib/field-ui-meta";
@@ -32,10 +38,19 @@ export function RequiredMark() {
 
 export type FormFieldFrameLayout = "stack" | "choice" | "group";
 
+export type FormFieldFrameClassNames = {
+  root?: string;
+  label?: string;
+  description?: string;
+  help?: string;
+  error?: string;
+};
+
 export type FormFieldFrameProps<TValue = unknown> = {
   binding: FormFieldBinding<TValue>;
   children?: ReactNode;
   className?: string;
+  classNames?: FormFieldFrameClassNames;
   /**
    * `stack` — label, control, description, issue (default).
    * `choice` — control, then label / description / issue (checkbox, switch).
@@ -47,6 +62,8 @@ export type FormFieldFrameProps<TValue = unknown> = {
   label?: ReactNode | false;
   /** `false` hides. Omit for `field.description` when it is a string. */
   description?: ReactNode | false;
+  /** `false` hides. Omit for `field.meta.help`. */
+  help?: ReactNode | false;
   /** `false` hides. Omit for the localized session issue. */
   error?: ReactNode | false;
   /**
@@ -72,16 +89,19 @@ function FrameError({ id, content }: { id: string; content: ReactNode }) {
 
 /**
  * shadcn field chrome around a control. Built-in widgets use this;
- * custom widgets should too.
+ * custom widgets should too. `FormUiProvider` `components.FieldFrame`
+ * replaces this; wrapping {@link FormFieldFrame} in that override is safe.
  */
-export function FormFieldFrame<TValue = unknown>({
+function FormFieldFrameView<TValue = unknown>({
   binding,
   children,
   className,
+  classNames,
   layout = "stack",
   orientation,
   label,
   description,
+  help,
   error,
   requiredIndicator = true,
 }: FormFieldFrameProps<TValue>) {
@@ -100,19 +120,42 @@ export function FormFieldFrame<TValue = unknown>({
       ? null
       : (description ??
         (typeof field.description === "string" ? field.description : null));
+  const helpContent = help === false ? null : (help ?? ui.help ?? null);
   const errorContent = error === false ? null : (error ?? issue ?? null);
   const Mark = RequiredMarkSlot ?? RequiredMark;
-  const requiredMark = requiredIndicator && binding.required ? <Mark /> : null;
+  const requiredMark =
+    requiredIndicator && binding.required ? createElement(Mark) : null;
   const descriptionNode = descriptionContent ? (
-    <FieldDescription id={fieldDescriptionId(field.id)}>
+    <FieldDescription
+      id={fieldDescriptionId(field.id)}
+      className={classNames?.description}
+    >
       {descriptionContent}
     </FieldDescription>
   ) : null;
+  const helpNode = helpContent ? (
+    <FieldDescription
+      id={fieldHelpId(field.id)}
+      className={cn("text-dimah-form-muted-foreground", classNames?.help)}
+    >
+      {helpContent}
+    </FieldDescription>
+  ) : null;
   const errorNode = (
-    <FrameError id={fieldErrorId(field.id)} content={errorContent} />
+    <FrameError
+      id={fieldErrorId(field.id)}
+      content={
+        typeof errorContent === "string" || errorContent == null ? (
+          errorContent
+        ) : (
+          <span className={classNames?.error}>{errorContent}</span>
+        )
+      }
+    />
   );
   const invalidProps = {
-    className: cn(className),
+    className: cn(className, classNames?.root),
+    "data-slot": "form-field-frame",
     "data-invalid": invalid || undefined,
     "data-disabled": binding.disabled || undefined,
     "data-required": binding.required || undefined,
@@ -124,13 +167,18 @@ export function FormFieldFrame<TValue = unknown>({
     return (
       <FieldSet {...invalidProps}>
         {labelContent ? (
-          <FieldLegend id={labelId} variant="label">
+          <FieldLegend
+            id={labelId}
+            variant="label"
+            className={classNames?.label}
+          >
             {labelContent}
             {requiredMark}
           </FieldLegend>
         ) : null}
         {children}
         {descriptionNode}
+        {helpNode}
         {errorNode}
       </FieldSet>
     );
@@ -142,12 +190,17 @@ export function FormFieldFrame<TValue = unknown>({
         {children}
         <FieldContent>
           {labelContent ? (
-            <FieldLabel id={labelId} htmlFor={field.id} className="font-normal">
+            <FieldLabel
+              id={labelId}
+              htmlFor={field.id}
+              className={cn("font-normal", classNames?.label)}
+            >
               {labelContent}
               {requiredMark}
             </FieldLabel>
           ) : null}
           {descriptionNode}
+          {helpNode}
           {errorNode}
         </FieldContent>
       </Field>
@@ -157,14 +210,41 @@ export function FormFieldFrame<TValue = unknown>({
   return (
     <Field {...invalidProps} orientation={resolvedOrientation}>
       {labelContent ? (
-        <FieldLabel id={labelId} htmlFor={field.id}>
+        <FieldLabel
+          id={labelId}
+          htmlFor={field.id}
+          className={classNames?.label}
+        >
           {labelContent}
           {requiredMark}
         </FieldLabel>
       ) : null}
       {children}
       {descriptionNode}
+      {helpNode}
       {errorNode}
     </Field>
   );
+}
+
+const SkipFieldFrameOverrideContext = createContext(false);
+
+export function FormFieldFrame<TValue = unknown>(
+  props: FormFieldFrameProps<TValue>,
+) {
+  const skip = useContext(SkipFieldFrameOverrideContext);
+  const { FieldFrame } = useFormUiComponents();
+  if (!skip && FieldFrame && FieldFrame !== FormFieldFrame) {
+    return (
+      <SkipFieldFrameOverrideContext.Provider value={true}>
+        {createElement(FieldFrame, props as FormFieldFrameProps)}
+      </SkipFieldFrameOverrideContext.Provider>
+    );
+  }
+  return <FormFieldFrameView {...props} />;
+}
+
+/** Always {@link FormFieldFrame}, which applies `components.FieldFrame`. */
+export function useFieldFrame() {
+  return FormFieldFrame;
 }

@@ -2,13 +2,17 @@
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
+import { FieldReviewValue } from "@/components/dimah-form/field-review-value";
 import { FormFieldFrame } from "@/components/dimah-form/form-field-frame";
 import { fieldControlProps, fieldWidget } from "@/lib/field-attr";
 import { booleanOffValue } from "@/lib/field-ui-meta";
 import type { FieldWidgetProps } from "@/lib/widget-registry";
 
-export function BooleanField({ binding, className }: FieldWidgetProps) {
+export function BooleanField({ binding, className, mode }: FieldWidgetProps) {
   if (!binding.field) return null;
+  if (mode === "review") {
+    return <FieldReviewValue binding={binding} className={className} />;
+  }
 
   const controlProps = fieldControlProps(binding);
   const checked = binding.value === true;

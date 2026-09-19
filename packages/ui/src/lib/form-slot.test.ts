@@ -8,4 +8,10 @@ describe("renderFormSlot", () => {
     expect(renderFormSlot("custom", "fallback")).toBe("custom");
     expect(renderFormSlot(undefined, "fallback")).toBe("fallback");
   });
+
+  it("wraps the default when the slot is a function", () => {
+    expect(
+      renderFormSlot(({ default: node }) => ["wrap", node], "inner"),
+    ).toEqual(["wrap", "inner"]);
+  });
 });

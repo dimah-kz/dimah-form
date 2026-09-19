@@ -20,7 +20,7 @@ export function FormInactive<TAnswers extends FormAnswers = FormAnswers>({
   const ui = useFormUi(session);
 
   return (
-    <Alert className={className}>
+    <Alert data-slot="form-inactive" className={className}>
       <CircleAlertIcon />
       <AlertTitle>{ui.inactiveTitle}</AlertTitle>
       <AlertDescription>{ui.inactiveMessage}</AlertDescription>

@@ -10,7 +10,7 @@ export const FIELD_UI_WIDGETS = ["radio", "switch", "chips"] as const;
 
 export type FieldUiWidget = (typeof FIELD_UI_WIDGETS)[number];
 
-export type FieldUiWidth = "full" | "half";
+export type FieldUiWidth = "full" | "half" | "third";
 
 export type FieldUiOrientation = "vertical" | "horizontal" | "responsive";
 
@@ -18,6 +18,7 @@ export type FormViewLayout = "auto" | "fill" | "steps" | "review";
 
 /**
  * Presentation bag on `field.meta`. Validation stays on the field document.
+ * Known keys autocomplete; extra keys are allowed (same as core `meta`).
  * Author with `defineForm({ ... } satisfies FormDefinitionUi)`.
  */
 export type FieldUiMeta = {
@@ -33,11 +34,14 @@ export type FieldUiMeta = {
   suffix?: string;
   width?: FieldUiWidth;
   orientation?: FieldUiOrientation;
+  help?: string;
+  [key: string]: unknown;
 };
 
 /** Presentation bag on `option.meta`. */
 export type OptionUiMeta = {
   description?: string;
+  [key: string]: unknown;
 };
 
 /** Presentation bag on `form.meta`. */
@@ -46,12 +50,14 @@ export type FormUiMeta = {
   submitLabel?: string;
   /** Step key (`meta.step`, default `"1"`) → heading for {@link FormSteps}. */
   steps?: Record<string, string>;
+  [key: string]: unknown;
 };
 
 /**
  * `defineForm({ ... } satisfies FormDefinitionUi)` when using this package.
- * `meta` autocompletes; unknown UI keys fail. Type-specific field keys
- * (`minLength`, `unsetOnOff`, custom `defineFieldType` props) stay allowed.
+ * `meta` autocompletes known UI keys; extra keys stay allowed.
+ * Type-specific field keys (`minLength`, `unsetOnOff`, custom
+ * `defineFieldType` props) stay allowed.
  */
 export type FormDefinitionUi = {
   title: string;
@@ -81,7 +87,7 @@ export type FormDefinitionUiField = {
   options?: readonly FormDefinitionUiOption[];
 };
 
-const WIDTHS = new Set<string>(["full", "half"]);
+const WIDTHS = new Set<string>(["full", "half", "third"]);
 const ORIENTATIONS = new Set<string>(["vertical", "horizontal", "responsive"]);
 const LAYOUTS = new Set<string>(["auto", "fill", "steps", "review"]);
 
@@ -135,7 +141,7 @@ function metaSteps(
   return Object.keys(steps).length > 0 ? steps : undefined;
 }
 
-/** Read known UI keys from `field.meta`. Unknown keys are ignored. */
+/** Read known UI keys from `field.meta`. Unknown keys are ignored at runtime. */
 export function readFieldUiMeta(field: FormField | undefined): FieldUiMeta {
   const meta = metaRecord(field?.meta);
   const stepNumber = metaNumber(meta, "step");
@@ -157,6 +163,7 @@ export function readFieldUiMeta(field: FormField | undefined): FieldUiMeta {
       orientation && ORIENTATIONS.has(orientation)
         ? (orientation as FieldUiOrientation)
         : undefined,
+    help: metaString(meta, "help"),
   };
 }
 
@@ -186,16 +193,30 @@ export function booleanOffValue(field: FormField | undefined): false | null {
   return field?.unsetOnOff === true ? null : false;
 }
 
+const WIDTH_SPAN: Record<FieldUiWidth, string> = {
+  full: "@min-[32rem]/field-group:col-span-6",
+  half: "@min-[32rem]/field-group:col-span-3",
+  third: "@min-[32rem]/field-group:col-span-2",
+};
+
 export function fieldWidthClass(
   field: FormField | undefined,
   grid: boolean,
 ): string | undefined {
   if (!grid) return undefined;
-  return readFieldUiMeta(field).width === "half"
-    ? undefined
-    : "@min-[32rem]/field-group:col-span-2";
+  const width = readFieldUiMeta(field).width ?? "full";
+  return WIDTH_SPAN[width];
 }
 
+/** True when any field should share a row (`half` / `third`). */
+export function fieldsUseGrid(fields: readonly FormField[]): boolean {
+  return fields.some((field) => {
+    const width = readFieldUiMeta(field).width;
+    return width === "half" || width === "third";
+  });
+}
+
+/** @deprecated Use {@link fieldsUseGrid}. */
 export function fieldsUseHalfWidth(fields: readonly FormField[]): boolean {
-  return fields.some((field) => readFieldUiMeta(field).width === "half");
+  return fieldsUseGrid(fields);
 }

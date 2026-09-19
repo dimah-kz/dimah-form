@@ -9,7 +9,8 @@ import { useFormSession } from "@/components/dimah-form/form-context";
 export type FormHeaderProps<TAnswers extends FormAnswers = FormAnswers> = {
   form?: FormResponseApi<TAnswers>;
   className?: string;
-  title?: ReactNode;
+  /** `false` hides. Omit for `snapshot.title`. */
+  title?: ReactNode | false;
   /** `false` hides. Omit for `snapshot.description`. */
   description?: ReactNode | false;
 };
@@ -22,16 +23,22 @@ export function FormHeader<TAnswers extends FormAnswers = FormAnswers>({
   description,
 }: FormHeaderProps<TAnswers>) {
   const session = useFormSession(form);
+  const titleContent =
+    title === false ? null : (title ?? session.snapshot.title);
   const descriptionContent =
     description === false
       ? null
       : (description ?? session.snapshot.description ?? null);
 
+  if (!titleContent && !descriptionContent) return null;
+
   return (
-    <FieldSet className={cn(className)}>
-      <FieldLegend className="text-lg font-semibold text-balance">
-        {title ?? session.snapshot.title}
-      </FieldLegend>
+    <FieldSet data-slot="form-header" className={cn(className)}>
+      {titleContent ? (
+        <FieldLegend className="text-lg font-semibold text-balance">
+          {titleContent}
+        </FieldLegend>
+      ) : null}
       {descriptionContent ? (
         <FieldDescription className="text-pretty text-dimah-form-muted-foreground">
           {descriptionContent}

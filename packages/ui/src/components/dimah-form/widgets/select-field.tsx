@@ -12,9 +12,10 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ChoiceOption } from "@/components/dimah-form/choice-option";
+import { FieldReviewValue } from "@/components/dimah-form/field-review-value";
 import { FormFieldFrame } from "@/components/dimah-form/form-field-frame";
 import { fieldControlProps, fieldWidget } from "@/lib/field-attr";
-import { readOptionUiMeta } from "@/lib/field-ui-meta";
+import { readFieldUiMeta, readOptionUiMeta } from "@/lib/field-ui-meta";
 import type { FieldWidgetProps } from "@/lib/widget-registry";
 
 function RadioSelectField({ binding, className }: FieldWidgetProps) {
@@ -67,7 +68,9 @@ function DropdownSelectField({ binding, className }: FieldWidgetProps) {
   const field = binding.field;
   if (!field) return null;
 
-  const placeholder = t("Select…", { note: "select placeholder" });
+  const ui = readFieldUiMeta(field);
+  const placeholder =
+    ui.placeholder ?? t("Select…", { note: "select placeholder" });
   const options = fieldOptions(field);
   const items = [
     ...(binding.required
@@ -114,6 +117,9 @@ function DropdownSelectField({ binding, className }: FieldWidgetProps) {
 }
 
 export function SelectField(props: FieldWidgetProps) {
+  if (props.mode === "review") {
+    return <FieldReviewValue {...props} />;
+  }
   if (fieldWidget(props.binding.field) === "radio") {
     return <RadioSelectField {...props} />;
   }

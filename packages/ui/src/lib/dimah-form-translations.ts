@@ -1,5 +1,7 @@
 export type Translations = {
+  "Abandon(form action)": string;
   "Abandoned(status)": string;
+  "Abandoning…(form action)": string;
   "Cannot modify a code-authored form(session error)": string;
   "Conflict(session error)": string;
   "Duplicate option(field issue)": string;

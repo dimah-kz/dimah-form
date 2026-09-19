@@ -6,7 +6,7 @@ icon: AppWindow
 
 `@dimah-form/ui` is **optional**. `@dimah-form/react` stays headless. The renderer takes a `useFormResponse` return as `form` — it does not call the hook.
 
-Built-in types (`text`, `email`, `date`, `number`, `boolean`, `select`, `multiSelect`) have widgets. Custom `defineFieldType` types register once on `FormUiProvider` with the same `type` string.
+Built-in types (`text`, `email`, `date`, `number`, `boolean`, `select`, `multiSelect`) have widgets. Custom `defineFieldType` types register once on `FormUiProvider` with the same `type` string — or a `meta.widget` key to swap one field without replacing the type.
 
 ---
 
@@ -36,7 +36,7 @@ pnpm dlx shadcn@latest add dimah-kz/dimah-form/form
 ```tsx
 import { FormUiProvider, FormView } from "@dimah-form/ui";
 
-const widgets = { rating: StarRatingField };
+const widgets = { rating: StarRatingField, "text.mask": MaskedTextField };
 const form = useFormResponse({ snapshot });
 
 return (
@@ -46,11 +46,32 @@ return (
 );
 ```
 
-`FormView` is the default layout. `layout="auto"` (default) uses a wizard when `meta.step` spans more than one page, and `FormReview` when the response is locked. Pass `layout="fill" | "steps" | "review"` — or `form.meta.layout` — to force one. Slot props take `false` to hide or a node to replace (`header`, `progress`, `status`, `errorSummary`, `error`, `saveState`, `actions`, `stepHeading`, `stepNav`, `review`).
+`FormView` is the default layout. `layout="auto"` (default) uses a wizard when `meta.step` spans more than one page on the snapshot, and `FormReview` when the response is locked. Pass `layout="fill" | "steps" | "review"` — or `form.meta.layout` — to force one.
+
+Slot props take `false` to hide, a node to replace, or a function to wrap the default (`header={({ default: node }) => <Card>{node}</Card>}`): `header`, `progress`, `status`, `errorSummary`, `error`, `saveState`, `actions`, `stepList`, `stepHeading`, `stepNav`, `review`, `inactive`.
+
+`render` replaces the whole composition — keep `FormRoot` so Enter / submit still work:
+
+```tsx
+<FormView
+  form={form}
+  header={false}
+  render={({ fields, actions, error, saveState }) => (
+    <FormRoot>
+      <Card>
+        {fields}
+        {error}
+        {saveState}
+        {actions}
+      </Card>
+    </FormRoot>
+  )}
+/>
+```
 
 Failed submit (and failed Next) focuses the first invalid control. Enter on a non-last step advances instead of submitting.
 
-Required labels render an asterisk. Pass your own mark once on the provider:
+Required labels render an asterisk. Pass your own mark — or the whole field frame — on the provider:
 
 ```tsx
 function RequiredMark() {
@@ -61,12 +82,17 @@ function RequiredMark() {
   );
 }
 
-<FormUiProvider components={{ RequiredMark }}>
+<FormUiProvider
+  components={{ RequiredMark, FieldFrame: MyFieldFrame }}
+  formatIssue={(binding) =>
+    binding.errorCode === "TOO_SMALL" ? "Pick a higher score" : undefined
+  }
+>
   <FormView form={form} />
 </FormUiProvider>;
 ```
 
-`FormFieldFrame` still hides it with `requiredIndicator={false}`.
+Custom widgets should wrap the control in `FormFieldFrame` so `components.FieldFrame` applies.
 
 ---
 
@@ -81,21 +107,21 @@ Every chrome piece is a primitive. `FormScope` provides the session so they do n
     <FormProgress />
     <FormFields />
     <FormSaveState />
-    <FormActions />
+    <FormActions before={<CancelButton />} />
   </FormRoot>
 </FormScope>
 ```
 
-- `FormField` — looks up the widget for `binding.field.type`. Pass `children` to replace that widget. Widgets also receive `mode: "edit" | "review"`.
-- `FormFieldFrame` — label / description / issue chrome. `layout="stack"` (default), `"choice"` (checkbox), or `"group"` (fieldset). Use this when writing a custom widget. `data-field-type`, `data-widget`, `data-required`, `data-invalid` are set for CSS hooks.
-- `FormFields` — maps `visibleFields`. `fields` / `filter` restrict the loop; `meta.section` groups into `FormSection` (or `groupBy={false}` to opt out). `meta.width: "half"` makes a two-column row. `renderField` keeps the loop and swaps chrome per field.
-- `FormProgress` / `FormSaveState` / `FormReview` — completion, dirty/saving/saved draft, read-only answers.
+- `FormField` — looks up `meta.widget` (when registered) then `field.type`. Pass `children` to replace that widget. Widgets receive `mode: "edit" | "review"`.
+- `FormFieldFrame` — label / description / help / issue chrome. `layout="stack"` (default), `"choice"` (checkbox), or `"group"` (fieldset). `data-field-type`, `data-widget`, `data-required`, `data-invalid` are set for CSS hooks.
+- `FormFields` — maps `visibleFields`. `fields` / `filter` restrict the loop; `meta.section` groups into `FormSection` (or `groupBy={false}` to opt out). `meta.width` `"half"` / `"third"` shares a row. `renderField={(binding, { defaultField }) => …}` keeps the loop.
+- `FormProgress` / `FormSaveState` / `FormReview` — completion (wizard page when inside `FormSteps`), dirty/saving/saved draft, read-only answers (`renderValue` to swap one row).
 - `FormErrorSummary` — links to invalid fields after validate/submit.
-- `FormSteps` — groups `meta.step` (number or string, default `"1"`). Titles come from `form.meta.steps`. Wrap **around** `FormRoot` so Enter advances. `FormStepFields` + `FormStepHeading` + `FormStepNav` (Next validates the step; last step renders `children`, usually `FormActions`).
-- `FormActions` — `save="auto"` hides Save draft when the session autosaves. `sticky` pins the bar.
-- Built-in widgets (`TextField`, `BooleanField`, …) are usable on their own: `<EmailField binding={form.field("email")} />`.
+- `FormSteps` — groups snapshot `meta.step` (number or string, default `"1"`). Hidden fields drop out of the page; the current page is a **key**, not an index (`step` / `defaultStep` / `onStepChange`). Titles come from `form.meta.steps`. Wrap **around** `FormRoot` so Enter advances. `FormStepFields` + `FormStepHeading` + `FormStepList` + `FormStepNav` (Next validates the step; last step renders `children`, usually `FormActions`).
+- `FormActions` — `save="auto"` hides Save draft when the session autosaves. `before` / `after` add controls without replacing Submit. `abandon` is opt-in. `saveProps` / `submitProps` merge onto the shadcn buttons (Base UI `render` included). `sticky` pins the bar. `FormRoot` / `FormActions` also take Base UI `render` to replace the host element.
+- Built-in widgets (`TextField`, `BooleanField`, …) are usable on their own: `<EmailField binding={form.field("email")} />`. `ChoiceOption`, `FieldControlAffix`, and `StringField` are exported for custom widgets.
 
-A widget receives `{ binding, className, mode }` — not a spread `FormFieldBinding`. Presentation stays on `meta`. Type-check the document with `satisfies FormDefinitionUi` so this package's keys autocomplete; extra `meta` keys fail the check (runtime still stores them). For `saveForm` rows, pass a Zod object to `dimahForm({ metaSchema })`.
+A widget receives `{ binding, className, mode }` — not a spread `FormFieldBinding`. Presentation stays on `meta`. Type-check the document with `satisfies FormDefinitionUi` so this package's keys autocomplete; extra `meta` keys are allowed. For `saveForm` rows, pass a Zod object to `dimahForm({ metaSchema })`.
 
 ```ts
 import { defineForm } from "@dimah-form/server";
@@ -121,28 +147,27 @@ export const onboarding = defineForm({
 } satisfies FormDefinitionUi);
 ```
 
-| Key                       | Effect                                              |
-| ------------------------- | --------------------------------------------------- |
-| `multiline`               | `text` → textarea                                   |
-| `rows`                    | textarea rows                                       |
-| `placeholder`             | input placeholder                                   |
-| `widget: "radio"`         | `select` → radio group                              |
-| `widget: "switch"`        | `boolean` → switch                                  |
-| `widget: "chips"`         | `multiSelect` → toggle group                        |
-| `section`                 | heading in `FormFields`                             |
-| `step`                    | page in `FormSteps`                                 |
-| `width: "half"`           | share a row with the next half-width field          |
-| `prefix` / `suffix`       | affix inside the control                            |
-| `autocomplete`            | native `autoComplete` (`email` defaults to `email`) |
-| `inputMode`               | native `inputMode`                                  |
-| `orientation`             | `FormFieldFrame` orientation                        |
-| `option.meta.description` | helper under a radio / checkbox option              |
-| `form.meta.layout`        | `auto` / `fill` / `steps` / `review`                |
-| `form.meta.steps`         | step key → heading                                  |
-| `form.meta.submitLabel`   | submit button copy                                  |
-| `unsetOnOff` (boolean)    | field key, not meta: off → `null` (consent)         |
+| Key                         | Effect                                                         |
+| --------------------------- | -------------------------------------------------------------- |
+| `multiline`                 | `text` → textarea                                              |
+| `rows`                      | textarea rows                                                  |
+| `placeholder`               | input / select placeholder                                     |
+| `widget`                    | registry key first, then built-in `radio` / `switch` / `chips` |
+| `section`                   | heading in `FormFields`                                        |
+| `step`                      | page in `FormSteps`                                            |
+| `width: "half"` / `"third"` | share a row                                                    |
+| `prefix` / `suffix`         | affix inside the control (React node on the widget)            |
+| `help`                      | persistent hint under the control                              |
+| `autocomplete`              | native `autoComplete` (`email` defaults to `email`)            |
+| `inputMode`                 | native `inputMode`                                             |
+| `orientation`               | `FormFieldFrame` orientation                                   |
+| `option.meta.description`   | helper under a radio / checkbox option                         |
+| `form.meta.layout`          | `auto` / `fill` / `steps` / `review`                           |
+| `form.meta.steps`           | step key → heading                                             |
+| `form.meta.submitLabel`     | submit button copy                                             |
+| `unsetOnOff` (boolean)      | field key, not meta: off → `null` (consent)                    |
 
-RTL: logical CSS from day one (`text-start`, `ms-*`, `ps-*`). Colors: `*-dimah-form-*` (defaults to your shadcn theme).
+RTL: logical CSS from day one (`text-start`, `ms-*`, `ps-*`). Colors: `*-dimah-form-*` (defaults to your shadcn theme). Chrome roots expose `data-slot="form-root"` / `form-actions` / … for CSS.
 
 ---
 

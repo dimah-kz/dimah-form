@@ -19,8 +19,12 @@ import {
   selectVisibleFields,
   shouldGroupBySection,
 } from "@/lib/field-groups";
-import { fieldsUseHalfWidth, fieldWidthClass } from "@/lib/field-ui-meta";
+import { fieldsUseGrid, fieldWidthClass } from "@/lib/field-ui-meta";
 import type { FieldWidgetRegistry } from "@/lib/widget-registry";
+
+export type FormFieldRenderHelpers = {
+  defaultField: ReactNode;
+};
 
 export type FormFieldsProps<TAnswers extends FormAnswers = FormAnswers> = {
   form?: FormResponseApi<TAnswers>;
@@ -38,12 +42,13 @@ export type FormFieldsProps<TAnswers extends FormAnswers = FormAnswers> = {
   /** Replace the default {@link FormField} for one binding. */
   renderField?: (
     binding: ReturnType<FormResponseApi<TAnswers>["field"]>,
+    helpers: FormFieldRenderHelpers,
   ) => ReactNode;
 };
 
 /**
  * Visible fields as a shadcn `FieldGroup`. Pass `renderField` to keep the
- * loop and swap chrome per field.
+ * loop and swap chrome per field (`helpers.defaultField` is the stock widget).
  */
 export function FormFields<TAnswers extends FormAnswers = FormAnswers>({
   form,
@@ -75,26 +80,25 @@ export function FormFields<TAnswers extends FormAnswers = FormAnswers>({
   const fields = (
     <FieldGroup className={cn(className)}>
       {grouped.map((group) => {
-        const half = fieldsUseHalfWidth(group.fields);
+        const grid = fieldsUseGrid(group.fields);
         const items = (
           <div
             className={
-              half
-                ? "gap-5 grid grid-cols-1 @min-[32rem]/field-group:grid-cols-2"
+              grid
+                ? "gap-5 grid grid-cols-1 @min-[32rem]/field-group:grid-cols-6"
                 : "contents"
             }
           >
             {group.fields.map((field) => {
               const binding = session.field(field.id);
-              const item = renderField ? (
-                renderField(binding)
-              ) : (
-                <FormField binding={binding} />
-              );
+              const defaultField = <FormField binding={binding} />;
+              const item = renderField
+                ? renderField(binding, { defaultField })
+                : defaultField;
               return (
                 <div
                   key={field.id}
-                  className={cn("min-w-0", fieldWidthClass(field, half))}
+                  className={cn("min-w-0", fieldWidthClass(field, grid))}
                 >
                   {item}
                 </div>

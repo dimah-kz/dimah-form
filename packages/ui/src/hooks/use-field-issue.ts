@@ -2,6 +2,7 @@
 
 import { FIELD_ISSUE_CODES, type FormFieldBinding } from "@dimah-form/react";
 import { useTranslations } from "@fuma-translate/react";
+import { useFormUiFormatters } from "@/components/dimah-form/form-ui-components";
 
 function param(params: FormFieldBinding["errorParams"], key: string): string {
   const value = params?.[key];
@@ -10,6 +11,7 @@ function param(params: FormFieldBinding["errorParams"], key: string): string {
 
 /**
  * Localize a field issue from `errorCode` + `errorParams`.
+ * `FormUiProvider` `formatIssue` wins when it returns a string.
  * Falls back to the English `error` string from the session.
  *
  * `t("…")` stays inside this hook so fuma-translate can extract keys.
@@ -18,6 +20,10 @@ export function useFieldIssue(
   binding: Pick<FormFieldBinding, "error" | "errorCode" | "errorParams">,
 ): string | undefined {
   const t = useTranslations();
+  const { formatIssue } = useFormUiFormatters();
+  const custom = formatIssue?.(binding);
+  if (custom) return custom;
+
   const code = binding.errorCode;
   if (!code) return binding.error;
 

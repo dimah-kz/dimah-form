@@ -1,17 +1,7 @@
 "use client";
 
 import type { FormSnapshot, ResponseRecord } from "@dimah-form/react";
-import {
-  FormActions,
-  FormError,
-  FormFields,
-  FormInactive,
-  FormProgress,
-  FormRoot,
-  FormSaveState,
-  FormScope,
-  FormStatus,
-} from "@dimah-form/ui";
+import { FormRoot, FormView } from "@dimah-form/ui";
 import { useRouter } from "next/navigation";
 
 import { AnswersPreview } from "@/components/answers-preview";
@@ -48,10 +38,10 @@ export function Questionnaire({
   });
 
   return (
-    <FormScope form={session}>
-      {session.inactive ? (
-        <FormInactive />
-      ) : (
+    <FormView
+      form={session}
+      header={false}
+      render={({ status, progress, fields, error, saveState, actions }) => (
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
           <FormRoot>
             <Card>
@@ -63,14 +53,14 @@ export function Questionnaire({
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-6">
-                <FormStatus />
-                <FormProgress />
-                <FormFields />
-                <FormError />
+                {status}
+                {progress}
+                {fields}
+                {error}
               </CardContent>
               <CardFooter className="flex flex-col items-stretch gap-3">
-                <FormSaveState />
-                <FormActions className="w-full" />
+                {saveState}
+                {actions}
               </CardFooter>
             </Card>
           </FormRoot>
@@ -83,6 +73,6 @@ export function Questionnaire({
           </div>
         </div>
       )}
-    </FormScope>
+    />
   );
 }
