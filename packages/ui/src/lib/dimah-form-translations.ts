@@ -1,5 +1,7 @@
 export type Translations = {
+  "Abandoned(status)": string;
   "Duplicate option(field issue)": string;
+  "Edit(form action)": string;
   "Expected a boolean(field issue)": string;
   "Expected a date(field issue)": string;
   "Expected a number(field issue)": string;
@@ -15,11 +17,17 @@ export type Translations = {
   "Must be at least {min}(field issue)": string;
   "Must be at most {max} characters(field issue)": string;
   "Must be at most {max}(field issue)": string;
+  "Reopening…(form action)": string;
+  "Request failed(session error)": string;
   "Required(field issue)": string;
+  "Response {id}(status)": string;
   "Save draft(form action)": string;
   "Saving…(form action)": string;
+  "Select…(select placeholder)": string;
   "Submit(form action)": string;
+  "Submitted(status)": string;
   "Submitting…(form action)": string;
+  "This draft is closed(status)": string;
   "This form is not available(inactive)": string;
   "Unknown field type \"{type}\"(fallback)": string;
   "Unknown field type(field issue)": string;

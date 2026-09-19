@@ -1,20 +1,21 @@
 "use client";
 
-import { fieldLabel, type FormFieldBinding } from "@dimah-form/react";
+import { fieldLabel } from "@dimah-form/react";
 import { useTranslations } from "@fuma-translate/react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import type { FieldWidgetProps } from "@/lib/widget-registry";
 
 /**
- * Placeholder control until a widget exists for `field.type`.
- * Custom types register on {@link FieldWidgetRegistry} the same way they
- * register `defineFieldType` on the server.
+ * Fallback when no widget is registered for `field.type`.
+ * Custom types register on {@link FieldWidgetRegistry} with the same string
+ * as `defineFieldType`.
  */
-export function UnknownField(binding: FormFieldBinding) {
+export function UnknownField({ className, ...binding }: FieldWidgetProps) {
   const t = useTranslations();
   const type = binding.field?.type ?? binding.id;
 
   return (
-    <Alert>
+    <Alert className={className}>
       <AlertTitle>
         {binding.field ? fieldLabel(binding.field) : binding.id}
       </AlertTitle>

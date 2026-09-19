@@ -148,7 +148,17 @@ TypeScript automatically infers `Form["$Infer"]["answers"]["review"]["score"]` a
 
 ## 4. Rendering Custom Widgets in React
 
-Add a branch to your `FormFieldControl` dispatcher to render an interactive star rating control:
+If you use `@dimah-form/ui`, register the widget once — same `type` string as the validator:
+
+```tsx
+<FormUiProvider widgets={{ rating: StarRatingField }}>
+  <FormView form={form} />
+</FormUiProvider>
+```
+
+`StarRatingField` receives a `FormFieldBinding`. Wrap the control in `FormFieldFrame` for the default label / description / issue chrome.
+
+On the headless path, add a branch to your dispatcher:
 
 ```tsx title="components/form-field-control.tsx"
 import { type FormFieldBinding } from "@dimah-form/react";

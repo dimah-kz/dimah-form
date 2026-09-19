@@ -1,6 +1,6 @@
 # Next.js example
 
-Workspace demo for `@dimah-form/*`. You own the UI; the library owns snapshots, drafts, and submit validation.
+Workspace demo for `@dimah-form/*`. Optional `@dimah-form/ui` renders the fill session; you still own custom widgets (the `rating` stars) and layout.
 
 Reads go through `form.api` in Server Components (`{ query }` / `{ body }`). Writes go through `createFormClient<Form>()` in the browser (object args). Persistence is [FumaDB](https://github.com/fuma-nama/fumadb) + [Drizzle ORM 1.0 RC](https://orm.drizzle.team) + local SQLite (`local.db`).
 

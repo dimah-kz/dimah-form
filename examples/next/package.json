@@ -18,6 +18,8 @@
     "@dimah-form/db": "workspace:*",
     "@dimah-form/react": "workspace:*",
     "@dimah-form/server": "workspace:*",
+    "@dimah-form/ui": "workspace:*",
+    "@fuma-translate/react": "^1.0.2",
     "@libsql/client": "catalog:",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.3.0",

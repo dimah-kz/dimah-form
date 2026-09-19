@@ -47,7 +47,7 @@ export function IntakeForm({ snapshot }) {
 
   return (
     <formClient.Provider>
-      <FormUiProvider>
+      <FormUiProvider widgets={{ rating: StarRatingField }}>
         <FormView form={form} />
       </FormUiProvider>
     </formClient.Provider>
@@ -55,8 +55,11 @@ export function IntakeForm({ snapshot }) {
 }
 ```
 
-Pass `widgets={{ rating: StarRatingField }}` for custom `defineFieldType`
-types. Built-in type widgets are not in this skeleton yet.
+Register custom `defineFieldType` widgets once on `FormUiProvider` (or per
+`FormView` / `FormScope`). Built-in types (`text`, `email`, `date`, `number`,
+`boolean`, `select`, `multiSelect`) ship with the package. Compose
+`FormScope` + `FormFields` / `TextField` / `FormActions` when the default
+template is not enough.
 
 ## License
 

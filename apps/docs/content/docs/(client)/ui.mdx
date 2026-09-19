@@ -6,7 +6,7 @@ icon: AppWindow
 
 `@dimah-form/ui` is **optional**. `@dimah-form/react` stays headless. The renderer takes a `useFormResponse` return as `form` — it does not call the hook.
 
-Built-in type widgets are not in this package yet. Unknown `type` values render a fallback. Custom types register on `widgets` with the same string as `defineFieldType`.
+Built-in types (`text`, `email`, `date`, `number`, `boolean`, `select`, `multiSelect`) have widgets. Custom `defineFieldType` types register once on `FormUiProvider` with the same `type` string.
 
 ---
 
@@ -31,7 +31,7 @@ pnpm dlx shadcn@latest add dimah-kz/dimah-form/form
 
 ---
 
-## Shape
+## Template
 
 ```tsx
 import { FormUiProvider, FormView } from "@dimah-form/ui";
@@ -39,16 +39,36 @@ import { FormUiProvider, FormView } from "@dimah-form/ui";
 const form = useFormResponse({ snapshot });
 
 return (
-  <FormUiProvider translations={fa}>
-    <FormView form={form} widgets={{ rating: StarRatingField }} />
+  <FormUiProvider translations={fa} widgets={{ rating: StarRatingField }}>
+    <FormView form={form} />
   </FormUiProvider>
 );
 ```
 
-- `FormView` — chrome (title, visible fields, save, submit). Pass `children` to layout fields yourself.
-- `FormField` — label / description / issue around one `form.field(id)` binding.
-- `FormUiProvider` — Fuma Translate. Protocol stays on `formClient.Provider`.
-- `FieldWidgetRegistry` — `type` → component. Empty for built-ins until those widgets land.
+`FormView` is the default layout: header, status, visible fields, session error, save / submit (or Edit when locked). Slot props take `false` to hide or a node to replace (`header`, `status`, `error`, `actions`).
+
+---
+
+## Compose
+
+Every chrome piece is a primitive. `FormScope` provides the session so they do not need a `form` prop:
+
+```tsx
+<FormScope form={form} widgets={{ rating: StarRatingField }}>
+  <FormRoot>
+    <FormHeader />
+    <FormFields />
+    <FormActions />
+  </FormRoot>
+</FormScope>
+```
+
+- `FormField` — looks up the widget for `binding.field.type`. Pass `children` to replace that widget.
+- `FormFieldFrame` — default shadcn `Field` label / description / issue. Use this when writing a custom widget.
+- `FormFields` — maps `visibleFields`. `renderField` keeps the loop and swaps chrome per field.
+- Built-in widgets (`TextField`, `BooleanField`, …) are usable on their own: `<EmailField binding={form.field("email")} />`.
+
+`text` with `meta.multiline` renders a textarea. `boolean` and `multiSelect` use their own `Field` / `FieldSet` anatomy — they do not go through `FormFieldFrame`.
 
 RTL: logical CSS from day one (`text-start`, `ms-*`, `ps-*`). Colors: `*-dimah-form-*` (defaults to your shadcn theme).
 

@@ -3,108 +3,75 @@
 import type { ReactNode } from "react";
 import type { FormAnswers, FormResponseApi } from "@dimah-form/react";
 import { cn } from "cn";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { FieldGroup } from "@/components/ui/field";
-import { Spinner } from "@/components/ui/spinner";
-import { FormField } from "@/components/dimah-form/form-field";
-import { useFormUi } from "@/hooks/use-form-ui";
+import { FormActions } from "@/components/dimah-form/form-actions";
+import {
+  FormScope,
+  useFormSession,
+} from "@/components/dimah-form/form-context";
+import { FormError } from "@/components/dimah-form/form-error";
+import { FormFields } from "@/components/dimah-form/form-fields";
+import { FormHeader } from "@/components/dimah-form/form-header";
+import { FormInactive } from "@/components/dimah-form/form-inactive";
+import { FormRoot } from "@/components/dimah-form/form-root";
+import { FormStatus } from "@/components/dimah-form/form-status";
+import type { FormSlot } from "@/lib/form-slot";
 import type { FieldWidgetRegistry } from "@/lib/widget-registry";
 
 export type FormViewProps<TAnswers extends FormAnswers = FormAnswers> = {
   /** Headless fill session. This component does not call `useFormResponse`. */
   form: FormResponseApi<TAnswers>;
-  /** Extra / override widgets keyed by field `type` (same strings as `defineFieldType`). */
+  /** Extra / override widgets keyed by field `type`. */
   widgets?: FieldWidgetRegistry;
   className?: string;
   /**
    * Custom field layout. When omitted, visible fields render through
-   * {@link FormField} + {@link widgets}.
+   * {@link FormFields}.
    */
   children?: ReactNode;
+  header?: FormSlot;
+  status?: FormSlot;
+  error?: FormSlot;
+  actions?: FormSlot;
 };
 
+function FormViewLayout<TAnswers extends FormAnswers = FormAnswers>({
+  className,
+  children,
+  header,
+  status,
+  error,
+  actions,
+}: Omit<FormViewProps<TAnswers>, "form" | "widgets">) {
+  const session = useFormSession<TAnswers>();
+
+  if (session.inactive) {
+    return <FormInactive className={className} />;
+  }
+
+  return (
+    <FormRoot className={cn("gap-6 flex flex-col", className)}>
+      {header === false ? null : (header ?? <FormHeader />)}
+      {status === false ? null : (status ?? <FormStatus />)}
+      {children ?? <FormFields />}
+      {error === false ? null : (error ?? <FormError />)}
+      {actions === false ? null : (actions ?? <FormActions />)}
+    </FormRoot>
+  );
+}
+
 /**
- * Questionnaire chrome around a `useFormResponse` return: title, fields,
- * session error, save, submit.
+ * Default questionnaire template: header, status, fields, error, actions.
+ * Slot props take `false` to hide or a node to replace. Compose
+ * {@link FormScope} + primitives for a custom layout.
  */
 export function FormView<TAnswers extends FormAnswers = FormAnswers>({
   form,
   widgets,
-  className,
-  children,
+  ...layout
 }: FormViewProps<TAnswers>) {
-  const ui = useFormUi(form);
-  const fields =
-    children ??
-    form.visibleFields.map((field) => (
-      <FormField
-        key={field.id}
-        binding={form.field(field.id)}
-        widgets={widgets}
-      />
-    ));
-
-  if (form.inactive) {
-    return (
-      <Alert className={className}>
-        <AlertTitle>{ui.inactiveTitle}</AlertTitle>
-        <AlertDescription>{ui.inactiveMessage}</AlertDescription>
-      </Alert>
-    );
-  }
-
   return (
-    <form
-      className={cn(
-        "gap-6 flex flex-col text-start text-dimah-form-foreground",
-        className,
-      )}
-      onSubmit={(event) => {
-        event.preventDefault();
-        void form.submit();
-      }}
-    >
-      <header className="gap-1 flex flex-col">
-        <h2 className="text-lg font-semibold text-balance">
-          {form.snapshot.title}
-        </h2>
-        {form.snapshot.description ? (
-          <p className="text-sm text-pretty text-dimah-form-muted-foreground">
-            {form.snapshot.description}
-          </p>
-        ) : null}
-      </header>
-
-      <FieldGroup>{fields}</FieldGroup>
-
-      {form.error ? (
-        <Alert variant="destructive">
-          <AlertDescription className="wrap-anywhere">
-            {form.error}
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
-      <div className="gap-2 flex flex-wrap items-center justify-end">
-        <Button
-          type="button"
-          variant="outline"
-          disabled={ui.busy || form.locked}
-          onClick={() => void form.saveDraft()}
-        >
-          {form.pending === "save" ? (
-            <Spinner data-icon="inline-start" />
-          ) : null}
-          {ui.saveLabel}
-        </Button>
-        <Button type="submit" disabled={ui.busy || form.locked}>
-          {form.pending === "submit" ? (
-            <Spinner data-icon="inline-start" />
-          ) : null}
-          {ui.submitLabel}
-        </Button>
-      </div>
-    </form>
+    <FormScope form={form} widgets={widgets}>
+      <FormViewLayout {...layout} />
+    </FormScope>
   );
 }

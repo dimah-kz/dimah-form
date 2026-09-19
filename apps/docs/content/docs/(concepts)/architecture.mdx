@@ -43,7 +43,7 @@ The diagram shows how widgets, HTTP routes, `guard`, validation, and the store f
 ```mermaid
 flowchart TD
   subgraph Client ["Browser / React App"]
-    UI["Your UI Widgets / Stepper"] --> Hook["useFormResponse"]
+    UI["Widgets / @dimah-form/ui"] --> Hook["useFormResponse"]
     Hook --> HTTPClient["createFormClient"]
   end
 
@@ -78,7 +78,7 @@ Each package has one job and a one-way dependency graph:
 | **`@dimah-form/core`**   | Universal   | Protocol SSOT, Zod schemas, field definitions, answer validation, error codes, and type inference.     | `defineForm`, `defineFieldType`, `APIError`, `FORM_ERROR_CODES`         |
 | **`@dimah-form/server`** | Server      | Backend router, HTTP framework adapters, `form.api`, lifecycle hook dispatcher, and `memoryAdapter()`. | `dimahForm()`, `toNextJsHandler`, `toHonoHandler`, `memoryAdapter`      |
 | **`@dimah-form/react`**  | Browser     | Headless React client, session state machine, visibility resolver, field bindings, and autosave.       | `createFormClient()`, `useFormResponse()`, `fieldLabel`, `fieldOptions` |
-| **`@dimah-form/ui`**     | Browser     | Optional. shadcn renderer and registry source on top of `FormResponseApi` / `FormFieldBinding`.        | `FormView`, `FormField`, `FormUiProvider`                               |
+| **`@dimah-form/ui`**     | Browser     | Optional. shadcn renderer and registry source on top of `FormResponseApi` / `FormFieldBinding`.        | `FormView`, `FormScope`, `FormField`, `FormUiProvider`                  |
 | **`@dimah-form/db`**     | Server      | Optional. Production SQL adapter using FumaDB for Drizzle, Prisma, and Kysely.                         | `DimahFormDB`, `db()`                                                   |
 
 ---

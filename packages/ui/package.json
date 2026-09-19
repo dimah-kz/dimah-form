@@ -46,6 +46,7 @@
     "check-types": "pnpm compile:translations && tsc --noEmit && pnpm registry:validate",
     "compile:translations": "node ./scripts/compile-translations.mjs",
     "lint": "eslint --max-warnings 0 --cache",
+    "test": "vitest run",
     "normalize-imports": "node ./scripts/enforce-src-alias-imports.mjs",
     "registry:build": "pnpm registry:validate && shadcn build --output apps/docs/public/r --cwd ../..",
     "registry:check": "tsx scripts/check-registry-items.ts",
@@ -64,6 +65,7 @@
     "@workspace/eslint-config": "workspace:*",
     "@workspace/tsup-config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
+    "@workspace/vitest-config": "workspace:*",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.3.0",
     "eslint": "catalog:",
@@ -75,7 +77,8 @@
     "tsc-alias": "catalog:",
     "tsup": "catalog:",
     "tsx": "^4.23.13",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "peerDependencies": {
     "@base-ui/react": ">=1.0.0",

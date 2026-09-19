@@ -64,7 +64,10 @@ export function ArchitectureDiagram() {
       </figcaption>
       <div className="flex flex-col gap-0">
         <div className="grid gap-2 sm:grid-cols-2">
-          <Box title="Your widgets" note="You render inputs. No library UI." />
+          <Box
+            title="Widgets"
+            note="Yours, or optional @dimah-form/ui on FormFieldBinding."
+          />
           <Box
             title="createFormClient"
             note="Typed protocol. useFormResponse binds fields."

@@ -1,54 +1,73 @@
 import type { Registry } from "shadcn/schema";
 
 type RegistryItem = Registry["items"][number];
+type RegistryFile = NonNullable<RegistryItem["files"]>[number];
+
+function srcFile(path: string, type: RegistryFile["type"]): RegistryFile {
+  return {
+    path,
+    type,
+    target: `@${path}`,
+  };
+}
 
 const formFiles = [
-  {
-    path: "components/dimah-form/form-provider.tsx",
-    type: "registry:component",
-    target: "@components/dimah-form/form-provider.tsx",
-  },
-  {
-    path: "components/dimah-form/form-view.tsx",
-    type: "registry:component",
-    target: "@components/dimah-form/form-view.tsx",
-  },
-  {
-    path: "components/dimah-form/form-field.tsx",
-    type: "registry:component",
-    target: "@components/dimah-form/form-field.tsx",
-  },
-  {
-    path: "components/dimah-form/widgets/unknown-field.tsx",
-    type: "registry:component",
-    target: "@components/dimah-form/widgets/unknown-field.tsx",
-  },
-  {
-    path: "hooks/use-form-ui.ts",
-    type: "registry:hook",
-    target: "@hooks/use-form-ui.ts",
-  },
-  {
-    path: "hooks/use-field-issue.ts",
-    type: "registry:hook",
-    target: "@hooks/use-field-issue.ts",
-  },
-  {
-    path: "lib/widget-registry.ts",
-    type: "registry:lib",
-    target: "@lib/widget-registry.ts",
-  },
-  {
-    path: "lib/dimah-form-translations.ts",
-    type: "registry:lib",
-    target: "@lib/dimah-form-translations.ts",
-  },
+  srcFile("components/dimah-form/form-provider.tsx", "registry:component"),
+  srcFile("components/dimah-form/form-context.tsx", "registry:component"),
+  srcFile("components/dimah-form/form-root.tsx", "registry:component"),
+  srcFile("components/dimah-form/form-view.tsx", "registry:component"),
+  srcFile("components/dimah-form/form-field.tsx", "registry:component"),
+  srcFile("components/dimah-form/form-field-frame.tsx", "registry:component"),
+  srcFile("components/dimah-form/form-fields.tsx", "registry:component"),
+  srcFile("components/dimah-form/form-header.tsx", "registry:component"),
+  srcFile("components/dimah-form/form-status.tsx", "registry:component"),
+  srcFile("components/dimah-form/form-error.tsx", "registry:component"),
+  srcFile("components/dimah-form/form-actions.tsx", "registry:component"),
+  srcFile("components/dimah-form/form-inactive.tsx", "registry:component"),
+  srcFile(
+    "components/dimah-form/widgets/unknown-field.tsx",
+    "registry:component",
+  ),
+  srcFile(
+    "components/dimah-form/widgets/string-field.tsx",
+    "registry:component",
+  ),
+  srcFile("components/dimah-form/widgets/text-field.tsx", "registry:component"),
+  srcFile(
+    "components/dimah-form/widgets/email-field.tsx",
+    "registry:component",
+  ),
+  srcFile("components/dimah-form/widgets/date-field.tsx", "registry:component"),
+  srcFile(
+    "components/dimah-form/widgets/number-field.tsx",
+    "registry:component",
+  ),
+  srcFile(
+    "components/dimah-form/widgets/boolean-field.tsx",
+    "registry:component",
+  ),
+  srcFile(
+    "components/dimah-form/widgets/select-field.tsx",
+    "registry:component",
+  ),
+  srcFile(
+    "components/dimah-form/widgets/multi-select-field.tsx",
+    "registry:component",
+  ),
+  srcFile("hooks/use-form-ui.ts", "registry:hook"),
+  srcFile("hooks/use-field-issue.ts", "registry:hook"),
+  srcFile("lib/widget-registry.ts", "registry:lib"),
+  srcFile("lib/default-field-widgets.ts", "registry:lib"),
+  srcFile("lib/field-attr.ts", "registry:lib"),
+  srcFile("lib/form-slot.ts", "registry:lib"),
+  srcFile("lib/dimah-form-translations.ts", "registry:lib"),
 ] as const satisfies RegistryItem["files"];
 
 const componentDependencies = [
   "@dimah-form/react",
   "@fuma-translate/react",
   "cn",
+  "lucide-react",
 ] as const;
 
 /** Maps `*-dimah-form-*` utilities to the host shadcn theme (Tailwind v4 `@theme`). */
@@ -78,11 +97,20 @@ export const components = [
     type: "registry:component",
     title: "Form",
     description:
-      "Optional questionnaire renderer. Pass a useFormResponse return as `form`. Built-in field widgets come later; unknown types render a fallback.",
+      "Optional questionnaire renderer. Pass a useFormResponse return as `form`. Built-in field widgets are included; custom types register once on FormUiProvider.",
     dependencies: [...componentDependencies],
     devDependencies: [] as const,
     cssVars: componentCssVars,
-    registryDependencies: ["alert", "button", "field", "spinner"],
+    registryDependencies: [
+      "alert",
+      "button",
+      "checkbox",
+      "field",
+      "input",
+      "select",
+      "spinner",
+      "textarea",
+    ],
     files: [...formFiles],
   },
 ] as const satisfies Registry["items"];

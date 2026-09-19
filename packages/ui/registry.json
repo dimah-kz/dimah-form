@@ -5,8 +5,13 @@
       "name": "form",
       "type": "registry:component",
       "title": "Form",
-      "description": "Optional questionnaire renderer. Pass a useFormResponse return as `form`. Built-in field widgets come later; unknown types render a fallback.",
-      "dependencies": ["@dimah-form/react", "@fuma-translate/react", "cn"],
+      "description": "Optional questionnaire renderer. Pass a useFormResponse return as `form`. Built-in field widgets are included; custom types register once on FormUiProvider.",
+      "dependencies": [
+        "@dimah-form/react",
+        "@fuma-translate/react",
+        "cn",
+        "lucide-react"
+      ],
       "devDependencies": [],
       "cssVars": {
         "theme": {
@@ -27,12 +32,31 @@
           "color-dimah-form-ring": "var(--ring)"
         }
       },
-      "registryDependencies": ["alert", "button", "field", "spinner"],
+      "registryDependencies": [
+        "alert",
+        "button",
+        "checkbox",
+        "field",
+        "input",
+        "select",
+        "spinner",
+        "textarea"
+      ],
       "files": [
         {
           "path": "src/components/dimah-form/form-provider.tsx",
           "type": "registry:component",
           "target": "@components/dimah-form/form-provider.tsx"
+        },
+        {
+          "path": "src/components/dimah-form/form-context.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/form-context.tsx"
+        },
+        {
+          "path": "src/components/dimah-form/form-root.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/form-root.tsx"
         },
         {
           "path": "src/components/dimah-form/form-view.tsx",
@@ -45,9 +69,84 @@
           "target": "@components/dimah-form/form-field.tsx"
         },
         {
+          "path": "src/components/dimah-form/form-field-frame.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/form-field-frame.tsx"
+        },
+        {
+          "path": "src/components/dimah-form/form-fields.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/form-fields.tsx"
+        },
+        {
+          "path": "src/components/dimah-form/form-header.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/form-header.tsx"
+        },
+        {
+          "path": "src/components/dimah-form/form-status.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/form-status.tsx"
+        },
+        {
+          "path": "src/components/dimah-form/form-error.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/form-error.tsx"
+        },
+        {
+          "path": "src/components/dimah-form/form-actions.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/form-actions.tsx"
+        },
+        {
+          "path": "src/components/dimah-form/form-inactive.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/form-inactive.tsx"
+        },
+        {
           "path": "src/components/dimah-form/widgets/unknown-field.tsx",
           "type": "registry:component",
           "target": "@components/dimah-form/widgets/unknown-field.tsx"
+        },
+        {
+          "path": "src/components/dimah-form/widgets/string-field.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/widgets/string-field.tsx"
+        },
+        {
+          "path": "src/components/dimah-form/widgets/text-field.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/widgets/text-field.tsx"
+        },
+        {
+          "path": "src/components/dimah-form/widgets/email-field.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/widgets/email-field.tsx"
+        },
+        {
+          "path": "src/components/dimah-form/widgets/date-field.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/widgets/date-field.tsx"
+        },
+        {
+          "path": "src/components/dimah-form/widgets/number-field.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/widgets/number-field.tsx"
+        },
+        {
+          "path": "src/components/dimah-form/widgets/boolean-field.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/widgets/boolean-field.tsx"
+        },
+        {
+          "path": "src/components/dimah-form/widgets/select-field.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/widgets/select-field.tsx"
+        },
+        {
+          "path": "src/components/dimah-form/widgets/multi-select-field.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/widgets/multi-select-field.tsx"
         },
         {
           "path": "src/hooks/use-form-ui.ts",
@@ -63,6 +162,21 @@
           "path": "src/lib/widget-registry.ts",
           "type": "registry:lib",
           "target": "@lib/widget-registry.ts"
+        },
+        {
+          "path": "src/lib/default-field-widgets.ts",
+          "type": "registry:lib",
+          "target": "@lib/default-field-widgets.ts"
+        },
+        {
+          "path": "src/lib/field-attr.ts",
+          "type": "registry:lib",
+          "target": "@lib/field-attr.ts"
+        },
+        {
+          "path": "src/lib/form-slot.ts",
+          "type": "registry:lib",
+          "target": "@lib/form-slot.ts"
         },
         {
           "path": "src/lib/dimah-form-translations.ts",
