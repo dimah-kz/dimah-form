@@ -97,14 +97,10 @@ UI is not English.
 
 `formatAnswer(field, value)` turns builtin answers into English labels
 (select option text, Yes/No). Empty values are `""` — pick your own
-placeholder. Custom types stringify primitives; format those in the app
-(the Next.js example does that for `rating`).
+placeholder. Custom types stringify primitives; format those in the app.
 
 `formCompletion(snapshot, answers)` counts visible required fields.
 `useFormResponse` also exposes that as `completion` on session state.
-
-The [Next.js example](/docs/examples) is the same map with shadcn Field
-primitives. Those components are not part of this package.
 
 ---
 

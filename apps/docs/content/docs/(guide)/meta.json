@@ -1,0 +1,17 @@
+{
+  "title": "Guide",
+  "icon": "BookOpen",
+  "defaultOpen": true,
+  "pages": [
+    "architecture",
+    "snapshots",
+    "server",
+    "forms",
+    "database",
+    "react",
+    "widgets",
+    "custom-fields",
+    "auth",
+    "plugins"
+  ]
+}

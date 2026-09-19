@@ -4,8 +4,7 @@ description: A working questionnaire in minutes — install, mount dimahForm(), 
 icon: Rocket
 ---
 
-This path matches [`examples/next`](/docs/examples): Next.js App Router, a
-code-authored form, and `memoryAdapter()`. Switch to
+Next.js App Router, a code-authored form, and `memoryAdapter()`. Switch to
 [`@dimah-form/db`](/docs/database) when you persist for real.
 
 <Steps>
@@ -145,9 +144,8 @@ export function Questionnaire({ form }: { form: FormSnapshot }) {
 
 Clearing an input must send `null` so a later draft patch deletes the key
 (`emptyToNull` does that for `""` and `[]`). The
-[widget map](/docs/widgets) and [Next.js example](/docs/examples) switch
-on `field.type` the same way — those widgets are not part of
-`@dimah-form/react`.
+[widget map](/docs/widgets) switches on `field.type` the same way — those
+widgets are not part of `@dimah-form/react`.
 
 </Step>
 
@@ -172,11 +170,6 @@ on `field.type` the same way — those widgets are not part of
     title="React client"
     href="/docs/react"
     description="Headless fill session — draft, submit, reopen."
-  />
-  <Card
-    title="Example"
-    href="/docs/examples"
-    description="Run examples/next locally."
   />
 </Cards>
 

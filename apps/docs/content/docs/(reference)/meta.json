@@ -1,0 +1,5 @@
+{
+  "title": "Reference",
+  "icon": "Library",
+  "pages": ["protocol", "field-types", "errors", "configuration"]
+}

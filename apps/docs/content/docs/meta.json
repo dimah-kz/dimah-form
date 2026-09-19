@@ -1,26 +1,4 @@
 {
   "title": "dimah-form",
-  "pages": [
-    "index",
-    "quickstart",
-    "---Concepts---",
-    "architecture",
-    "snapshots",
-    "---Guides---",
-    "server",
-    "forms",
-    "database",
-    "react",
-    "widgets",
-    "custom-fields",
-    "auth",
-    "plugins",
-    "---Reference---",
-    "protocol",
-    "field-types",
-    "errors",
-    "configuration",
-    "---Examples---",
-    "examples"
-  ]
+  "pages": ["index", "quickstart", "(guide)", "(reference)"]
 }

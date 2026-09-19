@@ -10,9 +10,7 @@ fill validation, the same array on `createFormClient({ fieldTypes })`.
 
 Put shared definitions in a module that imports `defineFieldType` from
 `@dimah-form/core`. `@dimah-form/react` is `"use client"` — defining types
-there pulls the catalog into the client boundary the wrong way. The
-[Next.js example](/docs/examples) keeps `lib/field-types.ts` on `core` and
-imports it from both `form.ts` and `form-client.ts`.
+there pulls the catalog into the client boundary the wrong way.
 
 Duplicate `type` strings throw at `dimahForm()` init (built-ins included).
 Unknown types are allowed in `defineForm` and rejected when the instance
@@ -23,8 +21,7 @@ Catalog of built-ins, `showWhen`, and `$Infer` shape:
 
 ## Add a type
 
-This is the `rating` type from the example (stars are example UI, not
-library UI).
+This is a `rating` type (stars would be your UI, not library UI).
 
 ```ts title="lib/field-types.ts"
 import { defineFieldType } from "@dimah-form/core";

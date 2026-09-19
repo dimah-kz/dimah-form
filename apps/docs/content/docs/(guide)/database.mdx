@@ -11,8 +11,6 @@ Persistence is the `database` option on `dimahForm()`. It is not a plugin.
 - **`db()`** (`@dimah-form/db`) — questionnaires and responses on [FumaDB](https://github.com/fuma-nama/fumadb)
 - **Custom `ResponseStore`** — pass the object to `database` directly, not through `db()`
 
-The [Next.js example](/docs/examples) uses FumaDB + Drizzle + local SQLite.
-
 ## What it stores
 
 Two application tables. There is no version table — old responses keep
@@ -41,11 +39,11 @@ npm i @dimah-form/db fumadb
 `@dimah-form/server` is a peer.
 
 Generate adapter-specific tables from `DimahFormDB`, or copy the
-[example schema](https://github.com/dimah-kz/dimah-form/blob/main/examples/next/lib/schema.ts).
+[example app schema](https://github.com/dimah-kz/dimah-form/blob/main/examples/next/lib/schema.ts).
 
 Call `DimahFormDB.client(…).generateSchema("1.0.0")` and write
 `generated.code` next to your ORM schema. The
-[Next.js example script](https://github.com/dimah-kz/dimah-form/blob/main/examples/next/scripts/generate-schema.mjs)
+[example app script](https://github.com/dimah-kz/dimah-form/blob/main/examples/next/scripts/generate-schema.mjs)
 does this for Drizzle. Keep the generated `private_dimah_form_settings`
 table.
 
@@ -148,10 +146,5 @@ writes to `response.answers`.
     title="Server"
     href="/docs/server"
     description="Wire database into dimahForm()."
-  />
-  <Card
-    title="Next.js example"
-    href="/docs/examples"
-    description="Drizzle RC + libSQL in the workspace demo."
   />
 </Cards>

@@ -32,7 +32,6 @@ export const LLM_PAGE_PRIORITY = [
   "/docs/field-types",
   "/docs/errors",
   "/docs/configuration",
-  "/docs/examples",
 ] as const;
 
 export const llmMarkdownHeaders = {
@@ -93,7 +92,7 @@ export function llmFileLists(origin = getSiteUrl().origin): string {
 ## Optional
 
 - [Full docs dump](${origin}/llms-full.txt): every page as markdown
-- [GitHub](${githubRepoUrl()}): source and examples
+- [GitHub](${githubRepoUrl()}): source and the example app
 - [X](${xProfileUrl}): updates
 `;
 }

@@ -26,6 +26,7 @@ const pageMoves: [string, string][] = [
   ["/docs/reference/errors", "/docs/errors"],
   ["/docs/reference/configuration", "/docs/configuration"],
   ["/docs/reference", "/docs/protocol"],
+  ["/docs/examples", "/docs"],
 ];
 
 const nextConfig: NextConfig = {
