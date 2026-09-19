@@ -84,7 +84,8 @@ export function seedDefaultAnswers(definition: {
   return stripHiddenAnswers(definition, seeded);
 }
 
-function isValueEmpty(
+/** Missing, or the field type's `isEmpty` (blank text, empty multiSelect, …). */
+export function isAnswerEmpty(
   field: FormField,
   value: unknown,
   fieldTypes: ReadonlyMap<string, FieldTypeDefinition>,
@@ -119,7 +120,7 @@ function addRequiredIssues(
     if (!field.required) continue;
     if (!isFieldVisible(field, visible, definition.fields)) continue;
     const value = visible[field.id];
-    if (isValueEmpty(field, value, fieldTypes)) {
+    if (isAnswerEmpty(field, value, fieldTypes)) {
       const alreadyTyped = issues.some((item) => item.field === field.id);
       if (!alreadyTyped) {
         issues.push({ field: field.id, ...FIELD_ISSUE_CODES.REQUIRED });
@@ -146,7 +147,7 @@ function collectFieldIssues(
       continue;
     }
     const value = visible[key];
-    if (isValueEmpty(field, value, fieldTypes)) continue;
+    if (isAnswerEmpty(field, value, fieldTypes)) continue;
     const fieldType = fieldTypes.get(field.type);
     if (!fieldType) {
       issues.push({
@@ -224,7 +225,8 @@ export async function assertAnswers(
 }
 
 /**
- * Strip hidden fields, validate, and drop `null` / `undefined` keys.
+ * Strip hidden fields, validate, and drop empty keys (`null` / `undefined`,
+ * blank text, empty multiSelect — whatever the field type treats as empty).
  * Throws {@link APIError} `VALIDATION_ERROR` when issues remain.
  */
 export async function parseAnswers(
@@ -234,12 +236,19 @@ export async function parseAnswers(
   fieldTypes?: ReadonlyMap<string, FieldTypeDefinition>,
   validateAnswers?: AnswersValidator,
 ): Promise<Record<string, unknown>> {
+  const types = fieldTypes ?? builtinRegistry;
   const visible = stripHiddenAnswers(definition, answers);
-  await assertAnswers(definition, visible, mode, fieldTypes, validateAnswers);
+  await assertAnswers(definition, visible, mode, types, validateAnswers);
 
+  const fieldById = new Map(
+    definition.fields.map((field) => [field.id, field]),
+  );
   const next: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(visible)) {
-    if (isAbsent(value)) continue;
+    const field = fieldById.get(key);
+    if (field ? isAnswerEmpty(field, value, types) : isAbsent(value)) {
+      continue;
+    }
     next[key] = value;
   }
   return next;

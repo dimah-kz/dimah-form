@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { isFormErrorCode, type ResponseRecord } from "@dimah-form/core";
 
-import { commitLifecycle, persistedResponse, writeResponse } from "./lifecycle";
+import {
+  commitLifecycle,
+  persistedResponse,
+  writeForm,
+  writeResponse,
+} from "./lifecycle";
 import { memoryAdapter } from "@/store";
 
 describe("commitLifecycle", () => {
@@ -53,6 +58,21 @@ describe("persistedResponse", () => {
     await expect(persistedResponse(async () => undefined, row)).resolves.toBe(
       row,
     );
+  });
+});
+
+describe("writeForm", () => {
+  it("returns the stored form after save", async () => {
+    const store = memoryAdapter();
+    const result = await writeForm(store, {
+      id: "intake",
+      slug: "intake",
+      status: "active",
+      title: "Intake",
+      fields: [],
+    });
+    expect(result.updatedAt).toBeDefined();
+    expect(await store.getForm("intake")).toEqual(result);
   });
 });
 

@@ -24,7 +24,10 @@ export type UseFormResponseOptions = Omit<
 export type { FormResponseApi };
 
 function sessionKey(options: UseFormResponseOptions) {
-  return `${options.snapshot.id}:${options.response?.id ?? ""}:${options.validate ?? "submit"}:${options.resume === true ? "1" : "0"}`;
+  const fields = options.snapshot.fields
+    .map((field) => `${field.id}:${field.type}`)
+    .join(",");
+  return `${options.snapshot.id}:${options.snapshot.updatedAt ?? ""}:${fields}:${options.response?.id ?? ""}:${options.response?.updatedAt ?? ""}:${options.validate ?? "submit"}:${options.resume === true ? "1" : "0"}`;
 }
 
 /**

@@ -1,7 +1,7 @@
-import { isAPIError } from "./error";
-import { isFieldVisible } from "./answers";
+import { isAnswerEmpty, isFieldVisible } from "./answers";
 import type { FieldTypeDefinition } from "./define";
-import { createFieldTypeRegistry } from "./field-types";
+import { isAPIError } from "./error";
+import { resolveFieldTypeRegistry } from "./field-types";
 import type { FormField, DocumentMeta } from "./schema/definition";
 import type { FormAnswers } from "./schema/protocol";
 import type { ValidationIssue } from "./schema/error";
@@ -40,33 +40,6 @@ function asIssueList(
     }
   }
   return next;
-}
-
-function resolveViewRegistry(
-  fieldTypes:
-    | ReadonlyMap<string, FieldTypeDefinition>
-    | readonly FieldTypeDefinition[]
-    | undefined,
-) {
-  if (
-    fieldTypes &&
-    !Array.isArray(fieldTypes) &&
-    typeof (fieldTypes as Map<string, FieldTypeDefinition>).get === "function"
-  ) {
-    return fieldTypes as ReadonlyMap<string, FieldTypeDefinition>;
-  }
-  return createFieldTypeRegistry(
-    fieldTypes as readonly FieldTypeDefinition[] | undefined,
-  );
-}
-
-function isAnswerEmpty(
-  field: FormField,
-  value: unknown,
-  fieldTypes: ReadonlyMap<string, FieldTypeDefinition>,
-) {
-  if (value === undefined || value === null) return true;
-  return fieldTypes.get(field.type)?.isEmpty?.(value, field) ?? false;
 }
 
 /** `label` when set, otherwise the field id. */
@@ -172,7 +145,7 @@ export function formCompletion(
   fieldTypes?:
     ReadonlyMap<string, FieldTypeDefinition> | readonly FieldTypeDefinition[],
 ): FormCompletion {
-  const registry = resolveViewRegistry(fieldTypes);
+  const registry = resolveFieldTypeRegistry(fieldTypes);
   let required = 0;
   let answered = 0;
   for (const field of visibleFields(definition, answers)) {
@@ -189,7 +162,11 @@ export function formCompletion(
  */
 export function formatAnswer(field: FormField, value: unknown): string {
   if (value == null) return "";
-  if (field.type === "boolean") return value === true ? "Yes" : "No";
+  if (field.type === "boolean") {
+    if (value === true) return "Yes";
+    if (value === false) return "No";
+    return "";
+  }
   const options = fieldOptions(field);
   if (field.type === "select" && typeof value === "string") {
     return options.find((option) => option.value === value)?.label ?? value;

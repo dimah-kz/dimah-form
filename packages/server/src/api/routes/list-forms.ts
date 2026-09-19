@@ -26,8 +26,9 @@ export const listForms = createFormEndpoint(
         limit: limit + 1,
         offset,
       });
+      const page = pageFromOverfetch(rows, limit, offset);
       const forms: FormSnapshot[] = [];
-      for (const form of rows) {
+      for (const form of page.items) {
         try {
           forms.push(
             parseLiveSnapshot(
@@ -40,9 +41,8 @@ export const listForms = createFormEndpoint(
           continue;
         }
       }
-      const page = pageFromOverfetch(forms, limit, offset);
       return {
-        forms: page.items,
+        forms,
         limit,
         offset,
         nextOffset: page.nextOffset,

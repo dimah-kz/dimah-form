@@ -10,7 +10,7 @@ import {
 import type { FormClientApi } from "./create-form-client";
 import type { FieldTypeDefinition } from "./define";
 import { APIError, FORM_ERROR_CODES, isFormErrorCode } from "./error";
-import { createFieldTypeRegistry } from "./field-types";
+import { resolveFieldTypeRegistry } from "./field-types";
 import {
   fieldIssueMap,
   formCompletion,
@@ -218,35 +218,40 @@ function isLocked(status: ResponseStatus) {
   return status === "submitted" || status === "abandoned";
 }
 
-function resolveRegistry(fieldTypes: FormResponseFieldTypes | undefined) {
-  if (
-    fieldTypes &&
-    !Array.isArray(fieldTypes) &&
-    typeof (fieldTypes as Map<string, FieldTypeDefinition>).get === "function"
-  ) {
-    return fieldTypes as ReadonlyMap<string, FieldTypeDefinition>;
-  }
-  return createFieldTypeRegistry(
-    fieldTypes as readonly FieldTypeDefinition[] | undefined,
-  );
-}
-
 function resolveRespondentId(value: string | (() => string) | undefined) {
   if (value == null) return undefined;
   return typeof value === "function" ? value() : value;
 }
 
-function answersEqual(left: FormAnswers, right: FormAnswers) {
-  const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
-  for (const key of keys) {
-    if (JSON.stringify(left[key]) !== JSON.stringify(right[key])) return false;
+function jsonEqual(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) return true;
+  if (left === null || right === null) return false;
+  if (typeof left !== typeof right) return false;
+  if (Array.isArray(left)) {
+    if (!Array.isArray(right) || left.length !== right.length) return false;
+    return left.every((item, index) => jsonEqual(item, right[index]));
   }
-  return true;
+  if (typeof left === "object" && typeof right === "object") {
+    const leftRecord = left as Record<string, unknown>;
+    const rightRecord = right as Record<string, unknown>;
+    const keys = Object.keys(leftRecord);
+    if (keys.length !== Object.keys(rightRecord).length) return false;
+    return keys.every(
+      (key) =>
+        Object.hasOwn(rightRecord, key) &&
+        jsonEqual(leftRecord[key], rightRecord[key]),
+    );
+  }
+  return false;
+}
+
+function answersEqual(left: FormAnswers, right: FormAnswers) {
+  return jsonEqual(left, right);
 }
 
 function answersPatch(from: FormAnswers, to: FormAnswers): FormAnswers {
   const patch: FormAnswers = {};
-  const keys = new Set(Object.keys(from)).union(new Set(Object.keys(to)));
+  const keys = new Set([...Object.keys(from), ...Object.keys(to)]);
   for (const key of keys) {
     const prev = from[key];
     const next = to[key];
@@ -298,7 +303,7 @@ export function createFormResponseSession<
     onReopened: options.onReopened,
     onAbandoned: options.onAbandoned,
   };
-  let registry = resolveRegistry(config.fieldTypes);
+  let registry = resolveFieldTypeRegistry(config.fieldTypes);
 
   const internal: InternalState = {
     responseId: options.response?.id,
@@ -420,7 +425,7 @@ export function createFormResponseSession<
       next.fieldTypes !== config.fieldTypes
     ) {
       config.fieldTypes = next.fieldTypes;
-      registry = resolveRegistry(next.fieldTypes);
+      registry = resolveFieldTypeRegistry(next.fieldTypes);
     } else if (
       next.client !== undefined &&
       next.fieldTypes === undefined &&
@@ -428,7 +433,7 @@ export function createFormResponseSession<
       next.client.fieldTypes !== config.fieldTypes
     ) {
       config.fieldTypes = next.client.fieldTypes;
-      registry = resolveRegistry(next.client.fieldTypes);
+      registry = resolveFieldTypeRegistry(next.client.fieldTypes);
     }
   }
 
@@ -526,7 +531,7 @@ export function createFormResponseSession<
     const epoch = ++issueEpoch;
     if (config.validate === "change" || submitAttempted) {
       applyCollectedIssues(
-        collect(config.validate === "change" ? "draft" : "submit"),
+        collect(submitAttempted ? "submit" : "draft"),
         epoch,
       );
     } else {

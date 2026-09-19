@@ -264,6 +264,15 @@ describe("collectAnswerIssues", () => {
     );
   });
 
+  it("drops blank and empty values from parseAnswers", async () => {
+    await expect(
+      parseAnswers(snapshot, { name: "Ada", age: "", skills: [] }, "draft"),
+    ).resolves.toEqual({ name: "Ada" });
+    await expect(
+      parseAnswers(snapshot, { name: "  ", ok: true }, "draft"),
+    ).resolves.toEqual({ ok: true });
+  });
+
   it("appends form-level validateAnswers issues", () => {
     expect(
       collectAnswerIssues(

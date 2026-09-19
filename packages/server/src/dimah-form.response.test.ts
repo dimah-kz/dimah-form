@@ -143,6 +143,17 @@ describe("start / draft / submit", () => {
     expect(cleared.answers).toEqual({ ok: true });
   });
 
+  it("drops blank draft values instead of storing them", async () => {
+    const form = createInstance();
+    const started = await form.api.startResponse({
+      body: { formId: "onboarding" },
+    });
+    const saved = await form.api.saveDraft({
+      body: { responseId: started.id, answers: { name: "  ", age: "" } },
+    });
+    expect(saved.answers).toEqual({});
+  });
+
   it("submits stored draft answers when the body omits answers", async () => {
     const form = createInstance();
     const started = await form.api.startResponse({

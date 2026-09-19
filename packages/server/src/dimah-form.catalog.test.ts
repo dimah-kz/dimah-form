@@ -563,6 +563,34 @@ describe("slug and list", () => {
     expect(listed.forms.some((item) => item.id === "broken")).toBe(false);
     expect(listed.forms.some((item) => item.id === "onboarding")).toBe(true);
   });
+
+  it("keeps listForms nextOffset on the store page when a row is invalid", async () => {
+    const database = memoryAdapter();
+    await database.saveForm({
+      id: "broken",
+      slug: "broken",
+      status: "active",
+      title: "Broken",
+      fields: [{ id: "x", type: "not-a-type" }],
+      updatedAt: "2026-01-02T00:00:00.000Z",
+    });
+    await database.saveForm({
+      id: "ok",
+      slug: "ok",
+      status: "active",
+      title: "Ok",
+      fields: [{ id: "n", type: "text" }],
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+    const form = dimahForm({ database });
+    const page = await form.api.listForms({ query: { limit: 1, offset: 0 } });
+    expect(page.forms).toEqual([]);
+    expect(page.nextOffset).toBe(1);
+    const rest = await form.api.listForms({
+      query: { limit: 1, offset: page.nextOffset ?? 0 },
+    });
+    expect(rest.forms.map((item) => item.id)).toEqual(["ok"]);
+  });
 });
 
 describe("delete form", () => {

@@ -2,6 +2,7 @@ import type { InferFumaDB } from "fumadb";
 import type { FormSnapshot, ResponseRecord } from "@dimah-form/core";
 import {
   StoreConflictError,
+  type ListResponsesStoreQuery,
   type ResponseStore,
   type StoreWriteOptions,
 } from "@dimah-form/server";
@@ -28,8 +29,89 @@ const RESPONSE_SUMMARY_COLUMNS = [
   "updatedAt",
 ] as const;
 
-function sameJson(left: unknown, right: unknown) {
-  return JSON.stringify(left) === JSON.stringify(right);
+function jsonEqual(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) return true;
+  if (left === null || right === null) return false;
+  if (typeof left !== typeof right) return false;
+  if (Array.isArray(left)) {
+    if (!Array.isArray(right) || left.length !== right.length) return false;
+    return left.every((item, index) => jsonEqual(item, right[index]));
+  }
+  if (typeof left === "object" && typeof right === "object") {
+    const leftRecord = left as Record<string, unknown>;
+    const rightRecord = right as Record<string, unknown>;
+    const keys = Object.keys(leftRecord);
+    if (keys.length !== Object.keys(rightRecord).length) return false;
+    return keys.every(
+      (key) =>
+        Object.hasOwn(rightRecord, key) &&
+        jsonEqual(leftRecord[key], rightRecord[key]),
+    );
+  }
+  return false;
+}
+
+/** SQLite integer seconds can round `updatedAt` / `submittedAt`. */
+function sameTimestamp(left: string, right: string) {
+  const a = Date.parse(left);
+  const b = Date.parse(right);
+  if (Number.isNaN(a) || Number.isNaN(b)) return left === right;
+  return Math.abs(a - b) < 1000;
+}
+
+function sameOptionalTimestamp(
+  left: string | null | undefined,
+  right: string | null | undefined,
+) {
+  if (left == null && right == null) return true;
+  if (left == null || right == null) return false;
+  return sameTimestamp(left, right);
+}
+
+function sameResponseWrite(mapped: ResponseRecord, row: ResponseRecord) {
+  return (
+    mapped.status === row.status &&
+    mapped.respondentId === row.respondentId &&
+    sameOptionalTimestamp(mapped.submittedAt, row.submittedAt) &&
+    sameTimestamp(mapped.updatedAt, row.updatedAt) &&
+    jsonEqual(mapped.answers, row.answers) &&
+    jsonEqual(mapped.definition, row.definition)
+  );
+}
+
+function sameFormWrite(mapped: FormSnapshot, form: FormSnapshot) {
+  return (
+    mapped.title === form.title &&
+    mapped.status === form.status &&
+    mapped.slug === form.slug &&
+    mapped.description === form.description &&
+    (form.updatedAt === undefined ||
+      sameOptionalTimestamp(mapped.updatedAt, form.updatedAt)) &&
+    jsonEqual(mapped.fields, form.fields) &&
+    jsonEqual(mapped.meta, form.meta)
+  );
+}
+
+function listResponseWhere<T>(
+  query: ListResponsesStoreQuery,
+  b: {
+    (
+      col: "questionnaireId" | "respondentId" | "status",
+      op: "=",
+      value: string,
+    ): T;
+    and: (...parts: T[]) => T;
+  },
+): T {
+  const parts: T[] = [];
+  if (query.formId) parts.push(b("questionnaireId", "=", query.formId));
+  if (query.respondentId) {
+    parts.push(b("respondentId", "=", query.respondentId));
+  }
+  if (query.status) parts.push(b("status", "=", query.status));
+  const first = parts[0];
+  if (first !== undefined && parts.length === 1) return first;
+  return b.and(...parts);
 }
 
 /** Persist questionnaires and responses. Start never overwrites a live form. */
@@ -53,11 +135,7 @@ export function createDbResponseStore(db: DimahFormDbClient): ResponseStore {
         where: (b) => b("id", "=", row.id),
       });
       if (!fresh) throw new StoreConflictError();
-      const mapped = toResponseRecord(fresh);
-      if (
-        mapped.status !== row.status ||
-        !sameJson(mapped.answers, row.answers)
-      ) {
+      if (!sameResponseWrite(toResponseRecord(fresh), row)) {
         throw new StoreConflictError();
       }
       return;
@@ -105,13 +183,7 @@ export function createDbResponseStore(db: DimahFormDbClient): ResponseStore {
         where: (b) => b("id", "=", form.id),
       });
       if (!fresh) throw new StoreConflictError();
-      const mapped = toFormSnapshot(fresh);
-      if (
-        mapped.title !== form.title ||
-        mapped.status !== form.status ||
-        mapped.slug !== form.slug ||
-        !sameJson(mapped.fields, form.fields)
-      ) {
+      if (!sameFormWrite(toFormSnapshot(fresh), form)) {
         throw new StoreConflictError();
       }
       return;
@@ -185,22 +257,15 @@ export function createDbResponseStore(db: DimahFormDbClient): ResponseStore {
     },
     async listResponses(query) {
       const include = query?.include === "summary" ? "summary" : "full";
+      const hasFilters = Boolean(
+        query?.formId || query?.status || query?.respondentId,
+      );
       if (include === "summary") {
         const rows = await orm.findMany("response", {
           select: [...RESPONSE_SUMMARY_COLUMNS],
           where:
-            query?.formId || query?.status || query?.respondentId
-              ? (b) => {
-                  const parts = [];
-                  if (query.formId)
-                    parts.push(b("questionnaireId", "=", query.formId));
-                  if (query.respondentId)
-                    parts.push(b("respondentId", "=", query.respondentId));
-                  if (query.status) parts.push(b("status", "=", query.status));
-                  const first = parts[0];
-                  if (first !== undefined && parts.length === 1) return first;
-                  return b.and(...parts);
-                }
+            hasFilters && query
+              ? (b) => listResponseWhere(query, b)
               : undefined,
           orderBy: ["updatedAt", "desc"],
           limit: query?.limit,
@@ -210,19 +275,7 @@ export function createDbResponseStore(db: DimahFormDbClient): ResponseStore {
       }
       const rows = await orm.findMany("response", {
         where:
-          query?.formId || query?.status || query?.respondentId
-            ? (b) => {
-                const parts = [];
-                if (query.formId)
-                  parts.push(b("questionnaireId", "=", query.formId));
-                if (query.respondentId)
-                  parts.push(b("respondentId", "=", query.respondentId));
-                if (query.status) parts.push(b("status", "=", query.status));
-                const first = parts[0];
-                if (first !== undefined && parts.length === 1) return first;
-                return b.and(...parts);
-              }
-            : undefined,
+          hasFilters && query ? (b) => listResponseWhere(query, b) : undefined,
         orderBy: ["updatedAt", "desc"],
         limit: query?.limit,
         offset: query?.offset,

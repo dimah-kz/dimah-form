@@ -259,3 +259,24 @@ export function createFieldTypeRegistry(
 
   return registry;
 }
+
+export type FieldTypeRegistryInput =
+  | ReadonlyMap<string, FieldTypeDefinition>
+  | readonly FieldTypeDefinition[]
+  | undefined;
+
+/** Prepared Map, extra-type array, or built-ins only. */
+export function resolveFieldTypeRegistry(
+  fieldTypes: FieldTypeRegistryInput,
+): ReadonlyMap<string, FieldTypeDefinition> {
+  if (
+    fieldTypes &&
+    !Array.isArray(fieldTypes) &&
+    typeof (fieldTypes as Map<string, FieldTypeDefinition>).get === "function"
+  ) {
+    return fieldTypes as ReadonlyMap<string, FieldTypeDefinition>;
+  }
+  return createFieldTypeRegistry(
+    fieldTypes as readonly FieldTypeDefinition[] | undefined,
+  );
+}

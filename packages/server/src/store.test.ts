@@ -215,4 +215,37 @@ describe("memoryAdapter", () => {
     expect(other.created).toBe(true);
     expect(other.row.id).toBe("r3");
   });
+
+  it("findLatestDraft and getOrCreateDraft pick the newest updated draft", async () => {
+    const store = memoryAdapter();
+    await store.create({
+      ...row,
+      id: "older",
+      respondentId: "user-1",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+    await store.create({
+      ...row,
+      id: "newer",
+      respondentId: "user-1",
+      createdAt: "2026-01-01T00:00:01.000Z",
+      updatedAt: "2026-01-02T00:00:00.000Z",
+    });
+    expect(
+      (
+        await store.findLatestDraft({
+          formId: "onboarding",
+          respondentId: "user-1",
+        })
+      )?.id,
+    ).toBe("newer");
+    const again = await store.getOrCreateDraft({
+      ...row,
+      id: "third",
+      respondentId: "user-1",
+    });
+    expect(again.created).toBe(false);
+    expect(again.row.id).toBe("newer");
+  });
 });

@@ -381,6 +381,20 @@ describe("createFormResponseSession", () => {
     );
   });
 
+  it("keeps REQUIRED after a failed submit when validate is change", async () => {
+    const session = createFormResponseSession({
+      client: mockClient(),
+      snapshot,
+      validate: "change",
+    });
+    await session.submit();
+    expect(session.getState().issues.name).toBe("Required");
+    session.setAnswer("role", "pm");
+    expect(session.getState().issues.name).toBe("Required");
+    session.setAnswer("name", "Ada");
+    expect(session.getState().issues.name).toBeUndefined();
+  });
+
   it("uses client.fieldTypes when the session omits a registry", async () => {
     const rating = defineFieldType({
       type: "rating",

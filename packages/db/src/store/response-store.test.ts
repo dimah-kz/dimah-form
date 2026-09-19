@@ -302,6 +302,25 @@ describe("createDbResponseStore", () => {
     expect(upsert).not.toHaveBeenCalled();
   });
 
+  it("CAS save conflicts when the token is stale even if answers match", async () => {
+    const { store } = createOrm({
+      response: row({
+        answers: {},
+        updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+      }),
+    });
+    await expect(
+      store.save(
+        {
+          ...record,
+          answers: {},
+          updatedAt: "2026-01-03T00:00:00.000Z",
+        },
+        { expectedUpdatedAt: "2026-01-01T00:00:00.000Z" },
+      ),
+    ).rejects.toMatchObject({ name: "StoreConflictError" });
+  });
+
   it("lists response summaries without mapping definition", async () => {
     const { store } = createOrm();
     await expect(store.listResponses({ include: "summary" })).resolves.toEqual([

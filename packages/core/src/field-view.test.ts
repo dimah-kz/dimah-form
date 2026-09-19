@@ -165,6 +165,7 @@ describe("formatAnswer", () => {
     ).toBe("Engineer");
     expect(formatAnswer({ id: "ok", type: "boolean" }, true)).toBe("Yes");
     expect(formatAnswer({ id: "ok", type: "boolean" }, false)).toBe("No");
+    expect(formatAnswer({ id: "ok", type: "boolean" }, "x")).toBe("");
     expect(formatAnswer({ id: "name", type: "text" }, null)).toBe("");
   });
 });

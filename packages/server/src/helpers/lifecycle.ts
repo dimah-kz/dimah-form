@@ -48,8 +48,15 @@ export async function writeResponse(
   return persistedResponse((id) => store.get(id), row);
 }
 
+export async function persistedForm(
+  get: (id: string) => MaybePromise<FormSnapshot | undefined>,
+  form: FormSnapshot,
+): Promise<FormSnapshot> {
+  return (await get(form.id)) ?? form;
+}
+
 export async function writeForm(
-  store: Pick<ResponseStore, "saveForm">,
+  store: Pick<ResponseStore, "saveForm" | "getForm">,
   form: FormSnapshot,
   options?: StoreWriteOptions,
 ): Promise<FormSnapshot> {
@@ -59,5 +66,5 @@ export async function writeForm(
     if (isStoreConflictError(error)) throw errors.staleUpdate();
     throw error;
   }
-  return form;
+  return persistedForm((id) => store.getForm(id), form);
 }
