@@ -10,7 +10,7 @@ export type FormSaveStateProps<TAnswers extends FormAnswers = FormAnswers> = {
   className?: string;
 };
 
-/** Draft persistence hint. Hidden when the session is clean. */
+/** Draft persistence hint. `Saved` when autosave is on and the draft is clean. */
 export function FormSaveState<TAnswers extends FormAnswers = FormAnswers>({
   form,
   className,
@@ -18,19 +18,23 @@ export function FormSaveState<TAnswers extends FormAnswers = FormAnswers>({
   const session = useFormSession(form);
   const t = useTranslations();
 
+  let message: string | null = null;
   if (session.pending === "save") {
-    return (
-      <p className={cn("text-sm text-dimah-form-muted-foreground", className)}>
-        {t("Saving…", { note: "form action" })}
-      </p>
-    );
+    message = t("Saving…", { note: "form action" });
+  } else if (session.dirty) {
+    message = t("Unsaved changes", { note: "save state" });
+  } else if (session.autosave && session.responseId) {
+    message = t("Saved", { note: "save state" });
   }
 
-  if (!session.dirty) return null;
+  if (!message) return null;
 
   return (
-    <p className={cn("text-sm text-dimah-form-muted-foreground", className)}>
-      {t("Unsaved changes", { note: "save state" })}
+    <p
+      className={cn("text-sm text-dimah-form-muted-foreground", className)}
+      aria-live="polite"
+    >
+      {message}
     </p>
   );
 }

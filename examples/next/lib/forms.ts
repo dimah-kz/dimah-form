@@ -35,7 +35,11 @@ export const forms = {
         defaultValue: "eng",
         meta: { widget: "radio" },
         options: [
-          { value: "eng", label: "Engineer" },
+          {
+            value: "eng",
+            label: "Engineer",
+            meta: { description: "Builds the product" },
+          },
           { value: "pm", label: "Product" },
           { value: "design", label: "Design" },
         ],
@@ -63,6 +67,7 @@ export const forms = {
         min: 0,
         max: 40,
         integer: true,
+        meta: { suffix: "h" },
       },
       {
         id: "highlights",
@@ -86,7 +91,7 @@ export const forms = {
         type: "boolean",
         required: true,
         label: "This is my own feedback",
-        meta: { widget: "switch" },
+        meta: { widget: "switch", unsetOnOff: true },
       },
       {
         id: "note",

@@ -34,8 +34,16 @@ export function fieldStepKey(field: FormField): string {
   return fieldMetaString(field, "step") ?? "1";
 }
 
+export function fieldStepTitle(field: FormField): string | undefined {
+  return fieldMetaString(field, "stepTitle");
+}
+
 export function shouldGroupBySection(fields: readonly FormField[]): boolean {
   return fields.some((field) => fieldSectionTitle(field) !== undefined);
+}
+
+export function shouldGroupByStep(fields: readonly FormField[]): boolean {
+  return groupFieldsByStep(fields).length > 1;
 }
 
 function pushGroup(
@@ -51,7 +59,9 @@ function pushGroup(
     groups.push({ key, title, fields: [field] });
     return;
   }
-  groups[existing]?.fields.push(field);
+  const group = groups[existing];
+  group?.fields.push(field);
+  if (group && title && !group.title) group.title = title;
 }
 
 /** Preserve first-seen section order. Fields without `meta.section` stay untitled. */
@@ -87,7 +97,7 @@ export function groupFieldsByStep(
   const indexByKey = new Map<string, number>();
   for (const field of fields) {
     const key = fieldStepKey(field);
-    pushGroup(groups, indexByKey, key, key, field);
+    pushGroup(groups, indexByKey, key, fieldStepTitle(field), field);
   }
   return groups.sort((left, right) => compareStepKeys(left.key, right.key));
 }

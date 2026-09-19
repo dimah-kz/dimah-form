@@ -122,6 +122,24 @@ export function formErrorMessage(
   return fallback;
 }
 
+/** Stable `APIError.code` when present. */
+export function formErrorCode(error: unknown): string | undefined {
+  if (isAPIError(error) && typeof error.code === "string" && error.code) {
+    return error.code;
+  }
+  return undefined;
+}
+
+/** `APIError.params` when present. */
+export function formErrorParams(
+  error: unknown,
+): Record<string, string | number> | undefined {
+  if (!isAPIError(error)) return undefined;
+  const params = error.params;
+  if (!params || typeof params !== "object") return undefined;
+  return params;
+}
+
 /**
  * Coerce an empty input to `null` so a draft patch deletes the key.
  * `""` and `[]` become `null`; other values pass through.

@@ -14,7 +14,13 @@ import {
   FieldSet,
 } from "@/components/ui/field";
 import { useFieldIssue } from "@/hooks/use-field-issue";
-import { fieldDescriptionId, fieldErrorId } from "@/lib/field-attr";
+import {
+  fieldDescriptionId,
+  fieldErrorId,
+  fieldHelpId,
+  fieldWidget,
+} from "@/lib/field-attr";
+import { readFieldUiMeta } from "@/lib/field-ui-meta";
 
 /** Default required-field mark. Swap via `FormUiProvider` `components.RequiredMark`. */
 export function RequiredMark() {
@@ -74,7 +80,7 @@ export function FormFieldFrame<TValue = unknown>({
   children,
   className,
   layout = "stack",
-  orientation = "vertical",
+  orientation,
   label,
   description,
   error,
@@ -85,6 +91,8 @@ export function FormFieldFrame<TValue = unknown>({
   const field = binding.field;
   if (!field) return null;
 
+  const ui = readFieldUiMeta(field);
+  const resolvedOrientation = orientation ?? ui.orientation ?? "vertical";
   const invalid = binding.invalid || Boolean(issue);
   const labelId = `${field.id}-label`;
   const labelContent = label === false ? null : (label ?? fieldLabel(field));
@@ -96,6 +104,14 @@ export function FormFieldFrame<TValue = unknown>({
   const errorContent = error === false ? null : (error ?? issue ?? null);
   const Mark = RequiredMarkSlot ?? RequiredMark;
   const requiredMark = requiredIndicator && binding.required ? <Mark /> : null;
+  const helpNode = ui.help ? (
+    <p
+      id={fieldHelpId(field.id)}
+      className="text-sm text-dimah-form-muted-foreground"
+    >
+      {ui.help}
+    </p>
+  ) : null;
   const descriptionNode = descriptionContent ? (
     <FieldDescription id={fieldDescriptionId(field.id)}>
       {descriptionContent}
@@ -108,6 +124,9 @@ export function FormFieldFrame<TValue = unknown>({
     className: cn(className),
     "data-invalid": invalid || undefined,
     "data-disabled": binding.disabled || undefined,
+    "data-required": binding.required || undefined,
+    "data-field-type": field.type,
+    "data-widget": fieldWidget(field),
   };
 
   if (layout === "group") {
@@ -119,6 +138,7 @@ export function FormFieldFrame<TValue = unknown>({
             {requiredMark}
           </FieldLegend>
         ) : null}
+        {helpNode}
         {children}
         {descriptionNode}
         {errorNode}
@@ -137,6 +157,7 @@ export function FormFieldFrame<TValue = unknown>({
               {requiredMark}
             </FieldLabel>
           ) : null}
+          {helpNode}
           {descriptionNode}
           {errorNode}
         </FieldContent>
@@ -145,13 +166,14 @@ export function FormFieldFrame<TValue = unknown>({
   }
 
   return (
-    <Field {...invalidProps} orientation={orientation}>
+    <Field {...invalidProps} orientation={resolvedOrientation}>
       {labelContent ? (
         <FieldLabel id={labelId} htmlFor={field.id}>
           {labelContent}
           {requiredMark}
         </FieldLabel>
       ) : null}
+      {helpNode}
       {children}
       {descriptionNode}
       {errorNode}

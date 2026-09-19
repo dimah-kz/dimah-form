@@ -14,7 +14,9 @@ import { resolveFieldTypeRegistry } from "./field-types";
 import {
   fieldIssueMap,
   formCompletion,
+  formErrorCode,
   formErrorMessage,
+  formErrorParams,
   visibleFields,
   type FormCompletion,
 } from "./field-view";
@@ -45,6 +47,11 @@ export type FormResponsePending =
   "save" | "submit" | "reopen" | "abandon" | "refresh";
 
 export type FormResponseValidateMode = "submit" | "change";
+
+/** Restrict {@link FormResponseActions.validate} to a subset of fields. */
+export type FormValidateOptions = {
+  fields?: readonly string[];
+};
 
 export type FormResponseAutosave = boolean | { debounceMs?: number };
 
@@ -116,9 +123,13 @@ export type FormResponseSessionState<
   issueCodes: Record<string, string>;
   issueParams: Record<string, Record<string, string | number>>;
   error: string | undefined;
+  errorCode: string | undefined;
+  errorParams: Record<string, string | number> | undefined;
   pending: FormResponsePending | undefined;
   locked: boolean;
   dirty: boolean;
+  /** Debounced `saveDraft` is enabled on this session. */
+  autosave: boolean;
   /** No existing row and the live form is not `active`. */
   inactive: boolean;
   visibleFields: FormField[];
@@ -153,7 +164,10 @@ export type FormResponseActions<TAnswers extends FormAnswers = FormAnswers> = {
   field: <K extends string>(
     fieldId: K,
   ) => FormFieldBinding<AnswerValue<TAnswers, K>>;
-  validate: (mode?: AnswerValidationMode) => Promise<ValidationIssue[]>;
+  validate: (
+    mode?: AnswerValidationMode,
+    options?: FormValidateOptions,
+  ) => Promise<ValidationIssue[]>;
   saveDraft: () => Promise<ResponseRecord | undefined>;
   submit: () => Promise<ResponseRecord | undefined>;
   reopen: () => Promise<ResponseRecord | undefined>;
@@ -192,6 +206,8 @@ type InternalState = {
   issueCodes: Record<string, string>;
   issueParams: Record<string, Record<string, string | number>>;
   error: string | undefined;
+  errorCode: string | undefined;
+  errorParams: Record<string, string | number> | undefined;
   pending: FormResponsePending | undefined;
   dirty: boolean;
 };
@@ -314,6 +330,8 @@ export function createFormResponseSession<
     issueCodes: {},
     issueParams: {},
     error: undefined,
+    errorCode: undefined,
+    errorParams: undefined,
     pending: undefined,
     dirty: false,
   };
@@ -332,6 +350,18 @@ export function createFormResponseSession<
     for (const listener of listeners) listener();
   }
 
+  function clearError() {
+    internal.error = undefined;
+    internal.errorCode = undefined;
+    internal.errorParams = undefined;
+  }
+
+  function assignError(caught: unknown, fallback: string) {
+    internal.error = formErrorMessage(caught, fallback);
+    internal.errorCode = formErrorCode(caught);
+    internal.errorParams = formErrorParams(caught);
+  }
+
   function getState(): FormResponseSessionState<TAnswers> {
     if (!cached) {
       cached = {
@@ -344,9 +374,12 @@ export function createFormResponseSession<
         issueCodes: internal.issueCodes,
         issueParams: internal.issueParams,
         error: internal.error,
+        errorCode: internal.errorCode,
+        errorParams: internal.errorParams,
         pending: internal.pending,
         locked: isLocked(internal.status),
         dirty: internal.dirty,
+        autosave: autosaveMs(config.autosave) !== undefined,
         inactive:
           internal.responseId === undefined && snapshot.status !== "active",
         visibleFields: visibleFields(snapshot, internal.answers),
@@ -446,7 +479,7 @@ export function createFormResponseSession<
     internal.issues = {};
     internal.issueCodes = {};
     internal.issueParams = {};
-    internal.error = undefined;
+    clearError();
     internal.dirty = false;
     lastSaved = { ...internal.answers };
   }
@@ -527,7 +560,7 @@ export function createFormResponseSession<
     );
     internal.answers = answers;
     internal.dirty = true;
-    internal.error = undefined;
+    clearError();
     const epoch = ++issueEpoch;
     if (config.validate === "change" || submitAttempted) {
       applyCollectedIssues(
@@ -590,11 +623,16 @@ export function createFormResponseSession<
 
   async function validate(
     mode: AnswerValidationMode = "submit",
+    options?: FormValidateOptions,
   ): Promise<ValidationIssue[]> {
     const epoch = ++issueEpoch;
-    const issues = await awaitMaybe(collect(mode));
+    let issues = await awaitMaybe(collect(mode));
+    if (options?.fields) {
+      const allow = new Set(options.fields);
+      issues = issues.filter((issue) => allow.has(issue.field));
+    }
     if (epoch !== issueEpoch) return issues;
-    if (mode === "submit") submitAttempted = true;
+    if (mode === "submit" && !options?.fields) submitAttempted = true;
     writeIssues(issues);
     emit();
     return issues;
@@ -607,7 +645,7 @@ export function createFormResponseSession<
           responseId: internal.responseId,
         });
         applyRecord(row);
-        internal.error = formErrorMessage(caught, fallback);
+        assignError(caught, fallback);
         return;
       } catch {
         // Fall through to the original error.
@@ -616,10 +654,10 @@ export function createFormResponseSession<
     const mapped = fieldIssueMap(caught);
     if (Object.keys(mapped).length > 0) {
       writeIssues(Object.values(mapped));
-      internal.error = undefined;
+      clearError();
       return;
     }
-    internal.error = formErrorMessage(caught, fallback);
+    assignError(caught, fallback);
   }
 
   async function ensureResponse() {
@@ -657,7 +695,7 @@ export function createFormResponseSession<
   ): Promise<ResponseRecord | undefined> {
     if (internal.pending) return undefined;
     internal.pending = kind;
-    internal.error = undefined;
+    clearError();
     emit();
     try {
       return await fn();

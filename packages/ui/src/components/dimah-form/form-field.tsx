@@ -2,7 +2,10 @@
 
 import { createElement, type ReactNode } from "react";
 import type { FormFieldBinding } from "@dimah-form/react";
-import { useFieldWidgets } from "@/components/dimah-form/form-context";
+import {
+  useFieldWidgets,
+  useFormFillMode,
+} from "@/components/dimah-form/form-context";
 import { UnknownField } from "@/components/dimah-form/widgets/unknown-field";
 import {
   resolveFieldWidget,
@@ -30,12 +33,13 @@ export function FormField<TValue = unknown>({
   className,
 }: FormFieldProps<TValue>) {
   const widgets = useFieldWidgets(widgetsOverride);
+  const mode = useFormFillMode();
   const field = binding.field;
   if (!binding.visible || !field) return null;
   if (children) return children;
 
   return createElement(
     resolveFieldWidget(field.type, widgets) ?? UnknownField,
-    { binding, className },
+    { binding, className, mode },
   );
 }

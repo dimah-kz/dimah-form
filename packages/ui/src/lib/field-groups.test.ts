@@ -84,4 +84,17 @@ describe("groupFieldsByStep", () => {
     ]);
     expect(groups.map((group) => group.key)).toEqual(["1", "review"]);
   });
+
+  it("uses meta.stepTitle as the group title", () => {
+    const groups = groupFieldsByStep([
+      field({
+        id: "name",
+        type: "text",
+        meta: { step: 1, stepTitle: "About you" },
+      }),
+      field({ id: "role", type: "select", meta: { step: 1 } }),
+    ]);
+    expect(groups[0]?.title).toBe("About you");
+    expect(groups[0]?.key).toBe("1");
+  });
 });

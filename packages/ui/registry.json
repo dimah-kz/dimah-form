@@ -83,6 +83,16 @@
           "target": "@components/dimah-form/form-field-frame.tsx"
         },
         {
+          "path": "src/components/dimah-form/field-control-affix.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/field-control-affix.tsx"
+        },
+        {
+          "path": "src/components/dimah-form/choice-option.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/choice-option.tsx"
+        },
+        {
           "path": "src/components/dimah-form/form-fields.tsx",
           "type": "registry:component",
           "target": "@components/dimah-form/form-fields.tsx"
@@ -101,6 +111,11 @@
           "path": "src/components/dimah-form/form-error.tsx",
           "type": "registry:component",
           "target": "@components/dimah-form/form-error.tsx"
+        },
+        {
+          "path": "src/components/dimah-form/form-error-summary.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/form-error-summary.tsx"
         },
         {
           "path": "src/components/dimah-form/form-actions.tsx",
@@ -193,6 +208,11 @@
           "target": "@hooks/use-field-issue.ts"
         },
         {
+          "path": "src/hooks/use-session-error.ts",
+          "type": "registry:hook",
+          "target": "@hooks/use-session-error.ts"
+        },
+        {
           "path": "src/lib/widget-registry.ts",
           "type": "registry:lib",
           "target": "@lib/widget-registry.ts"
@@ -206,6 +226,11 @@
           "path": "src/lib/field-attr.ts",
           "type": "registry:lib",
           "target": "@lib/field-attr.ts"
+        },
+        {
+          "path": "src/lib/field-ui-meta.ts",
+          "type": "registry:lib",
+          "target": "@lib/field-ui-meta.ts"
         },
         {
           "path": "src/lib/field-groups.ts",

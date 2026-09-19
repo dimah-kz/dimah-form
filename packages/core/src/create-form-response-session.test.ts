@@ -229,6 +229,7 @@ describe("createFormResponseSession", () => {
     expect(client.getResponse).toHaveBeenCalledWith({ responseId: "res-1" });
     expect(session.getState().answers).toEqual({ role: "pm", name: "Lin" });
     expect(session.getState().error).toBe("The record was updated");
+    expect(session.getState().errorCode).toBe("STALE_UPDATE");
     expect(session.getState().dirty).toBe(false);
   });
 
@@ -263,6 +264,7 @@ describe("createFormResponseSession", () => {
     await session.saveDraft();
     expect(client.startResponse).not.toHaveBeenCalled();
     expect(session.getState().error).toBe("Form is not active");
+    expect(session.getState().errorCode).toBe("FORM_INACTIVE");
   });
 
   it("sends null for a field that became hidden since last save", async () => {
@@ -411,6 +413,31 @@ describe("createFormResponseSession", () => {
     session.setAnswer("score", 3);
     await session.validate("draft");
     expect(session.getState().issues).toEqual({ score: "Expected 5" });
+  });
+
+  it("restricts validate() to selected fields", async () => {
+    const session = createFormResponseSession({
+      client: mockClient(),
+      snapshot,
+    });
+    const issues = await session.validate("submit", { fields: ["name"] });
+    expect(issues.map((issue) => issue.field)).toEqual(["name"]);
+    expect(session.getState().issues).toEqual({ name: "Required" });
+    expect(session.getState().issues.role).toBeUndefined();
+  });
+
+  it("exposes whether autosave is enabled", () => {
+    const off = createFormResponseSession({
+      client: mockClient(),
+      snapshot,
+    });
+    expect(off.getState().autosave).toBe(false);
+    const on = createFormResponseSession({
+      client: mockClient(),
+      snapshot,
+      autosave: true,
+    });
+    expect(on.getState().autosave).toBe(true);
   });
 
   it("abandons a draft row", async () => {

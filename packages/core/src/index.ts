@@ -28,7 +28,9 @@ export {
   fieldLabel,
   fieldOptions,
   formCompletion,
+  formErrorCode,
   formErrorMessage,
+  formErrorParams,
   formatAnswer,
   issuesByField,
   visibleFields,
@@ -50,6 +52,7 @@ export {
   type FormResponseSessionHooks,
   type FormResponseSessionState,
   type FormResponseValidateMode,
+  type FormValidateOptions,
 } from "./create-form-response-session";
 export {
   createFormClient,

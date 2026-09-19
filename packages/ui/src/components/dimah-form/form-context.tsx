@@ -18,6 +18,7 @@ import {
 const FieldWidgetsContext =
   createContext<FieldWidgetRegistry>(defaultFieldWidgets);
 const FormSessionContext = createContext<FormResponseApi | null>(null);
+const FormFillModeContext = createContext<"edit" | "review">("edit");
 
 function useStableWidgets(widgets?: FieldWidgetRegistry) {
   const [stable, setStable] = useState(widgets);
@@ -58,6 +59,24 @@ export function useFormSession<TAnswers extends FormAnswers = FormAnswers>(
     );
   }
   return resolved;
+}
+
+export function useFormFillMode(): "edit" | "review" {
+  return useContext(FormFillModeContext);
+}
+
+export function FormFillModeProvider({
+  mode = "edit",
+  children,
+}: {
+  mode?: "edit" | "review";
+  children: ReactNode;
+}) {
+  return (
+    <FormFillModeContext.Provider value={mode}>
+      {children}
+    </FormFillModeContext.Provider>
+  );
 }
 
 export function FieldWidgetsProvider({

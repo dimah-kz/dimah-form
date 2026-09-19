@@ -4,7 +4,9 @@ export {
 } from "@/components/dimah-form/form-provider";
 export {
   FormScope,
+  FormFillModeProvider,
   useFieldWidgets,
+  useFormFillMode,
   useFormSession,
   type FormScopeProps,
 } from "@/components/dimah-form/form-context";
@@ -47,6 +49,10 @@ export {
   type FormErrorProps,
 } from "@/components/dimah-form/form-error";
 export {
+  FormErrorSummary,
+  type FormErrorSummaryProps,
+} from "@/components/dimah-form/form-error-summary";
+export {
   FormActions,
   type FormActionsProps,
 } from "@/components/dimah-form/form-actions";
@@ -73,9 +79,12 @@ export {
 export {
   FormSteps,
   FormStepFields,
+  FormStepHeading,
   FormStepNav,
   useFormSteps,
+  useFormStepsOptional,
   type FormStep,
+  type FormStepHeadingProps,
   type FormStepNavProps,
   type FormStepsApi,
   type FormStepsProps,
@@ -103,6 +112,7 @@ export {
   fieldControlProps,
   fieldDescriptionId,
   fieldErrorId,
+  fieldHelpId,
   fieldFlag,
   fieldMetaFlag,
   fieldMetaNumber,
@@ -114,12 +124,30 @@ export {
 export {
   fieldSectionTitle,
   fieldStepKey,
+  fieldStepTitle,
   groupFieldsBySection,
   groupFieldsByStep,
   selectVisibleFields,
   shouldGroupBySection,
+  shouldGroupByStep,
   type FieldGroupBucket,
 } from "@/lib/field-groups";
+export {
+  booleanOffValue,
+  FIELD_UI_WIDGETS,
+  fieldsUseHalfWidth,
+  fieldWidthClass,
+  readFieldUiMeta,
+  readFormUiMeta,
+  readOptionUiMeta,
+  type FieldUiMeta,
+  type FieldUiOrientation,
+  type FieldUiWidget,
+  type FieldUiWidth,
+  type FormUiMeta,
+  type FormViewLayout,
+  type OptionUiMeta,
+} from "@/lib/field-ui-meta";
 export {
   focusInvalidField,
   scheduleFocusInvalidField,
@@ -127,4 +155,5 @@ export {
 export { renderFormSlot, type FormSlot } from "@/lib/form-slot";
 export { useFormUi } from "@/hooks/use-form-ui";
 export { useFieldIssue } from "@/hooks/use-field-issue";
+export { useSessionError } from "@/hooks/use-session-error";
 export type { Translations } from "@/lib/dimah-form-translations";

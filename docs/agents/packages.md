@@ -64,6 +64,6 @@ Optional UI: `t()` / `useTranslations()` from `@fuma-translate/react` (do not re
 
 ## UI
 
-Optional. Wrap `form` (`FormResponseApi`) and `binding` (`FormFieldBinding`). Widgets take `{ binding, className }` and put chrome on `FormFieldFrame`. Do not call `useFormResponse` inside widgets. Built-in type widgets register on `defaultFieldWidgets`; custom types use the `widgets` prop (same `type` string as `defineFieldType`). `FormUiProvider` `components.RequiredMark` replaces the required-field asterisk. Built-in widgets read `meta.placeholder` / `meta.widget`; `FormSteps` and `FormFields` grouping use `meta.step` / `meta.section`.
+Optional. Wrap `form` (`FormResponseApi`) and `binding` (`FormFieldBinding`). Widgets take `{ binding, className, mode? }` and put chrome on `FormFieldFrame`. Do not call `useFormResponse` inside widgets. Built-in type widgets register on `defaultFieldWidgets`; custom types use the `widgets` prop (same `type` string as `defineFieldType`). `FormUiProvider` `components.RequiredMark` replaces the required-field asterisk. Built-in widgets read `FieldUiMeta` on `field.meta` (`placeholder`, `widget`, `step`, `section`, `width`, `help`, …). `FormView layout` is `auto` (steps when `meta.step` groups; review when locked). `FormSteps` must wrap `FormRoot` so Enter advances. `session.errorCode` / `session.autosave` feed `FormError` and `FormActions save="auto"`. `validate(mode, { fields })` checks one wizard step.
 
 See [registry.md](./registry.md) for shadcn items, RTL, and color tokens.

@@ -19,6 +19,7 @@ import {
   selectVisibleFields,
   shouldGroupBySection,
 } from "@/lib/field-groups";
+import { fieldsUseHalfWidth, fieldWidthClass } from "@/lib/field-ui-meta";
 import type { FieldWidgetRegistry } from "@/lib/widget-registry";
 
 export type FormFieldsProps<TAnswers extends FormAnswers = FormAnswers> = {
@@ -74,13 +75,33 @@ export function FormFields<TAnswers extends FormAnswers = FormAnswers>({
   const fields = (
     <FieldGroup className={cn(className)}>
       {grouped.map((group) => {
-        const items = group.fields.map((field) => {
-          const binding = session.field(field.id);
-          if (renderField) {
-            return <Fragment key={field.id}>{renderField(binding)}</Fragment>;
-          }
-          return <FormField key={field.id} binding={binding} />;
-        });
+        const half = fieldsUseHalfWidth(group.fields);
+        const items = (
+          <div
+            className={
+              half
+                ? "gap-5 grid grid-cols-1 @min-[32rem]/field-group:grid-cols-2"
+                : "contents"
+            }
+          >
+            {group.fields.map((field) => {
+              const binding = session.field(field.id);
+              const item = renderField ? (
+                renderField(binding)
+              ) : (
+                <FormField binding={binding} />
+              );
+              return (
+                <div
+                  key={field.id}
+                  className={cn("min-w-0", fieldWidthClass(field, half))}
+                >
+                  {item}
+                </div>
+              );
+            })}
+          </div>
+        );
         if (!group.title) {
           return <Fragment key={group.key}>{items}</Fragment>;
         }

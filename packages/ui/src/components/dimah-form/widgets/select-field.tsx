@@ -10,10 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Field, FieldLabel } from "@/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ChoiceOption } from "@/components/dimah-form/choice-option";
 import { FormFieldFrame } from "@/components/dimah-form/form-field-frame";
 import { fieldControlProps, fieldWidget } from "@/lib/field-attr";
+import { readOptionUiMeta } from "@/lib/field-ui-meta";
 import type { FieldWidgetProps } from "@/lib/widget-registry";
 
 function RadioSelectField({ binding, className }: FieldWidgetProps) {
@@ -40,20 +41,20 @@ function RadioSelectField({ binding, className }: FieldWidgetProps) {
         {options.map((option) => {
           const id = `${field.id}-${option.value}`;
           return (
-            <Field
+            <ChoiceOption
               key={option.value}
-              orientation="horizontal"
-              data-disabled={binding.disabled || undefined}
-            >
-              <RadioGroupItem
-                id={id}
-                value={option.value}
-                disabled={binding.disabled}
-              />
-              <FieldLabel htmlFor={id} className="font-normal">
-                {option.label}
-              </FieldLabel>
-            </Field>
+              id={id}
+              label={option.label}
+              description={readOptionUiMeta(option).description}
+              disabled={binding.disabled}
+              control={
+                <RadioGroupItem
+                  id={id}
+                  value={option.value}
+                  disabled={binding.disabled}
+                />
+              }
+            />
           );
         })}
       </RadioGroup>

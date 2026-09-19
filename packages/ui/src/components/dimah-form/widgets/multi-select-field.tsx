@@ -2,10 +2,12 @@
 
 import { fieldOptions } from "@dimah-form/react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { FieldGroup } from "@/components/ui/field";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { ChoiceOption } from "@/components/dimah-form/choice-option";
 import { FormFieldFrame } from "@/components/dimah-form/form-field-frame";
 import { fieldControlProps, fieldWidget } from "@/lib/field-attr";
+import { readOptionUiMeta } from "@/lib/field-ui-meta";
 import type { FieldWidgetProps } from "@/lib/widget-registry";
 
 function selectedValues(value: unknown): string[] {
@@ -42,6 +44,7 @@ function ChipSelectField({ binding, className }: FieldWidgetProps) {
             key={option.value}
             value={option.value}
             disabled={binding.disabled}
+            title={readOptionUiMeta(option).description}
           >
             {option.label}
           </ToggleGroupItem>
@@ -67,27 +70,27 @@ export function MultiSelectField({ binding, className }: FieldWidgetProps) {
         {fieldOptions(field).map((option) => {
           const id = `${field.id}-${option.value}`;
           return (
-            <Field
+            <ChoiceOption
               key={option.value}
-              orientation="horizontal"
-              data-disabled={binding.disabled || undefined}
-            >
-              <Checkbox
-                id={id}
-                disabled={binding.disabled}
-                checked={selected.includes(option.value)}
-                onCheckedChange={(checked) =>
-                  binding.onChange(
-                    checked
-                      ? [...selected, option.value]
-                      : selected.filter((item) => item !== option.value),
-                  )
-                }
-              />
-              <FieldLabel htmlFor={id} className="font-normal">
-                {option.label}
-              </FieldLabel>
-            </Field>
+              id={id}
+              label={option.label}
+              description={readOptionUiMeta(option).description}
+              disabled={binding.disabled}
+              control={
+                <Checkbox
+                  id={id}
+                  disabled={binding.disabled}
+                  checked={selected.includes(option.value)}
+                  onCheckedChange={(checked) =>
+                    binding.onChange(
+                      checked
+                        ? [...selected, option.value]
+                        : selected.filter((item) => item !== option.value),
+                    )
+                  }
+                />
+              }
+            />
           );
         })}
       </FieldGroup>

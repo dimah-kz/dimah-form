@@ -4,6 +4,8 @@ import type { FormFieldBinding } from "@dimah-form/react";
 export type FieldWidgetProps<TValue = unknown> = {
   binding: FormFieldBinding<TValue>;
   className?: string;
+  /** `review` when the template is showing a read-only summary. */
+  mode?: "edit" | "review";
 };
 
 export type FieldWidget<TValue = unknown> = ComponentType<

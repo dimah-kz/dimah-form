@@ -7,6 +7,7 @@ import {
   type FormField,
   type FormResponseApi,
 } from "@dimah-form/react";
+import { useTranslations } from "@fuma-translate/react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { useFormSession } from "@/components/dimah-form/form-context";
@@ -16,6 +17,7 @@ import {
 } from "@/components/dimah-form/form-fields";
 import { useFormUi } from "@/hooks/use-form-ui";
 import { groupFieldsByStep } from "@/lib/field-groups";
+import { scheduleFocusInvalidField } from "@/lib/focus-invalid";
 
 export type FormStep = {
   key: string;
@@ -33,9 +35,9 @@ export type FormStepsApi<TAnswers extends FormAnswers = FormAnswers> = {
   isLast: boolean;
   /** Visible required fields on the current step all have answers. */
   complete: boolean;
-  next: () => void;
+  next: () => Promise<boolean>;
   prev: () => void;
-  goTo: (index: number) => void;
+  goTo: (index: number) => Promise<boolean>;
 };
 
 const FormStepsContext = createContext<FormStepsApi | null>(null);
@@ -48,6 +50,13 @@ export function useFormSteps<
     throw new Error("useFormSteps requires a FormSteps ancestor");
   }
   return ctx as FormStepsApi<TAnswers>;
+}
+
+/** `null` when no {@link FormSteps} ancestor — used by {@link FormRoot}. */
+export function useFormStepsOptional<
+  TAnswers extends FormAnswers = FormAnswers,
+>(): FormStepsApi<TAnswers> | null {
+  return useContext(FormStepsContext) as FormStepsApi<TAnswers> | null;
 }
 
 export type FormStepsProps<TAnswers extends FormAnswers = FormAnswers> = {
@@ -79,6 +88,14 @@ export function FormSteps<TAnswers extends FormAnswers = FormAnswers>({
     ? formCompletion({ fields: step.fields }, session.answers).complete
     : true;
 
+  async function validateStep(): Promise<boolean> {
+    if (!step) return true;
+    const issues = await session.validate("submit", {
+      fields: step.fields.map((field) => field.id),
+    });
+    return issues.length === 0;
+  }
+
   const api: FormStepsApi<TAnswers> = {
     form: session,
     steps,
@@ -88,17 +105,20 @@ export function FormSteps<TAnswers extends FormAnswers = FormAnswers>({
     isFirst: safe <= 0,
     isLast: total === 0 || safe >= total - 1,
     complete,
-    next: () => {
-      if (!complete) return;
+    next: async () => {
+      if (total === 0 || safe >= total - 1) return false;
+      if (!(await validateStep())) return false;
       setIndex((value) => Math.min(value + 1, Math.max(total - 1, 0)));
+      return true;
     },
     prev: () => {
       setIndex((value) => Math.max(value - 1, 0));
     },
-    goTo: (nextIndex) => {
-      if (nextIndex < 0 || nextIndex >= total) return;
-      if (nextIndex > safe && !complete) return;
+    goTo: async (nextIndex) => {
+      if (nextIndex < 0 || nextIndex >= total) return false;
+      if (nextIndex > safe && !(await validateStep())) return false;
       setIndex(nextIndex);
+      return true;
     },
   };
 
@@ -121,11 +141,43 @@ export function FormStepFields<TAnswers extends FormAnswers = FormAnswers>(
   );
 }
 
+export type FormStepHeadingProps = {
+  className?: string;
+};
+
+/** Step title, or “Step N of M”. Hidden when there is only one step. */
+export function FormStepHeading({ className }: FormStepHeadingProps) {
+  const steps = useFormSteps();
+  const t = useTranslations();
+  if (steps.total <= 1 || !steps.step) return null;
+
+  const named =
+    steps.step.title !== steps.step.key ? steps.step.title : undefined;
+  const label =
+    named ??
+    t("Step {current} of {total}", {
+      note: "step heading",
+      variables: {
+        current: String(steps.index + 1),
+        total: String(steps.total),
+      },
+    });
+
+  return (
+    <p className={cn("text-sm font-medium text-balance", className)}>{label}</p>
+  );
+}
+
 export type FormStepNavProps = {
   className?: string;
   /** Rendered on the last step in place of Next (usually {@link FormActions}). */
   children?: ReactNode;
 };
+
+function focusStepIssues(target: HTMLElement) {
+  const root = target.closest("form");
+  if (root) scheduleFocusInvalidField(root);
+}
 
 /** Previous / Next. Hidden when every visible field shares one step. */
 export function FormStepNav({ className, children }: FormStepNavProps) {
@@ -153,8 +205,13 @@ export function FormStepNav({ className, children }: FormStepNavProps) {
       ) : (
         <Button
           type="button"
-          disabled={ui.busy || !steps.complete}
-          onClick={steps.next}
+          disabled={ui.busy}
+          onClick={(event) => {
+            const target = event.currentTarget;
+            void steps.next().then((advanced) => {
+              if (!advanced) focusStepIssues(target);
+            });
+          }}
         >
           {ui.nextLabel}
         </Button>

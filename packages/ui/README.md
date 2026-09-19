@@ -57,13 +57,14 @@ export function IntakeForm({ snapshot }) {
 }
 ```
 
-A widget is `{ binding, className }`. Wrap the control in `FormFieldFrame`
+A widget is `{ binding, className, mode? }`. Wrap the control in `FormFieldFrame`
 (`layout`: `stack` | `choice` | `group`). Register custom `defineFieldType`
 widgets once on `FormUiProvider` (or per `FormView` / `FormScope`). Swap the
 required-field mark with `components.RequiredMark`. Built-in types (`text`,
 `email`, `date`, `number`, `boolean`, `select`, `multiSelect`) ship with the
-package. `meta.widget` picks radio / switch / chips; `meta.step` and
-`meta.section` drive `FormSteps` and `FormFields` grouping. Compose
+package. `FormView layout="auto"` picks a wizard when `meta.step` groups, and
+review when locked. Presentation lives on `meta` (`widget`, `placeholder`,
+`section`, `step`, `width`, `help`, …) — see `FieldUiMeta`. Compose
 `FormScope` + primitives when the default template is not enough.
 
 ## License

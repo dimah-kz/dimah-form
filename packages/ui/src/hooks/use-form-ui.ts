@@ -3,6 +3,7 @@
 import type { FormAnswers, FormResponseApi } from "@dimah-form/react";
 import { useTranslations } from "@fuma-translate/react";
 import { useFormSession } from "@/components/dimah-form/form-context";
+import { readFormUiMeta } from "@/lib/field-ui-meta";
 
 /**
  * Localized chrome strings. Does not call `useFormResponse`.
@@ -14,6 +15,8 @@ export function useFormUi<TAnswers extends FormAnswers = FormAnswers>(
   const t = useTranslations();
   const busy = session.pending != null;
   const responseId = session.responseId ?? "";
+  const formMeta = readFormUiMeta(session.snapshot);
+  const submitting = session.pending === "submit";
 
   return {
     form: session,
@@ -22,10 +25,9 @@ export function useFormUi<TAnswers extends FormAnswers = FormAnswers>(
       session.pending === "save"
         ? t("Saving…", { note: "form action" })
         : t("Save draft", { note: "form action" }),
-    submitLabel:
-      session.pending === "submit"
-        ? t("Submitting…", { note: "form action" })
-        : t("Submit", { note: "form action" }),
+    submitLabel: submitting
+      ? t("Submitting…", { note: "form action" })
+      : (formMeta.submitLabel ?? t("Submit", { note: "form action" })),
     editLabel:
       session.pending === "reopen"
         ? t("Reopening…", { note: "form action" })

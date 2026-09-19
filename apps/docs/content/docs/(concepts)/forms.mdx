@@ -129,7 +129,7 @@ Each item in `fields` requires an `id`, a `type`, and an optional `label`:
   defaultValue: "user@example.com",
   meta: {
     placeholder: "you@company.com",
-    tooltip: "We will send your onboarding packet here.",
+    help: "We will send your onboarding packet here.",
   },
 }
 ```
@@ -142,7 +142,7 @@ Each item in `fields` requires an `id`, a `type`, and an optional `label`:
 - **`required`**: If `true`, the field must be non-empty when submitting the form (if visible).
 - **`defaultValue`**: Seeded into the answers map upon calling `startResponse`.
 - **`showWhen`**: Conditional visibility rules.
-- **`meta`**: Opaque JSON for UI. `@dimah-form/ui` reads `placeholder`, `multiline`, `widget` (`radio` / `switch` / `chips`), `section`, and `step`.
+- **`meta`**: Opaque JSON for UI. `@dimah-form/ui` reads a typed `FieldUiMeta` bag: `placeholder`, `multiline`, `rows`, `widget` (`radio` / `switch` / `chips`), `section`, `step`, `stepTitle`, `width`, `prefix` / `suffix`, `autocomplete`, `inputMode`, `orientation`, `help`, `unsetOnOff`. See [UI](/docs/ui).
 
 ---
 

@@ -24,7 +24,6 @@ type FormFieldBinding = {
   disabled: boolean; // true if locked, pending, or disabled
   required: boolean; // true if required by schema
   onChange: (value: unknown) => void; // Value updater (pass null to clear)
-  onBlur: () => void; // Blur handler for touch tracking
 };
 ```
 
@@ -208,16 +207,17 @@ Split long questionnaires with `field.meta.step` (number or string). Optional `@
 
 ```tsx
 <FormScope form={q}>
-  <FormRoot>
-    <FormSteps>
+  <FormSteps>
+    <FormRoot>
+      <FormStepHeading />
       <FormProgress />
       <FormStepFields />
       <FormError />
       <FormStepNav>
         <FormActions />
       </FormStepNav>
-    </FormSteps>
-  </FormRoot>
+    </FormRoot>
+  </FormSteps>
 </FormScope>
 ```
 

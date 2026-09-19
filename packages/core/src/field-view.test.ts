@@ -7,6 +7,7 @@ import {
   fieldLabel,
   fieldOptions,
   formCompletion,
+  formErrorCode,
   formErrorMessage,
   formatAnswer,
   issuesByField,
@@ -119,6 +120,15 @@ describe("formErrorMessage", () => {
     ).toBe("Form is not active");
     expect(formErrorMessage(new Error("boom"), "nope")).toBe("boom");
     expect(formErrorMessage("x")).toBe("Request failed");
+  });
+});
+
+describe("formErrorCode", () => {
+  it("reads APIError.code and ignores other throws", () => {
+    expect(
+      formErrorCode(APIError.from("CONFLICT", FORM_ERROR_CODES.STALE_UPDATE)),
+    ).toBe("STALE_UPDATE");
+    expect(formErrorCode(new Error("boom"))).toBeUndefined();
   });
 });
 

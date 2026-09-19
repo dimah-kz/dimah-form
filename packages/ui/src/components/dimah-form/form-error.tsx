@@ -5,6 +5,7 @@ import { useTranslations } from "@fuma-translate/react";
 import { CircleAlertIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useFormSession } from "@/components/dimah-form/form-context";
+import { useSessionError } from "@/hooks/use-session-error";
 
 export type FormErrorProps<TAnswers extends FormAnswers = FormAnswers> = {
   form?: FormResponseApi<TAnswers>;
@@ -18,15 +19,14 @@ export function FormError<TAnswers extends FormAnswers = FormAnswers>({
 }: FormErrorProps<TAnswers>) {
   const session = useFormSession(form);
   const t = useTranslations();
-  if (!session.error) return null;
+  const message = useSessionError(session);
+  if (!message) return null;
 
   return (
-    <Alert variant="destructive" className={className}>
+    <Alert variant="destructive" className={className} aria-live="assertive">
       <CircleAlertIcon />
       <AlertTitle>{t("Request failed", { note: "session error" })}</AlertTitle>
-      <AlertDescription className="wrap-anywhere">
-        {session.error}
-      </AlertDescription>
+      <AlertDescription className="wrap-anywhere">{message}</AlertDescription>
     </Alert>
   );
 }
