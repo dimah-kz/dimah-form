@@ -1,0 +1,47 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Questionnaire {
+  id         String   @id @default(cuid()) @map("id") @db.VarChar(255)
+  slug       String?  @unique @map("slug") @db.VarChar(255)
+  title      String   @map("title")
+  definition Json     @map("definition")
+  status     String   @map("status")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @default(now()) @map("updated_at")
+  responses  Response[] @relation("response_questionnaire")
+
+  @@index([status, updatedAt], map: "questionnaire_status_updated_at_idx")
+  @@map("questionnaire")
+}
+
+model Response {
+  id              String    @id @default(cuid()) @map("id") @db.VarChar(255)
+  questionnaireId String    @map("questionnaire_id") @db.VarChar(255)
+  status          String    @map("status")
+  definition      Json      @map("definition")
+  answers         Json      @map("answers")
+  respondentId    String?   @map("respondent_id") @db.VarChar(255)
+  submittedAt     DateTime? @map("submitted_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @default(now()) @map("updated_at")
+  questionnaire   Questionnaire @relation("response_questionnaire", fields: [questionnaireId], references: [id], onUpdate: Restrict, onDelete: Restrict)
+
+  @@index([questionnaireId, updatedAt], map: "response_questionnaire_id_updated_at_idx")
+  @@index([respondentId, updatedAt], map: "response_respondent_id_updated_at_idx")
+  @@index([questionnaireId, respondentId, status, updatedAt], map: "response_draft_lookup_idx")
+  @@map("response")
+}
+
+/// FumaDB settings row — emitted by CLI alongside the form tables.
+model PrivateDimahFormSettings {
+  id      String @id @map("id") @db.VarChar(255)
+  version String @default("1.0.0") @map("version") @db.VarChar(255)
+
+  @@map("private_dimah_form_settings")
+}

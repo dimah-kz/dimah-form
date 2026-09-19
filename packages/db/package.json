@@ -10,6 +10,7 @@
     "drizzle",
     "drizzle-orm",
     "prisma",
+    "kysely",
     "typescript"
   ],
   "homepage": "https://form.dimah.dev/docs/database",
@@ -29,10 +30,15 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./cli": {
+      "types": "./dist/cli.d.ts",
+      "default": "./dist/cli.js"
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "src/schema/examples"
   ],
   "scripts": {
     "build": "tsup --config tsup.config.ts && tsc --emitDeclarationOnly -p tsconfig.build.json && tsc-alias",
@@ -51,6 +57,7 @@
     "@workspace/tsup-config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
     "@workspace/vitest-config": "workspace:*",
+    "drizzle-orm": "catalog:",
     "eslint": "catalog:",
     "tsc-alias": "catalog:",
     "tsup": "catalog:",
@@ -58,7 +65,13 @@
     "vitest": "catalog:"
   },
   "peerDependencies": {
-    "@dimah-form/server": "workspace:*"
+    "@dimah-form/server": "workspace:*",
+    "drizzle-orm": "^0.44.0 || ^0.45.0 || >=1.0.0-rc.1 <2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "drizzle-orm": {
+      "optional": true
+    }
   },
   "publishConfig": {
     "access": "public"

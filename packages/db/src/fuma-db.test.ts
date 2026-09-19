@@ -9,6 +9,7 @@ describe("DimahFormDB", () => {
       "questionnaire",
       "response",
     ]);
+    expect(v1.tables.questionnaire.columns.slug.isUnique).toBe(true);
     expect(DimahFormDB).toBeDefined();
   });
 });

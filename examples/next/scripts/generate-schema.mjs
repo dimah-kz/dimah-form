@@ -1,32 +1,13 @@
-import { writeFileSync } from "node:fs";
+import { copyFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createClient } from "@libsql/client";
-import { DimahFormDB } from "@dimah-form/db";
-import { drizzle } from "drizzle-orm/libsql";
-import { drizzleAdapter } from "fumadb/adapters/drizzle";
 
-const sqlite = createClient({ url: "file:local.db" });
-const orm = drizzle({ client: sqlite });
-const client = DimahFormDB.client(
-  drizzleAdapter({
-    db: orm,
-    provider: "sqlite",
-  }),
+const here = path.dirname(fileURLToPath(import.meta.url));
+const src = path.resolve(
+  here,
+  "../../../packages/db/src/schema/examples/drizzle.ts",
 );
+const dest = path.join(here, "..", "lib", "schema.ts");
 
-const generated = client.generateSchema("1.0.0");
-const dest = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "lib",
-  "schema.ts",
-);
-const code = generated.code
-  .replace(/import \{ createId \} from "fumadb\/cuid"\n/, "")
-  .replaceAll(
-    ".$defaultFn(() => createId())",
-    ".$defaultFn(() => crypto.randomUUID())",
-  );
-writeFileSync(dest, code);
+copyFileSync(src, dest);
 console.log(`Wrote ${dest}`);

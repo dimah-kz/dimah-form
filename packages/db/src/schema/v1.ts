@@ -3,6 +3,10 @@ import { column, idColumn, schema, table } from "fumadb/schema";
 /**
  * Live questionnaire (current definition). Old responses keep their own
  * snapshot on `response.definition` — there is no version table.
+ *
+ * FumaDB 0.6 has no non-unique index API. Secondary indexes for `listForms`,
+ * `listResponses`, and draft lookup are consumer-side after CLI `generate` —
+ * see `./examples/` (Drizzle + Prisma + SQL) and the package README.
  */
 const questionnaire = table("questionnaire", {
   id: idColumn("id", "varchar(255)").defaultTo$("auto"),
@@ -16,7 +20,7 @@ const questionnaire = table("questionnaire", {
 
 const response = table("response", {
   id: idColumn("id", "varchar(255)").defaultTo$("auto"),
-  /** Queried by `listResponses({ formId })`. FumaDB 0.6 has no non-unique index API; this FK is the access path. */
+  /** Queried by `listResponses({ formId })`. The FK is the generated access path. */
   questionnaireId: column("questionnaire_id", "varchar(255)"),
   status: column("status", "string"),
   /** Definition copy at start — submit validates against this, not live. */

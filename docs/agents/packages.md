@@ -30,6 +30,8 @@ New HTTP adapter: add it next to existing files in `packages/server/src/adapters
 
 First-class `database` on `dimahForm()`. Official adapters: `memoryAdapter()` in `@dimah-form/server`, `db()` in `@dimah-form/db`. A custom `ResponseStore` is allowed — pass it to `database` directly, not through `db()`. Do not inject persistence through plugins.
 
+Copy-paste Drizzle / Prisma / SQL schemas live in `packages/db/src/schema/examples` (published, not imported at runtime). FumaDB `generate` does not emit secondary indexes — keep those in the examples. Docs `_includes/db/` must match those tables and index names.
+
 `getForm` / `startResponse` resolve code-authored `forms` first (id then slug), then `database.getForm`. `saveForm` upserts the live questionnaire with optional `expectedUpdatedAt` (`STALE_UPDATE` / `StoreConflictError`). Starting a response inserts the parent questionnaire row if it is missing and never overwrites the live definition. `save` / `saveForm` take optional `{ expectedUpdatedAt }` so adapters can CAS. Resume uses `findLatestDraft` and `getOrCreateDraft` (loser deletes duplicate drafts).
 
 `deleteForm` refuses code-authored ids and forms that still have responses (archive via `status` instead). `listResponses` defaults to summaries at the HTTP layer; pass `include: "summary"` on the store to skip `definition` / `answers`. `include=full` returns stored answers.

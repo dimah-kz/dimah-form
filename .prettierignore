@@ -23,3 +23,5 @@ coverage/
 
 # GitHub (no Prettier parser)
 .github/CODEOWNERS
+*.prisma
+*.sql

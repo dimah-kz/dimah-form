@@ -4,24 +4,11 @@ description: memoryAdapter for tests, FumaDB for production, or your own Respons
 icon: Database
 ---
 
-`@dimah-form/server` has **zero database or ORM dependencies**. Persistence is fully decoupled through the `ResponseStore` interface passed to `dimahForm({ database })`.
+`@dimah-form/server` has no ORM. Persistence is the `ResponseStore` you pass to `dimahForm({ database })`.
 
 ---
 
-## Storage Architecture
-
-A dimah-form database stores two core entity tables:
-
-| Table               | Purpose                                       | Key Columns                                                                                                                |
-| :------------------ | :-------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------- |
-| **`questionnaire`** | Dynamic form definitions created via API      | `id`, `slug`, `title`, `definition`, `status`, `createdAt`, `updatedAt`                                                    |
-| **`response`**      | Respondent fill sessions and frozen snapshots | `id`, `form_id`, `definition` (snapshot), `answers`, `status`, `respondent_id`, `submitted_at`, `created_at`, `updated_at` |
-
----
-
-## 1. In-Memory Adapter (`memoryAdapter`)
-
-For automated unit tests, CI pipelines, or local prototyping, `@dimah-form/server` includes an in-memory store that requires zero setup:
+## 1. In-memory
 
 ```ts title="lib/form.ts"
 import { dimahForm, memoryAdapter } from "@dimah-form/server";
@@ -35,96 +22,105 @@ export const form = dimahForm({
 
 ---
 
-## 2. Production Persistence with `@dimah-form/db` (FumaDB)
-
-For production applications, install `@dimah-form/db` and [FumaDB](https://github.com/fuma-nama/fumadb):
+## 2. Production
 
 <Tabs items={["pnpm", "npm", "yarn", "bun"]}>
-
-<Tab value="pnpm">```bash pnpm add @dimah-form/db fumadb ```</Tab>
-
-<Tab value="npm">```bash npm install @dimah-form/db fumadb ```</Tab>
-
-<Tab value="yarn">```bash yarn add @dimah-form/db fumadb ```</Tab>
-
-<Tab value="bun">```bash bun add @dimah-form/db fumadb ```</Tab>
-
+  <Tab value="pnpm">```bash pnpm add @dimah-form/db fumadb ```</Tab>
+  <Tab value="npm">```bash npm install @dimah-form/db fumadb ```</Tab>
+  <Tab value="yarn">```bash yarn add @dimah-form/db fumadb ```</Tab>
+  <Tab value="bun">```bash bun add @dimah-form/db fumadb ```</Tab>
 </Tabs>
-
-### Drizzle ORM Setup
 
 <Steps>
 
 <Step>
 
-#### Define Database Tables
+### Schema
 
-```ts title="lib/db/schema.ts"
-import { sql } from "drizzle-orm";
-import { text, integer, sqliteTable } from "drizzle-orm/sqlite-core";
+<Tabs items={["Drizzle", "Prisma", "Kysely"]}>
 
-export const questionnaires = sqliteTable("questionnaire", {
-  id: text("id").primaryKey(),
-  slug: text("slug").notNull().unique(),
-  title: text("title").notNull(),
-  definition: text("definition", { mode: "json" }).notNull(),
-  status: text("status").notNull().default("active"),
-  createdAt: text("created_at")
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-  updatedAt: text("updated_at")
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-});
+<Tab value="Drizzle">
+  <include>../../_includes/db/drizzle-schema.mdx</include>
+</Tab>
 
-export const responses = sqliteTable("response", {
-  id: text("id").primaryKey(),
-  formId: text("form_id").notNull(),
-  status: text("status").notNull().default("draft"),
-  definition: text("definition", { mode: "json" }).notNull(),
-  answers: text("answers", { mode: "json" }).notNull(),
-  respondentId: text("respondent_id"),
-  submittedAt: text("submitted_at"),
-  createdAt: text("created_at")
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-  updatedAt: text("updated_at")
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-});
-```
+<Tab value="Prisma">
+  <include>../../_includes/db/prisma-schema.mdx</include>
+</Tab>
+
+<Tab value="Kysely">
+  <include>../../_includes/db/indexes-sql.mdx</include>
+</Tab>
+
+</Tabs>
 
 </Step>
 
 <Step>
 
-#### Initialize `DimahFormDB`
+### Client
 
-```ts title="lib/db/index.ts"
+<Tabs items={["Drizzle", "Prisma", "Kysely"]}>
+
+<Tab value="Drizzle">
+
+```ts title="lib/db.ts"
 import { createClient } from "@libsql/client";
 import { DimahFormDB } from "@dimah-form/db";
 import { drizzle } from "drizzle-orm/libsql";
 import { drizzleAdapter } from "fumadb/adapters/drizzle";
-import * as schema from "./schema";
+import { relations } from "./schema";
 
-const client = createClient({
-  url: process.env.DATABASE_URL || "file:local.db",
+const sqlite = createClient({
+  url: process.env.DATABASE_URL ?? "file:local.db",
 });
-const dbInstance = drizzle({ client, schema });
 
 export const formDb = DimahFormDB.client(
   drizzleAdapter({
-    db: dbInstance,
-    provider: "sqlite", // "sqlite" | "postgresql" | "mysql"
+    db: drizzle({ client: sqlite, relations }),
+    provider: "sqlite",
   }),
 );
 ```
+
+</Tab>
+
+<Tab value="Prisma">
+
+```ts title="lib/db.ts"
+import { PrismaClient } from "@prisma/client";
+import { DimahFormDB } from "@dimah-form/db";
+import { prismaAdapter } from "fumadb/adapters/prisma";
+
+const prisma = new PrismaClient();
+
+export const formDb = DimahFormDB.client(
+  prismaAdapter({ prisma, provider: "postgresql" }),
+);
+```
+
+</Tab>
+
+<Tab value="Kysely">
+
+```ts title="lib/db.ts"
+import { DimahFormDB } from "@dimah-form/db";
+import { kyselyAdapter } from "fumadb/adapters/kysely";
+import { db } from "./kysely";
+
+export const formDb = DimahFormDB.client(
+  kyselyAdapter({ db, provider: "postgresql" }),
+);
+```
+
+</Tab>
+
+</Tabs>
 
 </Step>
 
 <Step>
 
-#### Connect to `dimahForm()`
+### Connect
 
 ```ts title="lib/form.ts"
 import { db } from "@dimah-form/db";
@@ -136,6 +132,8 @@ export const form = dimahForm({
   database: db(formDb),
   forms,
 });
+
+export type Form = typeof form;
 ```
 
 </Step>
@@ -144,141 +142,36 @@ export const form = dimahForm({
 
 ---
 
-### Prisma ORM Setup
+## CLI
 
-<Steps>
-
-<Step>
-
-#### Add Models to `prisma/schema.prisma`
-
-```prisma title="prisma/schema.prisma"
-model Questionnaire {
-  id         String   @id @default(cuid())
-  slug       String   @unique
-  title      String
-  definition Json
-  status     String   @default("active")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
-
-  @@map("questionnaire")
-}
-
-model Response {
-  id           String    @id @default(cuid())
-  formId       String    @map("form_id")
-  status       String    @default("draft")
-  definition   Json
-  answers      Json
-  respondentId String?   @map("respondent_id")
-  submittedAt  DateTime? @map("submitted_at")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-
-  @@index([formId])
-  @@index([respondentId])
-  @@map("response")
-}
-```
-
-</Step>
-
-<Step>
-
-#### Initialize `DimahFormDB` with Prisma Adapter
-
-```ts title="lib/db.ts"
-import { PrismaClient } from "@prisma/client";
+```ts title="scripts/db-cli.mts"
 import { DimahFormDB } from "@dimah-form/db";
-import { prismaAdapter } from "fumadb/adapters/prisma";
+import { runCli } from "@dimah-form/db/cli";
+import { drizzleAdapter } from "fumadb/adapters/drizzle";
 
-const prisma = new PrismaClient();
-
-export const formDb = DimahFormDB.client(
-  prismaAdapter({
-    prisma,
-    provider: "postgresql", // "postgresql" | "sqlite" | "mysql"
-  }),
+void runCli(
+  DimahFormDB.client(drizzleAdapter({ db: {} as never, provider: "sqlite" })),
 );
 ```
 
-Pass `db(formDb)` into `dimahForm({ database: db(formDb) })`.
+```bash
+node --import tsx scripts/db-cli.mts generate latest -o ./lib/schema.ts
+```
 
-</Step>
+`generate` overwrites the file. Re-add these indexes afterward:
 
-</Steps>
+| Index                                      | Columns                                                     |
+| ------------------------------------------ | ----------------------------------------------------------- |
+| `questionnaire_status_updated_at_idx`      | `status`, `updated_at`                                      |
+| `response_questionnaire_id_updated_at_idx` | `questionnaire_id`, `updated_at`                            |
+| `response_respondent_id_updated_at_idx`    | `respondent_id`, `updated_at`                               |
+| `response_draft_lookup_idx`                | `questionnaire_id`, `respondent_id`, `status`, `updated_at` |
 
 ---
 
-## 3. Implementing a Custom `ResponseStore`
+## Custom store
 
-If you use DynamoDB, MongoDB, Redis, or a custom microservice, you can implement the `ResponseStore` interface:
-
-```ts title="lib/custom-store.ts"
-import type {
-  ResponseStore,
-  ResponseRecord,
-  FormSnapshot,
-} from "@dimah-form/server";
-
-export class CustomStore implements ResponseStore {
-  async getForm(idOrSlug: string): Promise<FormSnapshot | undefined> {
-    // Fetch form definition from your storage
-    return undefined;
-  }
-
-  async saveForm(
-    form: FormSnapshot,
-    options?: { expectedUpdatedAt?: string },
-  ): Promise<void> {
-    // Upsert form definition
-  }
-
-  async deleteForm(id: string): Promise<void> {
-    // Delete form
-  }
-
-  async listForms(query?: any) {
-    return { forms: [], limit: 50, offset: 0, nextOffset: null };
-  }
-
-  async create(row: ResponseRecord): Promise<void> {
-    // Insert new response record
-  }
-
-  async get(id: string): Promise<ResponseRecord | undefined> {
-    // Fetch response record by ID
-    return undefined;
-  }
-
-  async save(
-    row: ResponseRecord,
-    options?: { expectedUpdatedAt?: string },
-  ): Promise<void> {
-    // Verify CAS optimistic lock if options.expectedUpdatedAt is provided
-    // Update record and refresh row.updatedAt
-  }
-
-  async delete(id: string): Promise<void> {
-    // Delete response record
-  }
-
-  async listResponses(query?: any) {
-    return { responses: [], limit: 50, offset: 0, nextOffset: null };
-  }
-
-  async findLatestDraft(query: { formId: string; respondentId: string }) {
-    // Find latest unfinished draft for user
-    return undefined;
-  }
-
-  async getOrCreateDraft(row: ResponseRecord): Promise<ResponseRecord> {
-    // Atomically find or create draft
-    return row;
-  }
-}
-```
+Implement [`ResponseStore`](/docs/configuration) and pass it to `dimahForm({ database })` directly.
 
 ---
 
@@ -288,16 +181,16 @@ export class CustomStore implements ResponseStore {
   <Card
     title="Snapshots"
     href="/docs/snapshots"
-    description="Understand how snapshots and CAS updatedAt timestamps are stored."
+    description="How snapshots and CAS updatedAt are stored."
   />
   <Card
     title="Auth"
     href="/docs/auth"
-    description="Enforce authorization and protect database records with guard."
+    description="Protect records with guard."
   />
   <Card
     title="Configuration"
     href="/docs/configuration"
-    description="View the complete ResponseStore TypeScript interface."
+    description="The ResponseStore interface."
   />
 </Cards>
