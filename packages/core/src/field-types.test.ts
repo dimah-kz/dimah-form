@@ -9,6 +9,13 @@ import {
 } from "./field-types";
 
 describe("createFieldTypeRegistry", () => {
+  function message(result: unknown) {
+    if (typeof result === "string") return result;
+    if (result && typeof result === "object" && "message" in result) {
+      return (result as { message: string }).message;
+    }
+    return result;
+  }
   it("includes the built-in types", () => {
     const registry = createFieldTypeRegistry();
     expect(registry.get("text")).toBe(textFieldType);
@@ -42,20 +49,22 @@ describe("createFieldTypeRegistry", () => {
   it("validates minLength, maxLength, and pattern on text answers", () => {
     const registry = createFieldTypeRegistry();
     expect(
-      registry.get("text")?.validate("ab", { type: "text", minLength: 3 }),
+      message(
+        registry.get("text")?.validate("ab", { type: "text", minLength: 3 }),
+      ),
     ).toBe("Must be at least 3 characters");
-    expect(textFieldType.validate("abcd", { type: "text", maxLength: 3 })).toBe(
-      "Must be at most 3 characters",
-    );
+    expect(
+      message(textFieldType.validate("abcd", { type: "text", maxLength: 3 })),
+    ).toBe("Must be at most 3 characters");
     expect(
       textFieldType.validate("aa", { type: "text", pattern: "^a+$" }),
     ).toBeUndefined();
     expect(
-      textFieldType.validate("ab", { type: "text", pattern: "^a+$" }),
+      message(textFieldType.validate("ab", { type: "text", pattern: "^a+$" })),
     ).toBe("Invalid format");
-    expect(textFieldType.validate("aa", { type: "text", pattern: "(" })).toBe(
-      "Invalid format",
-    );
+    expect(
+      message(textFieldType.validate("aa", { type: "text", pattern: "(" })),
+    ).toBe("Invalid format");
   });
 
   it("treats blank strings as empty on text", () => {
@@ -70,14 +79,14 @@ describe("createFieldTypeRegistry", () => {
     expect(numberFieldType.isEmpty?.("")).toBe(true);
     expect(numberFieldType.isEmpty?.(0)).toBe(false);
     expect(
-      numberFieldType.validate(0.5, { type: "number", integer: true }),
+      message(numberFieldType.validate(0.5, { type: "number", integer: true })),
     ).toBe("Expected an integer");
-    expect(numberFieldType.validate(-1, { type: "number", min: 0 })).toBe(
-      "Must be at least 0",
-    );
-    expect(numberFieldType.validate(11, { type: "number", max: 10 })).toBe(
-      "Must be at most 10",
-    );
+    expect(
+      message(numberFieldType.validate(-1, { type: "number", min: 0 })),
+    ).toBe("Must be at least 0");
+    expect(
+      message(numberFieldType.validate(11, { type: "number", max: 10 })),
+    ).toBe("Must be at most 10");
   });
 
   it("validates select and multiSelect options", () => {
@@ -87,29 +96,31 @@ describe("createFieldTypeRegistry", () => {
       options: [{ value: "eng" }, { value: "pm" }],
     };
     expect(registry.get("select")?.validate("eng", field)).toBeUndefined();
-    expect(registry.get("select")?.validate("nope", field)).toBe(
+    expect(message(registry.get("select")?.validate("nope", field))).toBe(
       "Invalid option",
     );
     const multi = {
       type: "multiSelect",
       options: [{ value: "ts" }, { value: "go" }],
     };
-    expect(registry.get("multiSelect")?.validate(["ts", "ts"], multi)).toBe(
-      "Duplicate option",
-    );
-    expect(registry.get("multiSelect")?.validate(["ts", "nope"], multi)).toBe(
-      "Invalid option",
-    );
+    expect(
+      message(registry.get("multiSelect")?.validate(["ts", "ts"], multi)),
+    ).toBe("Duplicate option");
+    expect(
+      message(registry.get("multiSelect")?.validate(["ts", "nope"], multi)),
+    ).toBe("Invalid option");
   });
 
   it("validates email and date answers", () => {
     expect(emailFieldType.validate("ada@n.com")).toBeUndefined();
     expect(emailFieldType.validate("user+tag@example.com")).toBeUndefined();
-    expect(emailFieldType.validate("nope")).toBe("Expected an email");
-    expect(emailFieldType.validate("ada@n")).toBe("Expected an email");
+    expect(message(emailFieldType.validate("nope"))).toBe("Expected an email");
+    expect(message(emailFieldType.validate("ada@n"))).toBe("Expected an email");
     expect(dateFieldType.validate("2026-01-02")).toBeUndefined();
     expect(dateFieldType.validate("2024-02-29")).toBeUndefined();
-    expect(dateFieldType.validate("2026-02-31")).toBe("Expected a date");
-    expect(dateFieldType.validate(1)).toBe("Expected a string");
+    expect(message(dateFieldType.validate("2026-02-31"))).toBe(
+      "Expected a date",
+    );
+    expect(message(dateFieldType.validate(1))).toBe("Expected a string");
   });
 });

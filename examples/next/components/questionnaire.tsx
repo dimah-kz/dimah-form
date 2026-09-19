@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { respondentId, useFormResponse } from "@/lib/client";
+import type { Form } from "@/lib/form";
 
 export function Questionnaire({
   form,
@@ -27,10 +28,11 @@ export function Questionnaire({
   response?: ResponseRecord;
 }) {
   const router = useRouter();
-  const q = useFormResponse({
+  const q = useFormResponse<Form["$Infer"]["answers"]["feedback"]>({
     snapshot: form,
     response,
     respondentId,
+    resume: true,
     onSaved: (row) => {
       if (!response) router.replace(`/r/${row.id}`);
     },

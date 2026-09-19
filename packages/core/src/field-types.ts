@@ -1,6 +1,11 @@
 import * as z from "zod";
 
-import { defineFieldType, type FieldTypeDefinition } from "./define";
+import {
+  defineFieldType,
+  type FieldIssueInput,
+  type FieldTypeDefinition,
+} from "./define";
+import { FIELD_ISSUE_CODES } from "./error-codes";
 import {
   booleanFieldSchema,
   dateFieldSchema,
@@ -29,27 +34,47 @@ function isBlankString(value: unknown): boolean {
   return typeof value === "string" && value.trim() === "";
 }
 
+function issue(
+  entry: { code: string; message: string },
+  over?: { message?: string; params?: Record<string, string | number> },
+): FieldIssueInput {
+  return {
+    code: entry.code,
+    message: over?.message ?? entry.message,
+    ...(over?.params ? { params: over.params } : {}),
+  };
+}
+
 export const textFieldType = defineFieldType({
   type: "text",
   fieldSchema: textFieldSchema,
   isEmpty: (value) => value == null || isBlankString(value),
   validate: (value, field) => {
-    if (typeof value !== "string") return "Expected a string";
+    if (typeof value !== "string")
+      return issue(FIELD_ISSUE_CODES.EXPECTED_STRING);
     const minLength = asFiniteNumber(field.minLength);
     if (minLength !== undefined && value.length < minLength) {
-      return `Must be at least ${minLength} characters`;
+      return issue(FIELD_ISSUE_CODES.TOO_SHORT, {
+        message: `Must be at least ${minLength} characters`,
+        params: { min: minLength },
+      });
     }
     const maxLength = asFiniteNumber(field.maxLength);
     if (maxLength !== undefined && value.length > maxLength) {
-      return `Must be at most ${maxLength} characters`;
+      return issue(FIELD_ISSUE_CODES.TOO_LONG, {
+        message: `Must be at most ${maxLength} characters`,
+        params: { max: maxLength },
+      });
     }
     const pattern =
       typeof field.pattern === "string" ? field.pattern : undefined;
     if (pattern) {
       try {
-        if (!new RegExp(pattern).test(value)) return "Invalid format";
+        if (!new RegExp(pattern).test(value)) {
+          return issue(FIELD_ISSUE_CODES.INVALID_FORMAT);
+        }
       } catch {
-        return "Invalid format";
+        return issue(FIELD_ISSUE_CODES.INVALID_FORMAT);
       }
     }
     return undefined;
@@ -63,18 +88,24 @@ export const numberFieldType = defineFieldType({
   isEmpty: (value) => value == null || isBlankString(value),
   validate: (value, field) => {
     if (typeof value !== "number" || !Number.isFinite(value)) {
-      return "Expected a number";
+      return issue(FIELD_ISSUE_CODES.EXPECTED_NUMBER);
     }
     if (asBoolean(field.integer) && !Number.isInteger(value)) {
-      return "Expected an integer";
+      return issue(FIELD_ISSUE_CODES.EXPECTED_INTEGER);
     }
     const min = asFiniteNumber(field.min);
     if (min !== undefined && value < min) {
-      return `Must be at least ${min}`;
+      return issue(FIELD_ISSUE_CODES.TOO_SMALL, {
+        message: `Must be at least ${min}`,
+        params: { min },
+      });
     }
     const max = asFiniteNumber(field.max);
     if (max !== undefined && value > max) {
-      return `Must be at most ${max}`;
+      return issue(FIELD_ISSUE_CODES.TOO_LARGE, {
+        message: `Must be at most ${max}`,
+        params: { max },
+      });
     }
     return undefined;
   },
@@ -85,7 +116,9 @@ export const booleanFieldType = defineFieldType({
   type: "boolean",
   fieldSchema: booleanFieldSchema,
   validate: (value) =>
-    typeof value === "boolean" ? undefined : "Expected a boolean",
+    typeof value === "boolean"
+      ? undefined
+      : issue(FIELD_ISSUE_CODES.EXPECTED_BOOLEAN),
   $Infer: false as boolean,
 });
 
@@ -111,10 +144,13 @@ export const selectFieldType = defineFieldType({
   fieldSchema: selectFieldSchema,
   isEmpty: (value) => value == null || isBlankString(value),
   validate: (value, field) => {
-    if (typeof value !== "string") return "Expected a string";
+    if (typeof value !== "string")
+      return issue(FIELD_ISSUE_CODES.EXPECTED_STRING);
     const allowed = optionValues(field);
-    if (!allowed) return "Invalid option";
-    return allowed.has(value) ? undefined : "Invalid option";
+    if (!allowed) return issue(FIELD_ISSUE_CODES.INVALID_OPTION);
+    return allowed.has(value)
+      ? undefined
+      : issue(FIELD_ISSUE_CODES.INVALID_OPTION);
   },
   $Infer: "" as string,
 });
@@ -129,14 +165,14 @@ export const multiSelectFieldType = defineFieldType({
       !Array.isArray(value) ||
       value.some((item) => typeof item !== "string")
     ) {
-      return "Expected an array of strings";
+      return issue(FIELD_ISSUE_CODES.EXPECTED_STRING_ARRAY);
     }
     const allowed = optionValues(field);
-    if (!allowed) return "Invalid option";
+    if (!allowed) return issue(FIELD_ISSUE_CODES.INVALID_OPTION);
     const seen = new Set<string>();
     for (const item of value) {
-      if (!allowed.has(item)) return "Invalid option";
-      if (seen.has(item)) return "Duplicate option";
+      if (!allowed.has(item)) return issue(FIELD_ISSUE_CODES.INVALID_OPTION);
+      if (seen.has(item)) return issue(FIELD_ISSUE_CODES.DUPLICATE_OPTION);
       seen.add(item);
     }
     return undefined;
@@ -149,8 +185,11 @@ export const emailFieldType = defineFieldType({
   fieldSchema: emailFieldSchema,
   isEmpty: (value) => value == null || isBlankString(value),
   validate: (value) => {
-    if (typeof value !== "string") return "Expected a string";
-    return emailAnswer.validate(value) ? undefined : "Expected an email";
+    if (typeof value !== "string")
+      return issue(FIELD_ISSUE_CODES.EXPECTED_STRING);
+    return emailAnswer.validate(value)
+      ? undefined
+      : issue(FIELD_ISSUE_CODES.EXPECTED_EMAIL);
   },
   $Infer: "" as string,
 });
@@ -160,8 +199,11 @@ export const dateFieldType = defineFieldType({
   fieldSchema: dateFieldSchema,
   isEmpty: (value) => value == null || isBlankString(value),
   validate: (value) => {
-    if (typeof value !== "string") return "Expected a string";
-    return isoDateAnswer.validate(value) ? undefined : "Expected a date";
+    if (typeof value !== "string")
+      return issue(FIELD_ISSUE_CODES.EXPECTED_STRING);
+    return isoDateAnswer.validate(value)
+      ? undefined
+      : issue(FIELD_ISSUE_CODES.EXPECTED_DATE);
   },
   $Infer: "" as string,
 });

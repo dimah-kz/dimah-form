@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { FIELD_ISSUE_CODES } from "./error-codes";
 import { defineForm } from "./define";
 import { isFormErrorCode } from "./error";
 import { createFieldTypeRegistry } from "./field-types";
@@ -43,7 +44,7 @@ describe("collectAnswerIssues", () => {
 
   it("requires required fields on submit", () => {
     expect(collectAnswerIssues(snapshot, { name: "Ada" }, "submit")).toEqual([
-      { field: "ok", message: "Required" },
+      { field: "ok", ...FIELD_ISSUE_CODES.REQUIRED },
     ]);
   });
 
@@ -61,10 +62,10 @@ describe("collectAnswerIssues", () => {
         "draft",
       ),
     ).toEqual([
-      { field: "name", message: "Expected a string" },
-      { field: "extra", message: "Unknown field" },
-      { field: "role", message: "Invalid option" },
-      { field: "skills", message: "Invalid option" },
+      { field: "name", ...FIELD_ISSUE_CODES.EXPECTED_STRING },
+      { field: "extra", ...FIELD_ISSUE_CODES.UNKNOWN_FIELD },
+      { field: "role", ...FIELD_ISSUE_CODES.INVALID_OPTION },
+      { field: "skills", ...FIELD_ISSUE_CODES.INVALID_OPTION },
     ]);
   });
 
@@ -82,13 +83,13 @@ describe("collectAnswerIssues", () => {
     };
     expect(
       collectAnswerIssues(requiredSkills, { skills: [] }, "submit"),
-    ).toEqual([{ field: "skills", message: "Required" }]);
+    ).toEqual([{ field: "skills", ...FIELD_ISSUE_CODES.REQUIRED }]);
   });
 
   it("treats blank required text as missing", () => {
     expect(
       collectAnswerIssues(snapshot, { name: "  ", ok: true }, "submit"),
-    ).toEqual([{ field: "name", message: "Required" }]);
+    ).toEqual([{ field: "name", ...FIELD_ISSUE_CODES.REQUIRED }]);
   });
 
   it("treats a blank number as empty on draft", () => {
@@ -107,10 +108,10 @@ describe("collectAnswerIssues", () => {
       ],
     };
     expect(collectAnswerIssues(form, { email: "nope" }, "draft")).toEqual([
-      { field: "email", message: "Expected an email" },
+      { field: "email", ...FIELD_ISSUE_CODES.EXPECTED_EMAIL },
     ]);
     expect(collectAnswerIssues(form, { email: "  " }, "submit")).toEqual([
-      { field: "email", message: "Required" },
+      { field: "email", ...FIELD_ISSUE_CODES.REQUIRED },
     ]);
     expect(
       collectAnswerIssues(
@@ -118,7 +119,7 @@ describe("collectAnswerIssues", () => {
         { email: "ada@n.com", born: "2026-02-31" },
         "draft",
       ),
-    ).toEqual([{ field: "born", message: "Expected a date" }]);
+    ).toEqual([{ field: "born", ...FIELD_ISSUE_CODES.EXPECTED_DATE }]);
     expect(
       collectAnswerIssues(
         form,
@@ -149,10 +150,16 @@ describe("collectAnswerIssues", () => {
     };
     expect(
       collectAnswerIssues(intake, { handle: "nope" }, "draft", registry),
-    ).toEqual([{ field: "handle", message: "Expected a handle" }]);
+    ).toEqual([
+      {
+        field: "handle",
+        code: FIELD_ISSUE_CODES.INVALID.code,
+        message: "Expected a handle",
+      },
+    ]);
     expect(
       collectAnswerIssues(intake, { handle: "  " }, "submit", registry),
-    ).toEqual([{ field: "handle", message: "Required" }]);
+    ).toEqual([{ field: "handle", ...FIELD_ISSUE_CODES.REQUIRED }]);
   });
 
   it("passes sibling answers to validate", () => {
@@ -180,7 +187,13 @@ describe("collectAnswerIssues", () => {
         "submit",
         registry,
       ),
-    ).toEqual([{ field: "confirm", message: "Must match" }]);
+    ).toEqual([
+      {
+        field: "confirm",
+        code: FIELD_ISSUE_CODES.INVALID.code,
+        message: "Must match",
+      },
+    ]);
     expect(
       collectAnswerIssues(
         form,
@@ -197,7 +210,12 @@ describe("collectAnswerIssues", () => {
       fields: [{ id: "name", type: "text", minLength: 3 }],
     };
     expect(collectAnswerIssues(short, { name: "ab" }, "draft")).toEqual([
-      { field: "name", message: "Must be at least 3 characters" },
+      {
+        field: "name",
+        ...FIELD_ISSUE_CODES.TOO_SHORT,
+        message: "Must be at least 3 characters",
+        params: { min: 3 },
+      },
     ]);
   });
 
@@ -224,7 +242,7 @@ describe("collectAnswerIssues", () => {
       parseAnswers(form, { employed: false, company: "Acme" }, "submit"),
     ).toEqual({ employed: false });
     expect(collectAnswerIssues(form, { employed: true }, "submit")).toEqual([
-      { field: "company", message: "Required" },
+      { field: "company", ...FIELD_ISSUE_CODES.REQUIRED },
     ]);
   });
 
@@ -234,7 +252,7 @@ describe("collectAnswerIssues", () => {
       fields: [{ id: "file", type: "file", required: true }],
     };
     expect(collectAnswerIssues(form, { file: "x" }, "draft")).toEqual([
-      { field: "file", message: "Unknown field type" },
+      { field: "file", ...FIELD_ISSUE_CODES.UNKNOWN_FIELD_TYPE },
     ]);
   });
 
@@ -246,6 +264,31 @@ describe("collectAnswerIssues", () => {
       thrown = error;
     }
     expect(isFormErrorCode(thrown, "VALIDATION_ERROR")).toBe(true);
+  });
+
+  it("appends form-level validateAnswers issues", () => {
+    expect(
+      collectAnswerIssues(
+        snapshot,
+        { name: "Ada", ok: true, age: 10 },
+        "submit",
+        undefined,
+        (_definition, answers) => {
+          if (typeof answers.age === "number" && answers.age < 18) {
+            return [
+              {
+                field: "age",
+                message: "Must be 18 or older",
+                code: "TOO_YOUNG",
+              },
+            ];
+          }
+          return undefined;
+        },
+      ),
+    ).toEqual([
+      { field: "age", message: "Must be 18 or older", code: "TOO_YOUNG" },
+    ]);
   });
 });
 
@@ -330,7 +373,7 @@ describe("showWhen", () => {
       collectAnswerIssues(form, { a: "no", b: "ok", c: "keep" }, "submit"),
     ).toEqual([]);
     expect(collectAnswerIssues(form, { a: "yes", b: "ok" }, "submit")).toEqual([
-      { field: "c", message: "Required" },
+      { field: "c", ...FIELD_ISSUE_CODES.REQUIRED },
     ]);
   });
 });

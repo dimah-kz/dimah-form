@@ -23,12 +23,12 @@ describe("formFetchErrorSchema", () => {
       formFetchErrorSchema.parse({
         message: "Validation Error",
         code: "VALIDATION_ERROR",
-        issues: [{ field: "name", message: "Required" }],
+        issues: [{ field: "name", message: "Required", code: "REQUIRED" }],
       }),
     ).toEqual({
       message: "Validation Error",
       code: "VALIDATION_ERROR",
-      issues: [{ field: "name", message: "Required" }],
+      issues: [{ field: "name", message: "Required", code: "REQUIRED" }],
     });
   });
 
@@ -47,8 +47,13 @@ describe("protocol payloads", () => {
       startResponseBodySchema.parse({
         formId: "onboarding",
         respondentId: " user-1 ",
+        resume: true,
       }),
-    ).toEqual({ formId: "onboarding", respondentId: "user-1" });
+    ).toEqual({
+      formId: "onboarding",
+      respondentId: "user-1",
+      resume: true,
+    });
   });
 
   it("requires id, title, and fields on saveForm", () => {

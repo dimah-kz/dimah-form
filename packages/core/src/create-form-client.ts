@@ -4,6 +4,7 @@ import {
   type FormClientFetchOptions,
   type FormFetch,
 } from "./create-form-fetch";
+import type { AnswersValidator } from "./answers";
 import type { FieldTypeDefinition } from "./define";
 import type { InferAnswersMap } from "./infer";
 import {
@@ -81,6 +82,11 @@ export type CreateFormClientOptions<
    * pass the same array as `dimahForm({ fieldTypes })` for local validation.
    */
   fieldTypes?: TFieldTypes;
+  /**
+   * Same function as `dimahForm({ validateAnswers })`. Used by the fill
+   * session for local checks.
+   */
+  validateAnswers?: AnswersValidator;
 } & FormClientFetchOptions;
 
 type ClientHeaders = {
@@ -128,7 +134,11 @@ export type FormClientApi = {
     } & ClientHeaders,
   ) => Promise<FormList>;
   startResponse: (
-    payload: { formId: string; respondentId?: string } & ClientHeaders,
+    payload: {
+      formId: string;
+      respondentId?: string;
+      resume?: boolean;
+    } & ClientHeaders,
   ) => Promise<ResponseRecord>;
   getResponse: (
     payload: { responseId: string } & ClientHeaders,
@@ -180,6 +190,8 @@ export type CreateFormClientResult<
     baseURL: string;
     /** Runtime field types for local session validation. */
     fieldTypes: TFieldTypes;
+    /** Form-level validator for the fill session. */
+    validateAnswers?: AnswersValidator;
     $ERROR_CODES: typeof FORM_ERROR_CODES & PluginErrorCodeMap<TPlugins>;
     $Infer: {
       forms: InferClientForms<TServer, TForms>;
@@ -206,6 +218,7 @@ const CORE_CLIENT_KEYS = new Set([
   "$ERROR_CODES",
   "$Infer",
   "fieldTypes",
+  "validateAnswers",
   // React wrapper — `@dimah-form/react` overwrites these after merge.
   "Provider",
   "useFormClient",
@@ -239,6 +252,7 @@ export function createFormClient<
     plugins,
     forms: _forms,
     fieldTypes = [] as unknown as TFieldTypes,
+    validateAnswers,
     ...fetchOptions
   } = options;
   const base = normalizeFormApiBasePath(
@@ -273,6 +287,7 @@ export function createFormClient<
       $fetch: FormFetch;
       baseURL: string;
       fieldTypes: TFieldTypes;
+      validateAnswers?: AnswersValidator;
       $ERROR_CODES: typeof FORM_ERROR_CODES & PluginErrorCodeMap<TPlugins>;
       $Infer: CreateFormClientResult<
         TPlugins,
@@ -361,6 +376,7 @@ export function createFormClient<
     $fetch,
     baseURL: base,
     fieldTypes,
+    validateAnswers,
     $ERROR_CODES: applied.errorCodes as typeof FORM_ERROR_CODES &
       PluginErrorCodeMap<TPlugins>,
     $Infer: undefined as unknown as CreateFormClientResult<

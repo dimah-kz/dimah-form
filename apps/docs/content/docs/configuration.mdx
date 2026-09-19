@@ -11,16 +11,17 @@ Option tables. Walkthroughs: [Server](/docs/server),
 
 Imported from `@dimah-form/server`.
 
-| Option       | Role                                                                   |
-| ------------ | ---------------------------------------------------------------------- |
-| `database`   | Required persistence (`memoryAdapter()`, `db()`, or a `ResponseStore`) |
-| `forms`      | Code-authored catalog — feeds `$Infer`. Optional                       |
-| `fieldTypes` | Extra validators on this instance                                      |
-| `basePath`   | HTTP prefix. Default `/api/form`                                       |
-| `guard`      | Runs before every operation. Throw `APIError` to reject                |
-| `hooks`      | `on*` after validation before persist; `after*` after persist          |
-| `plugins`    | Additive endpoints, hooks, field types, `$ERROR_CODES`                 |
-| `metaSchema` | Optional Zod for opaque `meta` on form / field / option documents      |
+| Option            | Role                                                                   |
+| ----------------- | ---------------------------------------------------------------------- |
+| `database`        | Required persistence (`memoryAdapter()`, `db()`, or a `ResponseStore`) |
+| `forms`           | Code-authored catalog — feeds `$Infer`. Optional                       |
+| `fieldTypes`      | Extra validators on this instance                                      |
+| `basePath`        | HTTP prefix. Default `/api/form`                                       |
+| `guard`           | Runs before every operation. Throw `APIError` to reject                |
+| `hooks`           | `on*` after validation before persist; `after*` after persist          |
+| `validateAnswers` | Extra `{ field, message, code? }[]` after per-field validators         |
+| `plugins`         | Additive endpoints, hooks, field types, `$ERROR_CODES`                 |
+| `metaSchema`      | Optional Zod for opaque `meta` on form / field / option documents      |
 
 Returns `{ handler, api, $ERROR_CODES, $Infer }`.
 
@@ -35,16 +36,17 @@ these tighten the contents.
 Imported from `@dimah-form/react` (or `@dimah-form/core` for non-React).
 Generic `createFormClient<Form>()` copies server `$Infer`.
 
-| Option        | Role                                                                                         |
-| ------------- | -------------------------------------------------------------------------------------------- |
-| `basePath`    | Must match server `basePath`. Default `/api/form`                                            |
-| `baseURL`     | Absolute origin + path. Wins over `basePath`                                                 |
-| `fieldTypes`  | Runtime extras for the fill session; skip for `$Infer` when using `createFormClient<Form>()` |
-| `forms`       | Type-only catalog when you do not have the server instance type                              |
-| `plugins`     | `defineClientPlugin` companions — not inferred from the server                               |
-| `credentials` | e.g. `"include"` for cookies                                                                 |
-| `headers`     | Static headers or `() => HeadersInit \| Promise<HeadersInit>` per request                    |
-| `fetch`       | Override global `fetch` (SSR, tests)                                                         |
+| Option            | Role                                                                                         |
+| ----------------- | -------------------------------------------------------------------------------------------- |
+| `basePath`        | Must match server `basePath`. Default `/api/form`                                            |
+| `baseURL`         | Absolute origin + path. Wins over `basePath`                                                 |
+| `fieldTypes`      | Runtime extras for the fill session; skip for `$Infer` when using `createFormClient<Form>()` |
+| `validateAnswers` | Same function as `dimahForm({ validateAnswers })` for local session checks                   |
+| `forms`           | Type-only catalog when you do not have the server instance type                              |
+| `plugins`         | `defineClientPlugin` companions — not inferred from the server                               |
+| `credentials`     | e.g. `"include"` for cookies                                                                 |
+| `headers`         | Static headers or `() => HeadersInit \| Promise<HeadersInit>` per request                    |
+| `fetch`           | Override global `fetch` (SSR, tests)                                                         |
 
 React wrapper also adds `Provider`, `useFormClient`, and bound
 `useFormResponse`.

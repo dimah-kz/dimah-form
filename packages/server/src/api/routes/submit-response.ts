@@ -31,6 +31,7 @@ export const submitResponse = createFormEndpoint(
       incoming,
       "submit",
       ctx.context.config.fieldTypes,
+      ctx.context.config.validateAnswers,
     );
     const now = new Date().toISOString();
     const row: ResponseRecord = {

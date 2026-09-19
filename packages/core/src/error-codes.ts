@@ -34,13 +34,41 @@ export const FORM_ERROR_CODES = defineErrorCodes({
   UNKNOWN_FORM: "Unknown form",
   UNKNOWN_RESPONSE: "Unknown response",
   FORM_INACTIVE: "Form is not active",
-  STALE_UPDATE: "Response was updated",
+  STALE_UPDATE: "The record was updated",
   RESPONSE_NOT_DRAFT: "Response is not a draft",
   RESPONSE_NOT_LOCKED: "Response is not locked",
   CODE_AUTHORED_FORM: "Cannot modify a code-authored form",
   FORM_HAS_RESPONSES: "Form still has responses",
   SLUG_TAKEN: "Form slug is already in use",
   UNKNOWN_FIELD_TYPE: "Unknown field type",
+  RESUME_REQUIRES_RESPONDENT: "resume requires respondentId",
 });
 
 export type FormErrorCode = keyof typeof FORM_ERROR_CODES;
+
+/**
+ * Stable `code` values on {@link ValidationIssue}. English `message` may
+ * include interpolated limits; localize in the UI from `code` + `params`.
+ */
+export const FIELD_ISSUE_CODES = defineErrorCodes({
+  REQUIRED: "Required",
+  UNKNOWN_FIELD: "Unknown field",
+  UNKNOWN_FIELD_TYPE: "Unknown field type",
+  INVALID: "Invalid",
+  EXPECTED_STRING: "Expected a string",
+  EXPECTED_NUMBER: "Expected a number",
+  EXPECTED_INTEGER: "Expected an integer",
+  EXPECTED_BOOLEAN: "Expected a boolean",
+  EXPECTED_STRING_ARRAY: "Expected an array of strings",
+  EXPECTED_EMAIL: "Expected an email",
+  EXPECTED_DATE: "Expected a date",
+  TOO_SHORT: "Must be at least the minimum length",
+  TOO_LONG: "Must be at most the maximum length",
+  TOO_SMALL: "Must be at least the minimum",
+  TOO_LARGE: "Must be at most the maximum",
+  INVALID_FORMAT: "Invalid format",
+  INVALID_OPTION: "Invalid option",
+  DUPLICATE_OPTION: "Duplicate option",
+});
+
+export type FieldIssueCode = keyof typeof FIELD_ISSUE_CODES;

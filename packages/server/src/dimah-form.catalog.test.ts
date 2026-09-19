@@ -343,6 +343,38 @@ describe("live catalog", () => {
     expect(updated.createdAt).toBe(saved.createdAt);
     expect(updated.title).toBe("Intake v2");
   });
+
+  it("rejects a stale saveForm token", async () => {
+    const form = dimahForm({ database: memoryAdapter() });
+    const saved = await form.api.saveForm({
+      body: {
+        id: "intake",
+        title: "Intake",
+        fields: [{ id: "n", type: "text" }],
+      },
+    });
+    await expect(
+      form.api.saveForm({
+        body: {
+          id: "intake",
+          title: "Intake v2",
+          fields: [{ id: "n", type: "text" }],
+          updatedAt: "2000-01-01T00:00:00.000Z",
+        },
+      }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "STALE_UPDATE"),
+    );
+    const updated = await form.api.saveForm({
+      body: {
+        id: "intake",
+        title: "Intake v2",
+        fields: [{ id: "n", type: "text" }],
+        updatedAt: saved.updatedAt,
+      },
+    });
+    expect(updated.title).toBe("Intake v2");
+  });
 });
 
 describe("slug and list", () => {

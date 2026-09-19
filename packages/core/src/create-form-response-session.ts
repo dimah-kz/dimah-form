@@ -5,12 +5,13 @@ import {
   seedDefaultAnswers,
   stripHiddenAnswers,
   type AnswerValidationMode,
+  type AnswersValidator,
 } from "./answers";
 import type { FormClientApi } from "./create-form-client";
 import type { FieldTypeDefinition } from "./define";
 import { APIError, FORM_ERROR_CODES, isFormErrorCode } from "./error";
 import { createFieldTypeRegistry } from "./field-types";
-import { formErrorMessage, issuesByField, visibleFields } from "./field-view";
+import { fieldIssueMap, formErrorMessage, visibleFields } from "./field-view";
 import type { FormField, FormSnapshot } from "./schema/definition";
 import type {
   FormAnswers,
@@ -30,6 +31,7 @@ export type FormResponseSessionClient = Pick<
   | "abandonResponse"
 > & {
   fieldTypes?: readonly FieldTypeDefinition[];
+  validateAnswers?: AnswersValidator;
 };
 
 export type FormResponsePending =
@@ -64,19 +66,38 @@ export type CreateFormResponseSessionOptions = {
    */
   fieldTypes?: FormResponseFieldTypes;
   /**
+   * Same function as `dimahForm({ validateAnswers })`. Falls back to
+   * `client.validateAnswers`.
+   */
+  validateAnswers?: AnswersValidator;
+  /**
    * `"submit"` validates on submit (and after a failed submit).
    * `"change"` also validates on each `setAnswer`.
    */
   validate?: FormResponseValidateMode;
+  /**
+   * Attach to the latest draft for `respondentId` on first persist.
+   * Requires `respondentId`. Default false — always create a new row.
+   */
+  resume?: boolean;
 } & FormResponseSessionHooks;
 
-export type FormResponseSessionState = {
+type AnswerValue<TAnswers extends FormAnswers, K extends string> = [K] extends [
+  keyof TAnswers,
+]
+  ? TAnswers[K]
+  : unknown;
+
+export type FormResponseSessionState<
+  TAnswers extends FormAnswers = FormAnswers,
+> = {
   snapshot: FormSnapshot;
   responseId: string | undefined;
-  answers: FormAnswers;
+  answers: TAnswers;
   status: ResponseStatus;
   updatedAt: string | undefined;
   issues: Record<string, string>;
+  issueCodes: Record<string, string>;
   error: string | undefined;
   pending: FormResponsePending | undefined;
   locked: boolean;
@@ -87,11 +108,13 @@ export type FormResponseSessionState = {
 };
 
 /** Headless binding for one field — the contract a UI package would wrap. */
-export type FormFieldBinding = {
+export type FormFieldBinding<TValue = unknown> = {
   id: string;
   field: FormField | undefined;
-  value: unknown;
+  value: TValue | undefined;
   error: string | undefined;
+  errorCode: string | undefined;
+  errorParams: Record<string, string | number> | undefined;
   invalid: boolean;
   /**
    * Submit would reject an empty value — document `required` and currently
@@ -100,13 +123,18 @@ export type FormFieldBinding = {
   required: boolean;
   disabled: boolean;
   visible: boolean;
-  onChange: (value: unknown) => void;
+  onChange: (value: TValue | null) => void;
 };
 
-export type FormResponseActions = {
-  setAnswer: (fieldId: string, value: unknown) => void;
-  setAnswers: (patch: FormAnswers) => void;
-  field: (fieldId: string) => FormFieldBinding;
+export type FormResponseActions<TAnswers extends FormAnswers = FormAnswers> = {
+  setAnswer: <K extends string>(
+    fieldId: K,
+    value: AnswerValue<TAnswers, K> | null,
+  ) => void;
+  setAnswers: (patch: Partial<TAnswers> & FormAnswers) => void;
+  field: <K extends string>(
+    fieldId: K,
+  ) => FormFieldBinding<AnswerValue<TAnswers, K>>;
   validate: (mode?: AnswerValidationMode) => ValidationIssue[];
   saveDraft: () => Promise<ResponseRecord | undefined>;
   submit: () => Promise<ResponseRecord | undefined>;
@@ -116,21 +144,23 @@ export type FormResponseActions = {
 };
 
 /** State + actions. `useFormResponse` returns this; a UI package consumes it. */
-export type FormResponseApi = FormResponseSessionState & FormResponseActions;
+export type FormResponseApi<TAnswers extends FormAnswers = FormAnswers> =
+  FormResponseSessionState<TAnswers> & FormResponseActions<TAnswers>;
 
-export type FormResponseSession = FormResponseActions & {
-  subscribe: (listener: () => void) => () => void;
-  getState: () => FormResponseSessionState;
-  /**
-   * Update client / callbacks / field types without resetting answers.
-   * Does not notify subscribers.
-   */
-  sync: (
-    options: Partial<
-      Omit<CreateFormResponseSessionOptions, "snapshot" | "response">
-    >,
-  ) => void;
-};
+export type FormResponseSession<TAnswers extends FormAnswers = FormAnswers> =
+  FormResponseActions<TAnswers> & {
+    subscribe: (listener: () => void) => () => void;
+    getState: () => FormResponseSessionState<TAnswers>;
+    /**
+     * Update client / callbacks / field types without resetting answers.
+     * Does not notify subscribers.
+     */
+    sync: (
+      options: Partial<
+        Omit<CreateFormResponseSessionOptions, "snapshot" | "response">
+      >,
+    ) => void;
+  };
 
 type InternalState = {
   responseId: string | undefined;
@@ -138,6 +168,8 @@ type InternalState = {
   status: ResponseStatus;
   updatedAt: string | undefined;
   issues: Record<string, string>;
+  issueCodes: Record<string, string>;
+  issueParams: Record<string, Record<string, string | number>>;
   error: string | undefined;
   pending: FormResponsePending | undefined;
   dirty: boolean;
@@ -148,6 +180,8 @@ type SessionConfig = {
   respondentId: string | (() => string) | undefined;
   validate: FormResponseValidateMode;
   fieldTypes: FormResponseFieldTypes | undefined;
+  validateAnswers: AnswersValidator | undefined;
+  resume: boolean;
 } & FormResponseSessionHooks;
 
 const FALLBACK: Record<FormResponsePending, string> = {
@@ -180,6 +214,14 @@ function resolveRespondentId(value: string | (() => string) | undefined) {
   return typeof value === "function" ? value() : value;
 }
 
+function answersEqual(left: FormAnswers, right: FormAnswers) {
+  const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+  for (const key of keys) {
+    if (JSON.stringify(left[key]) !== JSON.stringify(right[key])) return false;
+  }
+  return true;
+}
+
 function answersPatch(from: FormAnswers, to: FormAnswers): FormAnswers {
   const patch: FormAnswers = {};
   const keys = new Set(Object.keys(from)).union(new Set(Object.keys(to)));
@@ -203,9 +245,9 @@ function withConcurrency<T extends { responseId: string }>(
  * Headless fill session — answers, visibility, local validation, and the
  * start / draft / submit / reopen loop. No widgets.
  */
-export function createFormResponseSession(
-  options: CreateFormResponseSessionOptions,
-): FormResponseSession {
+export function createFormResponseSession<
+  TAnswers extends FormAnswers = FormAnswers,
+>(options: CreateFormResponseSessionOptions): FormResponseSession<TAnswers> {
   const initialSnapshot = options.response?.definition ?? options.snapshot;
   const initialAnswers = options.response
     ? stripHiddenAnswers(initialSnapshot, { ...options.response.answers })
@@ -217,6 +259,8 @@ export function createFormResponseSession(
     respondentId: options.respondentId,
     validate: options.validate ?? "submit",
     fieldTypes: options.fieldTypes ?? options.client.fieldTypes,
+    validateAnswers: options.validateAnswers ?? options.client.validateAnswers,
+    resume: options.resume === true,
     onStarted: options.onStarted,
     onSaved: options.onSaved,
     onSubmitted: options.onSubmitted,
@@ -231,6 +275,8 @@ export function createFormResponseSession(
     status: options.response?.status ?? "draft",
     updatedAt: options.response?.updatedAt,
     issues: {},
+    issueCodes: {},
+    issueParams: {},
     error: undefined,
     pending: undefined,
     dirty: false,
@@ -238,7 +284,7 @@ export function createFormResponseSession(
 
   let lastSaved: FormAnswers = { ...initialAnswers };
   let submitAttempted = false;
-  let cached: FormResponseSessionState | undefined;
+  let cached: FormResponseSessionState<TAnswers> | undefined;
   const listeners = new Set<() => void>();
   const onChangeById = new Map<string, (value: unknown) => void>();
 
@@ -247,15 +293,16 @@ export function createFormResponseSession(
     for (const listener of listeners) listener();
   }
 
-  function getState(): FormResponseSessionState {
+  function getState(): FormResponseSessionState<TAnswers> {
     if (!cached) {
       cached = {
         snapshot,
         responseId: internal.responseId,
-        answers: internal.answers,
+        answers: internal.answers as TAnswers,
         status: internal.status,
         updatedAt: internal.updatedAt,
         issues: internal.issues,
+        issueCodes: internal.issueCodes,
         error: internal.error,
         pending: internal.pending,
         locked: isLocked(internal.status),
@@ -284,11 +331,22 @@ export function createFormResponseSession(
     if (next.respondentId !== undefined)
       config.respondentId = next.respondentId;
     if (next.validate !== undefined) config.validate = next.validate;
+    if (next.resume !== undefined) config.resume = next.resume;
     if (next.onStarted !== undefined) config.onStarted = next.onStarted;
     if (next.onSaved !== undefined) config.onSaved = next.onSaved;
     if (next.onSubmitted !== undefined) config.onSubmitted = next.onSubmitted;
     if (next.onReopened !== undefined) config.onReopened = next.onReopened;
     if (next.onAbandoned !== undefined) config.onAbandoned = next.onAbandoned;
+    if (next.validateAnswers !== undefined) {
+      config.validateAnswers = next.validateAnswers;
+    } else if (
+      next.client !== undefined &&
+      next.validateAnswers === undefined &&
+      next.client.validateAnswers !== undefined &&
+      next.client.validateAnswers !== config.validateAnswers
+    ) {
+      config.validateAnswers = next.client.validateAnswers;
+    }
     if (
       next.fieldTypes !== undefined &&
       next.fieldTypes !== config.fieldTypes
@@ -313,6 +371,8 @@ export function createFormResponseSession(
     internal.status = row.status;
     internal.updatedAt = row.updatedAt;
     internal.issues = {};
+    internal.issueCodes = {};
+    internal.issueParams = {};
     internal.error = undefined;
     internal.dirty = false;
     lastSaved = { ...internal.answers };
@@ -328,11 +388,28 @@ export function createFormResponseSession(
   }
 
   function collect(mode: AnswerValidationMode) {
-    return collectAnswerIssues(snapshot, internal.answers, mode, registry);
+    return collectAnswerIssues(
+      snapshot,
+      internal.answers,
+      mode,
+      registry,
+      config.validateAnswers,
+    );
   }
 
   function writeIssues(issues: readonly ValidationIssue[]) {
-    internal.issues = issuesByField(issues);
+    const mapped = fieldIssueMap(issues);
+    const messages: Record<string, string> = {};
+    const codes: Record<string, string> = {};
+    const params: Record<string, Record<string, string | number>> = {};
+    for (const [field, issue] of Object.entries(mapped)) {
+      messages[field] = issue.message;
+      if (issue.code) codes[field] = issue.code;
+      if (issue.params) params[field] = issue.params;
+    }
+    internal.issues = messages;
+    internal.issueCodes = codes;
+    internal.issueParams = params;
   }
 
   function applyPatch(patch: FormAnswers) {
@@ -348,8 +425,16 @@ export function createFormResponseSession(
       writeIssues(collect(config.validate === "change" ? "draft" : "submit"));
     } else {
       const next = { ...internal.issues };
-      for (const key of Object.keys(patch)) delete next[key];
+      const nextCodes = { ...internal.issueCodes };
+      const nextParams = { ...internal.issueParams };
+      for (const key of Object.keys(patch)) {
+        delete next[key];
+        delete nextCodes[key];
+        delete nextParams[key];
+      }
       internal.issues = next;
+      internal.issueCodes = nextCodes;
+      internal.issueParams = nextParams;
     }
     emit();
   }
@@ -381,6 +466,8 @@ export function createFormResponseSession(
       field: fieldDef,
       value: current.answers[fieldId],
       error,
+      errorCode: current.issueCodes[fieldId],
+      errorParams: internal.issueParams[fieldId],
       invalid: Boolean(error),
       required: fieldDef?.required === true && visible,
       disabled: current.locked || current.pending != null,
@@ -410,9 +497,9 @@ export function createFormResponseSession(
         // Fall through to the original error.
       }
     }
-    const nextIssues = issuesByField(caught);
-    if (Object.keys(nextIssues).length > 0) {
-      internal.issues = nextIssues;
+    const mapped = fieldIssueMap(caught);
+    if (Object.keys(mapped).length > 0) {
+      writeIssues(Object.values(mapped));
       internal.error = undefined;
       return;
     }
@@ -425,11 +512,23 @@ export function createFormResponseSession(
       throw APIError.from("CONFLICT", FORM_ERROR_CODES.FORM_INACTIVE);
     }
     const respondentId = resolveRespondentId(config.respondentId);
+    if (config.resume && respondentId === undefined) {
+      throw APIError.from(
+        "BAD_REQUEST",
+        FORM_ERROR_CODES.RESUME_REQUIRES_RESPONDENT,
+      );
+    }
     const started = await config.client.startResponse({
       formId: snapshot.id,
       ...(respondentId !== undefined ? { respondentId } : {}),
+      ...(config.resume ? { resume: true } : {}),
     });
-    acceptStart(started);
+    const seeded = seedDefaultAnswers(started.definition);
+    if (config.resume && !answersEqual(started.answers, seeded)) {
+      applyRecord(started);
+    } else {
+      acceptStart(started);
+    }
   }
 
   function canMutateDraft() {
@@ -556,5 +655,5 @@ export function createFormResponseSession(
     reopen,
     abandon,
     refresh,
-  };
+  } as FormResponseSession<TAnswers>;
 }

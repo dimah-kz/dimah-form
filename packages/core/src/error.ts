@@ -2,10 +2,12 @@ import { APIError as BetterCallAPIError } from "better-call/error";
 import type { ValidationIssue } from "./schema/error";
 
 export {
+  FIELD_ISSUE_CODES,
   FORM_ERROR_CODES,
   defineErrorCodes,
   type ErrorCodeCatalog,
   type ErrorCodeEntry,
+  type FieldIssueCode,
   type FormErrorCode,
 } from "./error-codes";
 

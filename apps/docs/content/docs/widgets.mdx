@@ -1,0 +1,128 @@
+---
+title: Widget map
+description: Switch on field.type, bind FormFieldBinding, and use headless helpers — no library widgets.
+icon: Blocks
+---
+
+The fill loop is `useFormResponse`. You own the controls. Switch on
+`field.type` and bind `field(id)` — `value`, `onChange`, `error`,
+`disabled`, `required`, `visible`.
+
+`meta` is opaque JSON for your UI (`multiline`, placeholders). Type
+config (`minLength`, `options`) stays on the field document.
+
+```tsx title="components/fields.tsx"
+"use client";
+
+import {
+  emptyToNull,
+  fieldLabel,
+  fieldOptions,
+  type FormFieldBinding,
+  type FormResponseApi,
+} from "@dimah-form/react";
+
+function FormFieldControl({
+  field,
+  value,
+  error,
+  disabled,
+  onChange,
+}: FormFieldBinding) {
+  if (!field) return null;
+
+  if (field.type === "boolean") {
+    return (
+      <label>
+        <input
+          type="checkbox"
+          checked={value === true}
+          disabled={disabled}
+          onChange={(event) => onChange(event.target.checked ? true : null)}
+        />
+        {fieldLabel(field)}
+        {error}
+      </label>
+    );
+  }
+
+  if (field.type === "select") {
+    return (
+      <label>
+        {fieldLabel(field)}
+        <select
+          disabled={disabled}
+          value={typeof value === "string" ? value : ""}
+          onChange={(event) => onChange(emptyToNull(event.target.value))}
+        >
+          <option value="">Select…</option>
+          {fieldOptions(field).map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        {error}
+      </label>
+    );
+  }
+
+  return (
+    <label>
+      {fieldLabel(field)}
+      <input
+        value={typeof value === "string" ? value : ""}
+        disabled={disabled}
+        onChange={(event) => onChange(emptyToNull(event.target.value))}
+      />
+      {error}
+    </label>
+  );
+}
+
+export function FormFields({ form }: { form: FormResponseApi }) {
+  return (
+    <>
+      {form.visibleFields.map((field) => (
+        <FormFieldControl key={field.id} {...form.field(field.id)} />
+      ))}
+    </>
+  );
+}
+```
+
+`emptyToNull("")` (and `[]`) so a draft patch deletes the key. Localize
+`binding.error` from `binding.errorCode` (`FIELD_ISSUE_CODES`) when the
+UI is not English.
+
+`formatAnswer(field, value)` turns builtin answers into English labels
+(select option text, Yes/No). Empty values are `""` — pick your own
+placeholder. Custom types stringify primitives; format those in the app
+(the Next.js example does that for `rating`).
+
+`formCompletion(snapshot, answers)` counts visible required fields.
+
+The [Next.js example](/docs/examples) is the same map with shadcn Field
+primitives. Those components are not part of this package.
+
+---
+
+## See also
+
+<Cards>
+  <Card
+    title="React client"
+    href="/docs/react"
+    description="Session options, state, and helpers."
+  />
+  <Card
+    title="Custom fields"
+    href="/docs/custom-fields"
+    description="Add a type, then a branch in your map."
+  />
+  <Card
+    title="Errors"
+    href="/docs/errors"
+    description="FIELD_ISSUE_CODES for per-field localization."
+  />
+</Cards>

@@ -1,5 +1,6 @@
 import {
   APIError,
+  FIELD_ISSUE_CODES,
   FORM_ERROR_CODES,
   defineErrorCodes,
   isAPIError,
@@ -9,6 +10,7 @@ import {
 
 export {
   APIError,
+  FIELD_ISSUE_CODES,
   FORM_ERROR_CODES,
   defineErrorCodes,
   isAPIError,
@@ -62,6 +64,9 @@ export const errors = {
       ...FORM_ERROR_CODES.UNKNOWN_FIELD_TYPE,
       params: { type },
     }),
+
+  resumeRequiresRespondent: () =>
+    APIError.from("BAD_REQUEST", FORM_ERROR_CODES.RESUME_REQUIRES_RESPONDENT),
 
   internalError: () =>
     APIError.from("INTERNAL_SERVER_ERROR", FORM_ERROR_CODES.INTERNAL_ERROR),

@@ -6,6 +6,7 @@ import {
 } from "@dimah-form/core";
 
 import { createFormEndpoint } from "@/api/create-form-endpoint";
+import { errors } from "@/errors";
 import { requireActiveForm, resolveLiveForm } from "@/forms";
 import { commitLifecycle, persistedResponse } from "@/helpers/lifecycle";
 
@@ -19,6 +20,19 @@ export const startResponse = createFormEndpoint(
       ctx.context.config,
       ctx.body.formId,
     );
+    if (ctx.body.resume) {
+      const respondentId = ctx.body.respondentId;
+      if (!respondentId) {
+        throw errors.resumeRequiresRespondent();
+      }
+      const open = await ctx.context.config.database.listResponses({
+        formId: definition.id,
+        respondentId,
+        status: "draft",
+        limit: 1,
+      });
+      if (open[0]) return open[0];
+    }
     requireActiveForm(definition);
     const now = new Date().toISOString();
     const row: ResponseRecord = {

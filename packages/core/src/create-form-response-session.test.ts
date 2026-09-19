@@ -228,7 +228,7 @@ describe("createFormResponseSession", () => {
     await session.saveDraft();
     expect(client.getResponse).toHaveBeenCalledWith({ responseId: "res-1" });
     expect(session.getState().answers).toEqual({ role: "pm", name: "Lin" });
-    expect(session.getState().error).toBe("Response was updated");
+    expect(session.getState().error).toBe("The record was updated");
     expect(session.getState().dirty).toBe(false);
   });
 
@@ -465,5 +465,72 @@ describe("createFormResponseSession", () => {
     release(row({ updatedAt: "2026-01-01T00:00:01.000Z" }));
     await first;
     expect(client.saveDraft).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends resume on start when configured", async () => {
+    const existing = row({
+      answers: { name: "Lin", role: "eng" },
+      updatedAt: "2026-01-01T00:00:08.000Z",
+    });
+    const onStarted = vi.fn();
+    const client = mockClient({
+      startResponse: vi.fn(async () => existing),
+      saveDraft: vi.fn(async () => existing),
+    });
+    const session = createFormResponseSession({
+      client,
+      snapshot,
+      respondentId: "user-1",
+      resume: true,
+      onStarted,
+    });
+    session.setAnswer("name", "Ada");
+    await session.saveDraft();
+    expect(client.startResponse).toHaveBeenCalledWith({
+      formId: "feedback",
+      respondentId: "user-1",
+      resume: true,
+    });
+    expect(onStarted).not.toHaveBeenCalled();
+    expect(session.getState().answers).toEqual({ name: "Lin", role: "eng" });
+  });
+
+  it("requires respondentId when resume is set", async () => {
+    const client = mockClient();
+    const session = createFormResponseSession({
+      client,
+      snapshot,
+      resume: true,
+    });
+    await session.saveDraft();
+    expect(client.startResponse).not.toHaveBeenCalled();
+    expect(session.getState().error).toBe("resume requires respondentId");
+  });
+
+  it("exposes issue codes on the field binding", async () => {
+    const session = createFormResponseSession({
+      client: mockClient(),
+      snapshot,
+    });
+    await session.submit();
+    expect(session.getState().issueCodes).toEqual({ name: "REQUIRED" });
+    expect(session.field("name").errorCode).toBe("REQUIRED");
+  });
+
+  it("runs validateAnswers locally", async () => {
+    const session = createFormResponseSession({
+      client: mockClient(),
+      snapshot,
+      validateAnswers: (_definition, answers) => {
+        if (answers.name === "Ada") {
+          return [{ field: "name", message: "Blocked", code: "BLOCKED" }];
+        }
+        return undefined;
+      },
+    });
+    session.setAnswer("name", "Ada");
+    await session.submit();
+    expect(session.getState().issues).toEqual({ name: "Blocked" });
+    expect(session.getState().issueCodes).toEqual({ name: "BLOCKED" });
   });
 });

@@ -30,12 +30,14 @@ is 50, max 100. `nextOffset` is `null` when there is no next page.
 | Client                                    | `form.api`              | Method | Path           | Notes                          |
 | ----------------------------------------- | ----------------------- | ------ | -------------- | ------------------------------ |
 | `getForm({ formId })`                     | `{ query: { formId } }` | GET    | `/form`        | id or slug                     |
-| `saveForm(snapshot)`                      | `{ body: snapshot }`    | POST   | `/form`        | `FormSnapshot` (`id` required) |
+| `saveForm(snapshot)`                      | `{ body: snapshot }`    | POST   | `/form`        | optional `updatedAt` CAS       |
 | `deleteForm({ formId })`                  | `{ body: { formId } }`  | POST   | `/form/delete` | stored forms with no responses |
 | `listForms({ status?, limit?, offset? })` | `{ query }`             | GET    | `/forms`       | `status`, pagination           |
 
 `saveForm` / `deleteForm` on a code-authored id throw `CODE_AUTHORED_FORM`.
-`deleteForm` while responses exist throws `FORM_HAS_RESPONSES`.
+`deleteForm` while responses exist throws `FORM_HAS_RESPONSES`. Optional
+`updatedAt` on `saveForm` is the same CAS token as response mutations
+(`STALE_UPDATE`). Omit it for last-write-wins.
 
 ---
 
@@ -43,7 +45,7 @@ is 50, max 100. `nextOffset` is `null` when there is no next page.
 
 | Client                                                                          | `form.api`                  | Method | Path                | Notes                                            |
 | ------------------------------------------------------------------------------- | --------------------------- | ------ | ------------------- | ------------------------------------------------ |
-| `startResponse({ formId, respondentId? })`                                      | `{ body }`                  | POST   | `/response/start`   | id or slug; copies live definition               |
+| `startResponse({ formId, respondentId?, resume? })`                             | `{ body }`                  | POST   | `/response/start`   | id or slug; `resume` returns the latest draft    |
 | `getResponse({ responseId })`                                                   | `{ query: { responseId } }` | GET    | `/response`         | full record                                      |
 | `listResponses({ formId?, respondentId?, status?, include?, limit?, offset? })` | `{ query }`                 | GET    | `/responses`        | default summaries; `include: "full"` for answers |
 | `saveDraft({ responseId, answers, updatedAt? })`                                | `{ body }`                  | POST   | `/response/draft`   | patch; `null` deletes a key                      |
@@ -59,7 +61,10 @@ Submit and draft validate against `response.definition`. See
 
 ## Payloads
 
-`startResponse` body: `{ formId, respondentId? }`.
+`startResponse` body: `{ formId, respondentId?, resume? }`. `resume: true`
+requires `respondentId` and returns that respondent's latest draft when
+one exists (same snapshot and answers). Otherwise it creates a new
+response. Does not run `onStart` when an existing draft is returned.
 
 Draft body: `{ responseId, answers, updatedAt? }` where `answers` is
 `Record<string, unknown>`.

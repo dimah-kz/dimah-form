@@ -81,13 +81,21 @@ union.
 
 ```ts
 type Feedback = Form["$Infer"]["answers"]["feedback"];
-// { name: string; ok: boolean; team?: string }
+// { name: string; ok: boolean; role?: "eng" | "pm"; team?: string }
 ```
 
 Browser `$Infer` is `createFormClient<typeof form>()` (type-only). Pass
 `forms` / `fieldTypes` on the client only when you do not have the server
 instance type. Still pass `fieldTypes` at **runtime** for
 `useFormResponse` local validation.
+
+Type the fill session with the same catalog key:
+
+```ts
+const q = useFormResponse<Form["$Infer"]["answers"]["feedback"]>({
+  snapshot,
+});
+```
 
 ---
 

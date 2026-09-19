@@ -38,9 +38,9 @@ First-class `database` on `dimahForm()`. Official adapters: `memoryAdapter()` in
 
 `defineFieldType` lives in `@dimah-form/core` and is re-exported from `server` / `react`. Register extra types on `dimahForm({ fieldTypes })` — that instance is the registry. Built-ins are field types too; duplicate `type` strings throw at init.
 
-`defineForm` does not take `fieldTypes`. Unknown types are allowed in the document and rejected at `dimahForm()` if unregistered. Optional `fieldSchema` is applied at init / `saveForm`. Optional `meta` on the form, field, and option is opaque JSON for consumer UI — not type config. Optional `metaSchema` on `dimahForm()` validates that bag at init / `saveForm`. `showWhen` is sibling visibility on the field document: nested rules follow the parent; `defineForm` / `saveForm` reject unknown targets, self-references, cycles, extra keys, and `equals` against a `multiSelect`. `$Infer` omits required keys that have `showWhen`.
+`defineForm` does not take `fieldTypes`. Unknown types are allowed in the document and rejected at `dimahForm()` if unregistered. Optional `fieldSchema` is applied at init / `saveForm`. Optional `meta` on the form, field, and option is opaque JSON for consumer UI — not type config. Optional `metaSchema` on `dimahForm()` validates that bag at init / `saveForm`. `showWhen` is sibling visibility on the field document: nested rules follow the parent; `defineForm` / `saveForm` reject unknown targets, self-references, cycles, extra keys, and `equals` against a `multiSelect`. `$Infer` omits required keys that have `showWhen`. Select / multiSelect `$Infer` is the union of `options[].value`. Optional `validateAnswers` on `dimahForm()` / `createFormClient` / the fill session runs after per-field validators (same snapshot). Field issues include stable `code` (`FIELD_ISSUE_CODES`); a string returned from `validate` is `INVALID`.
 
-Draft is a patch (`null` deletes a key). Submit is a full replace, or omit `answers` to submit the stored draft. `reopenResponse` returns submitted / abandoned to draft; answers and the snapshot stay.
+Draft is a patch (`null` deletes a key). Submit is a full replace, or omit `answers` to submit the stored draft. `reopenResponse` returns submitted / abandoned to draft; answers and the snapshot stay. `startResponse({ resume: true })` requires `respondentId` and returns the latest draft for that pair when one exists.
 
 ## Plugin
 
@@ -56,4 +56,4 @@ Feature plugins live in their own package and peer-depend on server.
 
 ## Strings and errors
 
-Stable `code` + English `message` in `@dimah-form/core`. Do not localize library error `message` strings in packages.
+Stable `code` + English `message` in `@dimah-form/core`. Do not localize library error `message` strings in packages. `ValidationIssue` carries `code` (and optional `params`) so UIs can localize field errors from the catalog, not from `message`.

@@ -46,8 +46,10 @@ rows do not.
   ]}
 />
 
-1. **`startResponse`** — form must be `active`. Seeds `defaultValue`, then
-   drops hidden `showWhen` fields. Status `draft`.
+1. **`startResponse`** — form must be `active` unless `resume` finds an
+   existing draft. Seeds `defaultValue`, then drops hidden `showWhen`
+   fields. Status `draft`. `resume: true` with `respondentId` returns
+   that respondent's latest draft (same snapshot) instead of creating.
 2. **`saveDraft`** — patch. A `null` value deletes a key. Empty required
    fields are allowed.
 3. **`submitResponse`** — full replace, or omit `answers` to submit the
@@ -64,9 +66,9 @@ Draft vs submit is the same `parseAnswers` helper with mode `"draft"` or
 
 ## Optimistic concurrency
 
-Optional `updatedAt` on draft, submit, abandon, and reopen must match the
-stored row. A mismatch throws `STALE_UPDATE` (HTTP 409). Omit `updatedAt`
-to skip the check.
+Optional `updatedAt` on draft, submit, abandon, reopen, and `saveForm`
+must match the stored row. A mismatch throws `STALE_UPDATE` (HTTP 409).
+Omit `updatedAt` to skip the check.
 
 `form.api` re-reads the row after persist so the next token matches
 `get()` (adapters such as SQLite may round timestamps).

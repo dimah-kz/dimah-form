@@ -493,3 +493,36 @@ describe("concurrency and delete", () => {
     );
   });
 });
+
+describe("resume draft", () => {
+  it("returns the latest draft for the respondent", async () => {
+    const form = createInstance();
+    const first = await form.api.startResponse({
+      body: { formId: "onboarding", respondentId: "user-1" },
+    });
+    await form.api.saveDraft({
+      body: { responseId: first.id, answers: { name: "Ada" } },
+    });
+    const resumed = await form.api.startResponse({
+      body: { formId: "onboarding", respondentId: "user-1", resume: true },
+    });
+    expect(resumed.id).toBe(first.id);
+    expect(resumed.answers).toEqual({ name: "Ada" });
+
+    const other = await form.api.startResponse({
+      body: { formId: "onboarding", respondentId: "user-2", resume: true },
+    });
+    expect(other.id).not.toBe(first.id);
+  });
+
+  it("rejects resume without respondentId", async () => {
+    const form = createInstance();
+    await expect(
+      form.api.startResponse({
+        body: { formId: "onboarding", resume: true },
+      }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "RESUME_REQUIRES_RESPONDENT"),
+    );
+  });
+});

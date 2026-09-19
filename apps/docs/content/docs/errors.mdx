@@ -21,7 +21,7 @@ import {
 throw APIError.from("UNAUTHORIZED", FORM_ERROR_CODES.UNAUTHORIZED);
 throw APIError.from("BAD_REQUEST", {
   ...FORM_ERROR_CODES.VALIDATION_ERROR,
-  issues: [{ field: "name", message: "Required" }],
+  issues: [{ field: "name", message: "Required", code: "REQUIRED" }],
 });
 ```
 
@@ -55,26 +55,41 @@ A plain `Error` thrown from `guard` or `on*` maps to `INTERNAL_ERROR`
 
 Codes core endpoints throw (or that you throw from `guard`):
 
-| `code`                | HTTP | Trigger                                          |
-| --------------------- | ---- | ------------------------------------------------ |
-| `NOT_FOUND`           | 404  | Unknown API path                                 |
-| `UNKNOWN_FORM`        | 404  | `formId` / slug is not in config or the database |
-| `UNKNOWN_RESPONSE`    | 404  | `responseId` does not exist                      |
-| `UNAUTHORIZED`        | 401  | Thrown by your `guard`                           |
-| `FORBIDDEN`           | 403  | Thrown by your `guard`                           |
-| `STALE_UPDATE`        | 409  | `updatedAt` does not match the stored row        |
-| `FORM_INACTIVE`       | 409  | Start on a form that is not `active`             |
-| `RESPONSE_NOT_DRAFT`  | 409  | Draft / submit / abandon on a locked row         |
-| `RESPONSE_NOT_LOCKED` | 409  | Reopen on a row that is already `draft`          |
-| `CODE_AUTHORED_FORM`  | 409  | `saveForm` / `deleteForm` on a config id         |
-| `FORM_HAS_RESPONSES`  | 409  | `deleteForm` while responses still exist         |
-| `SLUG_TAKEN`          | 409  | `saveForm` slug collides                         |
-| `VALIDATION_ERROR`    | 400  | Invalid payload or answer issues (`issues[]`)    |
-| `UNKNOWN_FIELD_TYPE`  | 400  | Field `type` is not registered (request path)    |
-| `INTERNAL_ERROR`      | 500  | Unhandled throw or failed `on*` / persist        |
+| `code`                       | HTTP | Trigger                                                  |
+| ---------------------------- | ---- | -------------------------------------------------------- |
+| `NOT_FOUND`                  | 404  | Unknown API path                                         |
+| `UNKNOWN_FORM`               | 404  | `formId` / slug is not in config or the database         |
+| `UNKNOWN_RESPONSE`           | 404  | `responseId` does not exist                              |
+| `UNAUTHORIZED`               | 401  | Thrown by your `guard`                                   |
+| `FORBIDDEN`                  | 403  | Thrown by your `guard`                                   |
+| `STALE_UPDATE`               | 409  | `updatedAt` does not match the stored response or form   |
+| `FORM_INACTIVE`              | 409  | Start on a form that is not `active`                     |
+| `RESPONSE_NOT_DRAFT`         | 409  | Draft / submit / abandon on a locked row                 |
+| `RESPONSE_NOT_LOCKED`        | 409  | Reopen on a row that is already `draft`                  |
+| `CODE_AUTHORED_FORM`         | 409  | `saveForm` / `deleteForm` on a config id                 |
+| `FORM_HAS_RESPONSES`         | 409  | `deleteForm` while responses still exist                 |
+| `SLUG_TAKEN`                 | 409  | `saveForm` slug collides                                 |
+| `VALIDATION_ERROR`           | 400  | Invalid payload or answer issues (`issues[]`)            |
+| `UNKNOWN_FIELD_TYPE`         | 400  | Field `type` is not registered (request path)            |
+| `RESUME_REQUIRES_RESPONDENT` | 400  | `startResponse({ resume: true })` without `respondentId` |
+| `INTERNAL_ERROR`             | 500  | Unhandled throw or failed `on*` / persist                |
 
 `params` carries ids when relevant (`formId`, `responseId`, `slug`,
-`type`). `VALIDATION_ERROR` may include `issues: { field, message }[]`.
+`type`). `VALIDATION_ERROR` may include
+`issues: { field, message, code?, params? }[]`. Localize field errors
+from `code` (`FIELD_ISSUE_CODES`), not from English `message`.
+
+Built-in field codes include `REQUIRED`, `UNKNOWN_FIELD`,
+`UNKNOWN_FIELD_TYPE`, `INVALID` (string returned from a custom
+`validate`), `EXPECTED_STRING`, `EXPECTED_NUMBER`, `EXPECTED_INTEGER`,
+`EXPECTED_BOOLEAN`, `EXPECTED_STRING_ARRAY`, `EXPECTED_EMAIL`,
+`EXPECTED_DATE`, `TOO_SHORT`, `TOO_LONG`, `TOO_SMALL`, `TOO_LARGE`,
+`INVALID_FORMAT`, `INVALID_OPTION`, and `DUPLICATE_OPTION`. Length and
+range issues set `params.min` / `params.max`.
+
+`useFormResponse` maps `issues` onto `field(id).error` and
+`field(id).errorCode`. For raw client calls, use `issuesByField` /
+`fieldIssueMap` / `formErrorMessage` from [React client](/docs/react).
 
 `FORM_ERROR_CODES` also includes a `CONFLICT` entry (`code: "CONFLICT"`).
 Core routes do not throw that `code`; they throw `STALE_UPDATE`,
@@ -82,10 +97,6 @@ Core routes do not throw that `code`; they throw `STALE_UPDATE`,
 
 Unknown field types in **config** throw a plain `Error` at `dimahForm()`
 init, not an HTTP response.
-
-`useFormResponse` maps `issues` onto `field(id).error`. For raw client
-calls, use `issuesByField` / `formErrorMessage` from
-[React client](/docs/react).
 
 Plugins add codes with `defineErrorCodes` on both the server plugin and
 the client plugin. Codes cannot shadow core or another plugin. See

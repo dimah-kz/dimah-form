@@ -24,6 +24,7 @@ export const LLM_PAGE_PRIORITY = [
   "/docs/forms",
   "/docs/database",
   "/docs/react",
+  "/docs/widgets",
   "/docs/custom-fields",
   "/docs/auth",
   "/docs/plugins",

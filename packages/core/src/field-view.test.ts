@@ -2,9 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import { APIError, FORM_ERROR_CODES } from "./error";
 import {
+  emptyToNull,
+  fieldIssueMap,
   fieldLabel,
   fieldOptions,
+  formCompletion,
   formErrorMessage,
+  formatAnswer,
   issuesByField,
   visibleFields,
 } from "./field-view";
@@ -96,6 +100,14 @@ describe("issuesByField", () => {
     ).toEqual({ name: "Required" });
     expect(issuesByField(new Error("nope"))).toEqual({});
   });
+
+  it("keeps code and params on fieldIssueMap", () => {
+    expect(
+      fieldIssueMap([{ field: "name", message: "Required", code: "REQUIRED" }]),
+    ).toEqual({
+      name: { field: "name", message: "Required", code: "REQUIRED" },
+    });
+  });
 });
 
 describe("formErrorMessage", () => {
@@ -107,5 +119,52 @@ describe("formErrorMessage", () => {
     ).toBe("Form is not active");
     expect(formErrorMessage(new Error("boom"), "nope")).toBe("boom");
     expect(formErrorMessage("x")).toBe("Request failed");
+  });
+});
+
+describe("emptyToNull", () => {
+  it("turns empty strings and arrays into null", () => {
+    expect(emptyToNull("")).toBeNull();
+    expect(emptyToNull([])).toBeNull();
+    expect(emptyToNull("Ada")).toBe("Ada");
+    expect(emptyToNull(["ts"])).toEqual(["ts"]);
+  });
+});
+
+describe("formCompletion", () => {
+  it("counts visible required fields", () => {
+    const fields = [
+      { id: "name", type: "text", required: true },
+      { id: "ok", type: "boolean", required: true },
+      { id: "note", type: "text" },
+    ];
+    expect(formCompletion({ fields }, { name: "Ada" })).toEqual({
+      required: 2,
+      answered: 1,
+      complete: false,
+    });
+    expect(formCompletion({ fields }, { name: "Ada", ok: false })).toEqual({
+      required: 2,
+      answered: 2,
+      complete: true,
+    });
+  });
+});
+
+describe("formatAnswer", () => {
+  it("uses option labels and Yes/No", () => {
+    expect(
+      formatAnswer(
+        {
+          id: "role",
+          type: "select",
+          options: [{ value: "eng", label: "Engineer" }],
+        },
+        "eng",
+      ),
+    ).toBe("Engineer");
+    expect(formatAnswer({ id: "ok", type: "boolean" }, true)).toBe("Yes");
+    expect(formatAnswer({ id: "ok", type: "boolean" }, false)).toBe("No");
+    expect(formatAnswer({ id: "name", type: "text" }, null)).toBe("");
   });
 });

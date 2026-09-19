@@ -32,9 +32,10 @@ are the untyped escape hatch — they require `formClient.Provider`.
 ```tsx title="components/questionnaire.tsx"
 "use client";
 
-import { fieldLabel } from "@dimah-form/react";
+import { emptyToNull, fieldLabel } from "@dimah-form/react";
 import type { FormSnapshot, ResponseRecord } from "@dimah-form/react";
 import { useFormResponse } from "@/lib/form-client";
+import type { Form } from "@/lib/form";
 
 export function Questionnaire({
   form,
@@ -43,7 +44,7 @@ export function Questionnaire({
   form: FormSnapshot;
   response?: ResponseRecord;
 }) {
-  const q = useFormResponse({
+  const q = useFormResponse<Form["$Infer"]["answers"]["feedback"]>({
     snapshot: form,
     response,
     onSubmitted: (row) => {
@@ -69,9 +70,7 @@ export function Questionnaire({
               value={typeof binding.value === "string" ? binding.value : ""}
               disabled={binding.disabled}
               onChange={(event) =>
-                binding.onChange(
-                  event.target.value === "" ? null : event.target.value,
-                )
+                binding.onChange(emptyToNull(event.target.value))
               }
             />
             {binding.error}
@@ -94,19 +93,20 @@ export function Questionnaire({
 }
 ```
 
-Pass `response` to resume a draft or to reopen a locked row. Omit it to
-start on first save/submit. Optional `respondentId` (string or
-`() => string`) is sent on start.
+Pass `response` to resume a known row. Omit it to start on first
+save/submit. Optional `respondentId` (string or `() => string`) is sent
+on start. Set `resume: true` with `respondentId` to attach to that
+respondent's latest draft instead of creating a new row.
 
 When a `response` is passed, that row's `definition` wins field values
 over the live `snapshot` you still pass for inactive checks.
 
-Clearing an input should send `null` so a later draft patch deletes the
-key.
+Clearing an input should send `null` (`emptyToNull`) so a later draft
+patch deletes the key.
 
-Switch on `field.type` in your widget map. The [Next.js example](/docs/examples)
-does this with shadcn Field primitives — those components are not part of
-this package.
+Switch on `field.type` in your [widget map](/docs/widgets). The
+[Next.js example](/docs/examples) does this with shadcn Field primitives
+— those components are not part of this package.
 
 The same session exists as `createFormResponseSession` from
 `@dimah-form/core` (also re-exported from `@dimah-form/react`) if you are
@@ -121,7 +121,9 @@ not using React.
 | `snapshot`                   | Live form. When `response` is passed, the row's `definition` wins field values |
 | `response`                   | Existing row (`id`, `answers`, `status`, `updatedAt`, `definition`)            |
 | `respondentId`               | String or `() => string`, sent on `startResponse`                              |
+| `resume`                     | Attach to the latest draft for `respondentId`. Requires `respondentId`         |
 | `fieldTypes`                 | Same extras as `dimahForm({ fieldTypes })`. Falls back to `client.fieldTypes`  |
+| `validateAnswers`            | Same function as `dimahForm({ validateAnswers })`. Falls back to the client    |
 | `validate`                   | `"submit"` (default) or `"change"`                                             |
 | `onStarted`                  | After `startResponse`. Do not navigate here if a save/submit follows           |
 | `onSaved` / `onSubmitted`    | After a successful draft / submit                                              |
@@ -138,35 +140,37 @@ Client fetch options (`basePath`, `baseURL`, `credentials`, `headers`,
 | --------------- | ------------------------------------------------------------------ |
 | `snapshot`      | Definition in use (from the response once started)                 |
 | `responseId`    | Undefined until start                                              |
-| `answers`       | Current values (`FormAnswers`)                                     |
+| `answers`       | Current values — type with `Form["$Infer"]["answers"][key]`        |
 | `status`        | `draft` \| `submitted` \| `abandoned`                              |
 | `locked`        | Submitted or abandoned                                             |
 | `inactive`      | No row yet and the live form is not `active`                       |
 | `dirty`         | Local answers differ from last persist                             |
 | `pending`       | `"save"` \| `"submit"` \| `"reopen"` \| `"abandon"` \| `"refresh"` |
-| `issues`        | Per-field messages                                                 |
+| `issues`        | Per-field English messages                                         |
+| `issueCodes`    | Per-field `FIELD_ISSUE_CODES` (and custom codes)                   |
 | `error`         | Request-level English message                                      |
 | `visibleFields` | Fields whose `showWhen` matches                                    |
 
-| Action                     | Behavior                                                                  |
-| -------------------------- | ------------------------------------------------------------------------- |
-| `field(id)`                | `{ value, error, invalid, required, disabled, visible, onChange, field }` |
-| `setAnswer` / `setAnswers` | Patch. No-op when `locked`                                                |
-| `validate()`               | Collect issues (`submit` mode by default)                                 |
-| `saveDraft()`              | Start if needed, send an answers patch + `updatedAt`                      |
-| `submit()`                 | Local submit validation, then full replace + `updatedAt`                  |
-| `reopen()`                 | Locked rows only                                                          |
-| `abandon()`                | Draft with an id                                                          |
-| `refresh()`                | `getResponse` and replace local state                                     |
+| Action                     | Behavior                                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------------------- |
+| `field(id)`                | `{ value, error, errorCode, errorParams, invalid, required, disabled, visible, onChange, field }` |
+| `setAnswer` / `setAnswers` | Patch. No-op when `locked`                                                                        |
+| `validate()`               | Collect issues (`submit` mode by default)                                                         |
+| `saveDraft()`              | Start if needed, send an answers patch + `updatedAt`                                              |
+| `submit()`                 | Local submit validation, then full replace + `updatedAt`                                          |
+| `reopen()`                 | Locked rows only                                                                                  |
+| `abandon()`                | Draft with an id                                                                                  |
+| `refresh()`                | `getResponse` and replace local state                                                             |
 
 Actions return `undefined` when a request is already pending, the row is
 in the wrong status, or local submit validation fails.
 
 On `STALE_UPDATE`, the session refreshes from `getResponse` and sets
-`error`. Field-level `VALIDATION_ERROR` maps onto `issues`.
+`error`. Field-level `VALIDATION_ERROR` maps onto `issues` / `issueCodes`.
 
-Typed catalog answers are `formClient.$Infer.answers`, not the
-fill-session `answers` object (that stays `FormAnswers`).
+Type catalog answers as `useFormResponse<Form["$Infer"]["answers"]["intake"]>`
+(or `InferClientFormAnswers<typeof formClient, "intake">`). Untyped
+sessions stay `FormAnswers`.
 
 ---
 
@@ -179,9 +183,13 @@ or build a widget map.
 
 ```ts
 import {
+  emptyToNull,
+  fieldIssueMap,
   fieldLabel,
   fieldOptions,
+  formCompletion,
   formErrorMessage,
+  formatAnswer,
   isFieldVisible,
   issuesByField,
   visibleFields,
@@ -192,7 +200,11 @@ fieldOptions(field); // { value, label, meta? }[] for select / multiSelect
 visibleFields(snapshot, answers);
 isFieldVisible(field, answers);
 issuesByField(issues); // { [fieldId]: message } — array or APIError
+fieldIssueMap(issues); // last issue per field, including code
 formErrorMessage(error, "Request failed");
+emptyToNull(""); // null — draft patch deletes the key
+formatAnswer(field, value); // English select labels / Yes / No
+formCompletion(snapshot, answers); // visible required vs answered
 ```
 
 ```ts
@@ -205,13 +217,13 @@ import {
 } from "@dimah-form/react";
 ```
 
-| Helper                | Role                                                        |
-| --------------------- | ----------------------------------------------------------- |
-| `applyAnswerPatch`    | Merge a draft patch. `null` / `undefined` deletes a key     |
-| `stripHiddenAnswers`  | Drop keys hidden by `showWhen`                              |
-| `seedDefaultAnswers`  | Start payload from `defaultValue`, then strip hidden        |
-| `collectAnswerIssues` | `{ field, message }[]` for `"draft"` or `"submit"`          |
-| `parseAnswers`        | Strip, validate, drop empty keys. Throws `VALIDATION_ERROR` |
+| Helper                | Role                                                               |
+| --------------------- | ------------------------------------------------------------------ |
+| `applyAnswerPatch`    | Merge a draft patch. `null` / `undefined` deletes a key            |
+| `stripHiddenAnswers`  | Drop keys hidden by `showWhen`                                     |
+| `seedDefaultAnswers`  | Start payload from `defaultValue`, then strip hidden               |
+| `collectAnswerIssues` | `{ field, message, code?, params? }[]` for `"draft"` or `"submit"` |
+| `parseAnswers`        | Strip, validate, drop empty keys. Throws `VALIDATION_ERROR`        |
 
 Submit validation against a snapshot belongs on the server. These helpers
 are for local checks and for stores that speak the same protocol.
@@ -222,9 +234,9 @@ are for local checks and for stores that speak the same protocol.
 
 <Cards>
   <Card
-    title="Custom fields"
-    href="/docs/custom-fields"
-    description="Share defineFieldType with the client."
+    title="Widget map"
+    href="/docs/widgets"
+    description="Bind field(id) to your controls."
   />
   <Card
     title="Auth"

@@ -1,19 +1,49 @@
+import type { FieldIssueInput, FieldTypeDefinition } from "./define";
 import { APIError } from "./error";
-import { FORM_ERROR_CODES } from "./error-codes";
-import type { FieldTypeDefinition } from "./define";
+import { FIELD_ISSUE_CODES, FORM_ERROR_CODES } from "./error-codes";
 import { createFieldTypeRegistry } from "./field-types";
 import type { FormField, FormSnapshot } from "./schema/definition";
 import type { ValidationIssue } from "./schema/error";
+import type { FormAnswers } from "./schema/protocol";
 import { isFieldVisible } from "./show-when";
 
 export type AnswerValidationMode = "draft" | "submit";
 
 export { isFieldVisible };
 
+/**
+ * Extra checks after per-field validators. Return `{ field, message, code? }`
+ * issues. Runs on the same snapshot as field validation (client and server).
+ */
+export type AnswersValidator = (
+  definition: FormSnapshot,
+  answers: FormAnswers,
+  mode: AnswerValidationMode,
+) => ValidationIssue[] | void;
+
 const builtinRegistry = createFieldTypeRegistry();
 
 function isAbsent(value: unknown): boolean {
   return value === undefined || value === null;
+}
+
+function toValidationIssue(
+  field: string,
+  result: string | FieldIssueInput,
+): ValidationIssue {
+  if (typeof result === "string") {
+    return {
+      field,
+      message: result,
+      code: FIELD_ISSUE_CODES.INVALID.code,
+    };
+  }
+  return {
+    field,
+    message: result.message,
+    code: result.code ?? FIELD_ISSUE_CODES.INVALID.code,
+    ...(result.params ? { params: result.params } : {}),
+  };
 }
 
 /**
@@ -61,15 +91,22 @@ function isValueEmpty(
   return fieldTypes.get(field.type)?.isEmpty?.(value, field) ?? false;
 }
 
-function typeMessage(
+function typeIssue(
   field: FormField,
   value: unknown,
   answers: Record<string, unknown>,
   fieldTypes: ReadonlyMap<string, FieldTypeDefinition>,
-): string | undefined {
+): ValidationIssue | undefined {
   const fieldType = fieldTypes.get(field.type);
-  if (!fieldType) return "Unknown field type";
-  return fieldType.validate(value, field, { answers });
+  if (!fieldType) {
+    return {
+      field: field.id,
+      ...FIELD_ISSUE_CODES.UNKNOWN_FIELD_TYPE,
+    };
+  }
+  const result = fieldType.validate(value, field, { answers });
+  if (result === undefined) return undefined;
+  return toValidationIssue(field.id, result);
 }
 
 export function collectAnswerIssues(
@@ -77,6 +114,7 @@ export function collectAnswerIssues(
   answers: Record<string, unknown>,
   mode: AnswerValidationMode,
   fieldTypes: ReadonlyMap<string, FieldTypeDefinition> = builtinRegistry,
+  validateAnswers?: AnswersValidator,
 ): ValidationIssue[] {
   const visible = stripHiddenAnswers(definition, answers);
   const issues: ValidationIssue[] = [];
@@ -87,13 +125,13 @@ export function collectAnswerIssues(
   for (const key of Object.keys(visible)) {
     const field = fieldById.get(key);
     if (!field) {
-      issues.push({ field: key, message: "Unknown field" });
+      issues.push({ field: key, ...FIELD_ISSUE_CODES.UNKNOWN_FIELD });
       continue;
     }
     const value = visible[key];
     if (isValueEmpty(field, value, fieldTypes)) continue;
-    const message = typeMessage(field, value, visible, fieldTypes);
-    if (message) issues.push({ field: key, message });
+    const next = typeIssue(field, value, visible, fieldTypes);
+    if (next) issues.push(next);
   }
 
   if (mode === "submit") {
@@ -102,11 +140,23 @@ export function collectAnswerIssues(
       if (!isFieldVisible(field, visible, definition.fields)) continue;
       const value = visible[field.id];
       if (isValueEmpty(field, value, fieldTypes)) {
-        const alreadyTyped = issues.some((issue) => issue.field === field.id);
+        const alreadyTyped = issues.some((item) => item.field === field.id);
         if (!alreadyTyped) {
-          issues.push({ field: field.id, message: "Required" });
+          issues.push({ field: field.id, ...FIELD_ISSUE_CODES.REQUIRED });
         }
       }
+    }
+  }
+
+  const extra = validateAnswers?.(definition, visible, mode);
+  if (extra) {
+    for (const item of extra) {
+      issues.push({
+        field: item.field,
+        message: item.message,
+        code: item.code ?? FIELD_ISSUE_CODES.INVALID.code,
+        ...(item.params ? { params: item.params } : {}),
+      });
     }
   }
 
@@ -118,8 +168,15 @@ export function assertAnswers(
   answers: Record<string, unknown>,
   mode: AnswerValidationMode,
   fieldTypes?: ReadonlyMap<string, FieldTypeDefinition>,
+  validateAnswers?: AnswersValidator,
 ): void {
-  const issues = collectAnswerIssues(definition, answers, mode, fieldTypes);
+  const issues = collectAnswerIssues(
+    definition,
+    answers,
+    mode,
+    fieldTypes,
+    validateAnswers,
+  );
   if (issues.length > 0) {
     throw APIError.from("BAD_REQUEST", {
       ...FORM_ERROR_CODES.VALIDATION_ERROR,
@@ -137,9 +194,10 @@ export function parseAnswers(
   answers: Record<string, unknown>,
   mode: AnswerValidationMode,
   fieldTypes?: ReadonlyMap<string, FieldTypeDefinition>,
+  validateAnswers?: AnswersValidator,
 ): Record<string, unknown> {
   const visible = stripHiddenAnswers(definition, answers);
-  assertAnswers(definition, visible, mode, fieldTypes);
+  assertAnswers(definition, visible, mode, fieldTypes, validateAnswers);
 
   const next: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(visible)) {

@@ -35,8 +35,9 @@ Open http://localhost:3000
 | `/r/:id`     | Resume a draft, or reopen a submitted / abandoned response                 |
 
 Save draft patches answers; submit replaces them. Both send `updatedAt`.
-Edit on `/r/:id` calls `reopenResponse` (same snapshot and answers) — it
-does not start a new response.
+The demo sets `resume: true` so a returning `respondentId` reopens the
+latest draft. Edit on `/r/:id` calls `reopenResponse` (same snapshot and
+answers) — it does not start a new response.
 
 Source:
 [github.com/dimah-kz/dimah-form/tree/main/examples/next](https://github.com/dimah-kz/dimah-form/tree/main/examples/next)

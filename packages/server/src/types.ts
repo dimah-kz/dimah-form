@@ -1,5 +1,6 @@
 import type { Endpoint } from "better-call";
 import type {
+  AnswersValidator,
   ErrorCodeCatalog,
   FieldTypeDefinition,
   FormApiOperation,
@@ -146,4 +147,5 @@ export type ResolvedDimahFormConfig = {
    */
   pluginOperations: ReadonlyMap<string, string>;
   metaSchema?: DimahFormMetaSchema;
+  validateAnswers?: AnswersValidator;
 };

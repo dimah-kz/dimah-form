@@ -35,6 +35,15 @@ export type FieldValidateContext = {
   answers: FormAnswers;
 };
 
+/** Object form of a field validator result. A plain string is also accepted. */
+export type FieldIssueInput = {
+  message: string;
+  code?: string;
+  params?: Record<string, string | number>;
+};
+
+export type FieldValidateResult = string | FieldIssueInput;
+
 export type FieldTypeDefinition<
   TType extends string = string,
   TAnswer = unknown,
@@ -42,6 +51,8 @@ export type FieldTypeDefinition<
   readonly type: TType;
   /**
    * When the answer is present, return an English error or `undefined`.
+   * A string is treated as `{ message, code: "INVALID" }`. Prefer
+   * `{ message, code, params? }` so the UI can localize from `code`.
    * Select (and similar) read type-specific keys on `field`. `context.answers`
    * is the full payload so types can compare sibling values.
    */
@@ -49,7 +60,7 @@ export type FieldTypeDefinition<
     value: unknown,
     field: { type: TType } & Record<string, unknown>,
     context?: FieldValidateContext,
-  ) => string | undefined;
+  ) => FieldValidateResult | undefined;
   /**
    * Treat this value as unanswered for required checks and skip type
    * validation. `null` / `undefined` are always empty.

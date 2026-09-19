@@ -29,6 +29,7 @@ export const saveDraft = createFormEndpoint(
       merged,
       "draft",
       ctx.context.config.fieldTypes,
+      ctx.context.config.validateAnswers,
     );
     const row: ResponseRecord = {
       ...existing,

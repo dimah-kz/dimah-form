@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { defineForm } from "@dimah-form/core";
+import { defineForm, isFormErrorCode } from "@dimah-form/core";
 
 import { dimahForm } from "./dimah-form";
 import { APIError } from "./errors";
@@ -182,5 +182,35 @@ describe("HTTP envelope", () => {
     });
     await form.api.getForm({ query: { formId: "onboarding" } });
     expect(operations).toEqual(["getForm:onboarding"]);
+  });
+
+  it("runs validateAnswers on submit", async () => {
+    const form = dimahForm({
+      database: memoryAdapter(),
+      forms: { onboarding },
+      validateAnswers: (_definition, answers) => {
+        if (answers.name === "Nope") {
+          return [{ field: "name", message: "Blocked", code: "BLOCKED" }];
+        }
+        return undefined;
+      },
+    });
+    const started = await form.api.startResponse({
+      body: { formId: "onboarding" },
+    });
+    await expect(
+      form.api.submitResponse({
+        body: {
+          responseId: started.id,
+          answers: { name: "Nope", ok: true },
+        },
+      }),
+    ).rejects.toSatisfy((error: unknown) => {
+      if (!isFormErrorCode(error, "VALIDATION_ERROR")) return false;
+      return (
+        (error as APIError).issues?.some((issue) => issue.code === "BLOCKED") ??
+        false
+      );
+    });
   });
 });

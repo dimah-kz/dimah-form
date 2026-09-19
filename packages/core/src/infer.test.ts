@@ -57,8 +57,8 @@ describe("InferFormAnswers", () => {
       ok: boolean;
       age?: number;
       born?: string;
-      role?: string;
-      skills?: string[];
+      role?: "eng";
+      skills?: "ts"[];
     }>();
     expectTypeOf({
       name: "Ada",

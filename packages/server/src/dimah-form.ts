@@ -3,6 +3,7 @@ import {
   FORM_API_BASE_PATH,
   type FORM_ERROR_CODES,
   normalizeFormApiBasePath,
+  type AnswersValidator,
   type FieldTypeDefinition,
   type InferAnswersMap,
   type PluginErrorCodeMap,
@@ -77,6 +78,11 @@ export type DimahFormConfig<
   guard?: DimahFormGuard;
   /** Domain hooks — `on*` after validation before persist; `after*` after persist. */
   hooks?: DimahFormHooks;
+  /**
+   * Extra answer checks after per-field validators. Same function on
+   * `createFormClient({ validateAnswers })` for local session checks.
+   */
+  validateAnswers?: AnswersValidator;
 };
 
 export type DimahForm<
@@ -144,6 +150,7 @@ export function dimahForm<
     pluginContext,
     pluginOperations: applied.pluginOperations,
     metaSchema: config.metaSchema,
+    validateAnswers: config.validateAnswers,
   };
 
   runPluginInits(applied.plugins, resolved);

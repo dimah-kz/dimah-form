@@ -102,12 +102,15 @@ export default async function Page() {
 ```tsx title="components/questionnaire.tsx"
 "use client";
 
-import { fieldLabel } from "@dimah-form/react";
+import { emptyToNull, fieldLabel } from "@dimah-form/react";
 import type { FormSnapshot } from "@dimah-form/react";
 import { useFormResponse } from "@/lib/form-client";
+import type { Form } from "@/lib/form";
 
 export function Questionnaire({ form }: { form: FormSnapshot }) {
-  const q = useFormResponse({ snapshot: form });
+  const q = useFormResponse<Form["$Infer"]["answers"]["feedback"]>({
+    snapshot: form,
+  });
 
   return (
     <form
@@ -125,9 +128,7 @@ export function Questionnaire({ form }: { form: FormSnapshot }) {
               value={typeof binding.value === "string" ? binding.value : ""}
               disabled={binding.disabled}
               onChange={(event) =>
-                binding.onChange(
-                  event.target.value === "" ? null : event.target.value,
-                )
+                binding.onChange(emptyToNull(event.target.value))
               }
             />
             {binding.error}
@@ -142,9 +143,10 @@ export function Questionnaire({ form }: { form: FormSnapshot }) {
 }
 ```
 
-Clearing an input must send `null` so a later draft patch deletes the key.
-The [Next.js example](/docs/examples) switches on `field.type` and binds
-shadcn widgets the same way — those widgets are not part of
+Clearing an input must send `null` so a later draft patch deletes the key
+(`emptyToNull` does that for `""` and `[]`). The
+[widget map](/docs/widgets) and [Next.js example](/docs/examples) switch
+on `field.type` the same way — those widgets are not part of
 `@dimah-form/react`.
 
 </Step>

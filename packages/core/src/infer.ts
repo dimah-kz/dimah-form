@@ -1,5 +1,6 @@
 import type { FieldTypeDefinition } from "./define";
 import type { BuiltinAnswerMap } from "./field-types";
+import type { FormAnswers } from "./schema/protocol";
 
 type InferFieldAnswer<
   TType extends string,
@@ -34,14 +35,26 @@ type OptionalField<F> = F extends { required: true }
     : never
   : F;
 
+type OptionValue<O> = O extends { readonly value: infer V extends string }
+  ? V
+  : never;
+
+type InferSelectValues<Options> = Options extends readonly (infer O)[]
+  ? OptionValue<O> extends never
+    ? string
+    : OptionValue<O>
+  : string;
+
 type AnswerOf<
   F,
   TFieldTypes extends readonly FieldTypeDefinition[],
-> = F extends {
-  type: infer Type extends string;
-}
-  ? InferFieldAnswer<Type, TFieldTypes>
-  : unknown;
+> = F extends { type: "select"; options: infer Options }
+  ? InferSelectValues<Options>
+  : F extends { type: "multiSelect"; options: infer Options }
+    ? InferSelectValues<Options>[]
+    : F extends { type: infer Type extends string }
+      ? InferFieldAnswer<Type, TFieldTypes>
+      : unknown;
 
 type Flatten<T> = { [K in keyof T]: T[K] } & {};
 
@@ -49,6 +62,7 @@ type Flatten<T> = { [K in keyof T]: T[K] } & {};
  * Submitted answer shape for one code-authored form.
  * Optional fields — and required fields with `showWhen` — are omitted keys.
  * That is the same object `parseAnswers` returns.
+ * Select / multiSelect values are literal unions of `options[].value`.
  */
 export type InferFormAnswers<
   TForm,
@@ -74,3 +88,19 @@ export type InferAnswersMap<
 > = {
   [K in keyof TForms]: InferFormAnswers<TForms[K], TFieldTypes>;
 };
+
+/**
+ * Answers for one catalog key on a typed client or server `$Infer`.
+ *
+ * @example
+ * ```ts
+ * type Intake = InferClientFormAnswers<typeof formClient, "intake">;
+ * const q = useFormResponse<Intake>({ snapshot });
+ * ```
+ */
+export type InferClientFormAnswers<
+  TClient extends { readonly $Infer: { readonly answers: unknown } },
+  K extends keyof TClient["$Infer"]["answers"],
+> = TClient["$Infer"]["answers"][K] extends FormAnswers
+  ? TClient["$Infer"]["answers"][K]
+  : FormAnswers;

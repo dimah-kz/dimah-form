@@ -4,6 +4,7 @@ import {
   type CreateFormClientOptions,
   type CreateFormClientResult,
   type FieldTypeDefinition,
+  type FormAnswers,
   type FormClientPlugin,
   type FormServerLike,
 } from "@dimah-form/core";
@@ -29,9 +30,9 @@ export type FormClient<
     TFieldTypes,
     TServer
   >;
-  useFormResponse: (
+  useFormResponse: <TAnswers extends FormAnswers = FormAnswers>(
     options: Omit<UseFormResponseOptions, "client">,
-  ) => FormResponseApi;
+  ) => FormResponseApi<TAnswers>;
 };
 
 /**
@@ -39,8 +40,9 @@ export type FormClient<
  *
  * Re-export hooks from this instance so the protocol client and field types
  * stay tied to it. `$Infer` lives on the client (`formClient.$Infer` /
- * `useFormClient`). Bound `useFormResponse` is the headless fill session
- * (`answers` are `FormAnswers`). Bound hooks do not need `Provider`.
+ * `useFormClient`). Bound `useFormResponse` is the headless fill session.
+ * Pass `Form["$Infer"]["answers"][key]` to type answers. Bound hooks do not
+ * need `Provider`.
  * Package-level `useFormClient` / `useFormResponse` read context and are the
  * untyped escape hatch.
  *
@@ -81,13 +83,14 @@ export function createFormClient<
     return client;
   }
 
-  function useBoundFormResponse(
+  function useBoundFormResponse<TAnswers extends FormAnswers = FormAnswers>(
     options: Omit<UseFormResponseOptions, "client">,
-  ): FormResponseApi {
-    return useFormResponse({
+  ): FormResponseApi<TAnswers> {
+    return useFormResponse<TAnswers>({
       ...options,
       client,
       fieldTypes: options.fieldTypes ?? client.fieldTypes,
+      validateAnswers: options.validateAnswers ?? client.validateAnswers,
     });
   }
 

@@ -15,10 +15,14 @@ export function requireLocked(row: { id: string; status: string }): void {
 }
 
 export function assertFresh(
-  existing: { updatedAt: string },
+  existing: { updatedAt?: string },
   expected?: string,
 ): void {
-  if (expected !== undefined && expected !== existing.updatedAt) {
+  if (
+    expected !== undefined &&
+    existing.updatedAt !== undefined &&
+    expected !== existing.updatedAt
+  ) {
     throw errors.staleUpdate();
   }
 }

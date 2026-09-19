@@ -23,7 +23,7 @@ describe("FORM_ERROR_CODES", () => {
         message: "Unknown response",
       },
       FORM_INACTIVE: { code: "FORM_INACTIVE", message: "Form is not active" },
-      STALE_UPDATE: { code: "STALE_UPDATE", message: "Response was updated" },
+      STALE_UPDATE: { code: "STALE_UPDATE", message: "The record was updated" },
       RESPONSE_NOT_DRAFT: {
         code: "RESPONSE_NOT_DRAFT",
         message: "Response is not a draft",
@@ -47,6 +47,10 @@ describe("FORM_ERROR_CODES", () => {
       UNKNOWN_FIELD_TYPE: {
         code: "UNKNOWN_FIELD_TYPE",
         message: "Unknown field type",
+      },
+      RESUME_REQUIRES_RESPONDENT: {
+        code: "RESUME_REQUIRES_RESPONDENT",
+        message: "resume requires respondentId",
       },
     });
     expect(defineErrorCodes({ X: "x" }).X).toEqual({ code: "X", message: "x" });

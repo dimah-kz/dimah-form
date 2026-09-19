@@ -4,6 +4,7 @@ import {
   type FormField,
   type FormFieldBinding,
   type FormResponseApi,
+  emptyToNull,
   fieldLabel,
   fieldOptions,
 } from "@dimah-form/react";
@@ -234,9 +235,7 @@ function FormFieldControl({
           disabled={disabled}
           aria-invalid={invalid || undefined}
           value={typeof value === "string" ? value : ""}
-          onChange={(event) =>
-            onChange(event.target.value === "" ? null : event.target.value)
-          }
+          onChange={(event) => onChange(emptyToNull(event.target.value))}
         />
       </LabeledField>
     );
@@ -255,9 +254,7 @@ function FormFieldControl({
           disabled={disabled}
           aria-invalid={invalid || undefined}
           value={typeof value === "string" ? value : ""}
-          onChange={(event) =>
-            onChange(event.target.value === "" ? null : event.target.value)
-          }
+          onChange={(event) => onChange(emptyToNull(event.target.value))}
         />
       </LabeledField>
     );

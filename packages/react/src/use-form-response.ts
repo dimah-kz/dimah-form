@@ -7,6 +7,7 @@ import {
 import {
   createFormResponseSession,
   type CreateFormResponseSessionOptions,
+  type FormAnswers,
   type FormResponseApi,
   type FormResponseSessionClient,
 } from "@dimah-form/core";
@@ -23,7 +24,7 @@ export type UseFormResponseOptions = Omit<
 export type { FormResponseApi };
 
 function sessionKey(options: UseFormResponseOptions) {
-  return `${options.snapshot.id}:${options.response?.id ?? ""}:${options.validate ?? "submit"}`;
+  return `${options.snapshot.id}:${options.response?.id ?? ""}:${options.validate ?? "submit"}:${options.resume === true ? "1" : "0"}`;
 }
 
 /**
@@ -31,10 +32,13 @@ function sessionKey(options: UseFormResponseOptions) {
  *
  * Prefer `formClient.useFormResponse` (or a re-export) so the protocol client
  * and field types come from your instance. This unbound hook reads context.
+ *
+ * Pass `InferClientFormAnswers<typeof formClient, "intake">` (or
+ * `Form["$Infer"]["answers"]["intake"]`) to type `answers` / `setAnswer`.
  */
-export function useFormResponse(
+export function useFormResponse<TAnswers extends FormAnswers = FormAnswers>(
   options: UseFormResponseOptions,
-): FormResponseApi {
+): FormResponseApi<TAnswers> {
   const ctx = useContext(FormClientContext) as FormResponseSessionClient | null;
   const client = options.client ?? ctx;
   if (client == null) {
@@ -44,16 +48,19 @@ export function useFormResponse(
   }
 
   const fieldTypes = options.fieldTypes ?? client.fieldTypes;
+  const validateAnswers = options.validateAnswers ?? client.validateAnswers;
   const key = sessionKey(options);
   const session = useMemo(
     () =>
-      createFormResponseSession({
+      createFormResponseSession<TAnswers>({
         client,
         snapshot: options.snapshot,
         response: options.response,
         respondentId: options.respondentId,
         fieldTypes,
+        validateAnswers,
         validate: options.validate,
+        resume: options.resume,
         onStarted: options.onStarted,
         onSaved: options.onSaved,
         onSubmitted: options.onSubmitted,
@@ -70,7 +77,9 @@ export function useFormResponse(
       client,
       respondentId: options.respondentId,
       fieldTypes,
+      validateAnswers,
       validate: options.validate,
+      resume: options.resume,
       onStarted: options.onStarted,
       onSaved: options.onSaved,
       onSubmitted: options.onSubmitted,

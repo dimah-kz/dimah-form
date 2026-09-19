@@ -1,11 +1,13 @@
 export {
   APIError,
+  FIELD_ISSUE_CODES,
   FORM_ERROR_CODES,
   defineErrorCodes,
   isAPIError,
   isFormErrorCode,
   type ErrorCodeCatalog,
   type ErrorCodeEntry,
+  type FieldIssueCode,
   type FormErrorCode,
 } from "./error";
 export {
@@ -17,15 +19,21 @@ export {
   seedDefaultAnswers,
   stripHiddenAnswers,
   type AnswerValidationMode,
+  type AnswersValidator,
 } from "./answers";
 export { collectShowWhenIssues } from "./show-when";
 export {
+  emptyToNull,
+  fieldIssueMap,
   fieldLabel,
   fieldOptions,
+  formCompletion,
   formErrorMessage,
+  formatAnswer,
   issuesByField,
   visibleFields,
   type FieldOption,
+  type FormCompletion,
 } from "./field-view";
 export {
   createFormResponseSession,
@@ -67,8 +75,10 @@ export {
 export {
   defineFieldType,
   defineForm,
+  type FieldIssueInput,
   type FieldTypeDefinition,
   type FieldValidateContext,
+  type FieldValidateResult,
   type FormDefinitionInput,
 } from "./define";
 export {
@@ -83,7 +93,11 @@ export {
   textFieldType,
   type BuiltinAnswerMap,
 } from "./field-types";
-export type { InferAnswersMap, InferFormAnswers } from "./infer";
+export type {
+  InferAnswersMap,
+  InferClientFormAnswers,
+  InferFormAnswers,
+} from "./infer";
 export type { FormFetchError, ValidationIssue } from "./schema/error";
 export {
   LIST_DEFAULT_LIMIT,

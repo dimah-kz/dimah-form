@@ -9,6 +9,8 @@ export const formErrorParamsSchema = z.record(
 export const validationIssueSchema = z.object({
   field: z.string(),
   message: z.string(),
+  code: z.string().optional(),
+  params: formErrorParamsSchema.optional(),
 });
 
 /**

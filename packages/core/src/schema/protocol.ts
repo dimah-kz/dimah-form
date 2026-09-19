@@ -30,6 +30,11 @@ export const deleteFormBodySchema = z.strictObject({
 export const startResponseBodySchema = z.strictObject({
   formId: formIdSchema,
   respondentId: trimmedString.optional(),
+  /**
+   * When true, return the latest draft for `formId` + `respondentId` if one
+   * exists. Requires `respondentId`. Otherwise create a new response.
+   */
+  resume: z.boolean().optional(),
 });
 
 export const getResponseQuerySchema = z.strictObject({

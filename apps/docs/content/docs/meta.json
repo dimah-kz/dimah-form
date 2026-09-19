@@ -11,6 +11,7 @@
     "forms",
     "database",
     "react",
+    "widgets",
     "custom-fields",
     "auth",
     "plugins",

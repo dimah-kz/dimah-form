@@ -8,6 +8,7 @@ import { createFormEndpoint } from "@/api/create-form-endpoint";
 import { errors } from "@/errors";
 import { assertSlugAvailable, parseLiveSnapshot } from "@/forms";
 import { commitLifecycle } from "@/helpers/lifecycle";
+import { assertFresh } from "@/validate";
 
 const { method, path } = FORM_API_OPERATIONS.saveForm;
 
@@ -25,6 +26,9 @@ export const saveForm = createFormEndpoint(
     );
     await assertSlugAvailable(ctx.context.config, parsed);
     const existing = await ctx.context.config.database.getForm(parsed.id);
+    if (existing) {
+      assertFresh(existing, parsed.updatedAt);
+    }
     const now = new Date().toISOString();
     const form: FormSnapshot = {
       ...parsed,
