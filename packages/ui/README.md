@@ -59,10 +59,11 @@ export function IntakeForm({ snapshot }) {
 
 A widget is `{ binding, className }`. Wrap the control in `FormFieldFrame`
 (`layout`: `stack` | `choice` | `group`). Register custom `defineFieldType`
-widgets once on `FormUiProvider` (or per `FormView` / `FormScope`). Built-in
-types (`text`, `email`, `date`, `number`, `boolean`, `select`, `multiSelect`)
-ship with the package. Compose `FormScope` + `FormFields` / `TextField` /
-`FormActions` when the default template is not enough.
+widgets once on `FormUiProvider` (or per `FormView` / `FormScope`). Swap the
+required-field mark with `components.RequiredMark`. Built-in types (`text`,
+`email`, `date`, `number`, `boolean`, `select`, `multiSelect`) ship with the
+package. Compose `FormScope` + `FormFields` / `TextField` / `FormActions` when
+the default template is not enough.
 
 ## License
 

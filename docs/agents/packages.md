@@ -64,6 +64,6 @@ Optional UI: `t()` / `useTranslations()` from `@fuma-translate/react` (do not re
 
 ## UI
 
-Optional. Wrap `form` (`FormResponseApi`) and `binding` (`FormFieldBinding`). Widgets take `{ binding, className }` and put chrome on `FormFieldFrame`. Do not call `useFormResponse` inside widgets. Built-in type widgets register on `defaultFieldWidgets`; custom types use the `widgets` prop (same `type` string as `defineFieldType`).
+Optional. Wrap `form` (`FormResponseApi`) and `binding` (`FormFieldBinding`). Widgets take `{ binding, className }` and put chrome on `FormFieldFrame`. Do not call `useFormResponse` inside widgets. Built-in type widgets register on `defaultFieldWidgets`; custom types use the `widgets` prop (same `type` string as `defineFieldType`). `FormUiProvider` `components.RequiredMark` replaces the required-field asterisk.
 
 See [registry.md](./registry.md) for shadcn items, RTL, and color tokens.

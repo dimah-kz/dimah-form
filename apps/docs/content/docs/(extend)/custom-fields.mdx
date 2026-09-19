@@ -158,7 +158,7 @@ const widgets = { rating: StarRatingField };
 </FormUiProvider>;
 ```
 
-The widget is `{ binding, className }`. Wrap the control in `FormFieldFrame` (`layout="stack"` | `"choice"` | `"group"`):
+The widget is `{ binding, className }`. Wrap the control in `FormFieldFrame` (`layout="stack"` | `"choice"` | `"group"`). The required mark comes from `FormUiProvider` `components.RequiredMark` when set:
 
 ```tsx
 import {

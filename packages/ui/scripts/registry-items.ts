@@ -14,6 +14,7 @@ function srcFile(path: string, type: RegistryFile["type"]): RegistryFile {
 const formFiles = [
   srcFile("components/dimah-form/form-provider.tsx", "registry:component"),
   srcFile("components/dimah-form/form-context.tsx", "registry:component"),
+  srcFile("components/dimah-form/form-ui-components.tsx", "registry:component"),
   srcFile("components/dimah-form/form-root.tsx", "registry:component"),
   srcFile("components/dimah-form/form-view.tsx", "registry:component"),
   srcFile("components/dimah-form/form-field.tsx", "registry:component"),

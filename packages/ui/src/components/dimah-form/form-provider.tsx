@@ -3,6 +3,10 @@
 import type { ReactNode } from "react";
 import { TranslationProvider } from "@fuma-translate/react";
 import { FieldWidgetsProvider } from "@/components/dimah-form/form-context";
+import {
+  FormUiComponentsProvider,
+  type FormUiComponents,
+} from "@/components/dimah-form/form-ui-components";
 import type { Translations } from "@/lib/dimah-form-translations";
 import type { FieldWidgetRegistry } from "@/lib/widget-registry";
 
@@ -18,11 +22,17 @@ export type FormUiProviderProps = {
    * built-ins. Register custom `defineFieldType` widgets once here.
    */
   widgets?: FieldWidgetRegistry;
+  /**
+   * Swap built-in chrome. `RequiredMark` replaces the asterisk on required
+   * field labels. Nested providers merge — later keys win.
+   */
+  components?: FormUiComponents;
   children: ReactNode;
 };
 
 /**
- * i18n + widget registry boundary. Protocol stays on `formClient.Provider`.
+ * i18n + widget registry + chrome boundary. Protocol stays on
+ * `formClient.Provider`.
  *
  * @example
  * ```tsx
@@ -32,8 +42,16 @@ export type FormUiProviderProps = {
  *
  * const widgets = { rating: StarRatingField };
  *
+ * function RequiredMark() {
+ *   return <span className="ms-1" aria-hidden>*</span>;
+ * }
+ *
  * <formClient.Provider>
- *   <FormUiProvider translations={fa} widgets={widgets}>
+ *   <FormUiProvider
+ *     translations={fa}
+ *     widgets={widgets}
+ *     components={{ RequiredMark }}
+ *   >
  *     {children}
  *   </FormUiProvider>
  * </formClient.Provider>
@@ -42,10 +60,15 @@ export type FormUiProviderProps = {
 export function FormUiProvider({
   translations,
   widgets,
+  components,
   children,
 }: FormUiProviderProps) {
   const tree = (
-    <FieldWidgetsProvider widgets={widgets}>{children}</FieldWidgetsProvider>
+    <FieldWidgetsProvider widgets={widgets}>
+      <FormUiComponentsProvider components={components}>
+        {children}
+      </FormUiComponentsProvider>
+    </FieldWidgetsProvider>
   );
   if (!translations) return tree;
 

@@ -9,6 +9,10 @@ export {
   type FormScopeProps,
 } from "@/components/dimah-form/form-context";
 export {
+  useFormUiComponents,
+  type FormUiComponents,
+} from "@/components/dimah-form/form-ui-components";
+export {
   FormRoot,
   type FormRootProps,
 } from "@/components/dimah-form/form-root";

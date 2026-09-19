@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { fieldLabel, type FormFieldBinding } from "@dimah-form/react";
 import { cn } from "cn";
+import { useFormUiComponents } from "@/components/dimah-form/form-ui-components";
 import {
   Field,
   FieldContent,
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/field";
 import { useFieldIssue } from "@/hooks/use-field-issue";
 
+/** Default required-field mark. Swap via `FormUiProvider` `components.RequiredMark`. */
 export function RequiredMark() {
   return (
     <span className="ms-1 text-dimah-form-destructive" aria-hidden>
@@ -41,7 +43,11 @@ export type FormFieldFrameProps<TValue = unknown> = {
   description?: ReactNode | false;
   /** `false` hides. Omit for the localized session issue. */
   error?: ReactNode | false;
-  /** Visual asterisk when `binding.required`. Default `true`. */
+  /**
+   * Visual required mark when `binding.required`. Default `true`.
+   * Mark comes from `FormUiProvider` `components.RequiredMark`, else
+   * {@link RequiredMark}.
+   */
   requiredIndicator?: boolean;
 };
 
@@ -73,6 +79,7 @@ export function FormFieldFrame<TValue = unknown>({
   requiredIndicator = true,
 }: FormFieldFrameProps<TValue>) {
   const issue = useFieldIssue(binding);
+  const { RequiredMark: RequiredMarkSlot } = useFormUiComponents();
   const field = binding.field;
   if (!field) return null;
 
@@ -85,8 +92,8 @@ export function FormFieldFrame<TValue = unknown>({
       : (description ??
         (typeof field.description === "string" ? field.description : null));
   const errorContent = error === false ? null : (error ?? issue ?? null);
-  const requiredMark =
-    requiredIndicator && binding.required ? <RequiredMark /> : null;
+  const Mark = RequiredMarkSlot ?? RequiredMark;
+  const requiredMark = requiredIndicator && binding.required ? <Mark /> : null;
   const descriptionNode = descriptionContent ? (
     <FieldDescription>{descriptionContent}</FieldDescription>
   ) : null;

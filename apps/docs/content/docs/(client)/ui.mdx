@@ -48,6 +48,24 @@ return (
 
 `FormView` is the default layout: header, status, visible fields, session error, save / submit (or Edit when locked). Slot props take `false` to hide or a node to replace (`header`, `status`, `error`, `actions`).
 
+Required labels render an asterisk. Pass your own mark once on the provider:
+
+```tsx
+function RequiredMark() {
+  return (
+    <span className="ms-1 text-dimah-form-destructive" aria-hidden>
+      required
+    </span>
+  );
+}
+
+<FormUiProvider components={{ RequiredMark }}>
+  <FormView form={form} />
+</FormUiProvider>;
+```
+
+`FormFieldFrame` still hides it with `requiredIndicator={false}`.
+
 ---
 
 ## Compose

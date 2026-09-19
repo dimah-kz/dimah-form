@@ -54,6 +54,11 @@
           "target": "@components/dimah-form/form-context.tsx"
         },
         {
+          "path": "src/components/dimah-form/form-ui-components.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/form-ui-components.tsx"
+        },
+        {
           "path": "src/components/dimah-form/form-root.tsx",
           "type": "registry:component",
           "target": "@components/dimah-form/form-root.tsx"
