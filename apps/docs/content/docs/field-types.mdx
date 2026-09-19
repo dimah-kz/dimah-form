@@ -1,0 +1,132 @@
+---
+title: Field Types
+description: Built-in validators, defineFieldType, showWhen, and type inference.
+icon: ListTree
+---
+
+Field types are validators registered on the instance. They are not React
+components. Built-ins are always present; extras go in
+`dimahForm({ fieldTypes })`.
+
+`defineFieldType` is re-exported from `@dimah-form/server` and
+`@dimah-form/react`. Import it from the package you already use.
+
+---
+
+## Built-ins
+
+| Type          | Answer                           | Extra keys                               |
+| ------------- | -------------------------------- | ---------------------------------------- |
+| `text`        | string                           | `minLength`, `maxLength`, `pattern`      |
+| `number`      | finite number                    | `min`, `max`, `integer`                  |
+| `boolean`     | boolean                          | —                                        |
+| `select`      | string option value              | `options` (`{ value, label?, meta? }[]`) |
+| `multiSelect` | `string[]`                       | `options` (unique values)                |
+| `email`       | string                           | —                                        |
+| `date`        | ISO calendar date (`YYYY-MM-DD`) | —                                        |
+
+Shared field keys: `id`, `type`, `required`, `label`, `description`,
+`defaultValue`, `showWhen`, `meta`.
+
+Blank strings are empty for `text`, `number`, `select`, `email`, and
+`date`. An empty array is empty for `multiSelect`. Required checks run on
+submit for visible fields.
+
+---
+
+## Custom types
+
+```ts title="lib/field-types.ts"
+import { defineFieldType } from "@dimah-form/server";
+import * as z from "zod";
+
+export const ratingFieldType = defineFieldType({
+  type: "rating",
+  fieldSchema: z.looseObject({
+    type: z.literal("rating"),
+    min: z.int().min(1).optional(),
+    max: z.int().min(1).optional(),
+  }),
+  validate: (value, field) => {
+    if (typeof value !== "number" || !Number.isInteger(value)) {
+      return "Expected an integer";
+    }
+    const min = typeof field.min === "number" ? field.min : 1;
+    const max = typeof field.max === "number" ? field.max : 5;
+    if (value < min) return `Must be at least ${min}`;
+    if (value > max) return `Must be at most ${max}`;
+    return undefined;
+  },
+  $Infer: 0 as number,
+});
+
+export const fieldTypes = [ratingFieldType] as const;
+```
+
+```ts title="lib/form.ts"
+export const form = dimahForm({
+  database: memoryAdapter(),
+  fieldTypes, // [!code ++]
+  forms: {
+    feedback: defineForm({
+      title: "Feedback",
+      fields: [{ id: "score", type: "rating", required: true, min: 1, max: 5 }],
+    }),
+  },
+});
+```
+
+Pass the same array to `createFormClient({ fieldTypes })` so
+`useFormResponse` can validate locally.
+
+`validate` returns an English error or `undefined`. A third `context`
+argument exposes `context.answers` for sibling comparisons. `null` /
+`undefined` answers are always empty; optional `isEmpty` treats other
+values as unanswered (blank strings, empty arrays). `$Infer` is the
+phantom answer type for `form.$Infer.answers`.
+
+Optional `fieldSchema` validates the field document at init and
+`saveForm`.
+
+---
+
+## Visibility (`showWhen`)
+
+Skip a field when the sibling answer does not match. Hidden answers are
+stripped before validation.
+
+```ts
+{
+  id: "team",
+  type: "text",
+  label: "Team",
+  showWhen: { field: "role", equals: "eng" },
+}
+```
+
+```ts
+{
+  id: "apiNote",
+  type: "text",
+  showWhen: { field: "highlights", includes: "api" },
+}
+```
+
+`equals` uses `Object.is`. `includes` matches a value inside an array
+sibling (`multiSelect`). At least one of `equals` or `includes` is
+required; both may be set (AND).
+
+`defaultValue` seeds a new response, then hidden fields are dropped.
+
+---
+
+## Type inference
+
+Code-authored forms produce `form.$Infer.answers[formKey]`. Required
+fields are required keys; optional fields are omitted keys — the same
+object `parseAnswers` returns on submit.
+
+```ts
+type Feedback = Form["$Infer"]["answers"]["feedback"];
+// { name: string; ok: boolean; team?: string }
+```

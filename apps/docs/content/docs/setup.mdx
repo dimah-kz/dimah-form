@@ -1,0 +1,258 @@
+---
+title: Setup
+description: Install `@dimah-form/server`, configure dimahForm(), and mount the handler.
+icon: Settings
+---
+
+## Install
+
+```npm
+npm i @dimah-form/server
+```
+
+Add [`@dimah-form/db`](/docs/database) when you want FumaDB persistence.
+
+## Configure
+
+```ts title="lib/form.ts"
+import { defineForm, dimahForm, memoryAdapter } from "@dimah-form/server";
+
+export const form = dimahForm({
+  database: memoryAdapter(),
+  forms: {
+    feedback: defineForm({
+      title: "Feedback",
+      slug: "feedback",
+      status: "active",
+      fields: [{ id: "name", type: "text", required: true, label: "Name" }],
+    }),
+  },
+});
+
+export type Form = typeof form;
+```
+
+`database` is required. Use `memoryAdapter()` in this package, or `db()`
+from [`@dimah-form/db`](/docs/database). A custom store can be passed to
+`database` directly.
+
+Pair `export type Form = typeof form` with `createFormClient<Form>()` so
+the browser reuses `$Infer`.
+
+---
+
+## Mount the handler
+
+Adapters are available for all major JavaScript runtimes. Default
+`basePath` is `/api/form`.
+
+<Tabs items={["Next.js", "Express", "Hono", "SvelteKit", "Fastify", "Elysia", "Node", "Web"]}>
+
+<Tab value="Next.js">
+
+```ts title="app/api/form/[...all]/route.ts"
+import { toNextJsHandler } from "@dimah-form/server/next";
+import { form } from "@/lib/form";
+
+export const { GET, POST, PUT, PATCH, DELETE } = toNextJsHandler(form);
+```
+
+</Tab>
+
+<Tab value="Express">
+
+```ts title="server.ts"
+import express from "express";
+import { toExpressHandler } from "@dimah-form/server/express";
+import { form } from "./form";
+
+const app = express();
+// The adapter reads the raw stream, so mount it before JSON middleware.
+app.all("/api/form/*", toExpressHandler(form));
+app.use(express.json());
+```
+
+</Tab>
+
+<Tab value="Hono">
+
+```ts title="src/index.ts"
+import { Hono } from "hono";
+import { toHonoHandler } from "@dimah-form/server/hono";
+import { form } from "./form";
+
+const app = new Hono();
+app.on(
+  ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  "/api/form/*",
+  toHonoHandler(form),
+);
+```
+
+</Tab>
+
+<Tab value="SvelteKit">
+
+```ts title="src/routes/api/form/[...path]/+server.ts"
+import { toSvelteKitHandler } from "@dimah-form/server/svelte-kit";
+import { form } from "$lib/form";
+
+const handler = toSvelteKitHandler(form);
+export const GET = handler;
+export const POST = handler;
+export const PUT = handler;
+export const PATCH = handler;
+export const DELETE = handler;
+```
+
+</Tab>
+
+<Tab value="Fastify">
+
+```ts title="server.ts"
+import Fastify from "fastify";
+import { toFastifyHandler } from "@dimah-form/server/fastify";
+import { form } from "./form";
+
+const app = Fastify();
+app.all("/api/form/*", toFastifyHandler(form));
+```
+
+</Tab>
+
+<Tab value="Elysia">
+
+```ts title="src/index.ts"
+import { Elysia } from "elysia";
+import { toElysiaHandler } from "@dimah-form/server/elysia";
+import { form } from "./form";
+
+new Elysia().all("/api/form/*", toElysiaHandler(form)).listen(3000);
+```
+
+</Tab>
+
+<Tab value="Node">
+
+```ts title="server.ts"
+import { createServer } from "node:http";
+import { toNodeHandler } from "@dimah-form/server/node";
+import { form } from "./form";
+
+const handler = toNodeHandler(form);
+
+createServer((req, res) => {
+  if (req.url?.startsWith("/api/form")) return handler(req, res);
+  res.statusCode = 404;
+  res.end("Not found");
+}).listen(3000);
+```
+
+</Tab>
+
+<Tab value="Web">
+
+```ts
+export default {
+  fetch(request: Request) {
+    const url = new URL(request.url);
+    if (url.pathname.startsWith("/api/form")) {
+      return form.handler(request);
+    }
+    return new Response("Not found", { status: 404 });
+  },
+};
+```
+
+</Tab>
+
+</Tabs>
+
+---
+
+## Server-side API (`form.api`)
+
+Invoke endpoints on the server without going through HTTP. The map uses
+better-call `{ body, query }` — not the browser client's object args.
+
+Pass `headers` so `guard` sees the same request:
+
+```ts title="app/actions.ts"
+"use server";
+
+import { headers } from "next/headers";
+import { form } from "@/lib/form";
+
+export async function loadFeedback() {
+  return form.api.getForm({
+    query: { formId: "feedback" },
+    headers: await headers(), // [!code ++]
+  });
+}
+```
+
+```ts
+await form.api.startResponse({
+  body: { formId: "feedback", respondentId: "user_1" },
+  headers: await headers(),
+});
+```
+
+From Node / Express, convert incoming headers with
+`fromNodeHeaders` (`@dimah-form/server/node`).
+
+---
+
+## Config
+
+| Option       | Role                                                              |
+| ------------ | ----------------------------------------------------------------- |
+| `database`   | Required persistence (`memoryAdapter()` or `db()`)                |
+| `forms`      | Code-authored catalog — feeds `$Infer`                            |
+| `fieldTypes` | Extra validators on this instance                                 |
+| `basePath`   | HTTP prefix. Default `/api/form`                                  |
+| `guard`      | Runs before every operation. Throw `APIError` to reject           |
+| `hooks`      | `on*` after validation before persist; `after*` after persist     |
+| `plugins`    | Additive endpoints, hooks, field types, `$ERROR_CODES`            |
+| `metaSchema` | Optional Zod for opaque `meta` on form / field / option documents |
+
+---
+
+## Frequently asked questions
+
+<Accordions>
+
+<Accordion title="How do error handling and status codes work?">
+
+Failed requests return JSON `{ message, code?, params?, issues? }`.
+Unknown throws become `INTERNAL_ERROR` (500). Unmatched paths return
+`NOT_FOUND` (404).
+
+Use `APIError.from` or the `errors` helper. See [Errors](/docs/errors).
+
+</Accordion>
+
+<Accordion title="How do I change the base path or call a cross-origin API?">
+
+Set `basePath` on `dimahForm()`. The client must use the same prefix
+(`basePath`), or a full `baseURL` when the API is hosted elsewhere:
+
+```ts
+export const form = dimahForm({
+  basePath: "/api/questionnaires", // [!code ++]
+  database: memoryAdapter(),
+});
+```
+
+```ts
+export const formClient = createFormClient<Form>({
+  baseURL: "https://api.example.com/api/questionnaires", // [!code ++]
+  credentials: "include",
+});
+```
+
+`baseURL` wins over `basePath` on the client.
+
+</Accordion>
+
+</Accordions>

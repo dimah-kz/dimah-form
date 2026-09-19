@@ -1,0 +1,138 @@
+---
+title: Hooks
+description: Request guard and domain lifecycle — on* before persist, after* after persist.
+icon: Shield
+---
+
+Auth lives in `guard`. Domain side effects live in `hooks`.
+
+<Flow
+  label="Request pipeline"
+  steps={[
+    { name: "guard", kind: "server", note: "auth / policy" },
+    { name: "validate", kind: "protocol", note: "payload + snapshot" },
+    { name: "on*", kind: "server", note: "before persist" },
+    { name: "database", kind: "data", note: "write" },
+    { name: "after*", kind: "server", note: "after persist" },
+  ]}
+/>
+
+---
+
+## Guard
+
+`guard` runs before every core and plugin operation, after query/body
+parse. Throw `APIError` to reject. A plain `Error` becomes
+`INTERNAL_ERROR`.
+
+```ts title="lib/form.ts"
+import {
+  APIError,
+  FORM_ERROR_CODES,
+  dimahForm,
+  memoryAdapter,
+} from "@dimah-form/server";
+
+export const form = dimahForm({
+  database: memoryAdapter(),
+  guard: async ({ request, operation, formId, responseId }) => {
+    // [!code ++]
+    if (operation === "listResponses") {
+      // [!code ++]
+      const session = await getSession(request); // [!code ++]
+      if (!session) {
+        // [!code ++]
+        throw APIError.from("UNAUTHORIZED", FORM_ERROR_CODES.UNAUTHORIZED); // [!code ++]
+      } // [!code ++]
+    } // [!code ++]
+  }, // [!code ++]
+});
+```
+
+| Field        | Set when                                                                 |
+| ------------ | ------------------------------------------------------------------------ |
+| `request`    | Always                                                                   |
+| `operation`  | Core name (`startResponse`) or plugin endpoint key                       |
+| `formId`     | Form routes and start — from `query.formId`, `body.formId`, or `body.id` |
+| `responseId` | Present on response routes                                               |
+
+Pass `headers` on `form.api` and `headers` / `credentials` on
+`createFormClient` so the guard can read cookies or `Authorization`.
+
+---
+
+## Domain hooks
+
+`on*` runs after validation, before persist. `after*` runs after persist.
+If persist throws, `after*` is skipped.
+
+Skip irreversible I/O in `on*` — use `after*` for mail, queues, and
+webhooks. `onStart` may assign `response.respondentId` before the row is
+written.
+
+```ts title="lib/form.ts"
+export const form = dimahForm({
+  database: memoryAdapter(),
+  hooks: {
+    onStart: ({ response, request }) => {
+      // [!code ++]
+      response.respondentId = sessionFrom(request)?.userId ?? null; // [!code ++]
+    }, // [!code ++]
+    afterSubmit: async ({ response }) => {
+      // [!code ++]
+      await notifyOps(response.id); // [!code ++]
+    }, // [!code ++]
+  },
+});
+```
+
+| Hook               | Context                 |
+| ------------------ | ----------------------- |
+| `onStart`          | `{ request, response }` |
+| `onSaveDraft`      | `{ request, response }` |
+| `onSubmit`         | `{ request, response }` |
+| `onAbandon`        | `{ request, response }` |
+| `onReopen`         | `{ request, response }` |
+| `onDeleteResponse` | `{ request, response }` |
+| `onSaveForm`       | `{ request, form }`     |
+| `onDeleteForm`     | `{ request, form }`     |
+
+Each `on*` hook has a matching `after*` with the same context. Plugin
+hooks run first, then instance hooks.
+
+---
+
+## Frequently asked questions
+
+<Accordions>
+
+<Accordion title="How does the browser send cookies or a bearer token?">
+
+```ts
+export const formClient = createFormClient<Form>({
+  credentials: "include", // [!code ++]
+  headers: async () => ({
+    // [!code ++]
+    Authorization: `Bearer ${await getToken()}`, // [!code ++]
+  }), // [!code ++]
+});
+```
+
+</Accordion>
+
+<Accordion title="Can I throw a custom message from guard?">
+
+Yes. Spread a catalog entry and override `message`:
+
+```ts
+throw APIError.from("FORBIDDEN", {
+  ...FORM_ERROR_CODES.FORBIDDEN,
+  message: "Staff only",
+});
+```
+
+Keep `code` stable. Localize in the UI from `code`, not from `message`.
+
+</Accordion>
+
+</Accordions>

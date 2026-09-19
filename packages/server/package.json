@@ -15,7 +15,7 @@
     "sveltekit",
     "typescript"
   ],
-  "homepage": "https://form.dimah.dev/docs/server",
+  "homepage": "https://form.dimah.dev/docs/setup",
   "bugs": {
     "url": "https://github.com/dimah-kz/dimah-form/issues"
   },

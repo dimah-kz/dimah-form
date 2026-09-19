@@ -1,0 +1,130 @@
+---
+title: Database
+description: FumaDB adapter for questionnaires and responses.
+icon: Database
+---
+
+[`@dimah-form/db`](https://www.npmjs.com/package/@dimah-form/db) is the
+FumaDB adapter for `dimahForm({ database })`.
+
+- **`memoryAdapter()`** (`@dimah-form/server`) — tests, demos, ephemeral state
+- **`db()`** (this package) — questionnaires and responses on FumaDB
+
+The [Next.js example](/docs/examples) uses FumaDB + Drizzle + local SQLite.
+
+## What it stores
+
+Two application tables. There is no version table — old responses keep
+their snapshot on `response.definition`.
+
+| Table           | Role                                                                   |
+| --------------- | ---------------------------------------------------------------------- |
+| `questionnaire` | Live form (`id`, `slug`, `title`, `definition`, `status`, timestamps)  |
+| `response`      | Fill (`definition` copy at start, `answers`, `status`, `respondentId`) |
+
+FumaDB also keeps a private settings row (`private_dimah_form_settings`).
+Do not write to it from application code.
+
+---
+
+## Install
+
+```npm
+npm i @dimah-form/db fumadb
+```
+
+`@dimah-form/server` is a peer.
+
+## Schema
+
+Generate adapter-specific tables from `DimahFormDB`, or copy the
+[example schema](https://github.com/dimah-kz/dimah-form/blob/main/examples/next/lib/schema.ts).
+
+Call `DimahFormDB.client(…).generateSchema("1.0.0")` and write
+`generated.code` next to your ORM schema. The
+[Next.js example script](https://github.com/dimah-kz/dimah-form/blob/main/examples/next/scripts/generate-schema.mjs)
+does this for Drizzle.
+
+Keep the generated `private_dimah_form_settings` table.
+`response.questionnaire_id` is a foreign key to `questionnaire.id`
+(`onDelete: restrict`).
+
+## Database client
+
+<Tabs items={["Drizzle", "Prisma"]}>
+
+<Tab value="Drizzle">
+
+```ts title="lib/db.ts"
+import { createClient } from "@libsql/client";
+import { DimahFormDB } from "@dimah-form/db";
+import { drizzle } from "drizzle-orm/libsql";
+import { drizzleAdapter } from "fumadb/adapters/drizzle";
+import { relations } from "./schema";
+
+const sqlite = createClient({ url: "file:local.db" });
+const orm = drizzle({ client: sqlite, relations });
+
+export const formDb = DimahFormDB.client(
+  drizzleAdapter({
+    db: orm,
+    provider: "sqlite", // or "postgresql" | "mysql"
+  }),
+);
+```
+
+</Tab>
+
+<Tab value="Prisma">
+
+```ts title="lib/dimah-form-db.ts"
+import { prismaAdapter } from "fumadb/adapters/prisma";
+import { DimahFormDB } from "@dimah-form/db";
+import { prisma } from "@/lib/db";
+
+export const formDb = DimahFormDB.client(
+  prismaAdapter({ prisma, provider: "postgresql" }),
+);
+```
+
+</Tab>
+
+</Tabs>
+
+## Register
+
+```ts title="lib/form.ts"
+import { db } from "@dimah-form/db";
+import { dimahForm } from "@dimah-form/server";
+import { formDb } from "@/lib/db";
+
+export const form = dimahForm({
+  database: db(formDb), // [!code ++]
+});
+```
+
+A custom store is allowed — pass a `ResponseStore` to `database` directly.
+
+---
+
+## Frequently asked questions
+
+<Accordions>
+
+<Accordion title="Why is there no version table?">
+
+Each response already stores the definition it was started with. A
+questionnaire version history is an application concern unless you need a
+stable public URL with history.
+
+</Accordion>
+
+<Accordion title="Can I query the tables from my own ORM?">
+
+Yes. The rows are ordinary FumaDB / Drizzle / Prisma tables. Submit
+validation still belongs on `dimahForm()` — do not bypass it with raw
+writes to `response.answers`.
+
+</Accordion>
+
+</Accordions>

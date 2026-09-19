@@ -5,10 +5,8 @@ icon: House
 ---
 
 dimah-form is a modular questionnaire engine for React and Node.js runtimes.
-The library owns the protocol, definition snapshots, drafts, and submit
-validation. You own rendering, auth, and the database adapter.
-
-There is no UI package. Field widgets stay in the consumer app.
+It owns the protocol, definition snapshots, drafts, and submit validation.
+You own rendering, auth, and the database adapter.
 
 ## Architecture flow
 
@@ -16,14 +14,14 @@ There is no UI package. Field widgets stay in the consumer app.
   label="Headless fill loop"
   steps={[
     { name: "Browser", kind: "client", note: "your widgets" },
-    { name: "Protocol", kind: "protocol", note: "typed client" },
-    { name: "Server + DB", kind: "server", note: "snapshot + persist" },
+    { name: "Server", kind: "server", note: "dimahForm()" },
+    { name: "Database", kind: "data", note: "snapshot + persist" },
   ]}
 />
 
 The browser talks through `createFormClient`. The server instance
-(`dimahForm()`) validates against the snapshot stored on the response.
-AWS-style credentials are not involved — this is not an S3 toolkit.
+(`dimahForm()`) validates answers against the snapshot stored on the
+response — not the live questionnaire.
 
 **For coding agents** — [llms.txt](/llms.txt) · [llms-full.txt](/llms-full.txt).
 
@@ -34,36 +32,11 @@ AWS-style credentials are not involved — this is not an S3 toolkit.
 - **Typed protocol** — one schema shared by `@dimah-form/server` and `@dimah-form/react`
 - **Snapshots** — each response keeps the definition it was started with
 - **Drafts and submit** — patch drafts, replace on submit, optional reopen
-- **Headless React** — `useFormResponse` for the fill session, not a renderer
-- **Required persistence** — `memoryAdapter()` or FumaDB via `@dimah-form/db`
+- **Headless React** — `useFormResponse` binds your widgets; it is not a renderer
+- **Persistence** — `memoryAdapter()` to try the protocol, or FumaDB via `@dimah-form/db`
 
 It is not a form builder and not a widget kit. Custom fields are
 `defineFieldType` validators, not components.
-
-## Packages
-
-<Cards>
-  <Card
-    title="@dimah-form/core"
-    href="/docs/core"
-    description="Protocol, field types, errors, and the isomorphic fetch client."
-  />
-  <Card
-    title="@dimah-form/server"
-    href="/docs/server"
-    description="dimahForm() — HTTP handler, typed api, adapters, plugins."
-  />
-  <Card
-    title="@dimah-form/db"
-    href="/docs/db"
-    description="FumaDB adapter for questionnaires and responses."
-  />
-  <Card
-    title="@dimah-form/react"
-    href="/docs/react"
-    description="Thin React client — createFormClient and useFormResponse."
-  />
-</Cards>
 
 ## Frequently asked questions
 
@@ -83,14 +56,15 @@ hosted survey product.
 
 No. Built-in field types are validators (`text`, `number`, `boolean`,
 `select`, `multiSelect`, `email`, `date`). Extra types are
-`defineFieldType`. Rendering stays in the consumer app. See the
+`defineFieldType`. Rendering stays in your app. See the
 [Next.js example](/docs/examples).
 
 </Accordion>
 
 <Accordion title="Where does auth live?">
 
-In your `guard` hooks on `dimahForm()`. The library does not ship auth.
+In your `guard` on `dimahForm()`. Throw `APIError` with a catalog code —
+a plain `Error` becomes `INTERNAL_ERROR`. See [Hooks](/docs/hooks).
 
 </Accordion>
 
@@ -98,8 +72,7 @@ In your `guard` hooks on `dimahForm()`. The library does not ship auth.
 
 No. `database` is required. Use `memoryAdapter()` from
 `@dimah-form/server` for tests or ephemeral apps, or `db()` from
-`@dimah-form/db` for FumaDB persistence. Plugins do not replace
-persistence.
+`@dimah-form/db` for FumaDB persistence.
 
 </Accordion>
 
@@ -107,9 +80,50 @@ persistence.
 
 `export type Form = typeof form` on the server instance, then
 `createFormClient<Form>()` in the browser. Pass the same `fieldTypes`
-array on both sides. Apps import from the package they already use —
-`@dimah-form/server` on the server, `@dimah-form/react` in UI.
+array on both sides when you have extras.
 
 </Accordion>
 
 </Accordions>
+
+---
+
+## Explore documentation
+
+<Cards>
+  <Card
+    title="Quickstart"
+    href="/docs/quickstart"
+    description="Install the packages and start a fill session."
+  />
+  <Card
+    title="Forms"
+    href="/docs/forms"
+    description="defineForm, status, slug, and stored questionnaires."
+  />
+  <Card
+    title="Server Setup"
+    href="/docs/setup"
+    description="Create dimahForm() and mount it on your runtime."
+  />
+  <Card
+    title="useFormResponse"
+    href="/docs/fill"
+    description="Headless fill session — draft, submit, and reopen."
+  />
+  <Card
+    title="Field Types"
+    href="/docs/field-types"
+    description="Built-in validators and defineFieldType."
+  />
+  <Card
+    title="Database"
+    href="/docs/database"
+    description="FumaDB adapter for questionnaires and responses."
+  />
+  <Card
+    title="Example"
+    href="/docs/examples"
+    description="Run the Next.js demo locally."
+  />
+</Cards>

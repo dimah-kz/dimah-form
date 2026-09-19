@@ -1,0 +1,241 @@
+---
+title: Quickstart
+description: A working questionnaire in minutes — install, mount dimahForm(), and start a fill session.
+icon: Rocket
+---
+
+<Steps>
+
+<Step>
+
+### Install
+
+```npm
+npm i @dimah-form/server @dimah-form/react @dimah-form/db
+```
+
+</Step>
+
+<Step>
+
+### Create the server instance
+
+`memoryAdapter()` is enough to try the protocol. Switch to
+[`@dimah-form/db`](/docs/database) when you want FumaDB.
+
+```ts title="lib/form.ts"
+import { defineForm, dimahForm, memoryAdapter } from "@dimah-form/server";
+
+export const form = dimahForm({
+  database: memoryAdapter(),
+  forms: {
+    feedback: defineForm({
+      title: "Feedback",
+      slug: "feedback",
+      status: "active",
+      fields: [{ id: "name", type: "text", required: true, label: "Name" }],
+    }),
+  },
+});
+
+export type Form = typeof form;
+```
+
+Only `active` forms can be started. `status` defaults to `active`.
+
+</Step>
+
+<Step>
+
+### Mount the route handler
+
+```ts title="app/api/form/[...all]/route.ts"
+import { toNextJsHandler } from "@dimah-form/server/next";
+import { form } from "@/lib/form";
+
+export const { GET, POST, PUT, PATCH, DELETE } = toNextJsHandler(form);
+```
+
+Other runtimes: [Server Setup](/docs/setup). Default `basePath` is `/api/form`.
+
+</Step>
+
+<Step>
+
+### Create the client
+
+```ts title="lib/form-client.ts"
+"use client";
+
+import { createFormClient } from "@dimah-form/react";
+import type { Form } from "@/lib/form";
+
+export const formClient = createFormClient<Form>();
+export const { useFormResponse } = formClient;
+```
+
+Pass the same `fieldTypes` you registered on `dimahForm()` when you have extras.
+
+</Step>
+
+<Step>
+
+### Render a questionnaire
+
+Reads in Server Components can use `form.api`. Writes in the browser use
+the client. You render the inputs.
+
+```tsx title="app/page.tsx"
+import { Questionnaire } from "@/components/questionnaire";
+import { form } from "@/lib/form";
+
+export default async function Page() {
+  const snapshot = await form.api.getForm({ query: { formId: "feedback" } });
+  return <Questionnaire form={snapshot} />;
+}
+```
+
+```tsx title="components/questionnaire.tsx"
+"use client";
+
+import { fieldLabel } from "@dimah-form/react";
+import type { FormSnapshot } from "@dimah-form/react";
+import { useFormResponse } from "@/lib/form-client";
+
+export function Questionnaire({ form }: { form: FormSnapshot }) {
+  const q = useFormResponse({ snapshot: form });
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        void q.submit();
+      }}
+    >
+      {q.visibleFields.map((field) => {
+        const binding = q.field(field.id);
+        return (
+          <label key={field.id}>
+            {fieldLabel(field)}
+            <input
+              value={typeof binding.value === "string" ? binding.value : ""}
+              disabled={binding.disabled}
+              onChange={(event) =>
+                binding.onChange(
+                  event.target.value === "" ? null : event.target.value,
+                )
+              }
+            />
+            {binding.error}
+          </label>
+        );
+      })}
+      <button type="submit" disabled={q.pending != null}>
+        Submit
+      </button>
+    </form>
+  );
+}
+```
+
+The [Next.js example](/docs/examples) binds shadcn Field widgets the same way.
+
+</Step>
+
+</Steps>
+
+---
+
+## Next
+
+<Cards>
+  <Card
+    title="Forms"
+    href="/docs/forms"
+    description="defineForm, status, slug, and stored questionnaires."
+  />
+  <Card
+    title="Server Setup"
+    href="/docs/setup"
+    description="Adapters, form.api, and dimahForm() config."
+  />
+  <Card
+    title="useFormResponse"
+    href="/docs/fill"
+    description="Headless fill session — draft, submit, reopen."
+  />
+  <Card
+    title="Example"
+    href="/docs/examples"
+    description="Run examples/next locally."
+  />
+</Cards>
+
+## Frequently asked questions
+
+<Accordions>
+
+<Accordion title="How do I restrict starts to authenticated users?">
+
+Add a `guard` on the instance. Throw `APIError` — a plain `Error` maps to
+`INTERNAL_ERROR`:
+
+```ts title="lib/form.ts"
+import {
+  APIError,
+  FORM_ERROR_CODES,
+  defineForm,
+  dimahForm,
+  memoryAdapter,
+} from "@dimah-form/server";
+
+export const form = dimahForm({
+  database: memoryAdapter(),
+  guard: async ({ request, operation }) => {
+    // [!code ++]
+    if (operation !== "startResponse") return; // [!code ++]
+    const session = await getSession(request); // [!code ++]
+    if (!session) {
+      // [!code ++]
+      throw APIError.from("UNAUTHORIZED", FORM_ERROR_CODES.UNAUTHORIZED); // [!code ++]
+    } // [!code ++]
+  }, // [!code ++]
+  forms: {
+    feedback: defineForm({
+      title: "Feedback",
+      fields: [{ id: "name", type: "text", required: true }],
+    }),
+  },
+});
+```
+
+See [Hooks](/docs/hooks).
+
+</Accordion>
+
+<Accordion title="How do I persist questionnaires in a real database?">
+
+Pass `db()` from `@dimah-form/db` instead of `memoryAdapter()`. See
+[Database](/docs/database).
+
+</Accordion>
+
+<Accordion title="How do I change the API path?">
+
+Set `basePath` on `dimahForm()` and the same prefix on the client
+(`basePath`, or `baseURL` when the API is on another origin):
+
+```ts
+export const form = dimahForm({
+  basePath: "/api/questionnaires", // [!code ++]
+  database: memoryAdapter(),
+});
+
+export const formClient = createFormClient<Form>({
+  basePath: "/api/questionnaires", // [!code ++]
+});
+```
+
+</Accordion>
+
+</Accordions>

@@ -1,7 +1,0 @@
-{
-  "title": "Core",
-  "description": "Protocol, field types, and fetch client",
-  "icon": "Box",
-  "root": true,
-  "pages": ["index"]
-}

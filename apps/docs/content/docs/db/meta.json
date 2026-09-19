@@ -1,7 +1,0 @@
-{
-  "title": "Database",
-  "description": "FumaDB adapter for questionnaires and responses",
-  "icon": "Database",
-  "root": true,
-  "pages": ["index"]
-}

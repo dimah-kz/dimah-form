@@ -1,7 +1,0 @@
-{
-  "title": "Server",
-  "description": "dimahForm() — HTTP handler and typed api",
-  "icon": "Server",
-  "root": true,
-  "pages": ["index"]
-}

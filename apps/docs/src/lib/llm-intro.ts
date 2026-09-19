@@ -18,13 +18,17 @@ import { getSiteUrl } from "./site-url";
 export const LLM_PAGE_PRIORITY = [
   "/docs",
   "/docs/quickstart",
-  "/docs/architecture",
-  "/docs/packages",
+  "/docs/forms",
+  "/docs/field-types",
+  "/docs/responses",
+  "/docs/setup",
+  "/docs/hooks",
+  "/docs/errors",
+  "/docs/plugins",
+  "/docs/database",
+  "/docs/fill",
+  "/docs/helpers",
   "/docs/examples",
-  "/docs/core",
-  "/docs/server",
-  "/docs/db",
-  "/docs/react",
 ] as const;
 
 export const llmMarkdownHeaders = {

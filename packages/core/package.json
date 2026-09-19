@@ -11,7 +11,7 @@
     "zod",
     "typescript"
   ],
-  "homepage": "https://form.dimah.dev/docs/core",
+  "homepage": "https://form.dimah.dev/docs",
   "bugs": {
     "url": "https://github.com/dimah-kz/dimah-form/issues"
   },

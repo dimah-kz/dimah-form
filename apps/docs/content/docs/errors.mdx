@@ -1,0 +1,93 @@
+---
+title: Errors
+description: Stable error codes, error helpers, and APIError handling.
+icon: CircleAlert
+---
+
+Failed requests return JSON `{ message, code?, params?, issues? }` and
+standard HTTP status codes.
+
+Library `message` strings are English and stable. Localize in the UI from
+`code`.
+
+```ts
+import {
+  APIError,
+  FORM_ERROR_CODES,
+  errors,
+  isAPIError,
+  isFormErrorCode,
+} from "@dimah-form/server";
+
+throw errors.unknownForm("feedback");
+throw errors.validationError([{ field: "name", message: "Required" }]);
+throw APIError.from("UNAUTHORIZED", FORM_ERROR_CODES.UNAUTHORIZED);
+```
+
+Catch and inspect:
+
+```ts
+if (isAPIError(err)) {
+  console.log(err.statusCode, err.code, err.message, err.params, err.issues);
+}
+
+if (isFormErrorCode(err, "STALE_UPDATE")) {
+  // Refresh and retry
+}
+```
+
+A plain `Error` thrown from `guard` or `on*` maps to `INTERNAL_ERROR`
+(500). Throw `APIError` for a stable `code`.
+
+There is no `errors.unauthorized()` helper. Use
+`APIError.from("UNAUTHORIZED", FORM_ERROR_CODES.UNAUTHORIZED)` (same for
+`FORBIDDEN`).
+
+---
+
+## Error catalog
+
+| `code`                | HTTP | Trigger                                          |
+| --------------------- | ---- | ------------------------------------------------ |
+| `NOT_FOUND`           | 404  | Unknown API path                                 |
+| `UNKNOWN_FORM`        | 404  | `formId` / slug is not in config or the database |
+| `UNKNOWN_RESPONSE`    | 404  | `responseId` does not exist                      |
+| `UNAUTHORIZED`        | 401  | Thrown by your `guard`                           |
+| `FORBIDDEN`           | 403  | Thrown by your `guard`                           |
+| `STALE_UPDATE`        | 409  | `updatedAt` does not match the stored row        |
+| `FORM_INACTIVE`       | 409  | Start on a form that is not `active`             |
+| `RESPONSE_NOT_DRAFT`  | 409  | Draft / submit / abandon on a locked row         |
+| `RESPONSE_NOT_LOCKED` | 409  | Reopen on a row that is already `draft`          |
+| `CODE_AUTHORED_FORM`  | 409  | `saveForm` / `deleteForm` on a config id         |
+| `FORM_HAS_RESPONSES`  | 409  | `deleteForm` while responses still exist         |
+| `SLUG_TAKEN`          | 409  | `saveForm` slug collides                         |
+| `VALIDATION_ERROR`    | 400  | Invalid payload or answer issues (`issues[]`)    |
+| `UNKNOWN_FIELD_TYPE`  | 400  | Field `type` is not registered                   |
+| `INTERNAL_ERROR`      | 500  | Unhandled throw or failed `on*` / persist        |
+
+`params` carries ids when relevant (`formId`, `responseId`, `slug`,
+`type`). `VALIDATION_ERROR` may include `issues: { field, message }[]`.
+
+---
+
+## Frequently asked questions
+
+<Accordions>
+
+<Accordion title="How do I show field errors in the UI?">
+
+`useFormResponse` maps `issues` onto `field(id).error`. For raw client
+calls, use `issuesByField` / `formErrorMessage` from
+[`@dimah-form/react`](/docs/helpers).
+
+</Accordion>
+
+<Accordion title="How do plugins add codes?">
+
+Call `defineErrorCodes` once and attach the catalog on both the server
+plugin and the client plugin. Codes cannot shadow core or another plugin.
+See [Plugins](/docs/plugins).
+
+</Accordion>
+
+</Accordions>

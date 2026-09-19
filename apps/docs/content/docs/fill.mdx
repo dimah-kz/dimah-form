@@ -1,0 +1,152 @@
+---
+title: useFormResponse
+description: Headless fill session — bind widgets, draft, submit, and reopen.
+icon: PenLine
+---
+
+`useFormResponse` is the fill session: answers, visibility, local
+validation, draft, submit, reopen, and abandon. You render widgets.
+
+Re-export the bound hook from your client so the protocol client and
+field types stay tied to the instance. Bound hooks do not need
+`Provider`.
+
+```ts title="lib/form-client.ts"
+"use client";
+
+import { createFormClient } from "@dimah-form/react";
+import type { Form } from "@/lib/form";
+import { fieldTypes } from "@/lib/field-types";
+
+export const formClient = createFormClient<Form>({ fieldTypes });
+export const { useFormResponse } = formClient;
+```
+
+```tsx title="components/questionnaire.tsx"
+"use client";
+
+import { fieldLabel } from "@dimah-form/react";
+import type { FormSnapshot, ResponseRecord } from "@dimah-form/react";
+import { useFormResponse } from "@/lib/form-client";
+
+export function Questionnaire({
+  form,
+  response,
+}: {
+  form: FormSnapshot;
+  response?: ResponseRecord;
+}) {
+  const q = useFormResponse({
+    snapshot: form,
+    response,
+    onSubmitted: (row) => {
+      console.log(row.id);
+    },
+  });
+
+  if (q.inactive) return <p>This form is {form.status}.</p>;
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        void q.submit();
+      }}
+    >
+      {q.visibleFields.map((field) => {
+        const binding = q.field(field.id);
+        return (
+          <label key={field.id}>
+            {fieldLabel(field)}
+            <input
+              value={typeof binding.value === "string" ? binding.value : ""}
+              disabled={binding.disabled}
+              onChange={(event) =>
+                binding.onChange(
+                  event.target.value === "" ? null : event.target.value,
+                )
+              }
+            />
+            {binding.error}
+          </label>
+        );
+      })}
+      {q.error ? <p>{q.error}</p> : null}
+      <button type="submit" disabled={q.pending != null || q.locked}>
+        Submit
+      </button>
+      <button
+        type="button"
+        disabled={q.pending != null}
+        onClick={() => void q.saveDraft()}
+      >
+        Save draft
+      </button>
+    </form>
+  );
+}
+```
+
+Pass `response` to resume a draft or to reopen a locked row. Omit it to
+start on first save/submit. Optional `respondentId` (string or
+`() => string`) is sent on start.
+
+Clearing an input should send `null` so a later draft patch deletes the
+key.
+
+The [Next.js example](/docs/examples) switches on `field.type` and binds
+shadcn Field widgets.
+
+---
+
+## Options
+
+| Option                       | Role                                                                           |
+| ---------------------------- | ------------------------------------------------------------------------------ |
+| `snapshot`                   | Live form. When `response` is passed, the row's `definition` wins field values |
+| `response`                   | Existing row (`id`, `answers`, `status`, `updatedAt`, `definition`)            |
+| `respondentId`               | String or `() => string`, sent on `startResponse`                              |
+| `fieldTypes`                 | Same extras as `dimahForm({ fieldTypes })`. Falls back to `client.fieldTypes`  |
+| `validate`                   | `"submit"` (default) or `"change"`                                             |
+| `onStarted`                  | After `startResponse`. Do not navigate here if a save/submit follows           |
+| `onSaved`                    | After a successful draft                                                       |
+| `onSubmitted`                | After a successful submit                                                      |
+| `onReopened` / `onAbandoned` | After reopen / abandon                                                         |
+
+---
+
+## State and actions
+
+| Field           | Meaning                                                            |
+| --------------- | ------------------------------------------------------------------ |
+| `snapshot`      | Definition in use (from the response once started)                 |
+| `responseId`    | Undefined until start                                              |
+| `answers`       | Current values                                                     |
+| `status`        | `draft` \| `submitted` \| `abandoned`                              |
+| `locked`        | Submitted or abandoned                                             |
+| `inactive`      | No row yet and the live form is not `active`                       |
+| `dirty`         | Local answers differ from last persist                             |
+| `pending`       | `"save"` \| `"submit"` \| `"reopen"` \| `"abandon"` \| `"refresh"` |
+| `issues`        | Per-field messages                                                 |
+| `error`         | Request-level English message                                      |
+| `visibleFields` | Fields whose `showWhen` matches                                    |
+
+| Action                     | Behavior                                                                  |
+| -------------------------- | ------------------------------------------------------------------------- |
+| `field(id)`                | `{ value, error, invalid, required, disabled, visible, onChange, field }` |
+| `setAnswer` / `setAnswers` | Patch. No-op when `locked`                                                |
+| `validate()`               | Collect issues (`submit` mode by default)                                 |
+| `saveDraft()`              | Start if needed, send an answers patch + `updatedAt`                      |
+| `submit()`                 | Local submit validation, then full replace + `updatedAt`                  |
+| `reopen()`                 | Locked rows only                                                          |
+| `abandon()`                | Draft with an id                                                          |
+| `refresh()`                | `getResponse` and replace local state                                     |
+
+Actions return `undefined` when a request is already pending, the row is
+in the wrong status, or local submit validation fails.
+
+On `STALE_UPDATE`, the session refreshes from `getResponse` and sets
+`error`. Field-level `VALIDATION_ERROR` maps onto `issues`.
+
+The same session exists as `createFormResponseSession` in
+`@dimah-form/core` if you are not using React.

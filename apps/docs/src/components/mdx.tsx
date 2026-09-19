@@ -1,5 +1,6 @@
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import * as AccordionComponents from "fumadocs-ui/components/accordion";
+import * as TabsComponents from "fumadocs-ui/components/tabs";
 import * as CardComponents from "fumadocs-ui/components/card";
 import * as FilesComponents from "fumadocs-ui/components/files";
 import * as StepsComponents from "fumadocs-ui/components/steps";
@@ -11,6 +12,7 @@ export function getMDXComponents(components?: MDXComponents) {
     ...defaultMdxComponents,
     Flow,
     ...AccordionComponents,
+    ...TabsComponents,
     ...CardComponents,
     ...FilesComponents,
     ...StepsComponents,
