@@ -162,4 +162,57 @@ describe("memoryAdapter", () => {
       ).map((item) => item.id),
     ).toEqual(["r1"]);
   });
+
+  it("CAS rejects a stale save token", async () => {
+    const store = memoryAdapter();
+    await store.create(row);
+    await expect(
+      (async () =>
+        store.save(
+          { ...row, answers: { n: 1 }, updatedAt: "newer" },
+          { expectedUpdatedAt: "old" },
+        ))(),
+    ).rejects.toMatchObject({ name: "StoreConflictError" });
+    expect((await store.get("r1"))?.answers).toEqual({});
+    await store.save(
+      { ...row, answers: { n: 1 }, updatedAt: "newer" },
+      { expectedUpdatedAt: "t" },
+    );
+    expect((await store.get("r1"))?.answers).toEqual({ n: 1 });
+  });
+
+  it("returns summaries without answers", async () => {
+    const store = memoryAdapter();
+    await store.create({ ...row, answers: { name: "Ada" } });
+    expect(await store.listResponses({ include: "summary" })).toEqual([
+      {
+        id: "r1",
+        formId: "onboarding",
+        status: "draft",
+        respondentId: null,
+        submittedAt: null,
+        createdAt: "t",
+        updatedAt: "t",
+      },
+    ]);
+  });
+
+  it("getOrCreateDraft returns the existing draft", async () => {
+    const store = memoryAdapter();
+    await store.create({ ...row, respondentId: "user-1" });
+    const again = await store.getOrCreateDraft({
+      ...row,
+      id: "r2",
+      respondentId: "user-1",
+    });
+    expect(again.created).toBe(false);
+    expect(again.row.id).toBe("r1");
+    const other = await store.getOrCreateDraft({
+      ...row,
+      id: "r3",
+      respondentId: "user-2",
+    });
+    expect(other.created).toBe(true);
+    expect(other.row.id).toBe("r3");
+  });
 });

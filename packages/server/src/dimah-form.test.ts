@@ -184,6 +184,22 @@ describe("HTTP envelope", () => {
     expect(operations).toEqual(["getForm:onboarding"]);
   });
 
+  it("lets guard load a response without re-entering guard", async () => {
+    const seen: string[] = [];
+    const form = createInstance({
+      guard: async ({ operation, responseId, getResponse }) => {
+        if (operation !== "getResponse" || !responseId) return;
+        const row = await getResponse(responseId);
+        seen.push(row?.id ?? "missing");
+      },
+    });
+    const started = await form.api.startResponse({
+      body: { formId: "onboarding" },
+    });
+    await form.api.getResponse({ query: { responseId: started.id } });
+    expect(seen).toEqual([started.id]);
+  });
+
   it("runs validateAnswers on submit", async () => {
     const form = dimahForm({
       database: memoryAdapter(),

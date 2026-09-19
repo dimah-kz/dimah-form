@@ -25,13 +25,11 @@ export const startResponse = createFormEndpoint(
       if (!respondentId) {
         throw errors.resumeRequiresRespondent();
       }
-      const open = await ctx.context.config.database.listResponses({
+      const open = await ctx.context.config.database.findLatestDraft({
         formId: definition.id,
         respondentId,
-        status: "draft",
-        limit: 1,
       });
-      if (open[0]) return open[0];
+      if (open) return open;
     }
     requireActiveForm(definition);
     const now = new Date().toISOString();
@@ -48,11 +46,22 @@ export const startResponse = createFormEndpoint(
     };
     const request = ctx.context.request;
     const hooks = ctx.context.config.hooks;
+    const database = ctx.context.config.database;
+
+    if (ctx.body.resume) {
+      await hooks.onStart?.({ request, response: row });
+      const result = await database.getOrCreateDraft(row);
+      if (result.created) {
+        await hooks.afterStart?.({ request, response: result.row });
+      }
+      return persistedResponse((id) => database.get(id), result.row);
+    }
+
     await commitLifecycle(
       () => hooks.onStart?.({ request, response: row }),
-      () => ctx.context.config.database.create(row),
+      () => database.create(row),
       () => hooks.afterStart?.({ request, response: row }),
     );
-    return persistedResponse((id) => ctx.context.config.database.get(id), row);
+    return persistedResponse((id) => database.get(id), row);
   },
 );

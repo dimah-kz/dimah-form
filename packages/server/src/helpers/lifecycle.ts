@@ -1,6 +1,15 @@
-import type { ResponseRecord } from "@dimah-form/core";
+import type {
+  FormSnapshot,
+  MaybePromise,
+  ResponseRecord,
+} from "@dimah-form/core";
 
-import type { MaybePromise } from "@/types";
+import { errors } from "@/errors";
+import {
+  isStoreConflictError,
+  type ResponseStore,
+  type StoreWriteOptions,
+} from "@/store";
 
 /** Run `on*` then persist, then `after*`. If persist throws, `after*` is skipped. */
 export async function commitLifecycle<T>(
@@ -23,4 +32,32 @@ export async function persistedResponse(
   row: ResponseRecord,
 ): Promise<ResponseRecord> {
   return (await get(row.id)) ?? row;
+}
+
+export async function writeResponse(
+  store: Pick<ResponseStore, "save" | "get">,
+  row: ResponseRecord,
+  options?: StoreWriteOptions,
+): Promise<ResponseRecord> {
+  try {
+    await store.save(row, options);
+  } catch (error) {
+    if (isStoreConflictError(error)) throw errors.staleUpdate();
+    throw error;
+  }
+  return persistedResponse((id) => store.get(id), row);
+}
+
+export async function writeForm(
+  store: Pick<ResponseStore, "saveForm">,
+  form: FormSnapshot,
+  options?: StoreWriteOptions,
+): Promise<FormSnapshot> {
+  try {
+    await store.saveForm(form, options);
+  } catch (error) {
+    if (isStoreConflictError(error)) throw errors.staleUpdate();
+    throw error;
+  }
+  return form;
 }

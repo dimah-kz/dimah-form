@@ -36,11 +36,17 @@ import {
 
 export const form = dimahForm({
   database: memoryAdapter(),
-  guard: async ({ request, operation, formId, responseId }) => {
+  guard: async ({ request, operation, formId, responseId, getResponse }) => {
     if (operation !== "startResponse") return;
     const session = await getSession(request);
     if (!session) {
       throw APIError.from("UNAUTHORIZED", FORM_ERROR_CODES.UNAUTHORIZED);
+    }
+    if (responseId) {
+      const row = await getResponse(responseId);
+      if (row && row.respondentId !== session.userId) {
+        throw APIError.from("FORBIDDEN", FORM_ERROR_CODES.FORBIDDEN);
+      }
     }
   },
 });
@@ -59,12 +65,14 @@ throw APIError.from("FORBIDDEN", {
 });
 ```
 
-| Field        | Set when                                                                 |
-| ------------ | ------------------------------------------------------------------------ |
-| `request`    | Always                                                                   |
-| `operation`  | Core name (`startResponse`) or plugin endpoint key                       |
-| `formId`     | Form routes and start — from `query.formId`, `body.formId`, or `body.id` |
-| `responseId` | Present on response routes                                               |
+| Field         | Set when                                                                 |
+| ------------- | ------------------------------------------------------------------------ |
+| `request`     | Always                                                                   |
+| `operation`   | Core name (`startResponse`) or plugin endpoint key                       |
+| `formId`      | Form routes and start — from `query.formId`, `body.formId`, or `body.id` |
+| `responseId`  | Present on response routes                                               |
+| `getResponse` | `(id) =>` store `get` — no HTTP, no guard re-entry                       |
+| `getForm`     | Code-authored catalog first, then `database.getForm`                     |
 
 Guard `operation` for a plugin route is the `endpoints` object key unless
 `metadata.operation` is set. See [Plugins](/docs/plugins).

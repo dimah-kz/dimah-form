@@ -105,7 +105,9 @@ export const form = dimahForm({
 
 `ResponseStore` is the adapter contract (`getForm`, `saveForm`,
 `deleteForm`, `listForms`, `create`, `get`, `save`, `delete`,
-`listResponses`). Methods may be sync or async. See
+`listResponses`, `findLatestDraft`, `getOrCreateDraft`). `save` /
+`saveForm` accept `{ expectedUpdatedAt }` and throw `StoreConflictError`
+on a stale token. Methods may be sync or async. See
 [Configuration](/docs/configuration).
 
 ---

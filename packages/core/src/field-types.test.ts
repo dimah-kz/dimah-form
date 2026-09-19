@@ -122,5 +122,21 @@ describe("createFieldTypeRegistry", () => {
       "Expected a date",
     );
     expect(message(dateFieldType.validate(1))).toBe("Expected a string");
+    expect(
+      message(
+        dateFieldType.validate("2025-12-31", {
+          type: "date",
+          min: "2026-01-01",
+        }),
+      ),
+    ).toBe("Must be on or after 2026-01-01");
+    expect(
+      message(
+        dateFieldType.validate("2026-02-01", {
+          type: "date",
+          max: "2026-01-31",
+        }),
+      ),
+    ).toBe("Must be on or before 2026-01-31");
   });
 });

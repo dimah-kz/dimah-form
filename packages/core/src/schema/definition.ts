@@ -19,22 +19,36 @@ export const documentMetaSchema = z.record(z.string(), z.json());
 
 export type DocumentMeta = z.output<typeof documentMetaSchema>;
 
-/** Sibling visibility — field is skipped when the rule does not match. */
-export const showWhenSchema = z
+export type FieldShowWhen =
+  | {
+      field: string;
+      equals?: unknown;
+      notEquals?: unknown;
+      includes?: unknown;
+    }
+  | { all: FieldShowWhen[] }
+  | { any: FieldShowWhen[] };
+
+const showWhenLeafSchema = z
   .looseObject({
     field: fieldIdSchema,
     equals: z.unknown().optional(),
+    notEquals: z.unknown().optional(),
     includes: z.unknown().optional(),
   })
   .check((ctx) => {
-    if (ctx.value.equals === undefined && ctx.value.includes === undefined) {
+    if (
+      ctx.value.equals === undefined &&
+      ctx.value.notEquals === undefined &&
+      ctx.value.includes === undefined
+    ) {
       ctx.issues.push({
         code: "custom",
-        message: "showWhen requires equals or includes",
+        message: "showWhen requires equals, notEquals, or includes",
         input: ctx.value,
       });
     }
-    for (const key of ["equals", "includes"] as const) {
+    for (const key of ["equals", "notEquals", "includes"] as const) {
       const message = showWhenListIssue(key, ctx.value[key]);
       if (message) {
         ctx.issues.push({
@@ -46,7 +60,14 @@ export const showWhenSchema = z
     }
   });
 
-export type FieldShowWhen = z.output<typeof showWhenSchema>;
+/** Sibling visibility — leaf compare, or `all` / `any` of nested rules. */
+export const showWhenSchema: z.ZodType<FieldShowWhen> = z.lazy(() =>
+  z.union([
+    showWhenLeafSchema as z.ZodType<FieldShowWhen>,
+    z.strictObject({ all: z.array(showWhenSchema).min(1) }),
+    z.strictObject({ any: z.array(showWhenSchema).min(1) }),
+  ]),
+);
 
 /** Shared protocol keys on every field document. */
 const fieldDocument = {
@@ -55,7 +76,7 @@ const fieldDocument = {
   label: fieldLabelSchema,
   description: z.string().optional(),
   defaultValue: z.unknown().optional(),
-  showWhen: showWhenSchema.optional(),
+  showWhen: z.unknown().optional(),
   meta: documentMetaSchema.optional(),
 };
 
@@ -154,10 +175,23 @@ export const emailFieldSchema = z.strictObject({
   type: z.literal("email"),
 });
 
-export const dateFieldSchema = z.strictObject({
-  ...fieldDocument,
-  type: z.literal("date"),
-});
+export const dateFieldSchema = z
+  .strictObject({
+    ...fieldDocument,
+    type: z.literal("date"),
+    min: z.iso.date().optional(),
+    max: z.iso.date().optional(),
+  })
+  .check((ctx) => {
+    const { min, max } = ctx.value;
+    if (min != null && max != null && min > max) {
+      ctx.issues.push({
+        code: "custom",
+        message: "min must be <= max",
+        input: ctx.value,
+      });
+    }
+  });
 
 /** Built-in field documents only. Custom types use {@link storedFieldSchema}. */
 export const fieldSchema = z.discriminatedUnion("type", [
@@ -237,6 +271,19 @@ const formDocument = {
 export const formDefinitionSchema = z
   .strictObject(formDocument)
   .check((ctx) => {
+    for (const field of ctx.value.fields) {
+      if (field.showWhen === undefined) continue;
+      const parsed = showWhenSchema.safeParse(field.showWhen);
+      if (!parsed.success) {
+        ctx.issues.push({
+          code: "custom",
+          message:
+            parsed.error.issues[0]?.message ??
+            `Invalid showWhen on "${field.id}"`,
+          input: ctx.value,
+        });
+      }
+    }
     for (const message of collectShowWhenIssues(ctx.value.fields)) {
       ctx.issues.push({
         code: "custom",
@@ -264,7 +311,11 @@ export type FormField = {
   label?: string;
   description?: string;
   defaultValue?: unknown;
-  showWhen?: FieldShowWhen;
+  /**
+   * Sibling visibility. Validated as {@link FieldShowWhen} on define / save.
+   * Stored snapshots keep the parsed JSON shape.
+   */
+  showWhen?: unknown;
   meta?: DocumentMeta;
   [key: string]: unknown;
 };

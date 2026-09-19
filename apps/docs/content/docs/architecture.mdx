@@ -92,8 +92,9 @@ must not add tables.
 />
 
 1. Query/body parse. Zod failures throw `VALIDATION_ERROR`.
-2. `guard({ request, operation, formId?, responseId? })`. Throw `APIError`
-   to reject. A plain `Error` becomes `INTERNAL_ERROR`.
+2. `guard({ request, operation, formId?, responseId?, getResponse, getForm })`. Throw `APIError`
+   to reject. A plain `Error` becomes `INTERNAL_ERROR`. `getResponse` / `getForm`
+   read the store (and code catalog) without HTTP or guard re-entry.
 3. Handler logic. For submit, `parseAnswers` runs against
    **`existing.definition`**, not `config.forms`.
 4. `on*` hooks (may mutate the row, e.g. `respondentId` on start).

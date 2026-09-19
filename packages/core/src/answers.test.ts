@@ -219,7 +219,7 @@ describe("collectAnswerIssues", () => {
     ]);
   });
 
-  it("skips required hidden fields and strips their answers", () => {
+  it("skips required hidden fields and strips their answers", async () => {
     const form = {
       id: "job",
       slug: "job",
@@ -239,7 +239,7 @@ describe("collectAnswerIssues", () => {
       collectAnswerIssues(form, { employed: false, company: "Acme" }, "submit"),
     ).toEqual([]);
     expect(
-      parseAnswers(form, { employed: false, company: "Acme" }, "submit"),
+      await parseAnswers(form, { employed: false, company: "Acme" }, "submit"),
     ).toEqual({ employed: false });
     expect(collectAnswerIssues(form, { employed: true }, "submit")).toEqual([
       { field: "company", ...FIELD_ISSUE_CODES.REQUIRED },
@@ -256,14 +256,12 @@ describe("collectAnswerIssues", () => {
     ]);
   });
 
-  it("throws VALIDATION_ERROR from parseAnswers", () => {
-    let thrown: unknown;
-    try {
-      parseAnswers(snapshot, { name: 1 }, "draft");
-    } catch (error) {
-      thrown = error;
-    }
-    expect(isFormErrorCode(thrown, "VALIDATION_ERROR")).toBe(true);
+  it("throws VALIDATION_ERROR from parseAnswers", async () => {
+    await expect(
+      parseAnswers(snapshot, { name: 1 }, "draft"),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "VALIDATION_ERROR"),
+    );
   });
 
   it("appends form-level validateAnswers issues", () => {
@@ -289,6 +287,18 @@ describe("collectAnswerIssues", () => {
     ).toEqual([
       { field: "age", message: "Must be 18 or older", code: "TOO_YOUNG" },
     ]);
+  });
+
+  it("awaits async validateAnswers", async () => {
+    await expect(
+      collectAnswerIssues(
+        snapshot,
+        { name: "Ada", ok: true },
+        "submit",
+        undefined,
+        async () => [{ field: "ok", message: "No", code: "BLOCKED" }],
+      ),
+    ).resolves.toEqual([{ field: "ok", message: "No", code: "BLOCKED" }]);
   });
 });
 

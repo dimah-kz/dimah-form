@@ -8,8 +8,8 @@ import {
 
 import { createFormEndpoint } from "@/api/create-form-endpoint";
 import { errors } from "@/errors";
-import { commitLifecycle, persistedResponse } from "@/helpers/lifecycle";
-import { assertFresh, requireDraft } from "@/validate";
+import { commitLifecycle, writeResponse } from "@/helpers/lifecycle";
+import { requireDraft } from "@/validate";
 
 const { method, path } = FORM_API_OPERATIONS.saveDraft;
 
@@ -22,9 +22,8 @@ export const saveDraft = createFormEndpoint(
       throw errors.unknownResponse(ctx.body.responseId);
     }
     requireDraft(existing);
-    assertFresh(existing, ctx.body.updatedAt);
     const merged = applyAnswerPatch(existing.answers, ctx.body.answers);
-    const answers = parseAnswers(
+    const answers = await parseAnswers(
       existing.definition,
       merged,
       "draft",
@@ -38,11 +37,13 @@ export const saveDraft = createFormEndpoint(
     };
     const request = ctx.context.request;
     const hooks = ctx.context.config.hooks;
-    await commitLifecycle(
+    return commitLifecycle(
       () => hooks.onSaveDraft?.({ request, response: row }),
-      () => ctx.context.config.database.save(row),
+      () =>
+        writeResponse(ctx.context.config.database, row, {
+          expectedUpdatedAt: ctx.body.updatedAt,
+        }),
       () => hooks.afterSaveDraft?.({ request, response: row }),
     );
-    return persistedResponse((id) => ctx.context.config.database.get(id), row);
   },
 );

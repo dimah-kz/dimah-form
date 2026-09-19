@@ -6,8 +6,8 @@ import {
 
 import { createFormEndpoint } from "@/api/create-form-endpoint";
 import { errors } from "@/errors";
-import { commitLifecycle, persistedResponse } from "@/helpers/lifecycle";
-import { assertFresh, requireLocked } from "@/validate";
+import { commitLifecycle, writeResponse } from "@/helpers/lifecycle";
+import { requireLocked } from "@/validate";
 
 const { method, path } = FORM_API_OPERATIONS.reopenResponse;
 
@@ -20,7 +20,6 @@ export const reopenResponse = createFormEndpoint(
       throw errors.unknownResponse(ctx.body.responseId);
     }
     requireLocked(existing);
-    assertFresh(existing, ctx.body.updatedAt);
     const row: ResponseRecord = {
       ...existing,
       status: "draft",
@@ -28,11 +27,13 @@ export const reopenResponse = createFormEndpoint(
     };
     const request = ctx.context.request;
     const hooks = ctx.context.config.hooks;
-    await commitLifecycle(
+    return commitLifecycle(
       () => hooks.onReopen?.({ request, response: row }),
-      () => ctx.context.config.database.save(row),
+      () =>
+        writeResponse(ctx.context.config.database, row, {
+          expectedUpdatedAt: ctx.body.updatedAt,
+        }),
       () => hooks.afterReopen?.({ request, response: row }),
     );
-    return persistedResponse((id) => ctx.context.config.database.get(id), row);
   },
 );

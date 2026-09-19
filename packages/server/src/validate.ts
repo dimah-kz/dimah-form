@@ -13,16 +13,3 @@ export function requireLocked(row: { id: string; status: string }): void {
     throw errors.responseNotLocked(row.id);
   }
 }
-
-export function assertFresh(
-  existing: { updatedAt?: string },
-  expected?: string,
-): void {
-  if (
-    expected !== undefined &&
-    existing.updatedAt !== undefined &&
-    expected !== existing.updatedAt
-  ) {
-    throw errors.staleUpdate();
-  }
-}

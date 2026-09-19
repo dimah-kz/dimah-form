@@ -1,8 +1,10 @@
 import type { z } from "zod";
 
+import type { MaybePromise } from "./maybe-promise";
 import {
   formDefinitionSchema,
   type DocumentMeta,
+  type FieldShowWhen,
   type FormStatus,
 } from "./schema/definition";
 import type { FormAnswers } from "./schema/protocol";
@@ -18,11 +20,7 @@ export type FormDefinitionInput = {
     label?: string;
     description?: string;
     defaultValue?: unknown;
-    showWhen?: {
-      field: string;
-      equals?: unknown;
-      includes?: unknown;
-    };
+    showWhen?: FieldShowWhen;
     meta?: DocumentMeta;
   } & Record<string, unknown>)[];
   slug?: string;
@@ -60,7 +58,7 @@ export type FieldTypeDefinition<
     value: unknown,
     field: { type: TType } & Record<string, unknown>,
     context?: FieldValidateContext,
-  ) => FieldValidateResult | undefined;
+  ) => MaybePromise<FieldValidateResult | undefined>;
   /**
    * Treat this value as unanswered for required checks and skip type
    * validation. `null` / `undefined` are always empty.

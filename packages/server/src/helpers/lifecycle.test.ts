@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import type { ResponseRecord } from "@dimah-form/core";
+import { isFormErrorCode, type ResponseRecord } from "@dimah-form/core";
 
-import { commitLifecycle, persistedResponse } from "./lifecycle";
+import { commitLifecycle, persistedResponse, writeResponse } from "./lifecycle";
+import { memoryAdapter } from "@/store";
 
 describe("commitLifecycle", () => {
   it("runs after only when persist succeeds", async () => {
@@ -51,6 +52,39 @@ describe("persistedResponse", () => {
   it("falls back to the written row", async () => {
     await expect(persistedResponse(async () => undefined, row)).resolves.toBe(
       row,
+    );
+  });
+});
+
+describe("writeResponse", () => {
+  it("maps a store conflict to STALE_UPDATE", async () => {
+    const store = memoryAdapter();
+    const record = {
+      id: "r1",
+      formId: "onboarding",
+      status: "draft" as const,
+      definition: {
+        id: "onboarding",
+        slug: "onboarding",
+        status: "active" as const,
+        title: "Onboarding",
+        fields: [],
+      },
+      answers: {},
+      respondentId: null,
+      submittedAt: null,
+      createdAt: "t",
+      updatedAt: "t",
+    };
+    await store.create(record);
+    await expect(
+      writeResponse(
+        store,
+        { ...record, updatedAt: "later" },
+        { expectedUpdatedAt: "old" },
+      ),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "STALE_UPDATE"),
     );
   });
 });

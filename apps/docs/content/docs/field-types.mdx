@@ -22,7 +22,7 @@ Built-ins are always registered. Extra types go in
 | `select`      | string option value              | `options` (`{ value, label?, meta? }[]`) |
 | `multiSelect` | `string[]`                       | `options` (unique values)                |
 | `email`       | string                           | —                                        |
-| `date`        | ISO calendar date (`YYYY-MM-DD`) | —                                        |
+| `date`        | ISO calendar date (`YYYY-MM-DD`) | `min`, `max` (ISO dates)                 |
 
 Shared field keys: `id`, `type`, `required`, `label`, `description`,
 `defaultValue`, `showWhen`, `meta`.
@@ -35,7 +35,7 @@ Select / multiSelect `options` need at least one entry. Duplicate option
 `value`s are rejected on the document.
 
 `pattern` on `text` must be a valid `RegExp` source. `minLength` must be
-`<= maxLength` when both are set. `number` `min` must be `<= max`.
+`<= maxLength` when both are set. `number` `min` must be `<= max`. `date` `min` must be `<= max`.
 
 ---
 
@@ -61,9 +61,27 @@ stripped before validation.
 }
 ```
 
-`equals` uses `Object.is`. `includes` matches a value inside an array
-sibling (`multiSelect`). At least one of `equals` or `includes` is
-required; both may be set (AND).
+`equals` uses `Object.is`. `notEquals` is the inverse. `includes` matches a
+value inside an array sibling (`multiSelect`). At least one compare key is
+required on a leaf; both `equals` and `includes` may be set (AND).
+
+Compound rules:
+
+```ts
+{
+  id: "note",
+  type: "text",
+  showWhen: {
+    all: [
+      { field: "role", equals: "eng" },
+      { field: "level", notEquals: "intern" },
+    ],
+  },
+}
+```
+
+`any` is OR. Nested `showWhen` on a referenced sibling still hides the
+dependent field.
 
 `defaultValue` seeds a new response, then hidden fields are dropped.
 

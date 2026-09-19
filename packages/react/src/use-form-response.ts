@@ -61,6 +61,7 @@ export function useFormResponse<TAnswers extends FormAnswers = FormAnswers>(
         validateAnswers,
         validate: options.validate,
         resume: options.resume,
+        autosave: options.autosave,
         onStarted: options.onStarted,
         onSaved: options.onSaved,
         onSubmitted: options.onSubmitted,
@@ -80,6 +81,7 @@ export function useFormResponse<TAnswers extends FormAnswers = FormAnswers>(
       validateAnswers,
       validate: options.validate,
       resume: options.resume,
+      autosave: options.autosave,
       onStarted: options.onStarted,
       onSaved: options.onSaved,
       onSubmitted: options.onSubmitted,
@@ -87,6 +89,10 @@ export function useFormResponse<TAnswers extends FormAnswers = FormAnswers>(
       onAbandoned: options.onAbandoned,
     });
   });
+
+  useLayoutEffect(() => {
+    return () => session.dispose();
+  }, [session]);
 
   const state = useSyncExternalStore(
     session.subscribe,

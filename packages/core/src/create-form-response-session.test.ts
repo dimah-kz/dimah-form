@@ -340,7 +340,7 @@ describe("createFormResponseSession", () => {
     expect(session.getState().issues.name).toBeUndefined();
   });
 
-  it("accepts a prepared registry Map", () => {
+  it("accepts a prepared registry Map", async () => {
     const registry = createFieldTypeRegistry();
     const session = createFormResponseSession({
       client: mockClient(),
@@ -348,7 +348,7 @@ describe("createFormResponseSession", () => {
       fieldTypes: registry,
     });
     session.setAnswer("name", 1);
-    session.validate("draft");
+    await session.validate("draft");
     expect(session.getState().issues).toEqual({
       name: "Expected a string",
     });
@@ -381,7 +381,7 @@ describe("createFormResponseSession", () => {
     );
   });
 
-  it("uses client.fieldTypes when the session omits a registry", () => {
+  it("uses client.fieldTypes when the session omits a registry", async () => {
     const rating = defineFieldType({
       type: "rating",
       validate: (value) => (value === 5 ? undefined : "Expected 5"),
@@ -395,7 +395,7 @@ describe("createFormResponseSession", () => {
       },
     });
     session.setAnswer("score", 3);
-    session.validate("draft");
+    await session.validate("draft");
     expect(session.getState().issues).toEqual({ score: "Expected 5" });
   });
 
@@ -532,5 +532,70 @@ describe("createFormResponseSession", () => {
     await session.submit();
     expect(session.getState().issues).toEqual({ name: "Blocked" });
     expect(session.getState().issueCodes).toEqual({ name: "BLOCKED" });
+  });
+
+  it("keeps local edits made while a save is in flight", async () => {
+    let release!: (value: ReturnType<typeof row>) => void;
+    const client = mockClient({
+      saveDraft: vi.fn(
+        () =>
+          new Promise<ReturnType<typeof row>>((resolve) => {
+            release = resolve;
+          }),
+      ),
+    });
+    const session = createFormResponseSession({
+      client,
+      snapshot,
+      response: row(),
+    });
+    session.setAnswer("name", "Ada");
+    const pending = session.saveDraft();
+    await Promise.resolve();
+    await Promise.resolve();
+    session.setAnswer("name", "Bob");
+    release(
+      row({
+        answers: { role: "eng", name: "Ada" },
+        updatedAt: "2026-01-01T00:00:01.000Z",
+      }),
+    );
+    await pending;
+    expect(session.getState().answers).toEqual({ role: "eng", name: "Bob" });
+    expect(session.getState().dirty).toBe(true);
+    expect(session.getState().updatedAt).toBe("2026-01-01T00:00:01.000Z");
+  });
+
+  it("exposes issueParams and completion on state", async () => {
+    const session = createFormResponseSession({
+      client: mockClient(),
+      snapshot,
+    });
+    await session.submit();
+    expect(session.getState().issueParams).toEqual({});
+    expect(session.getState().completion).toEqual({
+      required: 1,
+      answered: 0,
+      complete: false,
+    });
+    session.setAnswer("name", "Ada");
+    expect(session.getState().completion.complete).toBe(true);
+  });
+
+  it("autosaves after the debounce", async () => {
+    vi.useFakeTimers();
+    const client = mockClient();
+    const session = createFormResponseSession({
+      client,
+      snapshot,
+      response: row(),
+      autosave: { debounceMs: 40 },
+    });
+    session.setAnswer("name", "Ada");
+    expect(client.saveDraft).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(40);
+    expect(client.saveDraft).toHaveBeenCalledTimes(1);
+    session.dispose();
+    vi.useRealTimers();
   });
 });

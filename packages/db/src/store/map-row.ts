@@ -3,9 +3,12 @@ import {
   formStatusSchema,
   normalizeFormSnapshot,
   responseRecordSchema,
+  responseStatusSchema,
   type FormSnapshot,
   type FormStatus,
   type ResponseRecord,
+  type ResponseStatus,
+  type ResponseSummary,
 } from "@dimah-form/core";
 
 function toIso(value: Date | string): string;
@@ -62,6 +65,27 @@ export function toResponseRecord(row: ResponseRow): ResponseRecord {
     createdAt: toIso(row.createdAt),
     updatedAt: toIso(row.updatedAt),
   });
+}
+
+export function toResponseSummaryFromRow(row: {
+  id: string;
+  questionnaireId: string;
+  status: string;
+  respondentId?: string | null;
+  submittedAt: Date | string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}): ResponseSummary {
+  const status = responseStatusSchema.parse(row.status) as ResponseStatus;
+  return {
+    id: row.id,
+    formId: row.questionnaireId,
+    status,
+    respondentId: row.respondentId ?? null,
+    submittedAt: toIso(row.submittedAt),
+    createdAt: toIso(row.createdAt),
+    updatedAt: toIso(row.updatedAt),
+  };
 }
 
 export function toFormSnapshot(row: QuestionnaireRow): FormSnapshot {

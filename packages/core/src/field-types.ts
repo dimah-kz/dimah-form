@@ -198,12 +198,27 @@ export const dateFieldType = defineFieldType({
   type: "date",
   fieldSchema: dateFieldSchema,
   isEmpty: (value) => value == null || isBlankString(value),
-  validate: (value) => {
+  validate: (value, field = { type: "date" }) => {
     if (typeof value !== "string")
       return issue(FIELD_ISSUE_CODES.EXPECTED_STRING);
-    return isoDateAnswer.validate(value)
-      ? undefined
-      : issue(FIELD_ISSUE_CODES.EXPECTED_DATE);
+    if (!isoDateAnswer.validate(value)) {
+      return issue(FIELD_ISSUE_CODES.EXPECTED_DATE);
+    }
+    const min = typeof field.min === "string" ? field.min : undefined;
+    if (min !== undefined && value < min) {
+      return issue(FIELD_ISSUE_CODES.TOO_SMALL, {
+        message: `Must be on or after ${min}`,
+        params: { min },
+      });
+    }
+    const max = typeof field.max === "string" ? field.max : undefined;
+    if (max !== undefined && value > max) {
+      return issue(FIELD_ISSUE_CODES.TOO_LARGE, {
+        message: `Must be on or before ${max}`,
+        params: { max },
+      });
+    }
+    return undefined;
   },
   $Infer: "" as string,
 });

@@ -5,13 +5,12 @@ import type {
   FieldTypeDefinition,
   FormApiOperation,
   FormSnapshot,
+  MaybePromise,
   ResponseRecord,
 } from "@dimah-form/core";
 import type { z } from "zod";
 
 import type { ResponseStore } from "./store";
-
-export type MaybePromise<T> = T | Promise<T>;
 
 /** Core operations plus plugin-defined strings. */
 export type FormOperation = FormApiOperation | (string & {});
@@ -21,6 +20,10 @@ export type DimahFormGuard = (context: {
   operation: FormOperation;
   formId?: string;
   responseId?: string;
+  /** Store read — no HTTP and no guard re-entry. */
+  getResponse: (responseId: string) => MaybePromise<ResponseRecord | undefined>;
+  /** Code-authored catalog first, then `database.getForm`. */
+  getForm: (idOrSlug: string) => MaybePromise<FormSnapshot | undefined>;
 }) => MaybePromise<void>;
 
 type ResponseHookContext = {

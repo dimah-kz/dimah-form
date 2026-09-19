@@ -1,6 +1,7 @@
 import {
   collectShowWhenIssues,
   formDefinitionSchema,
+  isFormErrorCode,
   normalizeFormSnapshot,
   safeParseFormSnapshot,
   type FieldTypeDefinition,
@@ -177,6 +178,18 @@ export async function resolveLiveForm(
     throw errors.unknownForm(idOrSlug);
   }
   return parseLiveSnapshot(stored, config.fieldTypes, config.metaSchema);
+}
+
+export async function findLiveForm(
+  config: ResolvedDimahFormConfig,
+  idOrSlug: string,
+): Promise<FormSnapshot | undefined> {
+  try {
+    return await resolveLiveForm(config, idOrSlug);
+  } catch (error) {
+    if (isFormErrorCode(error, "UNKNOWN_FORM")) return undefined;
+    throw error;
+  }
 }
 
 export function requireActiveForm(form: FormSnapshot): void {

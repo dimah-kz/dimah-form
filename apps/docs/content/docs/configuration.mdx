@@ -57,20 +57,23 @@ React wrapper also adds `Provider`, `useFormClient`, and bound
 
 Pass to `dimahForm({ database })`. Methods may return `T` or `Promise<T>`.
 
-| Method                  | Role                                                                                        |
-| ----------------------- | ------------------------------------------------------------------------------------------- |
-| `getForm(idOrSlug)`     | Live questionnaire or `undefined`                                                           |
-| `saveForm(form)`        | Upsert live questionnaire                                                                   |
-| `deleteForm(id)`        | Remove live questionnaire                                                                   |
-| `listForms(query?)`     | `status?`, `limit?`, `offset?`                                                              |
-| `create(row)`           | Insert a response. Insert parent questionnaire if missing; do not overwrite live definition |
-| `get(id)`               | Response or `undefined`                                                                     |
-| `save(row)`             | Update a response                                                                           |
-| `delete(id)`            | Remove a response                                                                           |
-| `listResponses(query?)` | `formId?`, `respondentId?`, `status?`, `limit?`, `offset?`                                  |
+| Method                                      | Role                                                                                                   |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `getForm(idOrSlug)`                         | Live questionnaire or `undefined`                                                                      |
+| `saveForm(form, options?)`                  | Upsert live questionnaire. `expectedUpdatedAt` CAS → `StoreConflictError`                              |
+| `deleteForm(id)`                            | Remove live questionnaire                                                                              |
+| `listForms(query?)`                         | `status?`, `limit?`, `offset?`                                                                         |
+| `create(row)`                               | Insert a response. Insert parent questionnaire if missing; do not overwrite live definition            |
+| `get(id)`                                   | Response or `undefined`                                                                                |
+| `save(row, options?)`                       | Update a response. `expectedUpdatedAt` CAS → `StoreConflictError`                                      |
+| `delete(id)`                                | Remove a response                                                                                      |
+| `listResponses(query?)`                     | `formId?`, `respondentId?`, `status?`, `include?` (`summary` skips snapshot JSON), `limit?`, `offset?` |
+| `findLatestDraft({ formId, respondentId })` | Latest `draft` for that pair, or `undefined`                                                           |
+| `getOrCreateDraft(row)`                     | Insert if no draft for `formId` + `respondentId`; concurrent losers are deleted                        |
 
 `memoryAdapter()` implements this in process. `db()` from
-`@dimah-form/db` implements it on FumaDB.
+`@dimah-form/db` implements it on FumaDB. Adapters throw
+`StoreConflictError` when a CAS token does not match.
 
 ---
 

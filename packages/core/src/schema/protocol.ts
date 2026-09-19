@@ -177,7 +177,9 @@ export function pageFromOverfetch<T>(
   };
 }
 
-export function toResponseSummary(row: ResponseRecord): ResponseSummary {
+export function toResponseSummary(
+  row: ResponseRecord | ResponseSummary,
+): ResponseSummary {
   return {
     id: row.id,
     formId: row.formId,

@@ -83,6 +83,7 @@ function createOrm(
 ) {
   const forceReturning = vi.fn(async () => row());
   const upsert = vi.fn(() => ({ forceReturning }));
+  const updateMany = vi.fn(async () => undefined);
   const create = vi.fn(async () => ({ id: "onboarding" }));
   const findFirst = vi.fn(async (table: string) => {
     if (table === "questionnaire") {
@@ -99,11 +100,12 @@ function createOrm(
     return overrides.responses ?? [row()];
   });
   const deleteMany = vi.fn(async () => undefined);
-  const orm = { upsert, findFirst, create, findMany, deleteMany };
+  const orm = { upsert, updateMany, findFirst, create, findMany, deleteMany };
   const db = { orm: () => orm } as unknown as DimahFormDbClient;
   return {
     store: createDbResponseStore(db),
     upsert,
+    updateMany,
     findFirst,
     create,
     findMany,
@@ -286,5 +288,48 @@ describe("createDbResponseStore", () => {
       (call) => call[0] === "response",
     )?.[1] as { where?: unknown } | undefined;
     expect(options?.where).toBeUndefined();
+  });
+
+  it("CAS save uses updateMany", async () => {
+    const { store, updateMany, upsert } = createOrm();
+    await store.save(record, {
+      expectedUpdatedAt: "2026-01-01T00:00:00.000Z",
+    });
+    expect(updateMany).toHaveBeenCalledWith(
+      "response",
+      expect.objectContaining({ set: expect.any(Object) }),
+    );
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it("lists response summaries without mapping definition", async () => {
+    const { store } = createOrm();
+    await expect(store.listResponses({ include: "summary" })).resolves.toEqual([
+      {
+        id: "resp-1",
+        formId: "onboarding",
+        status: "draft",
+        respondentId: null,
+        submittedAt: null,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+    ]);
+  });
+
+  it("findLatestDraft limits to one draft row", async () => {
+    const { store, findMany } = createOrm({
+      responses: [row({ respondentId: "user-1" })],
+    });
+    await expect(
+      store.findLatestDraft({
+        formId: "onboarding",
+        respondentId: "user-1",
+      }),
+    ).resolves.toMatchObject({ id: "resp-1" });
+    expect(findMany).toHaveBeenCalledWith(
+      "response",
+      expect.objectContaining({ limit: 1 }),
+    );
   });
 });

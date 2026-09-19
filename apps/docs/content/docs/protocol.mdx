@@ -63,8 +63,9 @@ Submit and draft validate against `response.definition`. See
 
 `startResponse` body: `{ formId, respondentId?, resume? }`. `resume: true`
 requires `respondentId` and returns that respondent's latest draft when
-one exists (same snapshot and answers). Otherwise it creates a new
-response. Does not run `onStart` when an existing draft is returned.
+one exists (same snapshot and answers). Concurrent resumes keep one
+draft. Otherwise it creates a new response. Does not run `onStart` when
+an existing draft is returned.
 
 Draft body: `{ responseId, answers, updatedAt? }` where `answers` is
 `Record<string, unknown>`.

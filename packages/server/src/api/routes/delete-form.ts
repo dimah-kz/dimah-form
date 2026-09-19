@@ -17,6 +17,7 @@ export const deleteForm = createFormEndpoint(
     }
     const existing = await ctx.context.config.database.listResponses({
       formId: form.id,
+      include: "summary",
       limit: 1,
       offset: 0,
     });

@@ -138,4 +138,45 @@ describe("collectShowWhenIssues", () => {
       'showWhen on "note" cannot use equals against multiSelect "skills"; use includes',
     ]);
   });
+
+  it("accepts all / any / notEquals", () => {
+    const note = {
+      id: "note",
+      type: "text",
+      showWhen: {
+        all: [
+          { field: "role", equals: "eng" },
+          { field: "level", notEquals: "intern" },
+        ],
+      },
+    };
+    const fields = [
+      { id: "role", type: "select" },
+      { id: "level", type: "select" },
+      note,
+    ];
+    expect(collectShowWhenIssues(fields)).toEqual([]);
+    expect(isFieldVisible(note, { role: "eng", level: "staff" }, fields)).toBe(
+      true,
+    );
+    expect(isFieldVisible(note, { role: "eng", level: "intern" }, fields)).toBe(
+      false,
+    );
+    expect(
+      isFieldVisible(
+        {
+          id: "note",
+          type: "text",
+          showWhen: {
+            any: [
+              { field: "role", equals: "eng" },
+              { field: "role", equals: "design" },
+            ],
+          },
+        },
+        { role: "design" },
+        [{ id: "role", type: "select" }],
+      ),
+    ).toBe(true);
+  });
 });

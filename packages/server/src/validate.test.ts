@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { isFormErrorCode } from "@dimah-form/core";
 
-import { assertFresh, requireDraft, requireLocked } from "./validate";
+import { requireDraft, requireLocked } from "./validate";
 
 function expectErrorCode(
   run: () => void,
-  code: "RESPONSE_NOT_DRAFT" | "RESPONSE_NOT_LOCKED" | "STALE_UPDATE",
+  code: "RESPONSE_NOT_DRAFT" | "RESPONSE_NOT_LOCKED",
 ) {
   let thrown: unknown;
   try {
@@ -44,25 +44,6 @@ describe("requireLocked", () => {
     expectErrorCode(
       () => requireLocked({ id: "r1", status: "draft" }),
       "RESPONSE_NOT_LOCKED",
-    );
-  });
-});
-
-describe("assertFresh", () => {
-  it("skips the check when no token is sent", () => {
-    expect(() =>
-      assertFresh({ updatedAt: "2026-01-01T00:00:00.000Z" }),
-    ).not.toThrow();
-  });
-
-  it("rejects a mismatched token", () => {
-    expectErrorCode(
-      () =>
-        assertFresh(
-          { updatedAt: "2026-01-01T00:00:00.000Z" },
-          "2000-01-01T00:00:00.000Z",
-        ),
-      "STALE_UPDATE",
     );
   });
 });

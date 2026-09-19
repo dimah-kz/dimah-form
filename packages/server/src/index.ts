@@ -11,9 +11,12 @@ export {
 export type { DimahFormGuard, FormOperation } from "./types";
 export {
   memoryAdapter,
+  StoreConflictError,
+  isStoreConflictError,
   type ResponseStore,
   type ListFormsStoreQuery,
   type ListResponsesStoreQuery,
+  type StoreWriteOptions,
 } from "./store";
 export { createFormEndpoint } from "./api/create-form-endpoint";
 export { definePlugin } from "./plugin/define-plugin";

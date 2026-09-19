@@ -3,7 +3,9 @@ import { createEndpoint, type EndpointOptions } from "better-call";
 import * as z from "zod";
 
 import { errors } from "@/errors";
+import { findLiveForm } from "@/forms";
 import type { FormOperation } from "@/types";
+import type { FormEndpointContext } from "./context";
 import { formContextMiddleware } from "./create-form-middleware";
 
 const createEndpointWithContext = createEndpoint.create({
@@ -67,29 +69,17 @@ function guardHandler(
   handler: (...args: never[]) => unknown,
 ) {
   return async (ctx: {
-    context: {
-      config: {
-        guard?: (input: {
-          request: Request;
-          operation: FormOperation;
-          formId?: string;
-          responseId?: string;
-        }) => unknown;
-        pluginOperations?: ReadonlyMap<string, string>;
-      };
-      request: Request;
-    };
+    context: FormEndpointContext;
     query?: Record<string, unknown>;
     body?: Record<string, unknown>;
   }) => {
-    await ctx.context.config.guard?.({
+    const config = ctx.context.config;
+    await config.guard?.({
       request: ctx.context.request,
-      operation: inferOperation(
-        options,
-        path,
-        ctx.context.config.pluginOperations,
-      ),
+      operation: inferOperation(options, path, config.pluginOperations),
       ...idsFrom(ctx),
+      getResponse: (responseId) => config.database.get(responseId),
+      getForm: (idOrSlug) => findLiveForm(config, idOrSlug),
     });
     return handler(ctx as never);
   };

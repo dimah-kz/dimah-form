@@ -312,6 +312,54 @@ describe("formDefinitionSchema", () => {
       }),
     ).toBe(false);
   });
+
+  it("accepts all / any / notEquals showWhen", () => {
+    expect(
+      formDefinitionSchema.parse({
+        title: "Job",
+        fields: [
+          {
+            id: "role",
+            type: "select",
+            options: [{ value: "eng" }, { value: "pm" }],
+          },
+          {
+            id: "level",
+            type: "select",
+            options: [{ value: "intern" }, { value: "staff" }],
+          },
+          {
+            id: "note",
+            type: "text",
+            showWhen: {
+              all: [
+                { field: "role", equals: "eng" },
+                { field: "level", notEquals: "intern" },
+              ],
+            },
+          },
+        ],
+      }).fields[2],
+    ).toMatchObject({
+      showWhen: {
+        all: [
+          { field: "role", equals: "eng" },
+          { field: "level", notEquals: "intern" },
+        ],
+      },
+    });
+  });
+
+  it("rejects date min after max", () => {
+    expect(
+      formDefinitionSchema.validate({
+        title: "X",
+        fields: [
+          { id: "start", type: "date", min: "2026-02-01", max: "2026-01-01" },
+        ],
+      }),
+    ).toBe(false);
+  });
 });
 
 describe("formSnapshotSchema", () => {

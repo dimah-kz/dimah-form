@@ -11,7 +11,14 @@ import type { FormClientApi } from "./create-form-client";
 import type { FieldTypeDefinition } from "./define";
 import { APIError, FORM_ERROR_CODES, isFormErrorCode } from "./error";
 import { createFieldTypeRegistry } from "./field-types";
-import { fieldIssueMap, formErrorMessage, visibleFields } from "./field-view";
+import {
+  fieldIssueMap,
+  formCompletion,
+  formErrorMessage,
+  visibleFields,
+  type FormCompletion,
+} from "./field-view";
+import { awaitMaybe, isThenable } from "./maybe-promise";
 import type { FormField, FormSnapshot } from "./schema/definition";
 import type {
   FormAnswers,
@@ -39,6 +46,8 @@ export type FormResponsePending =
 
 export type FormResponseValidateMode = "submit" | "change";
 
+export type FormResponseAutosave = boolean | { debounceMs?: number };
+
 export type FormResponseSessionHooks = {
   /** After `startResponse` — do not navigate here if a save/submit follows. */
   onStarted?: (record: ResponseRecord) => void;
@@ -50,6 +59,8 @@ export type FormResponseSessionHooks = {
 
 export type FormResponseFieldTypes =
   readonly FieldTypeDefinition[] | ReadonlyMap<string, FieldTypeDefinition>;
+
+export const FORM_RESPONSE_AUTOSAVE_MS = 600;
 
 export type CreateFormResponseSessionOptions = {
   client: FormResponseSessionClient;
@@ -80,6 +91,11 @@ export type CreateFormResponseSessionOptions = {
    * Requires `respondentId`. Default false — always create a new row.
    */
   resume?: boolean;
+  /**
+   * Debounced `saveDraft` after local answer changes. Default off.
+   * `true` uses {@link FORM_RESPONSE_AUTOSAVE_MS}.
+   */
+  autosave?: FormResponseAutosave;
 } & FormResponseSessionHooks;
 
 type AnswerValue<TAnswers extends FormAnswers, K extends string> = [K] extends [
@@ -98,6 +114,7 @@ export type FormResponseSessionState<
   updatedAt: string | undefined;
   issues: Record<string, string>;
   issueCodes: Record<string, string>;
+  issueParams: Record<string, Record<string, string | number>>;
   error: string | undefined;
   pending: FormResponsePending | undefined;
   locked: boolean;
@@ -105,6 +122,7 @@ export type FormResponseSessionState<
   /** No existing row and the live form is not `active`. */
   inactive: boolean;
   visibleFields: FormField[];
+  completion: FormCompletion;
 };
 
 /** Headless binding for one field — the contract a UI package would wrap. */
@@ -135,17 +153,20 @@ export type FormResponseActions<TAnswers extends FormAnswers = FormAnswers> = {
   field: <K extends string>(
     fieldId: K,
   ) => FormFieldBinding<AnswerValue<TAnswers, K>>;
-  validate: (mode?: AnswerValidationMode) => ValidationIssue[];
+  validate: (mode?: AnswerValidationMode) => Promise<ValidationIssue[]>;
   saveDraft: () => Promise<ResponseRecord | undefined>;
   submit: () => Promise<ResponseRecord | undefined>;
   reopen: () => Promise<ResponseRecord | undefined>;
   abandon: () => Promise<ResponseRecord | undefined>;
   refresh: () => Promise<ResponseRecord | undefined>;
+  /** Cancel a pending autosave timer. */
+  dispose: () => void;
 };
 
 /** State + actions. `useFormResponse` returns this; a UI package consumes it. */
 export type FormResponseApi<TAnswers extends FormAnswers = FormAnswers> =
-  FormResponseSessionState<TAnswers> & FormResponseActions<TAnswers>;
+  FormResponseSessionState<TAnswers> &
+    Omit<FormResponseActions<TAnswers>, "dispose">;
 
 export type FormResponseSession<TAnswers extends FormAnswers = FormAnswers> =
   FormResponseActions<TAnswers> & {
@@ -182,6 +203,7 @@ type SessionConfig = {
   fieldTypes: FormResponseFieldTypes | undefined;
   validateAnswers: AnswersValidator | undefined;
   resume: boolean;
+  autosave: FormResponseAutosave | undefined;
 } & FormResponseSessionHooks;
 
 const FALLBACK: Record<FormResponsePending, string> = {
@@ -241,6 +263,14 @@ function withConcurrency<T extends { responseId: string }>(
   return updatedAt === undefined ? payload : { ...payload, updatedAt };
 }
 
+function autosaveMs(value: FormResponseAutosave | undefined) {
+  if (value === true) return FORM_RESPONSE_AUTOSAVE_MS;
+  if (value && typeof value === "object") {
+    return value.debounceMs ?? FORM_RESPONSE_AUTOSAVE_MS;
+  }
+  return undefined;
+}
+
 /**
  * Headless fill session — answers, visibility, local validation, and the
  * start / draft / submit / reopen loop. No widgets.
@@ -261,6 +291,7 @@ export function createFormResponseSession<
     fieldTypes: options.fieldTypes ?? options.client.fieldTypes,
     validateAnswers: options.validateAnswers ?? options.client.validateAnswers,
     resume: options.resume === true,
+    autosave: options.autosave,
     onStarted: options.onStarted,
     onSaved: options.onSaved,
     onSubmitted: options.onSubmitted,
@@ -285,6 +316,9 @@ export function createFormResponseSession<
   let lastSaved: FormAnswers = { ...initialAnswers };
   let submitAttempted = false;
   let cached: FormResponseSessionState<TAnswers> | undefined;
+  let issueEpoch = 0;
+  let autosaveTimer: ReturnType<typeof setTimeout> | undefined;
+  let disposed = false;
   const listeners = new Set<() => void>();
   const onChangeById = new Map<string, (value: unknown) => void>();
 
@@ -303,6 +337,7 @@ export function createFormResponseSession<
         updatedAt: internal.updatedAt,
         issues: internal.issues,
         issueCodes: internal.issueCodes,
+        issueParams: internal.issueParams,
         error: internal.error,
         pending: internal.pending,
         locked: isLocked(internal.status),
@@ -310,6 +345,7 @@ export function createFormResponseSession<
         inactive:
           internal.responseId === undefined && snapshot.status !== "active",
         visibleFields: visibleFields(snapshot, internal.answers),
+        completion: formCompletion(snapshot, internal.answers, registry),
       };
     }
     return cached;
@@ -322,6 +358,37 @@ export function createFormResponseSession<
     };
   }
 
+  function clearAutosave() {
+    if (autosaveTimer !== undefined) {
+      clearTimeout(autosaveTimer);
+      autosaveTimer = undefined;
+    }
+  }
+
+  function dispose() {
+    disposed = true;
+    clearAutosave();
+  }
+
+  function scheduleAutosave() {
+    const ms = autosaveMs(config.autosave);
+    if (disposed || ms === undefined) return;
+    if (isLocked(internal.status) || !internal.dirty) return;
+    clearAutosave();
+    autosaveTimer = setTimeout(() => {
+      autosaveTimer = undefined;
+      if (
+        disposed ||
+        !internal.dirty ||
+        isLocked(internal.status) ||
+        internal.pending
+      ) {
+        return;
+      }
+      void saveDraft();
+    }, ms);
+  }
+
   function sync(
     next: Partial<
       Omit<CreateFormResponseSessionOptions, "snapshot" | "response">
@@ -332,6 +399,7 @@ export function createFormResponseSession<
       config.respondentId = next.respondentId;
     if (next.validate !== undefined) config.validate = next.validate;
     if (next.resume !== undefined) config.resume = next.resume;
+    if (next.autosave !== undefined) config.autosave = next.autosave;
     if (next.onStarted !== undefined) config.onStarted = next.onStarted;
     if (next.onSaved !== undefined) config.onSaved = next.onSaved;
     if (next.onSubmitted !== undefined) config.onSubmitted = next.onSubmitted;
@@ -387,6 +455,25 @@ export function createFormResponseSession<
     config.onStarted?.(row);
   }
 
+  /**
+   * Apply a successful write. If the user edited during the request, keep
+   * those answers and mark dirty instead of clobbering.
+   */
+  function acceptWrite(
+    row: ResponseRecord,
+    localAtSend: FormAnswers,
+    keepLocalEdits: boolean,
+  ) {
+    const localNow = internal.answers;
+    applyRecord(row);
+    if (!keepLocalEdits) return;
+    if (answersEqual(localNow, localAtSend)) return;
+    const next = stripHiddenAnswers(snapshot, { ...localNow });
+    if (answersEqual(next, internal.answers)) return;
+    internal.answers = next;
+    internal.dirty = !answersEqual(next, lastSaved);
+  }
+
   function collect(mode: AnswerValidationMode) {
     return collectAnswerIssues(
       snapshot,
@@ -412,6 +499,21 @@ export function createFormResponseSession<
     internal.issueParams = params;
   }
 
+  function applyCollectedIssues(
+    result: ReturnType<typeof collect>,
+    epoch: number,
+  ) {
+    if (isThenable(result)) {
+      void result.then((issues) => {
+        if (epoch !== issueEpoch) return;
+        writeIssues(issues);
+        emit();
+      });
+      return;
+    }
+    writeIssues(result);
+  }
+
   function applyPatch(patch: FormAnswers) {
     if (isLocked(internal.status)) return;
     const answers = stripHiddenAnswers(
@@ -421,8 +523,12 @@ export function createFormResponseSession<
     internal.answers = answers;
     internal.dirty = true;
     internal.error = undefined;
+    const epoch = ++issueEpoch;
     if (config.validate === "change" || submitAttempted) {
-      writeIssues(collect(config.validate === "change" ? "draft" : "submit"));
+      applyCollectedIssues(
+        collect(config.validate === "change" ? "draft" : "submit"),
+        epoch,
+      );
     } else {
       const next = { ...internal.issues };
       const nextCodes = { ...internal.issueCodes };
@@ -437,6 +543,7 @@ export function createFormResponseSession<
       internal.issueParams = nextParams;
     }
     emit();
+    scheduleAutosave();
   }
 
   function setAnswer(fieldId: string, value: unknown) {
@@ -467,7 +574,7 @@ export function createFormResponseSession<
       value: current.answers[fieldId],
       error,
       errorCode: current.issueCodes[fieldId],
-      errorParams: internal.issueParams[fieldId],
+      errorParams: current.issueParams[fieldId],
       invalid: Boolean(error),
       required: fieldDef?.required === true && visible,
       disabled: current.locked || current.pending != null,
@@ -476,8 +583,12 @@ export function createFormResponseSession<
     };
   }
 
-  function validate(mode: AnswerValidationMode = "submit"): ValidationIssue[] {
-    const issues = collect(mode);
+  async function validate(
+    mode: AnswerValidationMode = "submit",
+  ): Promise<ValidationIssue[]> {
+    const epoch = ++issueEpoch;
+    const issues = await awaitMaybe(collect(mode));
+    if (epoch !== issueEpoch) return issues;
     if (mode === "submit") submitAttempted = true;
     writeIssues(issues);
     emit();
@@ -551,25 +662,34 @@ export function createFormResponseSession<
     } finally {
       internal.pending = undefined;
       emit();
+      if (
+        internal.dirty &&
+        !isLocked(internal.status) &&
+        autosaveMs(config.autosave) !== undefined
+      ) {
+        scheduleAutosave();
+      }
     }
   }
 
   async function saveDraft() {
     if (!canMutateDraft()) return undefined;
+    clearAutosave();
     return run("save", async () => {
       await ensureResponse();
       const responseId = internal.responseId;
       if (!responseId) return undefined;
+      const localAtSend = internal.answers;
       const saved = await config.client.saveDraft(
         withConcurrency(
           {
             responseId,
-            answers: answersPatch(lastSaved, internal.answers),
+            answers: answersPatch(lastSaved, localAtSend),
           },
           internal.updatedAt,
         ),
       );
-      applyRecord(saved);
+      acceptWrite(saved, localAtSend, true);
       config.onSaved?.(saved);
       return saved;
     });
@@ -577,8 +697,9 @@ export function createFormResponseSession<
 
   async function submit() {
     if (!canMutateDraft()) return undefined;
+    clearAutosave();
     return run("submit", async () => {
-      const issues = collect("submit");
+      const issues = await awaitMaybe(collect("submit"));
       if (issues.length > 0) {
         submitAttempted = true;
         writeIssues(issues);
@@ -587,13 +708,11 @@ export function createFormResponseSession<
       await ensureResponse();
       const responseId = internal.responseId;
       if (!responseId) return undefined;
+      const toSend = internal.answers;
       const submitted = await config.client.submitResponse(
-        withConcurrency(
-          { responseId, answers: internal.answers },
-          internal.updatedAt,
-        ),
+        withConcurrency({ responseId, answers: toSend }, internal.updatedAt),
       );
-      applyRecord(submitted);
+      acceptWrite(submitted, toSend, false);
       submitAttempted = false;
       config.onSubmitted?.(submitted);
       return submitted;
@@ -655,5 +774,6 @@ export function createFormResponseSession<
     reopen,
     abandon,
     refresh,
+    dispose,
   } as FormResponseSession<TAnswers>;
 }

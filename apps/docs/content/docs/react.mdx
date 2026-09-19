@@ -122,6 +122,7 @@ not using React.
 | `response`                   | Existing row (`id`, `answers`, `status`, `updatedAt`, `definition`)            |
 | `respondentId`               | String or `() => string`, sent on `startResponse`                              |
 | `resume`                     | Attach to the latest draft for `respondentId`. Requires `respondentId`         |
+| `autosave`                   | `true` or `{ debounceMs }` — debounced `saveDraft` after changes. Default off  |
 | `fieldTypes`                 | Same extras as `dimahForm({ fieldTypes })`. Falls back to `client.fieldTypes`  |
 | `validateAnswers`            | Same function as `dimahForm({ validateAnswers })`. Falls back to the client    |
 | `validate`                   | `"submit"` (default) or `"change"`                                             |
@@ -148,6 +149,8 @@ Client fetch options (`basePath`, `baseURL`, `credentials`, `headers`,
 | `pending`       | `"save"` \| `"submit"` \| `"reopen"` \| `"abandon"` \| `"refresh"` |
 | `issues`        | Per-field English messages                                         |
 | `issueCodes`    | Per-field `FIELD_ISSUE_CODES` (and custom codes)                   |
+| `issueParams`   | Per-field `params` for localization                                |
+| `completion`    | Visible required vs answered (`formCompletion`)                    |
 | `error`         | Request-level English message                                      |
 | `visibleFields` | Fields whose `showWhen` matches                                    |
 
@@ -155,7 +158,7 @@ Client fetch options (`basePath`, `baseURL`, `credentials`, `headers`,
 | -------------------------- | ------------------------------------------------------------------------------------------------- |
 | `field(id)`                | `{ value, error, errorCode, errorParams, invalid, required, disabled, visible, onChange, field }` |
 | `setAnswer` / `setAnswers` | Patch. No-op when `locked`                                                                        |
-| `validate()`               | Collect issues (`submit` mode by default)                                                         |
+| `validate()`               | Collect issues (`submit` mode by default). Async                                                  |
 | `saveDraft()`              | Start if needed, send an answers patch + `updatedAt`                                              |
 | `submit()`                 | Local submit validation, then full replace + `updatedAt`                                          |
 | `reopen()`                 | Locked rows only                                                                                  |
@@ -167,6 +170,8 @@ in the wrong status, or local submit validation fails.
 
 On `STALE_UPDATE`, the session refreshes from `getResponse` and sets
 `error`. Field-level `VALIDATION_ERROR` maps onto `issues` / `issueCodes`.
+Edits typed while a save is in flight are kept (`dirty`). `dispose()`
+(called on unmount from `useFormResponse`) cancels a pending autosave.
 
 Type catalog answers as `useFormResponse<Form["$Infer"]["answers"]["intake"]>`
 (or `InferClientFormAnswers<typeof formClient, "intake">`). Untyped
