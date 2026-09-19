@@ -1,5 +1,6 @@
 import * as z from "zod";
 
+import { collectShowWhenIssues, showWhenListIssue } from "../show-when";
 import { fieldIdSchema, formIdSchema, trimmedString } from "./shared";
 
 const fieldLabelSchema = z.string().optional();
@@ -32,6 +33,16 @@ export const showWhenSchema = z
         message: "showWhen requires equals or includes",
         input: ctx.value,
       });
+    }
+    for (const key of ["equals", "includes"] as const) {
+      const message = showWhenListIssue(key, ctx.value[key]);
+      if (message) {
+        ctx.issues.push({
+          code: "custom",
+          message,
+          input: ctx.value,
+        });
+      }
     }
   });
 
@@ -223,7 +234,17 @@ const formDocument = {
 };
 
 /** Code-authored questionnaire document (no `id` — that is the `forms` key). */
-export const formDefinitionSchema = z.strictObject(formDocument);
+export const formDefinitionSchema = z
+  .strictObject(formDocument)
+  .check((ctx) => {
+    for (const message of collectShowWhenIssues(ctx.value.fields)) {
+      ctx.issues.push({
+        code: "custom",
+        message,
+        input: ctx.value,
+      });
+    }
+  });
 
 const formSnapshotDocumentSchema = z.strictObject({
   id: formIdSchema,

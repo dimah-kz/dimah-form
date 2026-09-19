@@ -1,35 +1,51 @@
 ---
 title: Introduction
-description: Backend-first questionnaires. You own UI and auth. The library owns the protocol, snapshots, and submit validation.
+description: Backend-first questionnaires for the React ecosystem — typed protocol, snapshots, and submit validation. You own the UI.
 icon: House
 ---
 
-dimah-form is a **backend-first questionnaire engine**. It owns the HTTP protocol, definition snapshots, drafts, and submit validation. You own rendering, authentication, and the database adapter.
+dimah-form is a modular questionnaire engine for React and Node.js runtimes.
+It owns the protocol, definition snapshots, drafts, and submit validation.
+You own rendering, auth, and the database adapter.
 
-It is not a form renderer, not a field-widget kit, and not a hosted survey product. There is no shadcn registry.
+## Architecture flow
 
-<Callout>
-  Two rules everything else hangs on: **consumers own UI**, and **submit
-  validates the snapshot stored on the response**, not the live questionnaire.
-</Callout>
+<Flow
+  label="Headless fill loop"
+  steps={[
+    { name: "Browser", kind: "client", note: "your widgets" },
+    { name: "Server", kind: "server", note: "dimahForm()" },
+    { name: "Database", kind: "data", note: "snapshot + persist" },
+  ]}
+/>
 
-## What it is not
+The browser talks through `createFormClient`. The server instance
+(`dimahForm()`) validates answers against the snapshot stored on the
+response — not the live questionnaire.
 
-- A drop-in form UI or visual builder
-- An auth library — put policy in your `guard`
-- An ORM — `@dimah-form/server` does not import one
-- A questionnaire version table — old fills keep their snapshot on the response
+**For coding agents** — [llms.txt](/llms.txt) · [llms-full.txt](/llms-full.txt).
 
-Use it when you need typed questionnaires with drafts and snapshot-safe submit, and you already have (or want) your own widgets. Skip it when you want a ready-made renderer or a hosted survey SaaS.
+---
 
-## Package map
+## What you get
 
-| Package              | You use it for                                                                                      |
-| -------------------- | --------------------------------------------------------------------------------------------------- |
-| `@dimah-form/server` | `dimahForm()`, HTTP `handler`, `form.api`, adapters                                                 |
-| `@dimah-form/react`  | `createFormClient`, `useFormResponse` — no widgets                                                  |
-| `@dimah-form/db`     | FumaDB `database` adapter (`db()`)                                                                  |
-| `@dimah-form/core`   | Protocol SSOT. App code imports `server` or `react`; shared `defineFieldType` modules import `core` |
+- **Typed protocol** — one schema in `@dimah-form/core`, used by server and React
+- **Snapshots** — each response keeps the definition it was started with
+- **Drafts and submit** — patch drafts, replace on submit, optional reopen
+- **Headless React** — `useFormResponse` binds your widgets; it is not a renderer
+- **Persistence** — `memoryAdapter()` to try the protocol, or FumaDB via `@dimah-form/db`
+
+Custom fields are `defineFieldType` validators, not components. There is
+no form renderer and no shadcn registry.
+
+## Packages
+
+| Package              | Role                                                                                  |
+| -------------------- | ------------------------------------------------------------------------------------- |
+| `@dimah-form/server` | `dimahForm()`, HTTP `handler`, `form.api`, adapters                                   |
+| `@dimah-form/react`  | `createFormClient`, `useFormResponse` — no widgets                                    |
+| `@dimah-form/db`     | FumaDB `database` adapter (`db()`)                                                    |
+| `@dimah-form/core`   | Protocol SSOT. App code imports `server` or `react`; shared field types import `core` |
 
 ```
 @dimah-form/core
@@ -39,61 +55,95 @@ Use it when you need typed questionnaires with drafts and snapshot-safe submit, 
 @dimah-form/db   (peer of server)
 ```
 
-`database` is required: `memoryAdapter()` from server, or `db()` from `@dimah-form/db`. Custom stores implement `ResponseStore` and pass that object to `database` directly.
+`database` is required: `memoryAdapter()` from server, or `db()` from
+`@dimah-form/db`. Custom stores implement `ResponseStore`.
 
-## Mental model
+Share types with `export type Form = typeof form` and
+`createFormClient<Form>()`. Do not pass the server instance into the browser.
 
-1. You author a **questionnaire** (`defineForm`) or persist one with `saveForm`.
-2. `startResponse` copies the **live definition** onto the response. That copy is the **snapshot**.
-3. Drafts patch answers. Submit **replaces** answers and validates them against the snapshot.
-4. Your React tree calls `useFormResponse` and renders `visibleFields`. The library never mounts an input.
+---
 
-<Flow
-  label="Fill loop"
-  steps={[
-    { name: "Your widgets", kind: "client", note: "you render" },
-    { name: "dimahForm()", kind: "server", note: "protocol + validate" },
-    { name: "database", kind: "data", note: "snapshot + answers" },
-  ]}
-/>
+## Frequently asked questions
 
-Auth is a `guard` on the instance. Custom fields are `defineFieldType` **validators** that feed `$Infer`, not React components.
+<Accordions>
 
-Share types with `export type Form = typeof form` and `createFormClient<Form>()`. Do not pass the server instance into the browser.
+<Accordion title="When should I choose dimah-form?">
 
-**For coding agents** — [llms.txt](/llms.txt) · [llms-full.txt](/llms-full.txt).
+When you need typed questionnaires with drafts, definition snapshots, and
+submit validation, and you already have (or want) your own field widgets.
 
-## Where to go next
+Skip it if you want a ready-made form renderer, a visual builder, or a
+hosted survey product.
+
+</Accordion>
+
+<Accordion title="Does dimah-form ship field widgets?">
+
+No. Built-in field types are validators (`text`, `number`, `boolean`,
+`select`, `multiSelect`, `email`, `date`). Extra types are
+`defineFieldType`. Rendering stays in your app. See the
+[Next.js example](/docs/examples).
+
+</Accordion>
+
+<Accordion title="Where does auth live?">
+
+In your `guard` on `dimahForm()`. Throw `APIError` with a catalog code —
+a plain `Error` becomes `INTERNAL_ERROR`. See [Auth](/docs/auth).
+
+</Accordion>
+
+<Accordion title="Is the database optional?">
+
+No. `database` is required. Use `memoryAdapter()` from
+`@dimah-form/server` for tests or ephemeral apps, or `db()` from
+`@dimah-form/db` for FumaDB persistence.
+
+</Accordion>
+
+<Accordion title="How do I share types between server and React?">
+
+`export type Form = typeof form` on the server instance, then
+`createFormClient<Form>()` in the browser. Pass the same `fieldTypes`
+array on both sides when you have extras.
+
+</Accordion>
+
+</Accordions>
+
+---
+
+## Explore documentation
 
 <Cards>
   <Card
-    title="Quick start"
+    title="Quickstart"
     href="/docs/quickstart"
-    description="Install, mount dimahForm(), start a fill session."
+    description="Install the packages and start a fill session."
   />
   <Card
     title="Architecture"
-    href="/docs/concepts/architecture"
-    description="Why snapshots, protocol SSOT, and headless fill."
+    href="/docs/architecture"
+    description="Packages, snapshots, and the request pipeline."
   />
   <Card
     title="Server"
-    href="/docs/guides/server"
-    description="Adapters, form.api, and instance config."
+    href="/docs/server"
+    description="Create dimahForm() and mount it on your runtime."
   />
   <Card
     title="React client"
-    href="/docs/guides/react"
-    description="createFormClient and useFormResponse."
+    href="/docs/react"
+    description="Headless fill session — draft, submit, and reopen."
   />
   <Card
     title="Protocol"
-    href="/docs/reference/protocol"
+    href="/docs/protocol"
     description="Every endpoint, client args vs form.api."
   />
   <Card
-    title="Next.js example"
+    title="Example"
     href="/docs/examples"
-    description="Consumer-owned widgets, FumaDB + SQLite."
+    description="Run the Next.js demo locally."
   />
 </Cards>

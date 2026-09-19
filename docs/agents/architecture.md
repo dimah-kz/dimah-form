@@ -39,6 +39,7 @@ Shared protocol changes start in `core`, then wire `server` and `react`. Do not 
 - Browser `$Infer` is `createFormClient<typeof form>()` (type-only). Apps import from `server` or `react`; `core` is protocol/plugin internals.
 - Filling a response is headless: `createFormResponseSession` in core, `useFormResponse` in react. Consumers own widgets. A later UI package should wrap `FormFieldBinding` / `FormResponseApi`, not fork this loop.
 - Each response stores the definition it was started with. Submit validates that snapshot. Starting a response does not rewrite the live questionnaire row.
+- Field `showWhen` is sibling visibility on that snapshot. Nested rules follow the parent. `equals` / `includes` accept a scalar or a non-empty scalar list (one-of / any-of). Hidden answers are stripped before validate / persist.
 - Domain hooks: `on*` after validation before persist; `after*` after persist. Auth stays in `guard`.
 - Custom fields are `defineFieldType` validators, not components.
 - Server plugins may add `endpoints`, `hooks`, `fieldTypes`, and `$ERROR_CODES`. Optional `dependsOn` (topological order), `options`, and synchronous `init` (`{ context }` → `config.pluginContext`). Browser companions use `defineClientPlugin` on `createFormClient({ plugins })`. They are not inferred from the server plugin.

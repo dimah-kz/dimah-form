@@ -4,8 +4,11 @@ import type { FieldTypeDefinition } from "./define";
 import { createFieldTypeRegistry } from "./field-types";
 import type { FormField, FormSnapshot } from "./schema/definition";
 import type { ValidationIssue } from "./schema/error";
+import { isFieldVisible } from "./show-when";
 
 export type AnswerValidationMode = "draft" | "submit";
+
+export { isFieldVisible };
 
 const builtinRegistry = createFieldTypeRegistry();
 
@@ -13,54 +16,9 @@ function isAbsent(value: unknown): boolean {
   return value === undefined || value === null;
 }
 
-function asShowWhen(value: unknown):
-  | {
-      field: string;
-      equals?: unknown;
-      includes?: unknown;
-    }
-  | undefined {
-  if (value == null || typeof value !== "object" || Array.isArray(value)) {
-    return undefined;
-  }
-  const record = value as Record<string, unknown>;
-  if (typeof record.field !== "string") return undefined;
-  return {
-    field: record.field,
-    ...(record.equals !== undefined ? { equals: record.equals } : {}),
-    ...(record.includes !== undefined ? { includes: record.includes } : {}),
-  };
-}
-
-function siblingMatchesIncludes(sibling: unknown, expected: unknown): boolean {
-  return (
-    Array.isArray(sibling) && sibling.some((item) => Object.is(item, expected))
-  );
-}
-
-/** True when `showWhen` is absent or the sibling answer matches. */
-export function isFieldVisible(
-  field: FormField,
-  answers: Record<string, unknown>,
-): boolean {
-  const rule = asShowWhen(field.showWhen);
-  if (!rule) return true;
-  const sibling = answers[rule.field];
-  if (rule.equals !== undefined && !Object.is(sibling, rule.equals)) {
-    return false;
-  }
-  if (
-    rule.includes !== undefined &&
-    !siblingMatchesIncludes(sibling, rule.includes)
-  ) {
-    return false;
-  }
-  return true;
-}
-
 /**
  * Drop answers for fields hidden by `showWhen`. Unknown keys are kept so
- * submit can still reject them. Re-evaluates until the set is stable.
+ * submit can still reject them. Nested rules follow the sibling's visibility.
  */
 export function stripHiddenAnswers(
   definition: { fields: readonly FormField[] },
@@ -69,22 +27,15 @@ export function stripHiddenAnswers(
   const fieldById = new Map(
     definition.fields.map((field) => [field.id, field]),
   );
-  let current = { ...answers };
-  for (let pass = 0; pass <= definition.fields.length; pass++) {
-    const next: Record<string, unknown> = {};
-    let removed = false;
-    for (const [key, value] of Object.entries(current)) {
-      const field = fieldById.get(key);
-      if (field && !isFieldVisible(field, current)) {
-        removed = true;
-        continue;
-      }
-      next[key] = value;
+  const next: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(answers)) {
+    const field = fieldById.get(key);
+    if (field && !isFieldVisible(field, answers, definition.fields)) {
+      continue;
     }
-    current = next;
-    if (!removed) break;
+    next[key] = value;
   }
-  return current;
+  return next;
 }
 
 /** Seed start answers from `defaultValue`, then drop hidden fields. */
@@ -148,7 +99,7 @@ export function collectAnswerIssues(
   if (mode === "submit") {
     for (const field of definition.fields) {
       if (!field.required) continue;
-      if (!isFieldVisible(field, visible)) continue;
+      if (!isFieldVisible(field, visible, definition.fields)) continue;
       const value = visible[field.id];
       if (isValueEmpty(field, value, fieldTypes)) {
         const alreadyTyped = issues.some((issue) => issue.field === field.id);

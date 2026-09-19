@@ -38,7 +38,7 @@ First-class `database` on `dimahForm()`. Official adapters: `memoryAdapter()` in
 
 `defineFieldType` lives in `@dimah-form/core` and is re-exported from `server` / `react`. Register extra types on `dimahForm({ fieldTypes })` — that instance is the registry. Built-ins are field types too; duplicate `type` strings throw at init.
 
-`defineForm` does not take `fieldTypes`. Unknown types are allowed in the document and rejected at `dimahForm()` if unregistered. Optional `fieldSchema` is applied at init / `saveForm`. Optional `meta` on the form, field, and option is opaque JSON for consumer UI — not type config. Optional `metaSchema` on `dimahForm()` validates that bag at init / `saveForm`.
+`defineForm` does not take `fieldTypes`. Unknown types are allowed in the document and rejected at `dimahForm()` if unregistered. Optional `fieldSchema` is applied at init / `saveForm`. Optional `meta` on the form, field, and option is opaque JSON for consumer UI — not type config. Optional `metaSchema` on `dimahForm()` validates that bag at init / `saveForm`. `showWhen` is sibling visibility on the field document: nested rules follow the parent; `defineForm` / `saveForm` reject unknown targets, self-references, cycles, extra keys, and `equals` against a `multiSelect`. `$Infer` omits required keys that have `showWhen`.
 
 Draft is a patch (`null` deletes a key). Submit is a full replace, or omit `answers` to submit the stored draft. `reopenResponse` returns submitted / abandoned to draft; answers and the snapshot stay.
 

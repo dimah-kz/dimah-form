@@ -18,8 +18,21 @@ type FieldOf<TForm> = TForm extends { fields: readonly (infer F)[] }
 
 type FieldId<F> = F extends { id: infer Id extends string } ? Id : never;
 
-type RequiredField<F> = F extends { required: true } ? F : never;
-type OptionalField<F> = F extends { required: true } ? never : F;
+type HasShowWhen<F> = F extends { showWhen: unknown } ? true : false;
+
+/** Required in the document and always visible — present on submit. */
+type RequiredField<F> = F extends { required: true }
+  ? HasShowWhen<F> extends true
+    ? never
+    : F
+  : never;
+
+/** Optional in the document, or required only when `showWhen` matches. */
+type OptionalField<F> = F extends { required: true }
+  ? HasShowWhen<F> extends true
+    ? F
+    : never
+  : F;
 
 type AnswerOf<
   F,
@@ -34,7 +47,8 @@ type Flatten<T> = { [K in keyof T]: T[K] } & {};
 
 /**
  * Submitted answer shape for one code-authored form.
- * Optional fields are omitted keys — the same object `parseAnswers` returns.
+ * Optional fields — and required fields with `showWhen` — are omitted keys.
+ * That is the same object `parseAnswers` returns.
  */
 export type InferFormAnswers<
   TForm,

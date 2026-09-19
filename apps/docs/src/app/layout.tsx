@@ -1,5 +1,4 @@
 import "./global.css";
-import { Body } from "@/app/layout.client";
 import { RootProvider } from "fumadocs-ui/provider/next";
 import { Geist } from "next/font/google";
 import type { Metadata } from "next";
@@ -83,7 +82,7 @@ export default function Layout({ children }: LayoutProps<"/">) {
           }}
         />
       </head>
-      <Body>
+      <body className="relative flex min-h-screen flex-col">
         <RootProvider
           theme={{
             enabled: true,
@@ -91,7 +90,7 @@ export default function Layout({ children }: LayoutProps<"/">) {
         >
           {children}
         </RootProvider>
-      </Body>
+      </body>
     </html>
   );
 }

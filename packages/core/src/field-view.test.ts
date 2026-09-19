@@ -67,6 +67,19 @@ describe("visibleFields", () => {
       visibleFields({ fields }, { role: "eng" }).map((field) => field.id),
     ).toEqual(["role", "team"]);
   });
+
+  it("hides nested fields when the parent is hidden", () => {
+    const fields = [
+      { id: "a", type: "text" },
+      { id: "b", type: "text", showWhen: { field: "a", equals: "yes" } },
+      { id: "c", type: "text", showWhen: { field: "b", equals: "ok" } },
+    ];
+    expect(
+      visibleFields({ fields }, { a: "no", b: "ok", c: "keep" }).map(
+        (field) => field.id,
+      ),
+    ).toEqual(["a"]);
+  });
 });
 
 describe("issuesByField", () => {

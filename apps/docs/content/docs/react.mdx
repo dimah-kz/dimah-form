@@ -4,9 +4,12 @@ description: Headless fill session — createFormClient, useFormResponse, and wi
 icon: PenLine
 ---
 
-`@dimah-form/react` is a thin client. It does not ship field widgets. You render `visibleFields` and bind `field(id)`.
+`useFormResponse` is the fill session: answers, visibility, local
+validation, draft, submit, reopen, and abandon. You render widgets.
 
-Re-export bound hooks from your client so the protocol, `$Infer`, and field types stay tied to the instance. Bound hooks do not need `Provider`.
+Re-export the bound hook from your client so the protocol client and
+field types stay tied to the instance. Bound hooks do not need
+`Provider`.
 
 ```ts title="lib/form-client.ts"
 "use client";
@@ -19,13 +22,12 @@ export const formClient = createFormClient<Form>({ fieldTypes });
 export const { useFormClient, useFormResponse } = formClient;
 ```
 
-`createFormClient<Form>()` is type-only. Do not pass the `dimahForm()` instance at runtime. Pass the same `fieldTypes` array as the server when you have extras, so local validation matches.
+`createFormClient<Form>()` is type-only. Do not pass the `dimahForm()`
+instance at runtime. Pass the same `fieldTypes` array as the server when
+you have extras.
 
-Package-level `useFormResponse` / `useFormClient` read React context and are the untyped escape hatch — they require `formClient.Provider`.
-
-## Fill session
-
-`useFormResponse` is the fill loop: answers, visibility, local validation, draft, submit, reopen, and abandon.
+Package-level `useFormResponse` / `useFormClient` read React context and
+are the untyped escape hatch — they require `formClient.Provider`.
 
 ```tsx title="components/questionnaire.tsx"
 "use client";
@@ -92,15 +94,25 @@ export function Questionnaire({
 }
 ```
 
-Pass `response` to resume a draft or to reopen a locked row. Omit it to start on first save/submit. Optional `respondentId` (string or `() => string`) is sent on start.
+Pass `response` to resume a draft or to reopen a locked row. Omit it to
+start on first save/submit. Optional `respondentId` (string or
+`() => string`) is sent on start.
 
-When a `response` is passed, that row's `definition` wins field values over the live `snapshot` you still pass for inactive checks.
+When a `response` is passed, that row's `definition` wins field values
+over the live `snapshot` you still pass for inactive checks.
 
-Clearing an input should send `null` so a later draft patch deletes the key.
+Clearing an input should send `null` so a later draft patch deletes the
+key.
 
-Switch on `field.type` in your widget map. The [Next.js example](/docs/examples) does this with shadcn Field primitives — those components are not part of this package.
+Switch on `field.type` in your widget map. The [Next.js example](/docs/examples)
+does this with shadcn Field primitives — those components are not part of
+this package.
 
-The same session exists as `createFormResponseSession` from `@dimah-form/core` (also re-exported from `@dimah-form/react`) if you are not using React.
+The same session exists as `createFormResponseSession` from
+`@dimah-form/core` (also re-exported from `@dimah-form/react`) if you are
+not using React.
+
+---
 
 ## Options
 
@@ -115,7 +127,10 @@ The same session exists as `createFormResponseSession` from `@dimah-form/core` (
 | `onSaved` / `onSubmitted`    | After a successful draft / submit                                              |
 | `onReopened` / `onAbandoned` | After reopen / abandon                                                         |
 
-Client fetch options (`basePath`, `baseURL`, `credentials`, `headers`, `fetch`) live on `createFormClient`. See [Configuration](/docs/reference/configuration).
+Client fetch options (`basePath`, `baseURL`, `credentials`, `headers`,
+`fetch`) live on `createFormClient`. See [Configuration](/docs/configuration).
+
+---
 
 ## State and actions
 
@@ -144,28 +159,31 @@ Client fetch options (`basePath`, `baseURL`, `credentials`, `headers`, `fetch`) 
 | `abandon()`                | Draft with an id                                                          |
 | `refresh()`                | `getResponse` and replace local state                                     |
 
-Actions return `undefined` when a request is already pending, the row is in the wrong status, or local submit validation fails.
+Actions return `undefined` when a request is already pending, the row is
+in the wrong status, or local submit validation fails.
 
-On `STALE_UPDATE`, the session refreshes from `getResponse` and sets `error`. Field-level `VALIDATION_ERROR` maps onto `issues`.
+On `STALE_UPDATE`, the session refreshes from `getResponse` and sets
+`error`. Field-level `VALIDATION_ERROR` maps onto `issues`.
 
-Typed catalog answers are `formClient.$Infer.answers`, not the fill-session `answers` object (that stays `FormAnswers`).
+Typed catalog answers are `formClient.$Infer.answers`, not the
+fill-session `answers` object (that stays `FormAnswers`).
+
+---
 
 ## Helpers
 
-Defined in `@dimah-form/core`, re-exported from `@dimah-form/react`. They do not render UI. `useFormResponse` already exposes `visibleFields` and `field(id).error` — use these when you call the protocol client directly or build a widget map.
+Defined in `@dimah-form/core`, re-exported from `@dimah-form/react`. They
+do not render UI. `useFormResponse` already exposes `visibleFields` and
+`field(id).error` — use these when you call the protocol client directly
+or build a widget map.
 
 ```ts
 import {
-  applyAnswerPatch,
-  collectAnswerIssues,
   fieldLabel,
   fieldOptions,
   formErrorMessage,
   isFieldVisible,
   issuesByField,
-  parseAnswers,
-  seedDefaultAnswers,
-  stripHiddenAnswers,
   visibleFields,
 } from "@dimah-form/react";
 
@@ -177,6 +195,16 @@ issuesByField(issues); // { [fieldId]: message } — array or APIError
 formErrorMessage(error, "Request failed");
 ```
 
+```ts
+import {
+  applyAnswerPatch,
+  collectAnswerIssues,
+  parseAnswers,
+  seedDefaultAnswers,
+  stripHiddenAnswers,
+} from "@dimah-form/react";
+```
+
 | Helper                | Role                                                        |
 | --------------------- | ----------------------------------------------------------- |
 | `applyAnswerPatch`    | Merge a draft patch. `null` / `undefined` deletes a key     |
@@ -185,24 +213,27 @@ formErrorMessage(error, "Request failed");
 | `collectAnswerIssues` | `{ field, message }[]` for `"draft"` or `"submit"`          |
 | `parseAnswers`        | Strip, validate, drop empty keys. Throws `VALIDATION_ERROR` |
 
-Submit validation against a snapshot belongs on the server. These helpers are for local checks and for stores that speak the same protocol.
+Submit validation against a snapshot belongs on the server. These helpers
+are for local checks and for stores that speak the same protocol.
+
+---
 
 ## See also
 
 <Cards>
   <Card
     title="Custom fields"
-    href="/docs/guides/custom-fields"
+    href="/docs/custom-fields"
     description="Share defineFieldType with the client."
   />
   <Card
     title="Auth"
-    href="/docs/guides/auth"
+    href="/docs/auth"
     description="Send cookies or a bearer token through the client."
   />
   <Card
     title="Protocol"
-    href="/docs/reference/protocol"
+    href="/docs/protocol"
     description="Object-arg client vs form.api."
   />
 </Cards>

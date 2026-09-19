@@ -164,6 +164,50 @@ describe("createFormResponseSession", () => {
     expect(session.field("name").disabled).toBe(true);
   });
 
+  it("strips nested hidden answers on hydrate and treats required as visible-only", () => {
+    const nested: FormSnapshot = {
+      id: "job",
+      slug: "job",
+      status: "active",
+      title: "Job",
+      fields: [
+        { id: "a", type: "text" },
+        {
+          id: "b",
+          type: "text",
+          required: true,
+          showWhen: { field: "a", equals: "yes" },
+        },
+        {
+          id: "c",
+          type: "text",
+          required: true,
+          showWhen: { field: "b", equals: "ok" },
+        },
+      ],
+    };
+    const session = createFormResponseSession({
+      client: mockClient(),
+      snapshot: nested,
+      response: row({
+        definition: nested,
+        answers: { a: "no", b: "ok", c: "keep" },
+      }),
+    });
+    expect(session.getState().answers).toEqual({ a: "no" });
+    expect(session.getState().visibleFields.map((field) => field.id)).toEqual([
+      "a",
+    ]);
+    expect(session.field("b").visible).toBe(false);
+    expect(session.field("b").required).toBe(false);
+    expect(session.field("c").required).toBe(false);
+
+    session.setAnswer("a", "yes");
+    session.setAnswer("b", "ok");
+    expect(session.field("c").visible).toBe(true);
+    expect(session.field("c").required).toBe(true);
+  });
+
   it("refetches on STALE_UPDATE", async () => {
     const fresh = row({
       answers: { role: "pm", name: "Lin" },

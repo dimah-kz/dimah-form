@@ -4,17 +4,27 @@ description: Extra field types are defineFieldType validators that feed $Infer �
 icon: ListPlus
 ---
 
-Field types are **validators** registered on the instance. Built-ins are always present; extras go in `dimahForm({ fieldTypes })` and, for local fill validation, the same array on `createFormClient({ fieldTypes })`.
+Field types are **validators** registered on the instance. Built-ins are
+always present; extras go in `dimahForm({ fieldTypes })` and, for local
+fill validation, the same array on `createFormClient({ fieldTypes })`.
 
-Put shared definitions in a module that imports `defineFieldType` from `@dimah-form/core`. `@dimah-form/react` is `"use client"` — defining types there pulls the catalog into the client boundary the wrong way. The [Next.js example](/docs/examples) keeps `lib/field-types.ts` on `core` and imports it from both `form.ts` and `form-client.ts`.
+Put shared definitions in a module that imports `defineFieldType` from
+`@dimah-form/core`. `@dimah-form/react` is `"use client"` — defining types
+there pulls the catalog into the client boundary the wrong way. The
+[Next.js example](/docs/examples) keeps `lib/field-types.ts` on `core` and
+imports it from both `form.ts` and `form-client.ts`.
 
-Duplicate `type` strings throw at `dimahForm()` init (built-ins included). Unknown types are allowed in `defineForm` and rejected when the instance starts if they are unregistered.
+Duplicate `type` strings throw at `dimahForm()` init (built-ins included).
+Unknown types are allowed in `defineForm` and rejected when the instance
+starts if they are unregistered.
 
-Catalog of built-ins, `showWhen`, and `$Infer` shape: [Field types](/docs/reference/field-types).
+Catalog of built-ins, `showWhen`, and `$Infer` shape:
+[Field types](/docs/field-types).
 
 ## Add a type
 
-This is the `rating` type from the example (stars are example UI, not library UI).
+This is the `rating` type from the example (stars are example UI, not
+library UI).
 
 ```ts title="lib/field-types.ts"
 import { defineFieldType } from "@dimah-form/core";
@@ -71,7 +81,10 @@ import { fieldTypes } from "./field-types";
 export const formClient = createFormClient<Form>({ fieldTypes });
 ```
 
-In your widget map, `field.type === "rating"` is your cue to render stars (or anything else). The library never does.
+In your widget map, `field.type === "rating"` is your cue to render stars
+(or anything else). The library never does.
+
+---
 
 ## `defineFieldType` contract
 
@@ -83,24 +96,27 @@ In your widget map, `field.type === "rating"` is your cue to render stars (or an
 | `fieldSchema` | Optional Zod for the field document. Applied at `dimahForm()` / `saveForm`                                     |
 | `$Infer`      | Phantom answer type for `form.$Infer.answers`                                                                  |
 
-`validate` must not be a React component. Type-specific keys (`min`, `max`, `options`) stay on the field document. UI-only hints go in `meta`.
+`validate` must not be a React component. Type-specific keys (`min`,
+`max`, `options`) stay on the field document. UI-only hints go in `meta`.
+
+---
 
 ## See also
 
 <Cards>
   <Card
     title="Field types"
-    href="/docs/reference/field-types"
+    href="/docs/field-types"
     description="Built-in catalog, showWhen, inference."
   />
   <Card
     title="React client"
-    href="/docs/guides/react"
+    href="/docs/react"
     description="Bind field(id) to your widget."
   />
   <Card
     title="Plugins"
-    href="/docs/guides/plugins"
+    href="/docs/plugins"
     description="Plugins may also contribute fieldTypes."
   />
 </Cards>

@@ -3,6 +3,31 @@ import type { NextConfig } from "next";
 
 const withMDX = createMDX();
 
+/** Old flat URLs (9a7a91f) and nested IA URLs → current flat pages. */
+const pageMoves: [string, string][] = [
+  ["/docs/setup", "/docs/server"],
+  ["/docs/fill", "/docs/react"],
+  ["/docs/helpers", "/docs/react"],
+  ["/docs/hooks", "/docs/auth"],
+  ["/docs/responses", "/docs/snapshots"],
+  ["/docs/concepts/architecture", "/docs/architecture"],
+  ["/docs/concepts/snapshots", "/docs/snapshots"],
+  ["/docs/concepts", "/docs/architecture"],
+  ["/docs/guides/server", "/docs/server"],
+  ["/docs/guides/forms", "/docs/forms"],
+  ["/docs/guides/database", "/docs/database"],
+  ["/docs/guides/react", "/docs/react"],
+  ["/docs/guides/custom-fields", "/docs/custom-fields"],
+  ["/docs/guides/auth", "/docs/auth"],
+  ["/docs/guides/plugins", "/docs/plugins"],
+  ["/docs/guides", "/docs/server"],
+  ["/docs/reference/protocol", "/docs/protocol"],
+  ["/docs/reference/field-types", "/docs/field-types"],
+  ["/docs/reference/errors", "/docs/errors"],
+  ["/docs/reference/configuration", "/docs/configuration"],
+  ["/docs/reference", "/docs/protocol"],
+];
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   async headers() {
@@ -28,108 +53,14 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
-    return [
+    return pageMoves.flatMap(([source, destination]) => [
+      { source, destination, permanent: true },
       {
-        source: "/docs/setup",
-        destination: "/docs/guides/server",
+        source: `${source}.md`,
+        destination: `${destination}.md`,
         permanent: true,
       },
-      {
-        source: "/docs/forms",
-        destination: "/docs/guides/forms",
-        permanent: true,
-      },
-      {
-        source: "/docs/field-types",
-        destination: "/docs/reference/field-types",
-        permanent: true,
-      },
-      {
-        source: "/docs/responses",
-        destination: "/docs/concepts/snapshots",
-        permanent: true,
-      },
-      {
-        source: "/docs/hooks",
-        destination: "/docs/guides/auth",
-        permanent: true,
-      },
-      {
-        source: "/docs/errors",
-        destination: "/docs/reference/errors",
-        permanent: true,
-      },
-      {
-        source: "/docs/plugins",
-        destination: "/docs/guides/plugins",
-        permanent: true,
-      },
-      {
-        source: "/docs/database",
-        destination: "/docs/guides/database",
-        permanent: true,
-      },
-      {
-        source: "/docs/fill",
-        destination: "/docs/guides/react",
-        permanent: true,
-      },
-      {
-        source: "/docs/helpers",
-        destination: "/docs/guides/react",
-        permanent: true,
-      },
-      {
-        source: "/docs/setup.md",
-        destination: "/docs/guides/server.md",
-        permanent: true,
-      },
-      {
-        source: "/docs/forms.md",
-        destination: "/docs/guides/forms.md",
-        permanent: true,
-      },
-      {
-        source: "/docs/field-types.md",
-        destination: "/docs/reference/field-types.md",
-        permanent: true,
-      },
-      {
-        source: "/docs/responses.md",
-        destination: "/docs/concepts/snapshots.md",
-        permanent: true,
-      },
-      {
-        source: "/docs/hooks.md",
-        destination: "/docs/guides/auth.md",
-        permanent: true,
-      },
-      {
-        source: "/docs/errors.md",
-        destination: "/docs/reference/errors.md",
-        permanent: true,
-      },
-      {
-        source: "/docs/plugins.md",
-        destination: "/docs/guides/plugins.md",
-        permanent: true,
-      },
-      {
-        source: "/docs/database.md",
-        destination: "/docs/guides/database.md",
-        permanent: true,
-      },
-      {
-        source: "/docs/fill.md",
-        destination: "/docs/guides/react.md",
-        permanent: true,
-      },
-      {
-        source: "/docs/helpers.md",
-        destination: "/docs/guides/react.md",
-        permanent: true,
-      },
-    ];
+    ]);
   },
   async rewrites() {
     return [

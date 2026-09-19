@@ -302,6 +302,27 @@ describe("live catalog", () => {
     );
   });
 
+  it("rejects saveForm when showWhen points at a missing field", async () => {
+    const form = dimahForm({ database: memoryAdapter() });
+    await expect(
+      form.api.saveForm({
+        body: {
+          id: "job",
+          title: "Job",
+          fields: [
+            {
+              id: "company",
+              type: "text",
+              showWhen: { field: "employed", equals: true },
+            },
+          ],
+        },
+      }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "VALIDATION_ERROR"),
+    );
+  });
+
   it("keeps createdAt when updating a live form", async () => {
     const form = dimahForm({ database: memoryAdapter() });
     const saved = await form.api.saveForm({

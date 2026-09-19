@@ -4,13 +4,13 @@ description: What the library owns, why snapshots exist, and how packages stay i
 icon: Network
 ---
 
-dimah-form is a **protocol and validation engine**. Your app supplies widgets, auth, and persistence. The instance (`dimahForm()`) is the registry for field types, hooks, plugins, and the HTTP handler.
+Backend-first questionnaire engine. You own widgets, auth, and the
+database adapter. The library owns the protocol, definition snapshots,
+and submit validation.
 
-<Callout>
-  People usually get two things wrong: they look for a form renderer, and they
-  expect submit to validate against the **live** questionnaire. Neither is true.
-  You render. Submit uses the **snapshot** on that response.
-</Callout>
+Start copies the live questionnaire onto the response. Draft and submit
+validate that copy — not tonight's `saveForm`. There is no version table.
+Lifecycle detail: [Snapshots](/docs/snapshots).
 
 <ArchitectureDiagram />
 
@@ -30,17 +30,7 @@ flowchart TD
 </Accordion>
 </Accordions>
 
-## What each side owns
-
-| Library                                                 | You                                                               |
-| ------------------------------------------------------- | ----------------------------------------------------------------- |
-| Route strings and payload schemas in `@dimah-form/core` | Field widgets and layout                                          |
-| Snapshot copy at `startResponse`                        | `guard` (auth / tenancy / staff-only)                             |
-| Draft patch + submit replace + validation               | `database` choice (`memoryAdapter`, `db()`, or a `ResponseStore`) |
-| Stable error `code` + English `message`                 | Localizing from `code` in the UI                                  |
-| `defineFieldType` validators and `$Infer`               | Mapping `field.type` to a component                               |
-
-Do not copy `FORM_API_ROUTES` or Zod payload schemas into `server` or `react` — both packages import them from `core`. Browser client methods use object args; `form.api` uses better-call `{ query }` / `{ body }`. Same paths, different call shape.
+---
 
 ## Packages
 
@@ -60,7 +50,12 @@ Do not copy `FORM_API_ROUTES` or Zod payload schemas into `server` or `react` �
 | `@dimah-form/core`   | Shared `defineFieldType` modules used by **both** server and client; protocol/plugin authors |
 | `@dimah-form/db`     | `DimahFormDB.client(…)` then `db(client)` as `database`                                      |
 
-Apps do not pass the server instance into `createFormClient`. Copy `$Infer` with `export type Form = typeof form` and `createFormClient<Form>()`.
+Apps do not pass the server instance into `createFormClient`. Copy `$Infer`
+with `export type Form = typeof form` and `createFormClient<Form>()`.
+
+Do not copy `FORM_API_ROUTES` or Zod payload schemas into `server` or
+`react` — both import them from `core`. Browser client methods use object
+args; `form.api` uses better-call `{ query }` / `{ body }`.
 
 Config is instance-based:
 
@@ -77,7 +72,10 @@ dimahForm({
 });
 ```
 
-Plugins merge once in `dimahForm()`. They do not replace `database` and must not add tables.
+Plugins merge once in `dimahForm()`. They do not replace `database` and
+must not add tables.
+
+---
 
 ## Request pipeline
 
@@ -93,34 +91,43 @@ Plugins merge once in `dimahForm()`. They do not replace `database` and must not
 />
 
 1. Query/body parse. Zod failures throw `VALIDATION_ERROR`.
-2. `guard({ request, operation, formId?, responseId? })`. Throw `APIError` to reject. A plain `Error` becomes `INTERNAL_ERROR`.
-3. Handler logic. For submit, `parseAnswers` runs against **`existing.definition`**, not `config.forms`.
+2. `guard({ request, operation, formId?, responseId? })`. Throw `APIError`
+   to reject. A plain `Error` becomes `INTERNAL_ERROR`.
+3. Handler logic. For submit, `parseAnswers` runs against
+   **`existing.definition`**, not `config.forms`.
 4. `on*` hooks (may mutate the row, e.g. `respondentId` on start).
 5. Persist. If this throws, `after*` is skipped.
 6. `after*` hooks — mail, queues, webhooks.
 
-Plugin `on*` / `after*` run first (`dependsOn`, then registration order), then instance hooks.
+Plugin `on*` / `after*` run first (`dependsOn`, then registration order),
+then instance hooks.
+
+---
 
 ## Headless fill
 
-`useFormResponse` (React) and `createFormResponseSession` (core) are the fill loop: visibility, local validation, draft, submit, reopen, abandon. They expose `visibleFields` and `field(id)` — a binding, not a widget. A later UI package should wrap `FormFieldBinding` / `FormResponseApi`, not fork this loop.
+`useFormResponse` (React) and `createFormResponseSession` (core) are the
+fill loop: visibility, local validation, draft, submit, reopen, abandon.
+They expose `visibleFields` and `field(id)` — a binding, not a widget.
+
+---
 
 ## See also
 
 <Cards>
   <Card
     title="Snapshots"
-    href="/docs/concepts/snapshots"
-    description="Why the response stores a definition copy, and the lifecycle."
+    href="/docs/snapshots"
+    description="Response lifecycle, concurrency, record shape."
   />
   <Card
     title="Server"
-    href="/docs/guides/server"
+    href="/docs/server"
     description="Mount the handler and call form.api."
   />
   <Card
     title="Configuration"
-    href="/docs/reference/configuration"
+    href="/docs/configuration"
     description="dimahForm, client, and ResponseStore options."
   />
 </Cards>

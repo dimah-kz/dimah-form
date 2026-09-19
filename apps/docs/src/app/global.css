@@ -11,40 +11,14 @@ html > body[data-scroll-locked] {
   --removed-body-scroll-bar-size: 0px !important;
 }
 
-.framework {
-  --color-fd-primary: var(--framework-color);
-}
-
-.concepts {
-  --color-fd-primary: var(--concepts-color);
-}
-
-.guides {
-  --color-fd-primary: var(--guides-color);
-}
-
-.reference {
-  --color-fd-primary: var(--reference-color);
-}
-
-.examples {
-  --color-fd-primary: var(--examples-color);
-}
-
 :root {
-  --framework-color: hsl(41, 100%, 40%);
-  --concepts-color: hsl(24, 95%, 40%);
-  --guides-color: hsl(158, 58%, 38%);
-  --reference-color: hsl(193, 95%, 43%);
-  --examples-color: hsl(262, 52%, 47%);
+  --color-fd-primary: oklch(0.5 0.1 78);
+  --color-fd-ring: oklch(0.5 0.1 78);
 }
 
 .dark {
-  --framework-color: hsl(54, 100%, 76%);
-  --concepts-color: hsl(28, 96%, 70%);
-  --guides-color: hsl(158, 45%, 58%);
-  --reference-color: hsl(193, 95%, 65%);
-  --examples-color: hsl(262, 60%, 72%);
+  --color-fd-primary: oklch(0.81 0.09 78);
+  --color-fd-ring: oklch(0.81 0.09 78);
 }
 
 @keyframes home-enter {

@@ -57,6 +57,25 @@ describe("dimahForm instance", () => {
     ).toThrow(/Invalid form "bad"/);
   });
 
+  it("throws when showWhen points at a missing field", () => {
+    expect(() =>
+      createInstance({
+        forms: {
+          job: {
+            title: "Job",
+            fields: [
+              {
+                id: "company",
+                type: "text",
+                showWhen: { field: "employed", equals: true },
+              },
+            ],
+          },
+        },
+      }),
+    ).toThrow(/showWhen on "company" references unknown field "employed"/);
+  });
+
   it("throws when a form uses an unregistered field type", () => {
     expect(() =>
       createInstance({

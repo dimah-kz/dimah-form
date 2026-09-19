@@ -93,6 +93,10 @@ export type FormFieldBinding = {
   value: unknown;
   error: string | undefined;
   invalid: boolean;
+  /**
+   * Submit would reject an empty value — document `required` and currently
+   * visible.
+   */
   required: boolean;
   disabled: boolean;
   visible: boolean;
@@ -204,7 +208,7 @@ export function createFormResponseSession(
 ): FormResponseSession {
   const initialSnapshot = options.response?.definition ?? options.snapshot;
   const initialAnswers = options.response
-    ? { ...options.response.answers }
+    ? stripHiddenAnswers(initialSnapshot, { ...options.response.answers })
     : seedDefaultAnswers(initialSnapshot);
 
   let snapshot = initialSnapshot;
@@ -305,13 +309,13 @@ export function createFormResponseSession(
   function applyRecord(row: ResponseRecord) {
     snapshot = row.definition;
     internal.responseId = row.id;
-    internal.answers = { ...row.answers };
+    internal.answers = stripHiddenAnswers(snapshot, { ...row.answers });
     internal.status = row.status;
     internal.updatedAt = row.updatedAt;
     internal.issues = {};
     internal.error = undefined;
     internal.dirty = false;
-    lastSaved = { ...row.answers };
+    lastSaved = { ...internal.answers };
   }
 
   function acceptStart(row: ResponseRecord) {
@@ -369,15 +373,18 @@ export function createFormResponseSession(
       (item) => item.id === fieldId,
     );
     const error = current.issues[fieldId];
+    const visible = fieldDef
+      ? isFieldVisible(fieldDef, current.answers, current.snapshot.fields)
+      : false;
     return {
       id: fieldId,
       field: fieldDef,
       value: current.answers[fieldId],
       error,
       invalid: Boolean(error),
-      required: fieldDef?.required === true,
+      required: fieldDef?.required === true && visible,
       disabled: current.locked || current.pending != null,
-      visible: fieldDef ? isFieldVisible(fieldDef, current.answers) : false,
+      visible,
       onChange,
     };
   }

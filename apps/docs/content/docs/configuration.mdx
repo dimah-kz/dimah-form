@@ -4,7 +4,8 @@ description: dimahForm(), createFormClient, and ResponseStore options.
 icon: Settings
 ---
 
-Scannable option tables. For setup walkthroughs see [Server](/docs/guides/server), [React client](/docs/guides/react), and [Database](/docs/guides/database).
+Option tables. Walkthroughs: [Server](/docs/server),
+[React client](/docs/react), [Database](/docs/database).
 
 ## `dimahForm()`
 
@@ -23,11 +24,16 @@ Imported from `@dimah-form/server`.
 
 Returns `{ handler, api, $ERROR_CODES, $Infer }`.
 
-`metaSchema` is `{ form?: ZodType, field?: ZodType, option?: ZodType }`. Applied at init and `saveForm`. Protocol already requires a JSON object; these tighten the contents.
+`metaSchema` is `{ form?: ZodType, field?: ZodType, option?: ZodType }`.
+Applied at init and `saveForm`. Protocol already requires a JSON object;
+these tighten the contents.
+
+---
 
 ## `createFormClient()`
 
-Imported from `@dimah-form/react` (or `@dimah-form/core` for non-React). Generic `createFormClient<Form>()` copies server `$Infer`.
+Imported from `@dimah-form/react` (or `@dimah-form/core` for non-React).
+Generic `createFormClient<Form>()` copies server `$Infer`.
 
 | Option        | Role                                                                                         |
 | ------------- | -------------------------------------------------------------------------------------------- |
@@ -40,7 +46,10 @@ Imported from `@dimah-form/react` (or `@dimah-form/core` for non-React). Generic
 | `headers`     | Static headers or `() => HeadersInit \| Promise<HeadersInit>` per request                    |
 | `fetch`       | Override global `fetch` (SSR, tests)                                                         |
 
-React wrapper also adds `Provider`, `useFormClient`, and bound `useFormResponse`.
+React wrapper also adds `Provider`, `useFormClient`, and bound
+`useFormResponse`.
+
+---
 
 ## `ResponseStore`
 
@@ -58,30 +67,38 @@ Pass to `dimahForm({ database })`. Methods may return `T` or `Promise<T>`.
 | `delete(id)`            | Remove a response                                                                           |
 | `listResponses(query?)` | `formId?`, `respondentId?`, `status?`, `limit?`, `offset?`                                  |
 
-`memoryAdapter()` implements this in process. `db()` from `@dimah-form/db` implements it on FumaDB.
+`memoryAdapter()` implements this in process. `db()` from
+`@dimah-form/db` implements it on FumaDB.
+
+---
 
 ## `defineForm` / `FormSnapshot`
 
-`defineForm` input: `title`, `fields`, optional `slug`, `status`, `description`, `meta`. No `id` — that is the `forms` record key.
+`defineForm` input: `title`, `fields`, optional `slug`, `status`,
+`description`, `meta`. No `id` — that is the `forms` record key.
 
-Normalized `FormSnapshot` always has `id`, `slug` (defaults to `id`), `status` (defaults to `active`), `title`, `fields`, optional `description`, `meta`, `createdAt`, `updatedAt`.
+Normalized `FormSnapshot` always has `id`, `slug` (defaults to `id`),
+`status` (defaults to `active`), `title`, `fields`, optional
+`description`, `meta`, `createdAt`, `updatedAt`.
+
+---
 
 ## See also
 
 <Cards>
   <Card
     title="Architecture"
-    href="/docs/concepts/architecture"
+    href="/docs/architecture"
     description="Why these slots exist."
   />
   <Card
     title="Protocol"
-    href="/docs/reference/protocol"
+    href="/docs/protocol"
     description="HTTP paths those options serve."
   />
   <Card
     title="Field types"
-    href="/docs/reference/field-types"
+    href="/docs/field-types"
     description="defineFieldType keys."
   />
 </Cards>

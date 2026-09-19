@@ -1,8 +1,10 @@
 import {
+  collectShowWhenIssues,
   formDefinitionSchema,
   normalizeFormSnapshot,
   safeParseFormSnapshot,
   type FieldTypeDefinition,
+  type FormField,
   type FormSnapshot,
   type FormStatus,
 } from "@dimah-form/core";
@@ -98,6 +100,8 @@ function assertFormDocument(
 ): void {
   assertFieldDocuments(formId, form.fields, fieldTypes, asError);
   assertDocumentMeta(formId, form, metaSchema, asError);
+  const showWhenIssue = collectShowWhenIssues(form.fields as FormField[])[0];
+  if (showWhenIssue) fail(asError, formId, showWhenIssue);
 }
 
 export function assertFormsConfig(

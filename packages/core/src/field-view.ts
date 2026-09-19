@@ -49,12 +49,14 @@ export function fieldOptions(field: FormField): FieldOption[] {
   return options;
 }
 
-/** Fields whose `showWhen` matches `answers`. */
+/** Fields whose `showWhen` matches `answers`. Nested rules follow the sibling. */
 export function visibleFields(
   definition: { fields: readonly FormField[] },
   answers: FormAnswers,
 ): FormField[] {
-  return definition.fields.filter((field) => isFieldVisible(field, answers));
+  return definition.fields.filter((field) =>
+    isFieldVisible(field, answers, definition.fields),
+  );
 }
 
 /** Map `{ field, message }[]` or a `VALIDATION_ERROR` to per-field messages. */

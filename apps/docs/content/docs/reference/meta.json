@@ -1,5 +1,0 @@
-{
-  "title": "Reference",
-  "icon": "Code",
-  "pages": ["protocol", "field-types", "errors", "configuration"]
-}

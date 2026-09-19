@@ -4,7 +4,8 @@ description: Required persistence — memoryAdapter() for tests, db() for FumaDB
 icon: Database
 ---
 
-Persistence is the `database` option on `dimahForm()`. It is not a plugin. `@dimah-form/server` does not import an ORM.
+Persistence is the `database` option on `dimahForm()`. It is not a plugin.
+`@dimah-form/server` does not import an ORM.
 
 - **`memoryAdapter()`** (`@dimah-form/server`) — tests, demos, ephemeral state. Isolated per call.
 - **`db()`** (`@dimah-form/db`) — questionnaires and responses on [FumaDB](https://github.com/fuma-nama/fumadb)
@@ -14,16 +15,22 @@ The [Next.js example](/docs/examples) uses FumaDB + Drizzle + local SQLite.
 
 ## What it stores
 
-Two application tables. There is no version table — old responses keep their snapshot on `response.definition`.
+Two application tables. There is no version table — old responses keep
+their snapshot on `response.definition`.
 
 | Table           | Role                                                                   |
 | --------------- | ---------------------------------------------------------------------- |
 | `questionnaire` | Live form (`id`, `slug`, `title`, `definition`, `status`, timestamps)  |
 | `response`      | Fill (`definition` copy at start, `answers`, `status`, `respondentId`) |
 
-FumaDB also keeps a private settings row (`private_dimah_form_settings`). Do not write to it from application code.
+FumaDB also keeps a private settings row (`private_dimah_form_settings`).
+Do not write to it from application code.
 
-`response.questionnaire_id` is a foreign key to `questionnaire.id` (`onDelete: restrict`). Starting a response inserts the parent questionnaire if it is missing and never overwrites the live definition.
+`response.questionnaire_id` is a foreign key to `questionnaire.id`
+(`onDelete: restrict`). Starting a response inserts the parent
+questionnaire if it is missing and never overwrites the live definition.
+
+---
 
 ## FumaDB
 
@@ -33,9 +40,14 @@ npm i @dimah-form/db fumadb
 
 `@dimah-form/server` is a peer.
 
-Generate adapter-specific tables from `DimahFormDB`, or copy the [example schema](https://github.com/dimah-kz/dimah-form/blob/main/examples/next/lib/schema.ts).
+Generate adapter-specific tables from `DimahFormDB`, or copy the
+[example schema](https://github.com/dimah-kz/dimah-form/blob/main/examples/next/lib/schema.ts).
 
-Call `DimahFormDB.client(…).generateSchema("1.0.0")` and write `generated.code` next to your ORM schema. The [Next.js example script](https://github.com/dimah-kz/dimah-form/blob/main/examples/next/scripts/generate-schema.mjs) does this for Drizzle. Keep the generated `private_dimah_form_settings` table.
+Call `DimahFormDB.client(…).generateSchema("1.0.0")` and write
+`generated.code` next to your ORM schema. The
+[Next.js example script](https://github.com/dimah-kz/dimah-form/blob/main/examples/next/scripts/generate-schema.mjs)
+does this for Drizzle. Keep the generated `private_dimah_form_settings`
+table.
 
 <Tabs items={["Drizzle", "Prisma"]}>
 
@@ -87,23 +99,52 @@ export const form = dimahForm({
 });
 ```
 
-You may query these tables from your own ORM. Submit validation still belongs on `dimahForm()` — do not bypass it with raw writes to `response.answers`.
+---
 
 ## Custom store
 
-`ResponseStore` is the adapter contract (`getForm`, `saveForm`, `deleteForm`, `listForms`, `create`, `get`, `save`, `delete`, `listResponses`). Methods may be sync or async. See [Configuration](/docs/reference/configuration).
+`ResponseStore` is the adapter contract (`getForm`, `saveForm`,
+`deleteForm`, `listForms`, `create`, `get`, `save`, `delete`,
+`listResponses`). Methods may be sync or async. See
+[Configuration](/docs/configuration).
+
+---
+
+## Frequently asked questions
+
+<Accordions>
+
+<Accordion title="Why is there no version table?">
+
+Each response already stores the definition it was started with. A
+questionnaire version history is an application concern unless you need a
+stable public URL with history. See [Snapshots](/docs/snapshots).
+
+</Accordion>
+
+<Accordion title="Can I query the tables from my own ORM?">
+
+Yes. The rows are ordinary FumaDB / Drizzle / Prisma tables. Submit
+validation still belongs on `dimahForm()` — do not bypass it with raw
+writes to `response.answers`.
+
+</Accordion>
+
+</Accordions>
+
+---
 
 ## See also
 
 <Cards>
   <Card
     title="Snapshots"
-    href="/docs/concepts/snapshots"
+    href="/docs/snapshots"
     description="Why there is no version table."
   />
   <Card
     title="Server"
-    href="/docs/guides/server"
+    href="/docs/server"
     description="Wire database into dimahForm()."
   />
   <Card

@@ -271,6 +271,26 @@ describe("showWhen", () => {
     expect(isFieldVisible(extra, { skills: ["ts", "go"] })).toBe(true);
   });
 
+  it("treats an equals list as one-of", () => {
+    const team = {
+      id: "team",
+      type: "text",
+      showWhen: { field: "role", equals: ["eng", "design"] },
+    };
+    expect(isFieldVisible(team, { role: "eng" })).toBe(true);
+    expect(isFieldVisible(team, { role: "pm" })).toBe(false);
+  });
+
+  it("treats an includes list as any-of", () => {
+    const extra = {
+      id: "stack",
+      type: "text",
+      showWhen: { field: "skills", includes: ["ts", "go"] },
+    };
+    expect(isFieldVisible(extra, { skills: ["rust"] })).toBe(false);
+    expect(isFieldVisible(extra, { skills: ["go"] })).toBe(true);
+  });
+
   it("drops nested hidden fields after a parent is stripped", () => {
     const form = {
       fields: [
@@ -282,6 +302,36 @@ describe("showWhen", () => {
     expect(stripHiddenAnswers(form, { a: "no", b: "ok", c: "keep" })).toEqual({
       a: "no",
     });
+  });
+
+  it("skips required nested fields when the parent is hidden", () => {
+    const form = {
+      id: "job",
+      slug: "job",
+      status: "active" as const,
+      title: "Job",
+      fields: [
+        { id: "a", type: "text", required: true },
+        {
+          id: "b",
+          type: "text",
+          required: true,
+          showWhen: { field: "a", equals: "yes" },
+        },
+        {
+          id: "c",
+          type: "text",
+          required: true,
+          showWhen: { field: "b", equals: "ok" },
+        },
+      ],
+    };
+    expect(
+      collectAnswerIssues(form, { a: "no", b: "ok", c: "keep" }, "submit"),
+    ).toEqual([]);
+    expect(collectAnswerIssues(form, { a: "yes", b: "ok" }, "submit")).toEqual([
+      { field: "c", message: "Required" },
+    ]);
   });
 });
 

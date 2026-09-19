@@ -18,6 +18,7 @@ export {
   stripHiddenAnswers,
   type AnswerValidationMode,
 } from "./answers";
+export { collectShowWhenIssues } from "./show-when";
 export {
   fieldLabel,
   fieldOptions,

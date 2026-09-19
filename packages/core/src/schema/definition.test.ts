@@ -220,6 +220,98 @@ describe("formDefinitionSchema", () => {
       fields: [{ id: "n", type: "file", pattern: ".+" }],
     });
   });
+
+  it("parses email, date, description, defaultValue, and showWhen", () => {
+    expect(
+      formDefinitionSchema.parse({
+        title: "Job",
+        fields: [
+          {
+            id: "email",
+            type: "email",
+            required: true,
+            description: "Work email",
+          },
+          { id: "employed", type: "boolean" },
+          { id: "start", type: "date", defaultValue: "2026-01-01" },
+          {
+            id: "company",
+            type: "text",
+            showWhen: { field: "employed", equals: true },
+          },
+        ],
+      }),
+    ).toMatchObject({
+      fields: [
+        { id: "email", type: "email", description: "Work email" },
+        { id: "employed", type: "boolean" },
+        { id: "start", type: "date", defaultValue: "2026-01-01" },
+        { id: "company", showWhen: { field: "employed", equals: true } },
+      ],
+    });
+  });
+
+  it("rejects showWhen without equals or includes", () => {
+    expect(
+      formDefinitionSchema.validate({
+        title: "X",
+        fields: [{ id: "n", type: "text", showWhen: { field: "other" } }],
+      }),
+    ).toBe(false);
+  });
+
+  it("rejects showWhen that points at a missing field", () => {
+    expect(
+      formDefinitionSchema.validate({
+        title: "Job",
+        fields: [
+          {
+            id: "company",
+            type: "text",
+            showWhen: { field: "employed", equals: true },
+          },
+        ],
+      }),
+    ).toBe(false);
+  });
+
+  it("accepts a scalar list on equals", () => {
+    expect(
+      formDefinitionSchema.parse({
+        title: "Job",
+        fields: [
+          {
+            id: "role",
+            type: "select",
+            options: [{ value: "eng" }, { value: "design" }],
+          },
+          {
+            id: "team",
+            type: "text",
+            showWhen: { field: "role", equals: ["eng", "design"] },
+          },
+        ],
+      }).fields[1],
+    ).toMatchObject({
+      showWhen: { field: "role", equals: ["eng", "design"] },
+    });
+  });
+
+  it("rejects an empty equals list", () => {
+    expect(
+      formDefinitionSchema.validate({
+        title: "Job",
+        fields: [
+          { id: "role", type: "select", options: [{ value: "eng" }] },
+          {
+            id: "team",
+            type: "text",
+            showWhen: { field: "role", equals: [] },
+          },
+        ],
+      }),
+    ).toBe(false);
+  });
 });
 
 describe("formSnapshotSchema", () => {
@@ -261,18 +353,12 @@ describe("formSnapshotSchema", () => {
     });
   });
 
-  it("parses email, date, description, defaultValue, and showWhen", () => {
+  it("loads a stored showWhen that points at a missing field", () => {
     expect(
-      formDefinitionSchema.parse({
+      formSnapshotSchema.parse({
+        id: "job",
         title: "Job",
         fields: [
-          {
-            id: "email",
-            type: "email",
-            required: true,
-            description: "Work email",
-          },
-          { id: "start", type: "date", defaultValue: "2026-01-01" },
           {
             id: "company",
             type: "text",
@@ -282,20 +368,9 @@ describe("formSnapshotSchema", () => {
       }),
     ).toMatchObject({
       fields: [
-        { id: "email", type: "email", description: "Work email" },
-        { id: "start", type: "date", defaultValue: "2026-01-01" },
         { id: "company", showWhen: { field: "employed", equals: true } },
       ],
     });
-  });
-
-  it("rejects showWhen without equals or includes", () => {
-    expect(
-      formDefinitionSchema.validate({
-        title: "X",
-        fields: [{ id: "n", type: "text", showWhen: { field: "other" } }],
-      }),
-    ).toBe(false);
   });
 
   it("keeps description, meta, and timestamps on normalize", () => {

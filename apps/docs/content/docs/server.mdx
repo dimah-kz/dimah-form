@@ -4,7 +4,8 @@ description: Create dimahForm(), mount an HTTP adapter, and call form.api on the
 icon: Server
 ---
 
-`@dimah-form/server` is the Node/edge entry: `dimahForm()` returns `handler`, typed `api`, `$ERROR_CODES`, and `$Infer`.
+`@dimah-form/server` is the Node/edge entry: `dimahForm()` returns
+`handler`, typed `api`, `$ERROR_CODES`, and `$Infer`.
 
 ## Install
 
@@ -12,7 +13,8 @@ icon: Server
 npm i @dimah-form/server
 ```
 
-Add [`@dimah-form/db`](/docs/guides/database) when you want FumaDB. `database` is always required.
+Add [`@dimah-form/db`](/docs/database) when you want FumaDB. `database` is
+always required.
 
 ## Configure
 
@@ -33,13 +35,17 @@ export const form = dimahForm({
 export type Form = typeof form;
 ```
 
-Pair `export type Form = typeof form` with `createFormClient<Form>()` so the browser reuses `$Infer` without a runtime catalog copy.
+Pair `export type Form = typeof form` with `createFormClient<Form>()` so
+the browser reuses `$Infer` without a runtime catalog copy.
 
-Full option list: [Configuration](/docs/reference/configuration).
+Full option list: [Configuration](/docs/configuration).
+
+---
 
 ## Mount the handler
 
-Adapters are structural (no framework peer dependencies). Default `basePath` is `/api/form`.
+Adapters are structural (no framework peer dependencies). Default
+`basePath` is `/api/form`.
 
 <Tabs items={["Next.js", "Express", "Hono", "SvelteKit", "Fastify", "Elysia", "Node", "Web"]}>
 
@@ -164,11 +170,13 @@ export default {
 
 </Tabs>
 
-Change the prefix with `basePath` on `dimahForm()` and the same prefix on the client (`basePath`, or `baseURL` when the API is on another origin). `baseURL` wins over `basePath` on the client.
+---
 
 ## Server-side API (`form.api`)
 
-Invoke endpoints without HTTP. The map uses better-call `{ body, query }` — not the browser client's object args. Pass `headers` so `guard` sees cookies or `Authorization`.
+Invoke endpoints without HTTP. The map uses better-call `{ body, query }`
+— not the browser client's object args. Pass `headers` so `guard` sees
+cookies or `Authorization`.
 
 ```ts title="app/actions.ts"
 "use server";
@@ -191,26 +199,70 @@ await form.api.startResponse({
 });
 ```
 
-From Node / Express, convert incoming headers with `fromNodeHeaders` (`@dimah-form/server/node`).
+From Node / Express, convert incoming headers with `fromNodeHeaders`
+(`@dimah-form/server/node`).
 
-Failed requests return JSON `{ message, code?, params?, issues? }`. Unknown throws become `INTERNAL_ERROR` (500). Unmatched paths return `NOT_FOUND` (404). See [Errors](/docs/reference/errors).
+---
+
+## Frequently asked questions
+
+<Accordions>
+
+<Accordion title="How do error handling and status codes work?">
+
+Failed requests return JSON `{ message, code?, params?, issues? }`.
+Unknown throws become `INTERNAL_ERROR` (500). Unmatched paths return
+`NOT_FOUND` (404).
+
+Use `APIError.from` and `FORM_ERROR_CODES`. The `errors.*` helpers are
+**not** part of the public `@dimah-form/server` export. See
+[Errors](/docs/errors).
+
+</Accordion>
+
+<Accordion title="How do I change the base path or call a cross-origin API?">
+
+Set `basePath` on `dimahForm()`. The client must use the same prefix
+(`basePath`), or a full `baseURL` when the API is hosted elsewhere:
+
+```ts
+export const form = dimahForm({
+  basePath: "/api/questionnaires", // [!code ++]
+  database: memoryAdapter(),
+});
+```
+
+```ts
+export const formClient = createFormClient<Form>({
+  baseURL: "https://api.example.com/api/questionnaires", // [!code ++]
+  credentials: "include",
+});
+```
+
+`baseURL` wins over `basePath` on the client.
+
+</Accordion>
+
+</Accordions>
+
+---
 
 ## See also
 
 <Cards>
   <Card
     title="Forms"
-    href="/docs/guides/forms"
+    href="/docs/forms"
     description="defineForm, status, slug, code-authored vs stored."
   />
   <Card
     title="Database"
-    href="/docs/guides/database"
+    href="/docs/database"
     description="memoryAdapter, FumaDB, custom ResponseStore."
   />
   <Card
     title="Protocol"
-    href="/docs/reference/protocol"
+    href="/docs/protocol"
     description="Every path and payload."
   />
 </Cards>
