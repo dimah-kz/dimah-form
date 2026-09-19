@@ -20,7 +20,7 @@
     "format:check": "prettier --check --cache --cache-location .prettiercache .",
     "knip": "knip",
     "lint": "eslint --max-warnings 0 --cache --cache-location .eslintcache --no-error-on-unmatched-pattern -- scripts prettier.config.mjs eslint.config.js vitest.config.ts knip.config.ts package.json pnpm-workspace.yaml && turbo run lint",
-    "prepare": "lefthook install",
+    "prepare": "node -e \"if (process.env.VERCEL) process.exit(0); require('node:child_process').execSync('lefthook install', { stdio: 'inherit' })\"",
     "sherif": "sherif -r non-existant-packages",
     "tegami": "node ./scripts/tegami.mts",
     "test": "turbo run test"

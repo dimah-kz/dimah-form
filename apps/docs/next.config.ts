@@ -1,7 +1,9 @@
 import { createMDX } from "fumadocs-mdx/next";
 import type { NextConfig } from "next";
+import { PRODUCTION_SITE_ORIGIN } from "./src/lib/site-url";
 
 const withMDX = createMDX();
+const legacyVercelHost = "dimah-form.vercel.app";
 
 /** Old flat URLs (9a7a91f) and nested IA URLs → current flat pages. */
 const pageMoves: [string, string][] = [
@@ -54,14 +56,28 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
-    return pageMoves.flatMap(([source, destination]) => [
-      { source, destination, permanent: true },
+    return [
       {
-        source: `${source}.md`,
-        destination: `${destination}.md`,
+        source: "/",
+        has: [{ type: "host", value: legacyVercelHost }],
+        destination: PRODUCTION_SITE_ORIGIN,
         permanent: true,
       },
-    ]);
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: legacyVercelHost }],
+        destination: `${PRODUCTION_SITE_ORIGIN}/:path*`,
+        permanent: true,
+      },
+      ...pageMoves.flatMap(([source, destination]) => [
+        { source, destination, permanent: true },
+        {
+          source: `${source}.md`,
+          destination: `${destination}.md`,
+          permanent: true,
+        },
+      ]),
+    ];
   },
   async rewrites() {
     return [

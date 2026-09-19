@@ -7,9 +7,11 @@ Canonical production origin: [form.dimah.dev](https://form.dimah.dev).
 
 ## Deploy on Vercel
 
+Same layout as [dimah-s3-docs](https://github.com/dimah-kz/dimah-s3/blob/main/apps/docs/README.md): Git-connected project named `dimah-form-docs`.
+
 1. **Root Directory:** `apps/docs` (enable _Include source files outside of the Root Directory_).
 2. **Node.js:** `24.x` in Vercel (matches `engines.node` `>=24` and CI).
-3. **Domain:** attach `form.dimah.dev` to the production deployment.
+3. **Domain:** attach `form.dimah.dev` to production. Optional `dimah-form.vercel.app` redirects there.
 4. **Environment variables:** production canonical is always `https://form.dimah.dev` (see [`.env.example`](./.env.example)). Set `NEXT_PUBLIC_SITE_URL` only on preview / local tunnel.
 5. `vercel.json` pins install/build for the monorepo (`turbo run build --filter=@dimah-form/docs` from the repo root) and skips unaffected commits via `ignoreCommand` (`npx turbo-ignore`).
 

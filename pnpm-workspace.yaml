@@ -53,6 +53,7 @@ allowBuilds:
   esbuild: true
   lefthook: true
   msw: true
+  sharp: true
   unrs-resolver: true
 
 minimumReleaseAgeExclude:
