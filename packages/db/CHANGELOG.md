@@ -1,3 +1,33 @@
+## @dimah-form/db@0.2.0
+
+### Typed fill, visibility, and store concurrency
+
+
+
+### Issues, `$Infer`, and answer parsing
+
+`ValidationIssue` includes a stable `code` and optional `params` (`FIELD_ISSUE_CODES`). Select `$Infer` is a union of option values. Required keys with `showWhen` are omitted from `$Infer`. Date fields accept `min` / `max`.
+
+`parseAnswers` drops empty values (blank text, empty `multiSelect`), not only `null` / `undefined`. `parseAnswers`, `assertAnswers`, `collectAnswerIssues`, field `validate`, and `validateAnswers` may be async. `validateAnswers` on the instance, client, and fill session runs after per-field validators. After a failed submit, `validate: "change"` keeps `REQUIRED` until the field is filled.
+
+### `showWhen`
+
+Nested `showWhen` follows the parent field. Conditions support `all` / `any` / `notEquals`, and `equals` / `includes` accept a non-empty scalar list (one-of / any-of). `defineForm` and `saveForm` reject unknown targets, self-references, cycles, extra keys, and `equals` against a `multiSelect`. `field(id).required` is true only while the field is visible.
+
+### Store CAS, resume, and listing
+
+`ResponseStore.save` and `saveForm` take `{ expectedUpdatedAt }` and throw `StoreConflictError` (`STALE_UPDATE`). `saveForm` re-reads the stored form so the concurrency token matches the adapter. The FumaDB adapter treats a stale CAS write as a conflict even when answers already match.
+
+`startResponse({ resume: true, respondentId })` returns the latest draft for that pair via `findLatestDraft` / `getOrCreateDraft`. `listResponses({ include: "summary" })` skips snapshot JSON at the adapter. `listForms` pages from the store window so skipped invalid rows do not collapse `nextOffset`. `guard` receives `getResponse` / `getForm` (store reads, no HTTP re-entry).
+
+### Fill session
+
+`useFormResponse<Form["$Infer"]["answers"][key]>()` types the session. Session state includes `issueParams` and `completion`. `validate()` is async; `autosave` debounces `saveDraft`; local edits during an in-flight save are kept. Headless helpers: `emptyToNull`, `formatAnswer`, `formCompletion`.
+
+### Database schema examples and CLI
+
+`@dimah-form/db` ships copy-paste Drizzle, Prisma, and SQL schemas (with recommended indexes) and `runCli` from `@dimah-form/db/cli` for FumaDB generate / migrate.
+
 ## @dimah-form/db@0.1.0
 
 ### Require Node.js 24 and ES2025

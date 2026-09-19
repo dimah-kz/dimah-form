@@ -1,26 +1,26 @@
 core:changelogs:
-  - content: "---\npackages:\n  group:dimah-form:\n    type: minor\n---\n\n### Require Node.js 24 and ES2025\n\nPublished packages compile to ES2025. The repo Node.js baseline is 24 or later.\n"
-    filename: 2026-09-18-es2025.md
+  - content: "---\npackages:\n  group:dimah-form:\n    type: minor\n---\n\n## Typed fill, visibility, and store concurrency\n\n### Issues, `$Infer`, and answer parsing\n\n`ValidationIssue` includes a stable `code` and optional `params` (`FIELD_ISSUE_CODES`). Select `$Infer` is a union of option values. Required keys with `showWhen` are omitted from `$Infer`. Date fields accept `min` / `max`.\n\n`parseAnswers` drops empty values (blank text, empty `multiSelect`), not only `null` / `undefined`. `parseAnswers`, `assertAnswers`, `collectAnswerIssues`, field `validate`, and `validateAnswers` may be async. `validateAnswers` on the instance, client, and fill session runs after per-field validators. After a failed submit, `validate: \"change\"` keeps `REQUIRED` until the field is filled.\n\n### `showWhen`\n\nNested `showWhen` follows the parent field. Conditions support `all` / `any` / `notEquals`, and `equals` / `includes` accept a non-empty scalar list (one-of / any-of). `defineForm` and `saveForm` reject unknown targets, self-references, cycles, extra keys, and `equals` against a `multiSelect`. `field(id).required` is true only while the field is visible.\n\n### Store CAS, resume, and listing\n\n`ResponseStore.save` and `saveForm` take `{ expectedUpdatedAt }` and throw `StoreConflictError` (`STALE_UPDATE`). `saveForm` re-reads the stored form so the concurrency token matches the adapter. The FumaDB adapter treats a stale CAS write as a conflict even when answers already match.\n\n`startResponse({ resume: true, respondentId })` returns the latest draft for that pair via `findLatestDraft` / `getOrCreateDraft`. `listResponses({ include: \"summary\" })` skips snapshot JSON at the adapter. `listForms` pages from the store window so skipped invalid rows do not collapse `nextOffset`. `guard` receives `getResponse` / `getForm` (store reads, no HTTP re-entry).\n\n### Fill session\n\n`useFormResponse<Form[\"$Infer\"][\"answers\"][key]>()` types the session. Session state includes `issueParams` and `completion`. `validate()` is async; `autosave` debounces `saveDraft`; local edits during an in-flight save are kept. Headless helpers: `emptyToNull`, `formatAnswer`, `formCompletion`.\n\n### Database schema examples and CLI\n\n`@dimah-form/db` ships copy-paste Drizzle, Prisma, and SQL schemas (with recommended indexes) and `runCli` from `@dimah-form/db/cli` for FumaDB generate / migrate.\n"
+    filename: 2026-09-19.md
     v: 0.0.0
 core:packages:
   - changelogIds:
-      - 2026-09-18-es2025.md
+      - 2026-09-19.md
     id: npm:@dimah-form/docs
     updated: true
   - changelogIds:
-      - 2026-09-18-es2025.md
+      - 2026-09-19.md
     id: npm:@dimah-form/core
     updated: true
   - changelogIds:
-      - 2026-09-18-es2025.md
+      - 2026-09-19.md
     id: npm:@dimah-form/db
     updated: true
   - changelogIds:
-      - 2026-09-18-es2025.md
+      - 2026-09-19.md
     id: npm:@dimah-form/react
     updated: true
   - changelogIds:
-      - 2026-09-18-es2025.md
+      - 2026-09-19.md
     id: npm:@dimah-form/server
     updated: true
 npm:packages:
