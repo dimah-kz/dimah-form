@@ -25,3 +25,6 @@ coverage/
 .github/CODEOWNERS
 *.prisma
 *.sql
+
+# Tegami-generated — do not format or edit
+CHANGELOG.md
