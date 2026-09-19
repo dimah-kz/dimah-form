@@ -10,11 +10,58 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { FormFieldFrame } from "@/components/dimah-form/form-field-frame";
-import { fieldControlProps } from "@/lib/field-attr";
+import { fieldControlProps, fieldWidget } from "@/lib/field-attr";
 import type { FieldWidgetProps } from "@/lib/widget-registry";
 
-export function SelectField({ binding, className }: FieldWidgetProps) {
+function RadioSelectField({ binding, className }: FieldWidgetProps) {
+  const field = binding.field;
+  if (!field) return null;
+
+  const options = fieldOptions(field);
+  const control = fieldControlProps(binding);
+
+  return (
+    <FormFieldFrame binding={binding} className={className} layout="group">
+      <RadioGroup
+        id={control.id}
+        name={control.name}
+        disabled={control.disabled}
+        aria-invalid={control["aria-invalid"]}
+        aria-required={control["aria-required"]}
+        aria-describedby={control["aria-describedby"]}
+        value={typeof binding.value === "string" ? binding.value : null}
+        onValueChange={(value) => {
+          binding.onChange(typeof value === "string" ? value : null);
+        }}
+      >
+        {options.map((option) => {
+          const id = `${field.id}-${option.value}`;
+          return (
+            <Field
+              key={option.value}
+              orientation="horizontal"
+              data-disabled={binding.disabled || undefined}
+            >
+              <RadioGroupItem
+                id={id}
+                value={option.value}
+                disabled={binding.disabled}
+              />
+              <FieldLabel htmlFor={id} className="font-normal">
+                {option.label}
+              </FieldLabel>
+            </Field>
+          );
+        })}
+      </RadioGroup>
+    </FormFieldFrame>
+  );
+}
+
+function DropdownSelectField({ binding, className }: FieldWidgetProps) {
   const t = useTranslations();
   const field = binding.field;
   if (!field) return null;
@@ -47,6 +94,7 @@ export function SelectField({ binding, className }: FieldWidgetProps) {
           className="w-full"
           aria-invalid={control["aria-invalid"]}
           aria-required={control["aria-required"]}
+          aria-describedby={control["aria-describedby"]}
         >
           <SelectValue />
         </SelectTrigger>
@@ -62,4 +110,11 @@ export function SelectField({ binding, className }: FieldWidgetProps) {
       </Select>
     </FormFieldFrame>
   );
+}
+
+export function SelectField(props: FieldWidgetProps) {
+  if (fieldWidget(props.binding.field) === "radio") {
+    return <RadioSelectField {...props} />;
+  }
+  return <DropdownSelectField {...props} />;
 }

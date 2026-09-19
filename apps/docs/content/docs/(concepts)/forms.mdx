@@ -142,7 +142,7 @@ Each item in `fields` requires an `id`, a `type`, and an optional `label`:
 - **`required`**: If `true`, the field must be non-empty when submitting the form (if visible).
 - **`defaultValue`**: Seeded into the answers map upon calling `startResponse`.
 - **`showWhen`**: Conditional visibility rules.
-- **`meta`**: Arbitrary metadata for UI customization (e.g., placeholder, step number, layout width).
+- **`meta`**: Opaque JSON for UI. `@dimah-form/ui` reads `placeholder`, `multiline`, `widget` (`radio` / `switch` / `chips`), `section`, and `step`.
 
 ---
 

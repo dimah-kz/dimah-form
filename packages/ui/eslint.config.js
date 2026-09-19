@@ -10,6 +10,7 @@ export default defineConfig(
       "jsx-a11y/label-has-associated-control": "off",
       "@typescript-eslint/array-type": "off",
       "@typescript-eslint/consistent-type-imports": "off",
+      "@typescript-eslint/no-import-type-side-effects": "off",
       eqeqeq: "off",
     },
   },

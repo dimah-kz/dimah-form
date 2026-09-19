@@ -14,6 +14,7 @@ import {
   FieldSet,
 } from "@/components/ui/field";
 import { useFieldIssue } from "@/hooks/use-field-issue";
+import { fieldDescriptionId, fieldErrorId } from "@/lib/field-attr";
 
 /** Default required-field mark. Swap via `FormUiProvider` `components.RequiredMark`. */
 export function RequiredMark() {
@@ -51,10 +52,11 @@ export type FormFieldFrameProps<TValue = unknown> = {
   requiredIndicator?: boolean;
 };
 
-function FrameError({ content }: { content: ReactNode }) {
+function FrameError({ id, content }: { id: string; content: ReactNode }) {
   if (!content) return null;
   return (
     <FieldError
+      id={id}
       className="wrap-anywhere"
       errors={typeof content === "string" ? [{ message: content }] : undefined}
     >
@@ -95,9 +97,13 @@ export function FormFieldFrame<TValue = unknown>({
   const Mark = RequiredMarkSlot ?? RequiredMark;
   const requiredMark = requiredIndicator && binding.required ? <Mark /> : null;
   const descriptionNode = descriptionContent ? (
-    <FieldDescription>{descriptionContent}</FieldDescription>
+    <FieldDescription id={fieldDescriptionId(field.id)}>
+      {descriptionContent}
+    </FieldDescription>
   ) : null;
-  const errorNode = <FrameError content={errorContent} />;
+  const errorNode = (
+    <FrameError id={fieldErrorId(field.id)} content={errorContent} />
+  );
   const invalidProps = {
     className: cn(className),
     "data-invalid": invalid || undefined,

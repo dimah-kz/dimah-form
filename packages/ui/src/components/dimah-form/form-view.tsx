@@ -12,9 +12,11 @@ import { FormError } from "@/components/dimah-form/form-error";
 import { FormFields } from "@/components/dimah-form/form-fields";
 import { FormHeader } from "@/components/dimah-form/form-header";
 import { FormInactive } from "@/components/dimah-form/form-inactive";
+import { FormProgress } from "@/components/dimah-form/form-progress";
 import { FormRoot } from "@/components/dimah-form/form-root";
+import { FormSaveState } from "@/components/dimah-form/form-save-state";
 import { FormStatus } from "@/components/dimah-form/form-status";
-import type { FormSlot } from "@/lib/form-slot";
+import { renderFormSlot, type FormSlot } from "@/lib/form-slot";
 import type { FieldWidgetRegistry } from "@/lib/widget-registry";
 
 export type FormViewProps<TAnswers extends FormAnswers = FormAnswers> = {
@@ -29,8 +31,10 @@ export type FormViewProps<TAnswers extends FormAnswers = FormAnswers> = {
    */
   children?: ReactNode;
   header?: FormSlot;
+  progress?: FormSlot;
   status?: FormSlot;
   error?: FormSlot;
+  saveState?: FormSlot;
   actions?: FormSlot;
 };
 
@@ -38,8 +42,10 @@ function FormViewLayout<TAnswers extends FormAnswers = FormAnswers>({
   className,
   children,
   header,
+  progress,
   status,
   error,
+  saveState,
   actions,
 }: Omit<FormViewProps<TAnswers>, "form" | "widgets">) {
   const session = useFormSession<TAnswers>();
@@ -50,19 +56,21 @@ function FormViewLayout<TAnswers extends FormAnswers = FormAnswers>({
 
   return (
     <FormRoot className={cn("gap-6 flex flex-col", className)}>
-      {header === false ? null : (header ?? <FormHeader />)}
-      {status === false ? null : (status ?? <FormStatus />)}
+      {renderFormSlot(header, <FormHeader />)}
+      {renderFormSlot(progress, <FormProgress />)}
+      {renderFormSlot(status, <FormStatus />)}
       {children ?? <FormFields />}
-      {error === false ? null : (error ?? <FormError />)}
-      {actions === false ? null : (actions ?? <FormActions />)}
+      {renderFormSlot(error, <FormError />)}
+      {renderFormSlot(saveState, <FormSaveState />)}
+      {renderFormSlot(actions, <FormActions />)}
     </FormRoot>
   );
 }
 
 /**
- * Default questionnaire template: header, status, fields, error, actions.
- * Slot props take `false` to hide or a node to replace. Compose
- * {@link FormScope} + primitives for a custom layout.
+ * Default questionnaire template: header, progress, status, fields, error,
+ * save state, actions. Slot props take `false` to hide or a node to replace.
+ * Compose {@link FormScope} + primitives for a custom layout.
  */
 export function FormView<TAnswers extends FormAnswers = FormAnswers>({
   form,

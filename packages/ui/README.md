@@ -62,8 +62,9 @@ A widget is `{ binding, className }`. Wrap the control in `FormFieldFrame`
 widgets once on `FormUiProvider` (or per `FormView` / `FormScope`). Swap the
 required-field mark with `components.RequiredMark`. Built-in types (`text`,
 `email`, `date`, `number`, `boolean`, `select`, `multiSelect`) ship with the
-package. Compose `FormScope` + `FormFields` / `TextField` / `FormActions` when
-the default template is not enough.
+package. `meta.widget` picks radio / switch / chips; `meta.step` and
+`meta.section` drive `FormSteps` and `FormFields` grouping. Compose
+`FormScope` + primitives when the default template is not enough.
 
 ## License
 

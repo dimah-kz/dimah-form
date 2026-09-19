@@ -202,90 +202,26 @@ export function FormFieldControl(binding: FormFieldBinding) {
 
 ---
 
-## Advanced Pattern: Multi-Step Questionnaire Wizard
+## Multi-step layout
 
-You can organize long questionnaires into multi-step wizards using `field.meta.step` or splitting `q.visibleFields`:
+Split long questionnaires with `field.meta.step` (number or string). Optional `@dimah-form/ui` groups that for you:
 
-```tsx title="components/questionnaire-wizard.tsx"
-"use client";
-
-import { useState } from "react";
-import { useFormResponse } from "@/lib/form-client";
-import { FormFieldControl } from "./form-field-control";
-import type { FormSnapshot } from "@dimah-form/react";
-
-export function QuestionnaireWizard({ form }: { form: FormSnapshot }) {
-  const [currentStep, setCurrentStep] = useState(1);
-  const q = useFormResponse({ snapshot: form });
-
-  // Filter visible fields belonging to the current step (default step: 1)
-  const stepFields = q.visibleFields.filter(
-    (f) => (Number(f.meta?.step) || 1) === currentStep,
-  );
-
-  const totalSteps = Math.max(
-    ...q.visibleFields.map((f) => Number(f.meta?.step) || 1),
-  );
-
-  return (
-    <div className="mx-auto max-w-lg space-y-6">
-      {/* Progress Bar */}
-      <div>
-        <div className="mb-1 flex justify-between text-xs text-gray-500">
-          <span>
-            Step {currentStep} of {totalSteps}
-          </span>
-          <span>{q.completion.percent}% Complete</span>
-        </div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
-          <div
-            className="h-full bg-black transition-all duration-300"
-            style={{ width: `${q.completion.percent}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Current Step Fields */}
-      <div className="space-y-4">
-        {stepFields.map((field) => (
-          <FormFieldControl key={field.id} {...q.field(field.id)} />
-        ))}
-      </div>
-
-      {/* Navigation Controls */}
-      <div className="flex justify-between border-t pt-4">
-        <button
-          type="button"
-          disabled={currentStep === 1}
-          onClick={() => setCurrentStep((s) => s - 1)}
-          className="rounded border px-4 py-2 disabled:opacity-30"
-        >
-          Previous
-        </button>
-
-        {currentStep < totalSteps ? (
-          <button
-            type="button"
-            onClick={() => setCurrentStep((s) => s + 1)}
-            className="rounded bg-black px-5 py-2 text-white"
-          >
-            Next Step
-          </button>
-        ) : (
-          <button
-            type="button"
-            disabled={q.pending !== undefined}
-            onClick={() => void q.submit()}
-            className="rounded bg-green-600 px-5 py-2 text-white"
-          >
-            {q.pending === "submit" ? "Submitting..." : "Submit Questionnaire"}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
+```tsx
+<FormScope form={q}>
+  <FormRoot>
+    <FormSteps>
+      <FormProgress />
+      <FormStepFields />
+      <FormError />
+      <FormStepNav>
+        <FormActions />
+      </FormStepNav>
+    </FormSteps>
+  </FormRoot>
+</FormScope>
 ```
+
+On the headless path, filter `q.visibleFields` by `meta.step` yourself — see [UI](/docs/ui).
 
 ---
 

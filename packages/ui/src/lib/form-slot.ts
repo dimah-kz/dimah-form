@@ -5,3 +5,11 @@ import type { ReactNode } from "react";
  * Future templates reuse this instead of boolean `hideX` flags.
  */
 export type FormSlot = ReactNode | false;
+
+export function renderFormSlot(
+  slot: FormSlot | undefined,
+  fallback: ReactNode,
+): ReactNode {
+  if (slot === false) return null;
+  return slot ?? fallback;
+}

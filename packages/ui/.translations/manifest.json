@@ -18,6 +18,10 @@
     "Must be at least {min}(field issue)",
     "Must be at most {max} characters(field issue)",
     "Must be at most {max}(field issue)",
+    "Next(step nav)",
+    "No(review)",
+    "Not answered(review)",
+    "Previous(step nav)",
     "Reopening…(form action)",
     "Request failed(session error)",
     "Required(field issue)",
@@ -32,6 +36,9 @@
     "This form is not available(inactive)",
     "Unknown field type \"{type}\"(fallback)",
     "Unknown field type(field issue)",
-    "Unknown field(field issue)"
+    "Unknown field(field issue)",
+    "Unsaved changes(save state)",
+    "Yes(review)",
+    "{answered} of {required} required(progress)"
   ]
 }

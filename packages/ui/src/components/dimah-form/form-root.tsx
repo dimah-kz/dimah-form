@@ -4,6 +4,7 @@ import type { ComponentProps } from "react";
 import type { FormAnswers, FormResponseApi } from "@dimah-form/react";
 import { cn } from "cn";
 import { useFormSession } from "@/components/dimah-form/form-context";
+import { scheduleFocusInvalidField } from "@/lib/focus-invalid";
 
 export type FormRootProps<TAnswers extends FormAnswers = FormAnswers> = Omit<
   ComponentProps<"form">,
@@ -32,7 +33,11 @@ export function FormRoot<TAnswers extends FormAnswers = FormAnswers>({
       className={cn("text-start text-dimah-form-foreground", className)}
       onSubmit={(event) => {
         event.preventDefault();
-        if (!session.locked) void session.submit();
+        if (session.locked) return;
+        const root = event.currentTarget;
+        void session.submit().then((row) => {
+          if (!row) scheduleFocusInvalidField(root);
+        });
       }}
     >
       {children}

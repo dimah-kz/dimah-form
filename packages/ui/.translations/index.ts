@@ -17,6 +17,10 @@ export type Translations = {
   "Must be at least {min}(field issue)": string;
   "Must be at most {max} characters(field issue)": string;
   "Must be at most {max}(field issue)": string;
+  "Next(step nav)": string;
+  "No(review)": string;
+  "Not answered(review)": string;
+  "Previous(step nav)": string;
   "Reopening…(form action)": string;
   "Request failed(session error)": string;
   "Required(field issue)": string;
@@ -32,4 +36,7 @@ export type Translations = {
   "Unknown field type \"{type}\"(fallback)": string;
   "Unknown field type(field issue)": string;
   "Unknown field(field issue)": string;
+  "Unsaved changes(save state)": string;
+  "Yes(review)": string;
+  "{answered} of {required} required(progress)": string;
 };

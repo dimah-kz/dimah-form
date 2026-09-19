@@ -7,6 +7,8 @@ import { FormFieldFrame } from "@/components/dimah-form/form-field-frame";
 import {
   fieldControlProps,
   fieldMetaFlag,
+  fieldMetaString,
+  fieldNumber,
   fieldString,
 } from "@/lib/field-attr";
 import type { FieldWidgetProps } from "@/lib/widget-registry";
@@ -25,18 +27,36 @@ export function StringField({
   if (!field) return null;
 
   const value = typeof binding.value === "string" ? binding.value : "";
+  const placeholder = fieldMetaString(field, "placeholder");
+  const maxLength =
+    inputType === "text" ? fieldNumber(field, "maxLength") : undefined;
+  const minLength =
+    inputType === "text" ? fieldNumber(field, "minLength") : undefined;
   const controlProps = {
     ...fieldControlProps(binding),
     value,
+    placeholder,
     onChange: (event: { target: { value: string } }) => {
       binding.onChange(emptyToNull(event.target.value));
     },
   };
 
+  const count =
+    maxLength != null ? (
+      <p className="text-xs text-end text-dimah-form-muted-foreground tabular-nums">
+        {value.length}/{maxLength}
+      </p>
+    ) : null;
+
   if (inputType === "text" && fieldMetaFlag(field, "multiline")) {
     return (
       <FormFieldFrame binding={binding} className={className}>
-        <Textarea {...controlProps} />
+        <Textarea
+          {...controlProps}
+          maxLength={maxLength}
+          minLength={minLength}
+        />
+        {count}
       </FormFieldFrame>
     );
   }
@@ -48,7 +68,10 @@ export function StringField({
         type={inputType}
         min={inputType === "date" ? fieldString(field, "min") : undefined}
         max={inputType === "date" ? fieldString(field, "max") : undefined}
+        minLength={minLength}
+        maxLength={maxLength}
       />
+      {count}
     </FormFieldFrame>
   );
 }

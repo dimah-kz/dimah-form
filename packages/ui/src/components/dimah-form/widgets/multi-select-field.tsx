@@ -3,16 +3,63 @@
 import { fieldOptions } from "@dimah-form/react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { FormFieldFrame } from "@/components/dimah-form/form-field-frame";
+import { fieldControlProps, fieldWidget } from "@/lib/field-attr";
 import type { FieldWidgetProps } from "@/lib/widget-registry";
 
-export function MultiSelectField({ binding, className }: FieldWidgetProps) {
+function selectedValues(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
+function ChipSelectField({ binding, className }: FieldWidgetProps) {
   const field = binding.field;
   if (!field) return null;
 
-  const selected = Array.isArray(binding.value)
-    ? binding.value.filter((item): item is string => typeof item === "string")
-    : [];
+  const selected = selectedValues(binding.value);
+  const control = fieldControlProps(binding);
+
+  return (
+    <FormFieldFrame binding={binding} className={className} layout="group">
+      <ToggleGroup
+        multiple
+        variant="outline"
+        spacing={2}
+        className="w-full flex-wrap"
+        disabled={binding.disabled}
+        value={selected}
+        aria-invalid={control["aria-invalid"]}
+        aria-required={control["aria-required"]}
+        aria-describedby={control["aria-describedby"]}
+        onValueChange={(next) => {
+          binding.onChange(next.length > 0 ? next : null);
+        }}
+      >
+        {fieldOptions(field).map((option) => (
+          <ToggleGroupItem
+            key={option.value}
+            value={option.value}
+            disabled={binding.disabled}
+          >
+            {option.label}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
+    </FormFieldFrame>
+  );
+}
+
+export function MultiSelectField({ binding, className }: FieldWidgetProps) {
+  if (fieldWidget(binding.field) === "chips") {
+    return <ChipSelectField binding={binding} className={className} />;
+  }
+
+  const field = binding.field;
+  if (!field) return null;
+
+  const selected = selectedValues(binding.value);
 
   return (
     <FormFieldFrame binding={binding} className={className} layout="group">

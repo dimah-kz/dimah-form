@@ -38,9 +38,13 @@
         "checkbox",
         "field",
         "input",
+        "radio-group",
         "select",
         "spinner",
-        "textarea"
+        "switch",
+        "textarea",
+        "toggle",
+        "toggle-group"
       ],
       "files": [
         {
@@ -107,6 +111,31 @@
           "path": "src/components/dimah-form/form-inactive.tsx",
           "type": "registry:component",
           "target": "@components/dimah-form/form-inactive.tsx"
+        },
+        {
+          "path": "src/components/dimah-form/form-progress.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/form-progress.tsx"
+        },
+        {
+          "path": "src/components/dimah-form/form-save-state.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/form-save-state.tsx"
+        },
+        {
+          "path": "src/components/dimah-form/form-review.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/form-review.tsx"
+        },
+        {
+          "path": "src/components/dimah-form/form-section.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/form-section.tsx"
+        },
+        {
+          "path": "src/components/dimah-form/form-steps.tsx",
+          "type": "registry:component",
+          "target": "@components/dimah-form/form-steps.tsx"
         },
         {
           "path": "src/components/dimah-form/widgets/unknown-field.tsx",
@@ -177,6 +206,16 @@
           "path": "src/lib/field-attr.ts",
           "type": "registry:lib",
           "target": "@lib/field-attr.ts"
+        },
+        {
+          "path": "src/lib/field-groups.ts",
+          "type": "registry:lib",
+          "target": "@lib/field-groups.ts"
+        },
+        {
+          "path": "src/lib/focus-invalid.ts",
+          "type": "registry:lib",
+          "target": "@lib/focus-invalid.ts"
         },
         {
           "path": "src/lib/form-slot.ts",

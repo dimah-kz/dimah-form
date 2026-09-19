@@ -30,6 +30,8 @@ export function useFormUi<TAnswers extends FormAnswers = FormAnswers>(
       session.pending === "reopen"
         ? t("Reopening…", { note: "form action" })
         : t("Edit", { note: "form action" }),
+    previousLabel: t("Previous", { note: "step nav" }),
+    nextLabel: t("Next", { note: "step nav" }),
     inactiveTitle: t("Form unavailable", { note: "inactive" }),
     inactiveMessage: t("This form is not available", { note: "inactive" }),
     submittedTitle: t("Submitted", { note: "status" }),

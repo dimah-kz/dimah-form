@@ -46,7 +46,7 @@ return (
 );
 ```
 
-`FormView` is the default layout: header, status, visible fields, session error, save / submit (or Edit when locked). Slot props take `false` to hide or a node to replace (`header`, `status`, `error`, `actions`).
+`FormView` is the default layout: header, progress (hidden when nothing is required), status, visible fields, session error, unsaved/saving hint, save / submit (or Edit when locked). Failed submit focuses the first invalid control. Slot props take `false` to hide or a node to replace (`header`, `progress`, `status`, `error`, `saveState`, `actions`).
 
 Required labels render an asterisk. Pass your own mark once on the provider:
 
@@ -76,7 +76,9 @@ Every chrome piece is a primitive. `FormScope` provides the session so they do n
 <FormScope form={form}>
   <FormRoot>
     <FormHeader />
+    <FormProgress />
     <FormFields />
+    <FormSaveState />
     <FormActions />
   </FormRoot>
 </FormScope>
@@ -84,10 +86,22 @@ Every chrome piece is a primitive. `FormScope` provides the session so they do n
 
 - `FormField` — looks up the widget for `binding.field.type`. Pass `children` to replace that widget.
 - `FormFieldFrame` — label / description / issue chrome. `layout="stack"` (default), `"choice"` (checkbox), or `"group"` (fieldset). Use this when writing a custom widget.
-- `FormFields` — maps `visibleFields`. `renderField` keeps the loop and swaps chrome per field.
+- `FormFields` — maps `visibleFields`. `fields` / `filter` restrict the loop; `meta.section` groups into `FormSection` (or `groupBy={false}` to opt out). `renderField` keeps the loop and swaps chrome per field.
+- `FormProgress` / `FormSaveState` / `FormReview` — completion, dirty draft, read-only answers.
+- `FormSteps` — groups `meta.step` (number or string, default `"1"`). `FormStepFields` + `FormStepNav` (Next waits until the step’s required fields are answered; last step renders `children`, usually `FormActions`).
 - Built-in widgets (`TextField`, `BooleanField`, …) are usable on their own: `<EmailField binding={form.field("email")} />`.
 
-A widget receives `{ binding, className }` — not a spread `FormFieldBinding`. `text` with `meta.multiline` renders a textarea.
+A widget receives `{ binding, className }` — not a spread `FormFieldBinding`. Presentation stays on `meta`:
+
+| Key                | Effect                       |
+| ------------------ | ---------------------------- |
+| `multiline`        | `text` → textarea            |
+| `placeholder`      | input placeholder            |
+| `widget: "radio"`  | `select` → radio group       |
+| `widget: "switch"` | `boolean` → switch           |
+| `widget: "chips"`  | `multiSelect` → toggle group |
+| `section`          | heading in `FormFields`      |
+| `step`             | page in `FormSteps`          |
 
 RTL: logical CSS from day one (`text-start`, `ms-*`, `ps-*`). Colors: `*-dimah-form-*` (defaults to your shadcn theme).
 

@@ -15,6 +15,7 @@ export const forms = {
         label: "Name",
         minLength: 2,
         maxLength: 80,
+        meta: { placeholder: "Ada Lovelace" },
       },
       {
         id: "email",
@@ -32,6 +33,7 @@ export const forms = {
         type: "select",
         label: "Role",
         defaultValue: "eng",
+        meta: { widget: "radio" },
         options: [
           { value: "eng", label: "Engineer" },
           { value: "pm", label: "Product" },
@@ -66,6 +68,7 @@ export const forms = {
         id: "highlights",
         type: "multiSelect",
         label: "What stood out?",
+        meta: { widget: "chips" },
         options: [
           { value: "api", label: "API" },
           { value: "dx", label: "Developer experience" },
@@ -83,6 +86,7 @@ export const forms = {
         type: "boolean",
         required: true,
         label: "This is my own feedback",
+        meta: { widget: "switch" },
       },
       {
         id: "note",

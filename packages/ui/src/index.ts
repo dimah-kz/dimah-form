@@ -54,6 +54,32 @@ export {
   FormInactive,
   type FormInactiveProps,
 } from "@/components/dimah-form/form-inactive";
+export {
+  FormProgress,
+  type FormProgressProps,
+} from "@/components/dimah-form/form-progress";
+export {
+  FormSaveState,
+  type FormSaveStateProps,
+} from "@/components/dimah-form/form-save-state";
+export {
+  FormReview,
+  type FormReviewProps,
+} from "@/components/dimah-form/form-review";
+export {
+  FormSection,
+  type FormSectionProps,
+} from "@/components/dimah-form/form-section";
+export {
+  FormSteps,
+  FormStepFields,
+  FormStepNav,
+  useFormSteps,
+  type FormStep,
+  type FormStepNavProps,
+  type FormStepsApi,
+  type FormStepsProps,
+} from "@/components/dimah-form/form-steps";
 export { TextField } from "@/components/dimah-form/widgets/text-field";
 export { EmailField } from "@/components/dimah-form/widgets/email-field";
 export { DateField } from "@/components/dimah-form/widgets/date-field";
@@ -75,12 +101,30 @@ export {
 } from "@/lib/widget-registry";
 export {
   fieldControlProps,
+  fieldDescriptionId,
+  fieldErrorId,
   fieldFlag,
   fieldMetaFlag,
+  fieldMetaNumber,
+  fieldMetaString,
   fieldNumber,
   fieldString,
+  fieldWidget,
 } from "@/lib/field-attr";
-export type { FormSlot } from "@/lib/form-slot";
+export {
+  fieldSectionTitle,
+  fieldStepKey,
+  groupFieldsBySection,
+  groupFieldsByStep,
+  selectVisibleFields,
+  shouldGroupBySection,
+  type FieldGroupBucket,
+} from "@/lib/field-groups";
+export {
+  focusInvalidField,
+  scheduleFocusInvalidField,
+} from "@/lib/focus-invalid";
+export { renderFormSlot, type FormSlot } from "@/lib/form-slot";
 export { useFormUi } from "@/hooks/use-form-ui";
 export { useFieldIssue } from "@/hooks/use-field-issue";
 export type { Translations } from "@/lib/dimah-form-translations";

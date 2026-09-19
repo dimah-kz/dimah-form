@@ -6,7 +6,9 @@ import {
   FormError,
   FormFields,
   FormInactive,
+  FormProgress,
   FormRoot,
+  FormSaveState,
   FormScope,
   FormStatus,
 } from "@dimah-form/ui";
@@ -62,10 +64,12 @@ export function Questionnaire({
               </CardHeader>
               <CardContent className="flex flex-col gap-6">
                 <FormStatus />
+                <FormProgress />
                 <FormFields />
                 <FormError />
               </CardContent>
-              <CardFooter>
+              <CardFooter className="flex flex-col items-stretch gap-3">
+                <FormSaveState />
                 <FormActions className="w-full" />
               </CardFooter>
             </Card>
