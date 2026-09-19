@@ -1,0 +1,106 @@
+---
+title: Custom fields
+description: Extra field types are defineFieldType validators that feed $Infer — not React components.
+icon: ListPlus
+---
+
+Field types are **validators** registered on the instance. Built-ins are always present; extras go in `dimahForm({ fieldTypes })` and, for local fill validation, the same array on `createFormClient({ fieldTypes })`.
+
+Put shared definitions in a module that imports `defineFieldType` from `@dimah-form/core`. `@dimah-form/react` is `"use client"` — defining types there pulls the catalog into the client boundary the wrong way. The [Next.js example](/docs/examples) keeps `lib/field-types.ts` on `core` and imports it from both `form.ts` and `form-client.ts`.
+
+Duplicate `type` strings throw at `dimahForm()` init (built-ins included). Unknown types are allowed in `defineForm` and rejected when the instance starts if they are unregistered.
+
+Catalog of built-ins, `showWhen`, and `$Infer` shape: [Field types](/docs/reference/field-types).
+
+## Add a type
+
+This is the `rating` type from the example (stars are example UI, not library UI).
+
+```ts title="lib/field-types.ts"
+import { defineFieldType } from "@dimah-form/core";
+import * as z from "zod";
+
+export const ratingFieldType = defineFieldType({
+  type: "rating",
+  fieldSchema: z.looseObject({
+    type: z.literal("rating"),
+    min: z.int().min(1).optional(),
+    max: z.int().min(1).optional(),
+  }),
+  validate: (value, field) => {
+    if (typeof value !== "number" || !Number.isInteger(value)) {
+      return "Expected an integer";
+    }
+    const min = typeof field.min === "number" ? field.min : 1;
+    const max = typeof field.max === "number" ? field.max : 5;
+    if (value < min) return `Must be at least ${min}`;
+    if (value > max) return `Must be at most ${max}`;
+    return undefined;
+  },
+  $Infer: 0 as number,
+});
+
+export const fieldTypes = [ratingFieldType] as const;
+```
+
+```ts title="lib/form.ts"
+import { defineForm, dimahForm, memoryAdapter } from "@dimah-form/server";
+import { fieldTypes } from "./field-types";
+
+export const form = dimahForm({
+  database: memoryAdapter(),
+  fieldTypes,
+  forms: {
+    feedback: defineForm({
+      title: "Feedback",
+      fields: [{ id: "score", type: "rating", required: true, min: 1, max: 5 }],
+    }),
+  },
+});
+
+export type Form = typeof form;
+```
+
+```ts title="lib/form-client.ts"
+"use client";
+
+import { createFormClient } from "@dimah-form/react";
+import type { Form } from "./form";
+import { fieldTypes } from "./field-types";
+
+export const formClient = createFormClient<Form>({ fieldTypes });
+```
+
+In your widget map, `field.type === "rating"` is your cue to render stars (or anything else). The library never does.
+
+## `defineFieldType` contract
+
+| Key | Role |
+| --- | --- |
+| `type` | Unique string. Shadows of built-ins throw |
+| `validate` | When the answer is present, English error or `undefined`. Third argument `context.answers` is the full payload |
+| `isEmpty` | Treat other values as unanswered (blank strings, empty arrays). `null` / `undefined` are always empty |
+| `fieldSchema` | Optional Zod for the field document. Applied at `dimahForm()` / `saveForm` |
+| `$Infer` | Phantom answer type for `form.$Infer.answers` |
+
+`validate` must not be a React component. Type-specific keys (`min`, `max`, `options`) stay on the field document. UI-only hints go in `meta`.
+
+## See also
+
+<Cards>
+  <Card
+    title="Field types"
+    href="/docs/reference/field-types"
+    description="Built-in catalog, showWhen, inference."
+  />
+  <Card
+    title="React client"
+    href="/docs/guides/react"
+    description="Bind field(id) to your widget."
+  />
+  <Card
+    title="Plugins"
+    href="/docs/guides/plugins"
+    description="Plugins may also contribute fieldTypes."
+  />
+</Cards>

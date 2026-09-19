@@ -1,0 +1,126 @@
+---
+title: Auth and hooks
+description: guard is your auth. Domain hooks run on* before persist and after* after persist.
+icon: Shield
+---
+
+Auth lives in `guard`. Domain side effects live in `hooks`. The library packages do not ship sessions, cookies, or an auth plugin.
+
+<Flow
+  label="Request pipeline"
+  steps={[
+    { name: "guard", kind: "server", note: "auth / policy" },
+    { name: "validate", kind: "protocol", note: "payload + snapshot" },
+    { name: "on*", kind: "server", note: "before persist" },
+    { name: "database", kind: "data", note: "write" },
+    { name: "after*", kind: "server", note: "after persist" },
+  ]}
+/>
+
+## Guard
+
+`guard` runs before every core and plugin operation, after query/body parse. Throw `APIError` to reject. A plain `Error` becomes `INTERNAL_ERROR`.
+
+```ts title="lib/form.ts"
+import {
+  APIError,
+  FORM_ERROR_CODES,
+  dimahForm,
+  memoryAdapter,
+} from "@dimah-form/server";
+
+export const form = dimahForm({
+  database: memoryAdapter(),
+  guard: async ({ request, operation, formId, responseId }) => {
+    if (operation !== "startResponse") return;
+    const session = await getSession(request);
+    if (!session) {
+      throw APIError.from("UNAUTHORIZED", FORM_ERROR_CODES.UNAUTHORIZED);
+    }
+  },
+});
+```
+
+There is no `errors.unauthorized()` helper on the public package export. Use `APIError.from` with `FORM_ERROR_CODES`.
+
+Override `message` when you need a specific English string. Keep `code` stable and localize in the UI from `code`:
+
+```ts
+throw APIError.from("FORBIDDEN", {
+  ...FORM_ERROR_CODES.FORBIDDEN,
+  message: "Staff only",
+});
+```
+
+| Field | Set when |
+| --- | --- |
+| `request` | Always |
+| `operation` | Core name (`startResponse`) or plugin endpoint key |
+| `formId` | Form routes and start — from `query.formId`, `body.formId`, or `body.id` |
+| `responseId` | Present on response routes |
+
+Guard `operation` for a plugin route is the `endpoints` object key unless `metadata.operation` is set. See [Plugins](/docs/guides/plugins).
+
+Pass `headers` on `form.api` and `headers` / `credentials` on `createFormClient` so the guard can read cookies or `Authorization`.
+
+```ts
+export const formClient = createFormClient<Form>({
+  credentials: "include",
+  headers: async () => ({
+    Authorization: `Bearer ${await getToken()}`,
+  }),
+});
+```
+
+## Domain hooks
+
+`on*` runs after validation, before persist. `after*` runs after persist. If persist throws, `after*` is skipped.
+
+Skip irreversible I/O in `on*` — use `after*` for mail, queues, and webhooks. `onStart` may assign `response.respondentId` before the row is written.
+
+```ts title="lib/form.ts"
+export const form = dimahForm({
+  database: memoryAdapter(),
+  hooks: {
+    onStart: ({ response, request }) => {
+      response.respondentId = sessionFrom(request)?.userId ?? null;
+    },
+    afterSubmit: async ({ response }) => {
+      await notifyOps(response.id);
+    },
+  },
+});
+```
+
+| Hook | Context |
+| --- | --- |
+| `onStart` | `{ request, response }` |
+| `onSaveDraft` | `{ request, response }` |
+| `onSubmit` | `{ request, response }` |
+| `onAbandon` | `{ request, response }` |
+| `onReopen` | `{ request, response }` |
+| `onDeleteResponse` | `{ request, response }` |
+| `onSaveForm` | `{ request, form }` |
+| `onDeleteForm` | `{ request, form }` |
+
+Each `on*` hook has a matching `after*` with the same context. Plugin hooks run first, then instance hooks.
+
+## See also
+
+<Cards>
+  <Card
+    title="Errors"
+    href="/docs/reference/errors"
+    description="UNAUTHORIZED, FORBIDDEN, and the rest of the catalog."
+  />
+  <Card
+    title="Architecture"
+    href="/docs/concepts/architecture"
+    description="Where guard sits in the pipeline."
+  />
+  <Card
+    title="React client"
+    href="/docs/guides/react"
+    description="credentials and headers on createFormClient."
+  />
+</Cards>

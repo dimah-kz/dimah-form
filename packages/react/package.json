@@ -12,7 +12,7 @@
     "headless",
     "typescript"
   ],
-  "homepage": "https://form.dimah.dev/docs/fill",
+  "homepage": "https://form.dimah.dev/docs/guides/react",
   "bugs": {
     "url": "https://github.com/dimah-kz/dimah-form/issues"
   },

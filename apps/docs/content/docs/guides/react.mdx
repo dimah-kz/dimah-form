@@ -1,0 +1,208 @@
+---
+title: React client
+description: Headless fill session — createFormClient, useFormResponse, and widget helpers.
+icon: PenLine
+---
+
+`@dimah-form/react` is a thin client. It does not ship field widgets. You render `visibleFields` and bind `field(id)`.
+
+Re-export bound hooks from your client so the protocol, `$Infer`, and field types stay tied to the instance. Bound hooks do not need `Provider`.
+
+```ts title="lib/form-client.ts"
+"use client";
+
+import { createFormClient } from "@dimah-form/react";
+import type { Form } from "@/lib/form";
+import { fieldTypes } from "@/lib/field-types";
+
+export const formClient = createFormClient<Form>({ fieldTypes });
+export const { useFormClient, useFormResponse } = formClient;
+```
+
+`createFormClient<Form>()` is type-only. Do not pass the `dimahForm()` instance at runtime. Pass the same `fieldTypes` array as the server when you have extras, so local validation matches.
+
+Package-level `useFormResponse` / `useFormClient` read React context and are the untyped escape hatch — they require `formClient.Provider`.
+
+## Fill session
+
+`useFormResponse` is the fill loop: answers, visibility, local validation, draft, submit, reopen, and abandon.
+
+```tsx title="components/questionnaire.tsx"
+"use client";
+
+import { fieldLabel } from "@dimah-form/react";
+import type { FormSnapshot, ResponseRecord } from "@dimah-form/react";
+import { useFormResponse } from "@/lib/form-client";
+
+export function Questionnaire({
+  form,
+  response,
+}: {
+  form: FormSnapshot;
+  response?: ResponseRecord;
+}) {
+  const q = useFormResponse({
+    snapshot: form,
+    response,
+    onSubmitted: (row) => {
+      console.log(row.id);
+    },
+  });
+
+  if (q.inactive) return <p>This form is {form.status}.</p>;
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        void q.submit();
+      }}
+    >
+      {q.visibleFields.map((field) => {
+        const binding = q.field(field.id);
+        return (
+          <label key={field.id}>
+            {fieldLabel(field)}
+            <input
+              value={typeof binding.value === "string" ? binding.value : ""}
+              disabled={binding.disabled}
+              onChange={(event) =>
+                binding.onChange(
+                  event.target.value === "" ? null : event.target.value,
+                )
+              }
+            />
+            {binding.error}
+          </label>
+        );
+      })}
+      {q.error ? <p>{q.error}</p> : null}
+      <button type="submit" disabled={q.pending != null || q.locked}>
+        Submit
+      </button>
+      <button
+        type="button"
+        disabled={q.pending != null}
+        onClick={() => void q.saveDraft()}
+      >
+        Save draft
+      </button>
+    </form>
+  );
+}
+```
+
+Pass `response` to resume a draft or to reopen a locked row. Omit it to start on first save/submit. Optional `respondentId` (string or `() => string`) is sent on start.
+
+When a `response` is passed, that row's `definition` wins field values over the live `snapshot` you still pass for inactive checks.
+
+Clearing an input should send `null` so a later draft patch deletes the key.
+
+Switch on `field.type` in your widget map. The [Next.js example](/docs/examples) does this with shadcn Field primitives — those components are not part of this package.
+
+The same session exists as `createFormResponseSession` from `@dimah-form/core` (also re-exported from `@dimah-form/react`) if you are not using React.
+
+## Options
+
+| Option | Role |
+| --- | --- |
+| `snapshot` | Live form. When `response` is passed, the row's `definition` wins field values |
+| `response` | Existing row (`id`, `answers`, `status`, `updatedAt`, `definition`) |
+| `respondentId` | String or `() => string`, sent on `startResponse` |
+| `fieldTypes` | Same extras as `dimahForm({ fieldTypes })`. Falls back to `client.fieldTypes` |
+| `validate` | `"submit"` (default) or `"change"` |
+| `onStarted` | After `startResponse`. Do not navigate here if a save/submit follows |
+| `onSaved` / `onSubmitted` | After a successful draft / submit |
+| `onReopened` / `onAbandoned` | After reopen / abandon |
+
+Client fetch options (`basePath`, `baseURL`, `credentials`, `headers`, `fetch`) live on `createFormClient`. See [Configuration](/docs/reference/configuration).
+
+## State and actions
+
+| Field | Meaning |
+| --- | --- |
+| `snapshot` | Definition in use (from the response once started) |
+| `responseId` | Undefined until start |
+| `answers` | Current values (`FormAnswers`) |
+| `status` | `draft` \| `submitted` \| `abandoned` |
+| `locked` | Submitted or abandoned |
+| `inactive` | No row yet and the live form is not `active` |
+| `dirty` | Local answers differ from last persist |
+| `pending` | `"save"` \| `"submit"` \| `"reopen"` \| `"abandon"` \| `"refresh"` |
+| `issues` | Per-field messages |
+| `error` | Request-level English message |
+| `visibleFields` | Fields whose `showWhen` matches |
+
+| Action | Behavior |
+| --- | --- |
+| `field(id)` | `{ value, error, invalid, required, disabled, visible, onChange, field }` |
+| `setAnswer` / `setAnswers` | Patch. No-op when `locked` |
+| `validate()` | Collect issues (`submit` mode by default) |
+| `saveDraft()` | Start if needed, send an answers patch + `updatedAt` |
+| `submit()` | Local submit validation, then full replace + `updatedAt` |
+| `reopen()` | Locked rows only |
+| `abandon()` | Draft with an id |
+| `refresh()` | `getResponse` and replace local state |
+
+Actions return `undefined` when a request is already pending, the row is in the wrong status, or local submit validation fails.
+
+On `STALE_UPDATE`, the session refreshes from `getResponse` and sets `error`. Field-level `VALIDATION_ERROR` maps onto `issues`.
+
+Typed catalog answers are `formClient.$Infer.answers`, not the fill-session `answers` object (that stays `FormAnswers`).
+
+## Helpers
+
+Defined in `@dimah-form/core`, re-exported from `@dimah-form/react`. They do not render UI. `useFormResponse` already exposes `visibleFields` and `field(id).error` — use these when you call the protocol client directly or build a widget map.
+
+```ts
+import {
+  applyAnswerPatch,
+  collectAnswerIssues,
+  fieldLabel,
+  fieldOptions,
+  formErrorMessage,
+  isFieldVisible,
+  issuesByField,
+  parseAnswers,
+  seedDefaultAnswers,
+  stripHiddenAnswers,
+  visibleFields,
+} from "@dimah-form/react";
+
+fieldLabel(field); // label, or the field id
+fieldOptions(field); // { value, label, meta? }[] for select / multiSelect
+visibleFields(snapshot, answers);
+isFieldVisible(field, answers);
+issuesByField(issues); // { [fieldId]: message } — array or APIError
+formErrorMessage(error, "Request failed");
+```
+
+| Helper | Role |
+| --- | --- |
+| `applyAnswerPatch` | Merge a draft patch. `null` / `undefined` deletes a key |
+| `stripHiddenAnswers` | Drop keys hidden by `showWhen` |
+| `seedDefaultAnswers` | Start payload from `defaultValue`, then strip hidden |
+| `collectAnswerIssues` | `{ field, message }[]` for `"draft"` or `"submit"` |
+| `parseAnswers` | Strip, validate, drop empty keys. Throws `VALIDATION_ERROR` |
+
+Submit validation against a snapshot belongs on the server. These helpers are for local checks and for stores that speak the same protocol.
+
+## See also
+
+<Cards>
+  <Card
+    title="Custom fields"
+    href="/docs/guides/custom-fields"
+    description="Share defineFieldType with the client."
+  />
+  <Card
+    title="Auth"
+    href="/docs/guides/auth"
+    description="Send cookies or a bearer token through the client."
+  />
+  <Card
+    title="Protocol"
+    href="/docs/reference/protocol"
+    description="Object-arg client vs form.api."
+  />
+</Cards>

@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { source } from "@/lib/source";
 import { getSiteUrl } from "@/lib/site-url";
 
-/** `/sitemap.xml` — 1 home · 0.9 intro/quickstart · 0.8 setup/forms/fill · then by depth. */
+/** `/sitemap.xml` — 1 home · 0.9 intro/quickstart · 0.8 architecture/server/react · then by depth. */
 export default function sitemap(): MetadataRoute.Sitemap {
   const origin = getSiteUrl().origin;
 
@@ -25,7 +25,11 @@ function entry(url: string, priority: number): MetadataRoute.Sitemap[number] {
 
 function docsPriority(url: string): number {
   if (url === "/docs" || url === "/docs/quickstart") return 0.9;
-  if (url === "/docs/setup" || url === "/docs/forms" || url === "/docs/fill") {
+  if (
+    url === "/docs/concepts/architecture" ||
+    url === "/docs/guides/server" ||
+    url === "/docs/guides/react"
+  ) {
     return 0.8;
   }
 

@@ -12,7 +12,7 @@
     "prisma",
     "typescript"
   ],
-  "homepage": "https://form.dimah.dev/docs/database",
+  "homepage": "https://form.dimah.dev/docs/guides/database",
   "bugs": {
     "url": "https://github.com/dimah-kz/dimah-form/issues"
   },

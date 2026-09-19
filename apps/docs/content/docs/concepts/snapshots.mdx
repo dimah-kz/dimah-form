@@ -1,0 +1,91 @@
+---
+title: Snapshots
+description: Each response stores the definition it was started with. Submit validates that copy.
+icon: Camera
+---
+
+A **response** is one fill of a form. It stores a **definition snapshot** plus **answers**.
+
+<Callout type="warn">
+  Submit validates `response.definition`, not the live questionnaire in config or `database`. Editing the live form does not rewrite in-flight or submitted responses. There is no version table.
+</Callout>
+
+Starting a response **copies** the live definition onto the new row. It inserts a parent questionnaire row if that id is missing. It **never overwrites** an existing live definition.
+
+`reopenResponse` returns a submitted or abandoned row to `draft` without rewriting the snapshot or answers.
+
+## Why a snapshot
+
+Questionnaires change. A respondent who started last week should submit against the fields they were shown, not against tonight's `saveForm`. Keeping the copy on the row avoids a parallel version history unless you later need a stable public URL with history — that would be a product feature, not a library table.
+
+The live catalog is still what `getForm` / `startResponse` resolve **now** (code-authored `forms` first, then `database.getForm`). New starts pick up the current document. Old rows do not.
+
+## Response statuses
+
+| Status | Meaning | Allowed mutations |
+| --- | --- | --- |
+| `draft` | In progress | draft, submit, abandon |
+| `submitted` | Locked after a successful submit | reopen, delete |
+| `abandoned` | Locked without submit | reopen, delete |
+
+<Flow
+  label="Response lifecycle"
+  steps={[
+    { name: "start", kind: "protocol", note: "copy definition + defaults" },
+    { name: "draft", kind: "client", note: "patch answers" },
+    { name: "submit", kind: "server", note: "full replace vs snapshot" },
+    { name: "reopen", kind: "data", note: "back to draft, same snapshot" },
+  ]}
+/>
+
+1. **`startResponse`** — form must be `active`. Seeds `defaultValue`, then drops hidden `showWhen` fields. Status `draft`.
+2. **`saveDraft`** — patch. A `null` value deletes a key. Empty required fields are allowed.
+3. **`submitResponse`** — full replace, or omit `answers` to submit the stored draft. Required **visible** fields must be present. Hidden answers are stripped. Unknown keys are rejected.
+4. **`abandonResponse`** — lock a draft without submit.
+5. **`reopenResponse`** — unlock submitted / abandoned. `submittedAt` stays as stored.
+
+Draft vs submit is the same `parseAnswers` helper with mode `"draft"` or `"submit"`. Both run against the snapshot.
+
+## Optimistic concurrency
+
+Optional `updatedAt` on draft, submit, abandon, and reopen must match the stored row. A mismatch throws `STALE_UPDATE` (HTTP 409). Omit `updatedAt` to skip the check.
+
+`form.api` re-reads the row after persist so the next token matches `get()` (adapters such as SQLite may round timestamps). `useFormResponse` sends `updatedAt` and, on `STALE_UPDATE`, refreshes from `getResponse`.
+
+## Record shape
+
+```ts
+type ResponseRecord = {
+  id: string;
+  formId: string;
+  status: "draft" | "submitted" | "abandoned";
+  definition: FormSnapshot;
+  answers: Record<string, unknown>;
+  respondentId: string | null;
+  submittedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+```
+
+Set `respondentId` on start, or assign it in `onStart` before persist. See [Auth and hooks](/docs/guides/auth).
+
+## See also
+
+<Cards>
+  <Card
+    title="Protocol"
+    href="/docs/reference/protocol"
+    description="Endpoint table for start, draft, submit, reopen."
+  />
+  <Card
+    title="Forms"
+    href="/docs/guides/forms"
+    description="Live catalog, slug, status, code-authored vs stored."
+  />
+  <Card
+    title="React client"
+    href="/docs/guides/react"
+    description="How the fill session uses the snapshot."
+  />
+</Cards>

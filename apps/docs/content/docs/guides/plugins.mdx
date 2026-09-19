@@ -1,0 +1,144 @@
+---
+title: Plugins
+description: Additive endpoints, hooks, field types, and error codes — not persistence.
+icon: Puzzle
+---
+
+Use `definePlugin` for additive features: endpoints, hooks, field types, and `$ERROR_CODES`. Persistence stays on `database`. Plugins do not add tables.
+
+Prefer a factory that closes over options and returns `definePlugin`. `options` is for sibling plugins to read; keep your own config in the closure.
+
+```ts title="lib/ping-plugin.ts"
+import {
+  createFormEndpoint,
+  defineErrorCodes,
+  definePlugin,
+} from "@dimah-form/server";
+
+const PING_ERROR_CODES = defineErrorCodes({ PING_FAILED: "Ping failed" });
+
+export const ping = (options?: { token?: string }) =>
+  definePlugin({
+    id: "ping",
+    options,
+    $ERROR_CODES: PING_ERROR_CODES,
+    endpoints: {
+      ping: createFormEndpoint("/ping", { method: "GET" }, async () => ({
+        ok: true,
+      })),
+    },
+  });
+```
+
+```ts title="lib/form.ts"
+import { dimahForm, memoryAdapter } from "@dimah-form/server";
+import { ping } from "./ping-plugin";
+
+export const form = dimahForm({
+  database: memoryAdapter(),
+  plugins: [ping()],
+});
+
+await form.api.ping({});
+```
+
+Plugins merge **once** in `dimahForm()`, never inside an endpoint. Feature plugins belong in their own package and peer-depend on server. Duplicate `id`, missing `dependsOn`, and cycles throw at init.
+
+Reserved plugin ids include `handler`, `api`, `$ERROR_CODES`, and `$Infer`.
+
+## Endpoints
+
+`createFormEndpoint` paths are absolute under `basePath`. Zod `body` / `query` failures throw `VALIDATION_ERROR`. Plugin routes cannot shadow core names or paths.
+
+Guard `operation` is the `endpoints` key (`"ping"`) unless `metadata.operation` is set:
+
+```ts
+ping: createFormEndpoint(
+  "/ping",
+  { method: "GET", metadata: { operation: "health" } },
+  async () => ({ ok: true }),
+);
+```
+
+## Init and context
+
+`init` runs once in `dimahForm()`, after plugins are sorted. It must be **synchronous**. Return `{ context }` for request handlers.
+
+```ts
+import {
+  createFormEndpoint,
+  definePlugin,
+  getPluginContext,
+} from "@dimah-form/server";
+
+const a = definePlugin({
+  id: "a",
+  options: { n: 1 },
+  init({ options }) {
+    return { context: { n: (options as { n: number }).n } };
+  },
+});
+
+const b = definePlugin({
+  id: "b",
+  dependsOn: ["a"],
+  endpoints: {
+    peek: createFormEndpoint("/peek", { method: "GET" }, async (ctx) => ({
+      a: getPluginContext<{ n: number }>(ctx.context.config, "a"),
+    })),
+  },
+});
+```
+
+`dependsOn` is a topological order for `init`, hooks, field types, and endpoints.
+
+Plugin `on*` / `after*` run first (`dependsOn`, then registration order), then instance hooks. Plugins may also contribute `fieldTypes` (same `defineFieldType` contract).
+
+## Client companion
+
+Browser plugins are **not** inferred from the server plugin. Share `id` and the error catalog module. Register them on `createFormClient({ plugins })`. Do not copy core route strings.
+
+```ts
+import { defineClientPlugin, defineErrorCodes } from "@dimah-form/react";
+
+const PING_ERROR_CODES = defineErrorCodes({ PING_FAILED: "Ping failed" });
+
+export const pingClient = () =>
+  defineClientPlugin({
+    id: "ping",
+    $ERROR_CODES: PING_ERROR_CODES,
+    endpoints: ({ $fetch }) => ({
+      ping: () => $fetch<{ ok: true }>("/ping", { method: "GET" }),
+    }),
+  });
+```
+
+```ts
+export const formClient = createFormClient<Form>({
+  plugins: [pingClient()],
+});
+
+await formClient.ping();
+```
+
+Codes cannot shadow core or another plugin. Keep ORM off the client entry.
+
+## See also
+
+<Cards>
+  <Card
+    title="Errors"
+    href="/docs/reference/errors"
+    description="defineErrorCodes and isFormErrorCode."
+  />
+  <Card
+    title="Auth and hooks"
+    href="/docs/guides/auth"
+    description="Guard operation names for plugin routes."
+  />
+  <Card
+    title="Architecture"
+    href="/docs/concepts/architecture"
+    description="Plugins are additive; database is not a plugin."
+  />
+</Cards>

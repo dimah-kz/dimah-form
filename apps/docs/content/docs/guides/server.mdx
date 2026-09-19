@@ -1,8 +1,10 @@
 ---
-title: Setup
-description: Install `@dimah-form/server`, configure dimahForm(), and mount the handler.
-icon: Settings
+title: Server
+description: Create dimahForm(), mount an HTTP adapter, and call form.api on the server.
+icon: Server
 ---
+
+`@dimah-form/server` is the Node/edge entry: `dimahForm()` returns `handler`, typed `api`, `$ERROR_CODES`, and `$Infer`.
 
 ## Install
 
@@ -10,7 +12,7 @@ icon: Settings
 npm i @dimah-form/server
 ```
 
-Add [`@dimah-form/db`](/docs/database) when you want FumaDB persistence.
+Add [`@dimah-form/db`](/docs/guides/database) when you want FumaDB. `database` is always required.
 
 ## Configure
 
@@ -23,7 +25,6 @@ export const form = dimahForm({
     feedback: defineForm({
       title: "Feedback",
       slug: "feedback",
-      status: "active",
       fields: [{ id: "name", type: "text", required: true, label: "Name" }],
     }),
   },
@@ -32,19 +33,13 @@ export const form = dimahForm({
 export type Form = typeof form;
 ```
 
-`database` is required. Use `memoryAdapter()` in this package, or `db()`
-from [`@dimah-form/db`](/docs/database). A custom store can be passed to
-`database` directly.
+Pair `export type Form = typeof form` with `createFormClient<Form>()` so the browser reuses `$Infer` without a runtime catalog copy.
 
-Pair `export type Form = typeof form` with `createFormClient<Form>()` so
-the browser reuses `$Infer`.
-
----
+Full option list: [Configuration](/docs/reference/configuration).
 
 ## Mount the handler
 
-Adapters are available for all major JavaScript runtimes. Default
-`basePath` is `/api/form`.
+Adapters are structural (no framework peer dependencies). Default `basePath` is `/api/form`.
 
 <Tabs items={["Next.js", "Express", "Hono", "SvelteKit", "Fastify", "Elysia", "Node", "Web"]}>
 
@@ -67,7 +62,7 @@ import { toExpressHandler } from "@dimah-form/server/express";
 import { form } from "./form";
 
 const app = express();
-// The adapter reads the raw stream, so mount it before JSON middleware.
+// The adapter reads the raw stream — mount it before JSON middleware.
 app.all("/api/form/*", toExpressHandler(form));
 app.use(express.json());
 ```
@@ -115,6 +110,7 @@ import { toFastifyHandler } from "@dimah-form/server/fastify";
 import { form } from "./form";
 
 const app = Fastify();
+// Mount before body parsers, or disable JSON parsing for this path.
 app.all("/api/form/*", toFastifyHandler(form));
 ```
 
@@ -168,14 +164,11 @@ export default {
 
 </Tabs>
 
----
+Change the prefix with `basePath` on `dimahForm()` and the same prefix on the client (`basePath`, or `baseURL` when the API is on another origin). `baseURL` wins over `basePath` on the client.
 
 ## Server-side API (`form.api`)
 
-Invoke endpoints on the server without going through HTTP. The map uses
-better-call `{ body, query }` — not the browser client's object args.
-
-Pass `headers` so `guard` sees the same request:
+Invoke endpoints without HTTP. The map uses better-call `{ body, query }` — not the browser client's object args. Pass `headers` so `guard` sees cookies or `Authorization`.
 
 ```ts title="app/actions.ts"
 "use server";
@@ -186,7 +179,7 @@ import { form } from "@/lib/form";
 export async function loadFeedback() {
   return form.api.getForm({
     query: { formId: "feedback" },
-    headers: await headers(), // [!code ++]
+    headers: await headers(),
   });
 }
 ```
@@ -198,61 +191,26 @@ await form.api.startResponse({
 });
 ```
 
-From Node / Express, convert incoming headers with
-`fromNodeHeaders` (`@dimah-form/server/node`).
+From Node / Express, convert incoming headers with `fromNodeHeaders` (`@dimah-form/server/node`).
 
----
+Failed requests return JSON `{ message, code?, params?, issues? }`. Unknown throws become `INTERNAL_ERROR` (500). Unmatched paths return `NOT_FOUND` (404). See [Errors](/docs/reference/errors).
 
-## Config
+## See also
 
-| Option       | Role                                                              |
-| ------------ | ----------------------------------------------------------------- |
-| `database`   | Required persistence (`memoryAdapter()` or `db()`)                |
-| `forms`      | Code-authored catalog — feeds `$Infer`                            |
-| `fieldTypes` | Extra validators on this instance                                 |
-| `basePath`   | HTTP prefix. Default `/api/form`                                  |
-| `guard`      | Runs before every operation. Throw `APIError` to reject           |
-| `hooks`      | `on*` after validation before persist; `after*` after persist     |
-| `plugins`    | Additive endpoints, hooks, field types, `$ERROR_CODES`            |
-| `metaSchema` | Optional Zod for opaque `meta` on form / field / option documents |
-
----
-
-## Frequently asked questions
-
-<Accordions>
-
-<Accordion title="How do error handling and status codes work?">
-
-Failed requests return JSON `{ message, code?, params?, issues? }`.
-Unknown throws become `INTERNAL_ERROR` (500). Unmatched paths return
-`NOT_FOUND` (404).
-
-Use `APIError.from` or the `errors` helper. See [Errors](/docs/errors).
-
-</Accordion>
-
-<Accordion title="How do I change the base path or call a cross-origin API?">
-
-Set `basePath` on `dimahForm()`. The client must use the same prefix
-(`basePath`), or a full `baseURL` when the API is hosted elsewhere:
-
-```ts
-export const form = dimahForm({
-  basePath: "/api/questionnaires", // [!code ++]
-  database: memoryAdapter(),
-});
-```
-
-```ts
-export const formClient = createFormClient<Form>({
-  baseURL: "https://api.example.com/api/questionnaires", // [!code ++]
-  credentials: "include",
-});
-```
-
-`baseURL` wins over `basePath` on the client.
-
-</Accordion>
-
-</Accordions>
+<Cards>
+  <Card
+    title="Forms"
+    href="/docs/guides/forms"
+    description="defineForm, status, slug, code-authored vs stored."
+  />
+  <Card
+    title="Database"
+    href="/docs/guides/database"
+    description="memoryAdapter, FumaDB, custom ResponseStore."
+  />
+  <Card
+    title="Protocol"
+    href="/docs/reference/protocol"
+    description="Every path and payload."
+  />
+</Cards>

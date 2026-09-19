@@ -15,36 +15,36 @@ html > body[data-scroll-locked] {
   --color-fd-primary: var(--framework-color);
 }
 
-.core {
-  --color-fd-primary: var(--core-color);
+.concepts {
+  --color-fd-primary: var(--concepts-color);
 }
 
-.server {
-  --color-fd-primary: var(--server-color);
+.guides {
+  --color-fd-primary: var(--guides-color);
 }
 
-.db {
-  --color-fd-primary: var(--db-color);
+.reference {
+  --color-fd-primary: var(--reference-color);
 }
 
-.react {
-  --color-fd-primary: var(--react-color);
+.examples {
+  --color-fd-primary: var(--examples-color);
 }
 
 :root {
   --framework-color: hsl(41, 100%, 40%);
-  --core-color: hsl(24, 95%, 40%);
-  --server-color: hsl(158, 58%, 38%);
-  --db-color: hsl(262, 52%, 47%);
-  --react-color: hsl(193, 95%, 43%);
+  --concepts-color: hsl(24, 95%, 40%);
+  --guides-color: hsl(158, 58%, 38%);
+  --reference-color: hsl(193, 95%, 43%);
+  --examples-color: hsl(262, 52%, 47%);
 }
 
 .dark {
   --framework-color: hsl(54, 100%, 76%);
-  --core-color: hsl(28, 96%, 70%);
-  --server-color: hsl(158, 45%, 58%);
-  --db-color: hsl(262, 60%, 72%);
-  --react-color: hsl(193, 95%, 65%);
+  --concepts-color: hsl(28, 96%, 70%);
+  --guides-color: hsl(158, 45%, 58%);
+  --reference-color: hsl(193, 95%, 65%);
+  --examples-color: hsl(262, 60%, 72%);
 }
 
 @keyframes home-enter {

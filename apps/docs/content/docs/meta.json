@@ -3,20 +3,9 @@
   "pages": [
     "index",
     "quickstart",
-    "---Questionnaire---",
-    "forms",
-    "field-types",
-    "responses",
-    "---Server---",
-    "setup",
-    "hooks",
-    "errors",
-    "plugins",
-    "database",
-    "---React---",
-    "fill",
-    "helpers",
-    "---Examples---",
+    "concepts",
+    "guides",
+    "reference",
     "examples"
   ]
 }

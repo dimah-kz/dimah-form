@@ -1,0 +1,87 @@
+---
+title: Configuration
+description: dimahForm(), createFormClient, and ResponseStore options.
+icon: Settings
+---
+
+Scannable option tables. For setup walkthroughs see [Server](/docs/guides/server), [React client](/docs/guides/react), and [Database](/docs/guides/database).
+
+## `dimahForm()`
+
+Imported from `@dimah-form/server`.
+
+| Option | Role |
+| --- | --- |
+| `database` | Required persistence (`memoryAdapter()`, `db()`, or a `ResponseStore`) |
+| `forms` | Code-authored catalog — feeds `$Infer`. Optional |
+| `fieldTypes` | Extra validators on this instance |
+| `basePath` | HTTP prefix. Default `/api/form` |
+| `guard` | Runs before every operation. Throw `APIError` to reject |
+| `hooks` | `on*` after validation before persist; `after*` after persist |
+| `plugins` | Additive endpoints, hooks, field types, `$ERROR_CODES` |
+| `metaSchema` | Optional Zod for opaque `meta` on form / field / option documents |
+
+Returns `{ handler, api, $ERROR_CODES, $Infer }`.
+
+`metaSchema` is `{ form?: ZodType, field?: ZodType, option?: ZodType }`. Applied at init and `saveForm`. Protocol already requires a JSON object; these tighten the contents.
+
+## `createFormClient()`
+
+Imported from `@dimah-form/react` (or `@dimah-form/core` for non-React). Generic `createFormClient<Form>()` copies server `$Infer`.
+
+| Option | Role |
+| --- | --- |
+| `basePath` | Must match server `basePath`. Default `/api/form` |
+| `baseURL` | Absolute origin + path. Wins over `basePath` |
+| `fieldTypes` | Runtime extras for the fill session; skip for `$Infer` when using `createFormClient<Form>()` |
+| `forms` | Type-only catalog when you do not have the server instance type |
+| `plugins` | `defineClientPlugin` companions — not inferred from the server |
+| `credentials` | e.g. `"include"` for cookies |
+| `headers` | Static headers or `() => HeadersInit \| Promise<HeadersInit>` per request |
+| `fetch` | Override global `fetch` (SSR, tests) |
+
+React wrapper also adds `Provider`, `useFormClient`, and bound `useFormResponse`.
+
+## `ResponseStore`
+
+Pass to `dimahForm({ database })`. Methods may return `T` or `Promise<T>`.
+
+| Method | Role |
+| --- | --- |
+| `getForm(idOrSlug)` | Live questionnaire or `undefined` |
+| `saveForm(form)` | Upsert live questionnaire |
+| `deleteForm(id)` | Remove live questionnaire |
+| `listForms(query?)` | `status?`, `limit?`, `offset?` |
+| `create(row)` | Insert a response. Insert parent questionnaire if missing; do not overwrite live definition |
+| `get(id)` | Response or `undefined` |
+| `save(row)` | Update a response |
+| `delete(id)` | Remove a response |
+| `listResponses(query?)` | `formId?`, `respondentId?`, `status?`, `limit?`, `offset?` |
+
+`memoryAdapter()` implements this in process. `db()` from `@dimah-form/db` implements it on FumaDB.
+
+## `defineForm` / `FormSnapshot`
+
+`defineForm` input: `title`, `fields`, optional `slug`, `status`, `description`, `meta`. No `id` — that is the `forms` record key.
+
+Normalized `FormSnapshot` always has `id`, `slug` (defaults to `id`), `status` (defaults to `active`), `title`, `fields`, optional `description`, `meta`, `createdAt`, `updatedAt`.
+
+## See also
+
+<Cards>
+  <Card
+    title="Architecture"
+    href="/docs/concepts/architecture"
+    description="Why these slots exist."
+  />
+  <Card
+    title="Protocol"
+    href="/docs/reference/protocol"
+    description="HTTP paths those options serve."
+  />
+  <Card
+    title="Field types"
+    href="/docs/reference/field-types"
+    description="defineFieldType keys."
+  />
+</Cards>

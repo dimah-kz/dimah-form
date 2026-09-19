@@ -1,15 +1,15 @@
 const packages = [
   {
-    name: "@dimah-form/react",
-    role: "Headless fill session",
+    name: "@dimah-form/core",
+    role: "Protocol, errors, field types",
   },
   {
     name: "@dimah-form/server",
     role: "dimahForm() handler + api",
   },
   {
-    name: "@dimah-form/core",
-    role: "Protocol and field types",
+    name: "@dimah-form/react",
+    role: "Headless fill session",
   },
   {
     name: "@dimah-form/db",
