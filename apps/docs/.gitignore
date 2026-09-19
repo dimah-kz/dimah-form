@@ -35,6 +35,9 @@ pnpm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Built shadcn registry (pnpm registry:build)
+/public/r
+
 # Fumadocs generated content
 .source
 

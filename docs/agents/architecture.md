@@ -1,18 +1,18 @@
 # Architecture
 
-Backend-first questionnaire engine. Consumers own UI, auth, and the database adapter. The library owns the protocol, definition snapshots, and submit validation.
+Backend-first questionnaire engine. Consumers own auth and the database adapter. UI is optional (`@dimah-form/ui`) — headless `react` is enough. The library owns the protocol, definition snapshots, and submit validation.
 
 ## Package chain
 
 ```
 @dimah-form/core
         ↓
-    @dimah-form/server | @dimah-form/react
+    @dimah-form/server | @dimah-form/react  ←  @dimah-form/ui
         ↑
 @dimah-form/db  (peer: server — `db()` adapter for `database`)
 ```
 
-`apps/docs` and `examples/*` consume workspace packages (not published).
+`apps/docs` and `examples/*` consume workspace packages (not published). Registry item manifests: `packages/ui/scripts/` (see [registry.md](./registry.md)).
 
 ## Placement
 
@@ -23,6 +23,7 @@ Edit the **smallest package that owns the behavior**. Search that package before
 | `core`   | Protocol, `createFormClient`, fill session, errors, field types |
 | `server` | HTTP, `dimahForm()`, server plugins, adapters                   |
 | `react`  | Thin client hooks / `useFormResponse`                           |
+| `ui`     | Optional components + registry source                           |
 | `db`     | FumaDB `database` adapter                                       |
 
 Shared protocol changes start in `core`, then wire `server` and `react`. Do not copy a parallel schema or URL string into another package.
@@ -35,20 +36,21 @@ Shared protocol changes start in `core`, then wire `server` and `react`. Do not 
 - Snapshots include `slug` (defaults to `id`) and `status` (`draft` \| `active` \| `archived`). Only `active` forms can be started. `getForm` / `startResponse` accept id or slug.
 - Draft answers are a patch (`null` deletes a key). Submit replaces the whole answers object, or omits `answers` to submit the stored draft. `reopenResponse` returns a submitted or abandoned row to draft without rewriting the snapshot. Optional `updatedAt` on draft/submit/abandon/reopen/`saveForm` is optimistic concurrency (`STALE_UPDATE`) enforced in the store (`expectedUpdatedAt`). `startResponse({ resume: true, respondentId })` uses `findLatestDraft` / `getOrCreateDraft` so concurrent resumes converge on one row.
 - `database` is required (`memoryAdapter()` or `db()` from `@dimah-form/db`). Plugins merge once in `dimahForm()` and do not replace persistence. `listResponses({ include: "summary" })` omits `definition` / `answers` at the adapter.
-- Filling a response is headless: `createFormResponseSession` in core, `useFormResponse` in react. Consumers own widgets. A later UI package should wrap `FormFieldBinding` / `FormResponseApi`, not fork this loop. Optional `autosave` debounces `saveDraft`. Local edits during an in-flight save are kept (`dirty`).
+- Filling a response is headless: `createFormResponseSession` in core, `useFormResponse` in react. Optional `@dimah-form/ui` wraps `FormFieldBinding` / `FormResponseApi` as `binding` / `form`. It does not call the hook or fork the loop. Consumers may still own widgets. Optional `autosave` debounces `saveDraft`. Local edits during an in-flight save are kept (`dirty`).
 - Field `showWhen` is sibling visibility on that snapshot. Nested rules follow the parent. Leaf rules: `equals` / `notEquals` / `includes` (scalar or non-empty scalar list). Compound: `all` / `any`. Hidden answers are stripped before validate / persist.
 - Domain hooks: `on*` after validation before persist; `after*` after persist. Auth stays in `guard`. Guard may load rows via `getResponse` / `getForm` (store, no HTTP re-entry).
 - Code-authored `forms` feed `$Infer`. `getForm` / `startResponse` read config first, then the live questionnaire row. `saveForm` writes that row and cannot overwrite a code-authored id.
 - Browser `$Infer` is `createFormClient<typeof form>()` (type-only). Apps import from `server` or `react`; `core` is protocol/plugin internals.
 - Each response stores the definition it was started with. Submit validates that snapshot. Starting a response does not rewrite the live questionnaire row.
-- Custom fields are `defineFieldType` validators, not components.
+- Custom fields are `defineFieldType` validators in `core`. Optional UI widgets register by the same `type` string.
 - Server plugins may add `endpoints`, `hooks`, `fieldTypes`, and `$ERROR_CODES`. Optional `dependsOn` (topological order), `options`, and synchronous `init` (`{ context }` → `config.pluginContext`). Browser companions use `defineClientPlugin` on `createFormClient({ plugins })`. They are not inferred from the server plugin.
 
 ## Do not
 
 - Put auth inside `@dimah-form/server` or `@dimah-form/core` — consumer `guard` hooks.
 - Import ORM / FumaDB from `server`.
-- Import `react` from `server` or `core`.
-- Ship field widgets or a form renderer.
+- Import `ui` or `react` from `server` or `core`.
+- Put field widgets in `react` — they belong in `ui` (`FieldWidgetRegistry`).
+- Hand-edit `packages/ui/registry.json` or `packages/ui/src/components/ui/` ([registry.md](./registry.md)).
 - Add a questionnaire version table unless a stable public form URL with history is an explicit product requirement.
 - Inject persistence through `plugins` — that slot is additive features only.

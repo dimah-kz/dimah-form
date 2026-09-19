@@ -40,3 +40,7 @@
 - name: pkg:react
   color: "d4c5f9"
   description: "@dimah-form/react"
+
+- name: pkg:ui
+  color: "e99695"
+  description: "@dimah-form/ui"

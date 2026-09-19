@@ -58,4 +58,12 @@ Feature plugins live in their own package and peer-depend on server.
 
 ## Strings and errors
 
-Stable `code` + English `message` in `@dimah-form/core`. Do not localize library error `message` strings in packages. `ValidationIssue` carries `code` (and optional `params`) so UIs can localize field errors from the catalog, not from `message`.
+Stable `code` + English `message` in `@dimah-form/core`. Do not localize library error `message` strings in `core` / `server` / `react`. `ValidationIssue` carries `code` (and optional `params`) so UIs can localize field errors from the catalog, not from `message`.
+
+Optional UI: `t()` / `useTranslations()` from `@fuma-translate/react` (do not re-export). Then `pnpm --filter @dimah-form/ui compile:translations`. Formatters that map codes to copy must call `useTranslations()` themselves. `FormUiProvider` is the i18n boundary — do not hang translations on `formClient.Provider`.
+
+## UI
+
+Optional. Wrap `form` (`FormResponseApi`) and `binding` (`FormFieldBinding`). Do not call `useFormResponse` inside widgets. Built-in type widgets register on `defaultFieldWidgets`; custom types use the `widgets` prop (same `type` string as `defineFieldType`).
+
+See [registry.md](./registry.md) for shadcn items, RTL, and color tokens.

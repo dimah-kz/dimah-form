@@ -1,0 +1,9 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build", "@dimah-form/ui#registry:build"],
+      "outputs": [".next/**", "!.next/cache/**", "public/r/**"]
+    }
+  }
+}

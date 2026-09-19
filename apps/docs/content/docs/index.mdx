@@ -4,7 +4,7 @@ description: A headless questionnaire engine. You own the UI. The library owns s
 icon: House
 ---
 
-**dimah-form** is a backend-first questionnaire engine. It freezes the form definition onto every response, validates answers against that snapshot, and gives React a thin fill-session hook. It does not render fields, ship widgets, or own your auth.
+**dimah-form** is a backend-first questionnaire engine. It freezes the form definition onto every response, validates answers against that snapshot, and gives React a thin fill-session hook. Rendering is yours — or optional `@dimah-form/ui`.
 
 <Flow
   label="System Data Flow"
@@ -29,13 +29,13 @@ icon: House
 
 Use it when you need typed questionnaires with drafts and server-side validation, and you already have a design system.
 
-Skip it if you want a form renderer, a visual builder, or hosted survey SaaS.
+Skip it if you want a visual builder or hosted survey SaaS.
 
 The problems it is built around:
 
 1. **Schema drift** — an admin can change a live form while someone is still filling a draft. dimah-form validates against the snapshot taken at start, not the live definition.
 2. **Drafts** — respondents leave, switch devices, or drop packets. Drafts save incrementally, with `updatedAt` compare-and-swap so two tabs do not silently overwrite each other.
-3. **Headless validation** — you render with Tailwind, shadcn/ui, or plain HTML. The server still checks required visible fields against the frozen snapshot.
+3. **Headless validation** — you render with Tailwind, shadcn/ui, or plain HTML — or `@dimah-form/ui`. The server still checks required visible fields against the frozen snapshot.
 
 ---
 
@@ -46,7 +46,7 @@ The problems it is built around:
         ↓
 @dimah-form/server  ←  @dimah-form/db (optional)
         │
-@dimah-form/react
+@dimah-form/react  ←  @dimah-form/ui (optional)
 ```
 
 | Package                  | Where                    | What you import it for                                                             |
@@ -54,6 +54,7 @@ The problems it is built around:
 | **`@dimah-form/core`**   | Shared                   | Protocol types, field validators, error codes. Server and React both depend on it. |
 | **`@dimah-form/server`** | Node / Edge              | `dimahForm()`, HTTP adapters, `form.api`, `memoryAdapter()`.                       |
 | **`@dimah-form/react`**  | Browser (`"use client"`) | `createFormClient()`, `useFormResponse()`, field helpers.                          |
+| **`@dimah-form/ui`**     | Browser                  | Optional. shadcn renderer (`FormView` / `FormField`). npm or the registry.         |
 | **`@dimah-form/db`**     | Server                   | Optional. Production SQL adapter via FumaDB.                                       |
 
 ---

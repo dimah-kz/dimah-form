@@ -10,7 +10,7 @@ Edit the smallest package that owns the behavior. Shared protocol starts in `cor
 
 Auth stays in consumer guards. No ORM in `server`. Persistence is `database` (`memoryAdapter()` or `db()` from `@dimah-form/db`), not a plugin. Feature plugins live in their own package; merge once in `dimahForm()`. Throw `APIError` and let the router serialize.
 
-No field widgets. Custom field types are validators that feed `$Infer`.
+No field widgets in these packages. Custom field types are validators that feed `$Infer`. Optional widgets live in `@dimah-form/ui`.
 
 Responses snapshot the definition they started with. Do not validate old answers against the live questionnaire.
 

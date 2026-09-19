@@ -1,0 +1,30 @@
+/**
+ * @dimah-form/ui color tokens ← host shadcn theme.
+ *
+ * Dimah-owned components use `bg-dimah-form-*` / `text-dimah-form-*` utilities
+ * so the library can be themed independently. By default every token points at
+ * the matching shadcn CSS variable (`--primary`, `--muted`, …).
+ *
+ * Override after import to theme only dimah-form:
+ *
+ *   @theme {
+ *     --color-dimah-form-primary: oklch(0.65 0.15 150);
+ *   }
+ */
+@theme {
+  --color-dimah-form-background: var(--background);
+  --color-dimah-form-foreground: var(--foreground);
+  --color-dimah-form-card: var(--card);
+  --color-dimah-form-card-foreground: var(--card-foreground);
+  --color-dimah-form-primary: var(--primary);
+  --color-dimah-form-primary-foreground: var(--primary-foreground);
+  --color-dimah-form-secondary: var(--secondary);
+  --color-dimah-form-secondary-foreground: var(--secondary-foreground);
+  --color-dimah-form-muted: var(--muted);
+  --color-dimah-form-muted-foreground: var(--muted-foreground);
+  --color-dimah-form-accent: var(--accent);
+  --color-dimah-form-accent-foreground: var(--accent-foreground);
+  --color-dimah-form-destructive: var(--destructive);
+  --color-dimah-form-border: var(--border);
+  --color-dimah-form-ring: var(--ring);
+}

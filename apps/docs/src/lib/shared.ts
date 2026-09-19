@@ -69,6 +69,7 @@ export const npmPackageUrls = [
   "https://www.npmjs.com/package/@dimah-form/react",
   "https://www.npmjs.com/package/@dimah-form/core",
   "https://www.npmjs.com/package/@dimah-form/db",
+  "https://www.npmjs.com/package/@dimah-form/ui",
 ] as const;
 
 export function githubRepoUrl() {
@@ -158,7 +159,7 @@ export function siteJsonLd(origin: string) {
           "Definition snapshots with draft and submit validation",
           "Built-in field types plus defineFieldType",
           "Required persistence adapter: memoryAdapter or optional FumaDB",
-          "Headless React fill session — you own widgets",
+          "Headless React fill session — optional @dimah-form/ui, or you own widgets",
           "Next.js App Router, Hono, Express, Fastify, Elysia, and SvelteKit adapters",
           "Server plugins, domain hooks, and consumer guard auth",
         ],

@@ -1,0 +1,91 @@
+{
+  "name": "@dimah-form/ui",
+  "version": "0.2.0",
+  "description": "Optional shadcn form renderer for dimah-form — wraps FormFieldBinding, not the fill session",
+  "keywords": [
+    "form",
+    "questionnaire",
+    "survey",
+    "shadcn",
+    "shadcn-ui",
+    "react",
+    "nextjs",
+    "components",
+    "rtl"
+  ],
+  "homepage": "https://form.dimah.dev/docs/ui",
+  "bugs": {
+    "url": "https://github.com/dimah-kz/dimah-form/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dimah-kz/dimah-form.git",
+    "directory": "packages/ui"
+  },
+  "license": "MIT",
+  "author": "dimah",
+  "sideEffects": [
+    "*.css"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./styles.css": "./styles.css",
+    "./css/shadcn.css": "./css/shadcn.css"
+  },
+  "files": [
+    "dist",
+    "styles.css",
+    "css"
+  ],
+  "scripts": {
+    "build": "pnpm compile:translations && pnpm run normalize-imports && tsup --config tsup.config.ts && tsc --emitDeclarationOnly -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
+    "check-types": "pnpm compile:translations && tsc --noEmit && pnpm registry:validate",
+    "compile:translations": "node ./scripts/compile-translations.mjs",
+    "lint": "eslint --max-warnings 0 --cache",
+    "normalize-imports": "node ./scripts/enforce-src-alias-imports.mjs",
+    "registry:build": "pnpm registry:validate && shadcn build --output apps/docs/public/r --cwd ../..",
+    "registry:check": "tsx scripts/check-registry-items.ts",
+    "registry:items": "tsx scripts/build-registry-items.ts && pnpm -w exec prettier --write packages/ui/registry.json",
+    "registry:validate": "pnpm registry:items && pnpm registry:check && shadcn registry validate --cwd ../..",
+    "sync:shadcn": "node scripts/sync-shadcn.mjs"
+  },
+  "dependencies": {
+    "@dimah-form/react": "workspace:*"
+  },
+  "devDependencies": {
+    "@base-ui/react": "^1.8.0",
+    "@fuma-translate/react": "^1.0.2",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/tsup-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "class-variance-authority": "^0.7.1",
+    "cn": "^0.3.0",
+    "eslint": "catalog:",
+    "fuma-translate": "^1.0.2",
+    "lucide-react": "^1.47.0",
+    "react": "catalog:",
+    "shadcn": "^4.21.0",
+    "tailwindcss": "^4.3.3",
+    "tsc-alias": "catalog:",
+    "tsup": "catalog:",
+    "tsx": "^4.23.13",
+    "typescript": "catalog:"
+  },
+  "peerDependencies": {
+    "@base-ui/react": ">=1.0.0",
+    "@fuma-translate/react": "^1.0.2",
+    "class-variance-authority": ">=0.7.0",
+    "cn": ">=0.1.0",
+    "lucide-react": ">=0.400.0",
+    "react": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

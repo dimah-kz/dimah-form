@@ -1,0 +1,29 @@
+{
+  "translationKeys": [
+    "Duplicate option(field issue)",
+    "Expected a boolean(field issue)",
+    "Expected a date(field issue)",
+    "Expected a number(field issue)",
+    "Expected a string(field issue)",
+    "Expected an array of strings(field issue)",
+    "Expected an email(field issue)",
+    "Expected an integer(field issue)",
+    "Form unavailable(inactive)",
+    "Invalid format(field issue)",
+    "Invalid option(field issue)",
+    "Invalid(field issue)",
+    "Must be at least {min} characters(field issue)",
+    "Must be at least {min}(field issue)",
+    "Must be at most {max} characters(field issue)",
+    "Must be at most {max}(field issue)",
+    "Required(field issue)",
+    "Save draft(form action)",
+    "Saving…(form action)",
+    "Submit(form action)",
+    "Submitting…(form action)",
+    "This form is not available(inactive)",
+    "Unknown field type \"{type}\"(fallback)",
+    "Unknown field type(field issue)",
+    "Unknown field(field issue)"
+  ]
+}

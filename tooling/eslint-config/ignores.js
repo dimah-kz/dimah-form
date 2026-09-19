@@ -13,6 +13,7 @@ export const ignorePatterns = [
   "**/.prettiercache",
   "**/next-env.d.ts",
   "**/tsup.config.bundled_*.mjs",
+  "**/.translations/**",
 ];
 
 /** @type {import("eslint").Linter.Config} */

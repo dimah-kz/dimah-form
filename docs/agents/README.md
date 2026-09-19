@@ -14,4 +14,5 @@ If an agent can see it in source (paths, schemas, hook names, current endpoints)
 | ------------------------------------ | ----------------------------------------------- |
 | [architecture.md](./architecture.md) | New package, or moving behavior across packages |
 | [packages.md](./packages.md)         | Protocol, endpoint, plugin, or hook             |
+| [registry.md](./registry.md)         | UI or shadcn registry item                      |
 | [release.md](./release.md)           | Tegami changelog / version bump                 |

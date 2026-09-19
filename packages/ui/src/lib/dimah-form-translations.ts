@@ -1,0 +1,27 @@
+export type Translations = {
+  "Duplicate option(field issue)": string;
+  "Expected a boolean(field issue)": string;
+  "Expected a date(field issue)": string;
+  "Expected a number(field issue)": string;
+  "Expected a string(field issue)": string;
+  "Expected an array of strings(field issue)": string;
+  "Expected an email(field issue)": string;
+  "Expected an integer(field issue)": string;
+  "Form unavailable(inactive)": string;
+  "Invalid format(field issue)": string;
+  "Invalid option(field issue)": string;
+  "Invalid(field issue)": string;
+  "Must be at least {min} characters(field issue)": string;
+  "Must be at least {min}(field issue)": string;
+  "Must be at most {max} characters(field issue)": string;
+  "Must be at most {max}(field issue)": string;
+  "Required(field issue)": string;
+  "Save draft(form action)": string;
+  "Saving…(form action)": string;
+  "Submit(form action)": string;
+  "Submitting…(form action)": string;
+  "This form is not available(inactive)": string;
+  "Unknown field type \"{type}\"(fallback)": string;
+  "Unknown field type(field issue)": string;
+  "Unknown field(field issue)": string;
+};

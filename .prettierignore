@@ -28,3 +28,7 @@ coverage/
 
 # Tegami-generated — do not format or edit
 CHANGELOG.md
+
+# fuma-translate compile output
+packages/ui/.translations/
+packages/ui/src/lib/dimah-form-translations.ts

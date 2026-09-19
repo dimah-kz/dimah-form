@@ -12,6 +12,10 @@ const packages = [
     role: "Headless fill session",
   },
   {
+    name: "@dimah-form/ui",
+    role: "Optional shadcn renderer",
+  },
+  {
     name: "@dimah-form/db",
     role: "Optional FumaDB SQL",
   },

@@ -51,17 +51,19 @@ export function CoreFeatures() {
                 <Palette className="size-5" />
               </div>
               <span className="rounded-full border border-fd-border bg-fd-muted/50 px-2.5 py-0.5 font-mono text-[11px] text-fd-muted-foreground">
-                You Own the UI
+                Headless first
               </span>
             </div>
 
             <h3 className="mt-5 text-base font-semibold text-fd-foreground sm:text-lg">
-              100% Headless React
+              Headless React
             </h3>
             <p className="mt-2 text-xs leading-relaxed text-fd-muted-foreground sm:text-sm">
-              Zero forced widgets, registries, or opinionated CSS. Seamlessly
-              bind headless hooks into Tailwind, shadcn/ui, Radix, or custom
-              design components.
+              Bind{" "}
+              <code className="font-mono text-[0.8em]">FormFieldBinding</code>{" "}
+              yourself, or opt into optional{" "}
+              <code className="font-mono text-[0.8em]">@dimah-form/ui</code>.
+              The fill session never owns widgets.
             </p>
           </div>
         </div>

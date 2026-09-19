@@ -22,6 +22,14 @@ const config = {
       options: { singleQuote: false },
     },
     {
+      files: ["packages/ui/**/*.{js,jsx,ts,tsx,css}"],
+      excludeFiles: ["**/src/components/ui/**"],
+      options: {
+        tailwindFunctions: ["cn", "cva"],
+        tailwindStylesheet: "./packages/ui/styles.css",
+      },
+    },
+    {
       files: ["apps/docs/**/*.{js,jsx,ts,tsx,css}"],
       excludeFiles: ["**/src/components/ui/**"],
       options: {

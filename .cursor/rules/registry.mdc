@@ -1,0 +1,17 @@
+---
+description: UI source and shadcn registry — read registry.md when changing components or items
+globs: packages/ui/**/*,registry.json
+alwaysApply: false
+---
+
+# Registry & UI
+
+Source: `packages/ui/src/`. Short `@/` imports (shadcn rewrites them on install). Item manifests: `packages/ui/scripts/registry-items.ts`. Do not hand-edit `packages/ui/registry.json` or `packages/ui/src/components/ui/`.
+
+Own UI under `components/dimah-form/`, `hooks/`, and `lib/`. Never a basename that matches a stock primitive (`field.tsx`, `input.tsx`, `button.tsx`). Colors: `*-dimah-form-*`, not bare `bg-primary`. Logical CSS (`text-start`, `ms-*`, `ps-*`, `start-*`) unless the physical side is required.
+
+Wired UI takes `form` / `binding`. It does not call `useFormResponse`.
+
+After item or file-list changes: `pnpm registry:validate`, commit `packages/ui/registry.json` if it changed.
+
+**When adding or changing a component or registry item, Read** [docs/agents/registry.md](docs/agents/registry.md). For a local fix, match the surrounding code.

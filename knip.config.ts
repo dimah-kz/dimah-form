@@ -1,7 +1,8 @@
 import type { KnipConfig } from "knip";
 
 const config: KnipConfig = {
-  ignore: ["**/components/ui/**"],
+  ignore: ["**/components/ui/**", "packages/ui/.translations/**"],
+  ignoreDependencies: ["tailwindcss"],
   ignoreUnresolved: ["next"],
   ignoreIssues: {
     "packages/**": ["exports", "types", "duplicates", "nsExports", "nsTypes"],

@@ -12,7 +12,7 @@
 **Backend-first questionnaires for the React ecosystem.**
 
 Server instance, typed protocol client, and a `database` adapter (`memoryAdapter()` or optional [FumaDB](https://github.com/fuma-nama/fumadb)).
-You own rendering. The library owns definition snapshots, drafts, and submit validation.
+You own rendering (or opt into `@dimah-form/ui`). The library owns definition snapshots, drafts, and submit validation.
 
 Same stack as [dimah-s3](https://github.com/dimah-kz/dimah-s3): pnpm + Turbo, `better-call`, `@better-fetch/fetch`, Zod, Tegami.
 
@@ -21,6 +21,7 @@ Same stack as [dimah-s3](https://github.com/dimah-kz/dimah-s3): pnpm + Turbo, `b
 ```bash
 pnpm add @dimah-form/server
 pnpm add @dimah-form/react
+pnpm add @dimah-form/ui # optional shadcn renderer
 ```
 
 `database` is required. A SQL database is not. Pass `memoryAdapter()` from `@dimah-form/server`, or add `@dimah-form/db` for production SQL.
@@ -35,8 +36,9 @@ pnpm add @dimah-form/react
 | `@dimah-form/server` | `dimahForm()` — HTTP `handler` + `api`         |
 | `@dimah-form/db`     | Optional. FumaDB adapter for production SQL    |
 | `@dimah-form/react`  | Thin React client (`createFormClient` / hooks) |
+| `@dimah-form/ui`     | Optional. shadcn renderer on top of `react`    |
 
-There is no UI package. Field widgets stay in the consumer app.
+`@dimah-form/react` does not ship widgets. Use `@dimah-form/ui` (npm or the shadcn registry) or bind `FormFieldBinding` yourself.
 
 Apps import from the package they already use: `@dimah-form/server` on the server, `@dimah-form/react` in the browser. Share `$Infer` with `export type Form = typeof form` and `createFormClient<Form>()`.
 
