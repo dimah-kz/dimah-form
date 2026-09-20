@@ -1,36 +1,36 @@
 core:changelogs:
-  - content: "---\npackages:\n  group:dimah-form:\n    type: patch\n---\n\n### Improve UI layout, stepper design, and save state placement\n\n- `FormView` puts `FormSaveState` in the header. `FormUiProvider` `components.Header` / `components.SaveState` swap those pieces; `FormHeader` `saveState` follows the same slot rules as other chrome.\n- Stepped layouts show `FormStepList` (`ToggleGroup`, named or “Step N of M”) and omit the progress bar and `FormStepHeading` unless `stepList={false}`. `FormProgress` still measures a wizard page when composed inside `FormSteps`.\n- Skip a `meta.section` heading when it repeats the current step title. Field groups use `gap-6`.\n- `FormStepNav` stays layout-agnostic (no decorative top border). Parent chrome owns the separator, matching `FormActions`.\n- Choice options use a pointer cursor; field description / help sit one size down from the label.\n"
-    filename: 2026-09-20-ui-layout-stepper-improvements.md
+  - content: "---\npackages:\n  group:dimah-form:\n    type: minor\n---\n\n### Type-safe form documents for custom field types\n\n- `FormDefinitionFor<typeof fieldTypes>` / `FieldDocumentFor` type built-in field keys and extra `defineFieldType` `fieldSchema` keys. Unregistered `type` strings stay on `defineForm` only.\n- `createDefineForm({ fieldTypes })` is a type-only `defineForm` bound to that list. It does not register validators — pass the same array to `dimahForm({ fieldTypes })` and `createFormClient({ fieldTypes })`.\n- `FormDefinitionUi<typeof fieldTypes>` (from `@dimah-form/ui/types`) is the same field document plus UI `meta` keys. It does not replace `createDefineForm`. Skip `FormDefinitionUi` when you are not using `@dimah-form/ui`. `defineForm` itself stays a loose runtime parser.\n- **Breaking (types):** `satisfies FormDefinitionUi` no longer accepts unregistered custom `type` strings. Pass `FormDefinitionUi<typeof fieldTypes>`. Headless catalogs can type those fields with `createDefineForm({ fieldTypes })` instead.\n"
+    filename: 2026-09-20-typed-form-definition.md
     v: 0.0.0
 core:packages:
   - changelogIds:
-      - 2026-09-20-ui-layout-stepper-improvements.md
+      - 2026-09-20-typed-form-definition.md
     id: npm:@dimah-form/docs
     updated: true
   - changelogIds:
-      - 2026-09-20-ui-layout-stepper-improvements.md
+      - 2026-09-20-typed-form-definition.md
     id: npm:@dimah-form/core
     updated: true
   - changelogIds:
-      - 2026-09-20-ui-layout-stepper-improvements.md
+      - 2026-09-20-typed-form-definition.md
     id: npm:@dimah-form/db
     updated: true
   - changelogIds:
-      - 2026-09-20-ui-layout-stepper-improvements.md
-    id: npm:@dimah-form/react
-    updated: true
-  - changelogIds:
-      - 2026-09-20-ui-layout-stepper-improvements.md
+      - 2026-09-20-typed-form-definition.md
     id: npm:@dimah-form/server
     updated: true
   - changelogIds:
-      - 2026-09-20-ui-layout-stepper-improvements.md
+      - 2026-09-20-typed-form-definition.md
+    id: npm:@dimah-form/react
+    updated: true
+  - changelogIds:
+      - 2026-09-20-typed-form-definition.md
     id: npm:@dimah-form/ui
     updated: true
 npm:packages:
   - id: npm:@dimah-form/docs
   - id: npm:@dimah-form/core
   - id: npm:@dimah-form/db
-  - id: npm:@dimah-form/react
   - id: npm:@dimah-form/server
+  - id: npm:@dimah-form/react
   - id: npm:@dimah-form/ui
