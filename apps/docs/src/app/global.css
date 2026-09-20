@@ -22,11 +22,7 @@ html > body[data-scroll-locked] {
 }
 
 .dark {
-  --color-fd-primary: color-mix(
-    in oklab,
-    var(--color-teal-300) 80%,
-    var(--color-cyan-300) 20%
-  );
+  --color-fd-primary: oklch(0.83 0.1 196);
   --color-fd-primary-foreground: var(--color-teal-950);
   --color-fd-ring: var(--color-fd-primary);
 }
