@@ -41,6 +41,7 @@ export {
   type FormCompletion,
 } from "./field-view";
 export {
+  createDefineForm,
   defineFieldType,
   defineForm,
   type FieldIssueInput,
@@ -49,6 +50,14 @@ export {
   type FieldValidateResult,
   type FormDefinitionInput,
 } from "./define";
+export type {
+  BuiltinFieldTypeName,
+  FieldDocumentFor,
+  FormDefinitionFor,
+  FormDefinitionMeta,
+  FormDefinitionMetaDefault,
+  InferFieldDocument,
+} from "./form-definition";
 export { FORM_API_BASE_PATH } from "./routes";
 export type {
   InferAnswersMap,

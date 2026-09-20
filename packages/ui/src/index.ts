@@ -169,6 +169,7 @@ export {
   type FormDefinitionUi,
   type FormDefinitionUiField,
   type FormDefinitionUiOption,
+  type FormUiDefinitionMeta,
   type FormUiMeta,
   type FormViewLayout,
   type OptionUiMeta,

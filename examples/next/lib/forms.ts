@@ -1,8 +1,12 @@
-import { defineForm } from "@dimah-form/server";
+import { createDefineForm } from "@dimah-form/server";
 import type { FormDefinitionUi } from "@dimah-form/ui/types";
 
+import { fieldTypes } from "./field-types";
+
+const defineAppForm = createDefineForm({ fieldTypes });
+
 export const forms = {
-  feedback: defineForm({
+  feedback: defineAppForm({
     title: "Feedback",
     slug: "feedback",
     status: "active",
@@ -103,8 +107,8 @@ export const forms = {
         meta: { multiline: true },
       },
     ],
-  } satisfies FormDefinitionUi),
-  onboarding: defineForm({
+  } satisfies FormDefinitionUi<typeof fieldTypes>),
+  onboarding: defineAppForm({
     title: "Onboarding",
     slug: "onboarding",
     status: "active",
@@ -217,5 +221,5 @@ export const forms = {
         meta: { step: 4, multiline: true },
       },
     ],
-  } satisfies FormDefinitionUi),
+  } satisfies FormDefinitionUi<typeof fieldTypes>),
 };

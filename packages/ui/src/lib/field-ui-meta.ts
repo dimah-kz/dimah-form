@@ -1,8 +1,10 @@
 import type {
+  FieldDocumentFor,
   FieldOption,
+  FieldTypeDefinition,
+  FormDefinitionFor,
   FormField,
   FormSnapshot,
-  FormStatus,
 } from "@dimah-form/react";
 
 /** Built-in `meta.widget` presentation variants. Not registry keys. */
@@ -28,7 +30,8 @@ export type FormViewLayout = "auto" | "fill" | "steps" | "review";
 /**
  * Presentation bag on `field.meta`. Validation stays on the field document.
  * Known keys autocomplete; extra keys are allowed (same as core `meta`).
- * Author with `defineForm({ ... } satisfies FormDefinitionUi)`.
+ * Author with `defineForm({ ... } satisfies FormDefinitionUi)` or
+ * `FormDefinitionUi<typeof fieldTypes>` for custom `defineFieldType` keys.
  */
 export type FieldUiMeta = {
   /**
@@ -69,17 +72,19 @@ export type FormUiMeta = {
 /**
  * `defineForm({ ... } satisfies FormDefinitionUi)` when using this package.
  * `meta` autocompletes known UI keys; extra keys stay allowed.
- * Type-specific field keys (`minLength`, `unsetOnOff`, custom
- * `defineFieldType` props) stay allowed.
+ * Pass `FormDefinitionUi<typeof fieldTypes>` (or `createDefineForm`) so custom
+ * `defineFieldType` / `fieldSchema` keys type-check. Unregistered `type`
+ * strings belong on `defineForm`, not this union.
  */
-export type FormDefinitionUi = {
-  title: string;
-  description?: string;
-  slug?: string;
-  status?: FormStatus;
-  meta?: FormUiMeta;
-  fields: readonly FormDefinitionUiField[];
+export type FormUiDefinitionMeta = {
+  form: FormUiMeta;
+  field: FieldUiMeta;
+  option: OptionUiMeta;
 };
+
+export type FormDefinitionUi<
+  TFieldTypes extends readonly FieldTypeDefinition[] = [],
+> = FormDefinitionFor<TFieldTypes, FormUiDefinitionMeta>;
 
 export type FormDefinitionUiOption = {
   value: string;
@@ -87,18 +92,9 @@ export type FormDefinitionUiOption = {
   meta?: OptionUiMeta;
 };
 
-export type FormDefinitionUiField = {
-  [key: string]: unknown;
-  id: string;
-  type: string;
-  required?: boolean;
-  label?: string;
-  description?: string;
-  defaultValue?: unknown;
-  showWhen?: FormField["showWhen"];
-  meta?: FieldUiMeta;
-  options?: readonly FormDefinitionUiOption[];
-};
+export type FormDefinitionUiField<
+  TFieldTypes extends readonly FieldTypeDefinition[] = [],
+> = FieldDocumentFor<TFieldTypes, FormUiDefinitionMeta>;
 
 const WIDTHS = new Set<string>(["full", "half", "third"]);
 const ORIENTATIONS = new Set<string>(["vertical", "horizontal", "responsive"]);

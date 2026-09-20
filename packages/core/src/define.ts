@@ -1,5 +1,10 @@
 import type { z } from "zod";
 
+import type {
+  FormDefinitionFor,
+  FormDefinitionMeta,
+  FormDefinitionMetaDefault,
+} from "./form-definition";
 import type { MaybePromise } from "./maybe-promise";
 import {
   formDefinitionSchema,
@@ -88,6 +93,25 @@ export type FieldTypeDefinition<
 /** Parse a questionnaire document. Unknown field types are allowed here. */
 export function defineForm<const T extends FormDefinitionInput>(form: T): T {
   return formDefinitionSchema.parse(form) as unknown as T;
+}
+
+/**
+ * `defineForm` bound to extra field types (type-only).
+ *
+ * Does not register validators — pass the same `fieldTypes` to
+ * `dimahForm({ fieldTypes })` and `createFormClient({ fieldTypes })`.
+ * Pair with `satisfies FormDefinitionUi<typeof fieldTypes>` when authoring
+ * `@dimah-form/ui` `meta` keys.
+ */
+export function createDefineForm<
+  const TFieldTypes extends readonly FieldTypeDefinition[] = [],
+  TMeta extends FormDefinitionMeta = FormDefinitionMetaDefault,
+>(_options?: { fieldTypes?: TFieldTypes }) {
+  return function defineTypedForm<const T extends FormDefinitionInput>(
+    form: T & FormDefinitionFor<TFieldTypes, TMeta>,
+  ): T {
+    return defineForm(form) as unknown as T;
+  };
 }
 
 /** Custom field type — validator, optional display `format`, and answer shape. Not a UI component. */

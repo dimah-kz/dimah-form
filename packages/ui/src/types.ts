@@ -6,6 +6,7 @@ export type {
   FormDefinitionUi,
   FormDefinitionUiField,
   FormDefinitionUiOption,
+  FormUiDefinitionMeta,
   FormUiMeta,
   FormViewLayout,
   OptionUiMeta,

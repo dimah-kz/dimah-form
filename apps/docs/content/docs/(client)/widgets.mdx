@@ -220,7 +220,7 @@ Split long questionnaires with `field.meta.step` (number or string) and optional
 </FormScope>
 ```
 
-On the headless path, filter `q.visibleFields` by `meta.step` yourself — or use `visibleSteps(snapshot.fields, q.visibleFields)` from `@dimah-form/ui`. Type-check UI `meta` with `import type { FormDefinitionUi } from "@dimah-form/ui/types"` and `defineForm({ ... } satisfies FormDefinitionUi)`.
+On the headless path, filter `q.visibleFields` by `meta.step` yourself — or use `visibleSteps(snapshot.fields, q.visibleFields)` from `@dimah-form/ui`. Type-check UI `meta` with `import type { FormDefinitionUi } from "@dimah-form/ui/types"` and `defineForm({ ... } satisfies FormDefinitionUi)` (or `FormDefinitionUi<typeof fieldTypes>`).
 
 ---
 

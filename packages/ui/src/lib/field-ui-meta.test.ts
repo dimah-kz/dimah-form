@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { FormField } from "@dimah-form/react";
+import { defineFieldType, type FormField } from "@dimah-form/react";
 
 import {
   booleanOffValue,
@@ -162,7 +162,6 @@ describe("FormDefinitionUi", () => {
           unsetOnOff: true,
           meta: { widget: "switch" },
         },
-        { id: "file", type: "file", accept: ".pdf" },
       ],
     } satisfies FormDefinitionUi;
     expect(form.fields[0]?.meta?.placeholder).toBe("Ada");
@@ -184,5 +183,26 @@ describe("FormDefinitionUi", () => {
       ],
     } satisfies FormDefinitionUi;
     expect(form.fields[0]?.meta?.icon).toBe("user");
+  });
+
+  it("types custom fieldSchema keys when field types are passed", () => {
+    const rating = defineFieldType({
+      type: "rating",
+      validate: () => undefined,
+      $Infer: 0 as number,
+    });
+    expect(rating.type).toBe("rating");
+    const form = {
+      title: "X",
+      fields: [
+        {
+          id: "score",
+          type: "rating",
+          max: 5,
+          meta: { help: "1–5" },
+        },
+      ],
+    } satisfies FormDefinitionUi<readonly [typeof rating]>;
+    expect(form.fields[0]?.type).toBe("rating");
   });
 });

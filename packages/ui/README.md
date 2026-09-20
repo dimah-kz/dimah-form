@@ -68,9 +68,10 @@ groups, and widgets in `mode="review"` when locked (`FormReview` is a compact
 slots keep the template while you own layout. Presentation lives on `meta`
 (`widget`, `placeholder`, `section`, `step`, `width`, `help`, …) —
 `defineForm({ ... } satisfies FormDefinitionUi)` so those keys autocomplete;
-extra keys stay allowed. Import `FormDefinitionUi` from `@dimah-form/ui/types`
-in server form catalogs. Compose `FormScope` + primitives when you want every
-piece by hand.
+pass `FormDefinitionUi<typeof fieldTypes>` (or `createDefineForm`) for custom
+field keys. Extra keys stay allowed. Import `FormDefinitionUi` from
+`@dimah-form/ui/types` in server form catalogs. Compose `FormScope` + primitives
+when you want every piece by hand.
 
 ## License
 

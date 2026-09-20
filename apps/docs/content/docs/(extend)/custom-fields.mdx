@@ -143,12 +143,16 @@ export const ratingClient = defineClientPlugin({
 
 ## 3. Using Custom Fields in Forms
 
-Define questionnaires with your new field type:
+`defineForm` stays a loose JSON document at runtime. Bind the catalog to your field types so `min` / `max` (and other `fieldSchema` keys) autocomplete:
 
 ```ts title="lib/forms/review.ts"
-import { defineForm } from "@dimah-form/server";
+import { createDefineForm } from "@dimah-form/server";
+import type { FormDefinitionUi } from "@dimah-form/ui/types";
+import { customFieldTypes } from "@/lib/field-types";
 
-export const reviewForm = defineForm({
+const defineAppForm = createDefineForm({ fieldTypes: customFieldTypes });
+
+export const reviewForm = defineAppForm({
   title: "Product Review",
   slug: "review",
   fields: [
@@ -166,10 +170,10 @@ export const reviewForm = defineForm({
       label: "Review Comments",
     },
   ],
-});
+} satisfies FormDefinitionUi<typeof customFieldTypes>);
 ```
 
-TypeScript automatically infers `Form["$Infer"]["answers"]["review"]["score"]` as `number`.
+`createDefineForm({ fieldTypes })` is type-only — still pass the same array to `dimahForm({ fieldTypes })` and `createFormClient({ fieldTypes })`. TypeScript infers `Form["$Infer"]["answers"]["review"]["score"]` as `number`.
 
 ---
 
