@@ -120,7 +120,8 @@ function FormViewChrome<TAnswers extends FormAnswers = FormAnswers>({
   resolved: Exclude<FormViewLayout, "auto">;
 }) {
   const ui = useFormUiComponents();
-  const showProgress = resolved !== "review";
+  const showProgress =
+    resolved === "fill" || (resolved === "steps" && stepList === false);
   const showSave = resolved !== "review";
   const fieldProps = { renderField, filter, groupBy };
   const reviewFields = ui.Review ? (
@@ -148,23 +149,43 @@ function FormViewChrome<TAnswers extends FormAnswers = FormAnswers>({
         )
       : renderFormSlot(actions, createElement(ui.Actions ?? FormActions));
 
+  const saveHidden = !showSave || saveState === false;
+  const saveStateNode = saveHidden
+    ? null
+    : renderFormSlot(saveState, createElement(ui.SaveState ?? FormSaveState));
+  const usesDefaultHeader =
+    header === undefined || typeof header === "function";
+
+  const headerNode = renderFormSlot(
+    header,
+    createElement(ui.Header ?? FormHeader, {
+      saveState: saveHidden || !usesDefaultHeader ? false : saveStateNode,
+    }),
+  );
+
   const parts: FormViewParts = {
     layout: resolved,
-    header: renderFormSlot(header, <FormHeader />),
-    progress: showProgress
-      ? renderFormSlot(progress, createElement(ui.Progress ?? FormProgress))
-      : null,
+    header: headerNode,
+    progress:
+      resolved === "review"
+        ? null
+        : showProgress || progress !== undefined
+          ? renderFormSlot(progress, createElement(ui.Progress ?? FormProgress))
+          : null,
     status: renderFormSlot(status, <FormStatus />),
     errorSummary: renderFormSlot(errorSummary, <FormErrorSummary />),
     stepList:
       resolved === "steps" ? renderFormSlot(stepList, <FormStepList />) : null,
     stepHeading:
       resolved === "steps"
-        ? renderFormSlot(stepHeading, <FormStepHeading />)
+        ? renderFormSlot(
+            stepHeading,
+            stepList === false ? <FormStepHeading /> : null,
+          )
         : null,
     fields,
     error: renderFormSlot(error, <FormError />),
-    saveState: showSave ? renderFormSlot(saveState, <FormSaveState />) : null,
+    saveState: saveStateNode,
     actions: actionRow,
   };
 
@@ -176,6 +197,7 @@ function FormViewChrome<TAnswers extends FormAnswers = FormAnswers>({
       className={cn("gap-6 flex flex-col", className, rootProps?.className)}
     >
       {parts.header}
+      {usesDefaultHeader ? null : parts.saveState}
       {parts.progress}
       {parts.status}
       {parts.errorSummary}
@@ -183,7 +205,6 @@ function FormViewChrome<TAnswers extends FormAnswers = FormAnswers>({
       {parts.stepHeading}
       {parts.fields}
       {parts.error}
-      {parts.saveState}
       {parts.actions}
     </FormRoot>
   );
@@ -218,13 +239,16 @@ function FormViewTree<TAnswers extends FormAnswers = FormAnswers>({
 }
 
 /**
- * Default questionnaire template: header, progress, status, fields, error,
- * save state, actions. `layout` picks fill / steps / review (`auto` infers).
- * Locked review renders widgets (`mode="review"`); pass `review={<FormReview />}`
- * or `components.Review` for a compact summary. Slot props take `false` to
- * hide, a node to replace, or a function to wrap the default. `render`
- * replaces the whole composition (bring your own {@link FormRoot}). Compose
- * {@link FormScope} + primitives for a custom layout.
+ * Default questionnaire template: header (with save state), progress, status,
+ * fields, error, actions. Stepped layouts show {@link FormStepList} and omit
+ * the progress bar and {@link FormStepHeading} unless `stepList={false}`.
+ * `layout` picks fill / steps / review (`auto` infers). Locked review
+ * renders widgets (`mode="review"`); pass `review={<FormReview />}` or
+ * `components.Review` for a compact summary. Slot props take `false` to hide,
+ * a node to replace, or a function to wrap the default. `render` replaces
+ * the whole composition (bring your own {@link FormRoot}); the default header
+ * already includes `saveState`. Compose {@link FormScope} + primitives for a
+ * custom layout.
  */
 export function FormView<TAnswers extends FormAnswers = FormAnswers>({
   form,

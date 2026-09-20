@@ -40,7 +40,7 @@ export default function RootLayout({
               </Link>
               <div className="flex items-center gap-3">
                 <nav className="flex gap-3 text-muted-foreground">
-                  <Link href="/">Form</Link>
+                  <Link href="/">Forms</Link>
                   <Link href="/responses">Responses</Link>
                 </nav>
                 <ThemeToggle />

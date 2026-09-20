@@ -19,9 +19,17 @@ export function FormSection({
   children,
 }: FormSectionProps) {
   return (
-    <FieldSet data-slot="form-section" className={cn(className)}>
-      {title ? <FieldLegend>{title}</FieldLegend> : null}
-      {description ? <FieldDescription>{description}</FieldDescription> : null}
+    <FieldSet data-slot="form-section" className={cn("pt-1", className)}>
+      {title ? (
+        <FieldLegend className="text-base font-semibold text-dimah-form-foreground">
+          {title}
+        </FieldLegend>
+      ) : null}
+      {description ? (
+        <FieldDescription className="text-sm text-dimah-form-muted-foreground">
+          {description}
+        </FieldDescription>
+      ) : null}
       {children}
     </FieldSet>
   );

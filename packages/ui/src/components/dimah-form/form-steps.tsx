@@ -195,30 +195,43 @@ export type FormStepHeadingProps = {
   className?: string;
 };
 
+function numberedStepLabel(
+  index: number,
+  total: number,
+  t: ReturnType<typeof useTranslations>,
+): string {
+  return t("Step {current} of {total}", {
+    note: "step heading",
+    variables: {
+      current: String(index + 1),
+      total: String(total),
+    },
+  });
+}
+
+function stepLabel(
+  step: Pick<FormStep, "key" | "title">,
+  index: number,
+  total: number,
+  t: ReturnType<typeof useTranslations>,
+): string {
+  return step.title !== step.key
+    ? step.title
+    : numberedStepLabel(index, total, t);
+}
+
 /** Step title, or “Step N of M”. Hidden when there is only one step. */
 export function FormStepHeading({ className }: FormStepHeadingProps) {
   const steps = useFormSteps();
   const t = useTranslations();
   if (steps.total <= 1 || !steps.step) return null;
 
-  const named =
-    steps.step.title !== steps.step.key ? steps.step.title : undefined;
-  const label =
-    named ??
-    t("Step {current} of {total}", {
-      note: "step heading",
-      variables: {
-        current: String(steps.index + 1),
-        total: String(steps.total),
-      },
-    });
-
   return (
     <FieldTitle
       data-slot="form-step-heading"
       className={cn("text-balance", className)}
     >
-      {label}
+      {stepLabel(steps.step, steps.index, steps.total, t)}
     </FieldTitle>
   );
 }
@@ -244,7 +257,7 @@ export function FormStepNav({ className, children }: FormStepNavProps) {
     <div
       data-slot="form-step-nav"
       className={cn(
-        "gap-2 flex flex-wrap items-center justify-between",
+        "gap-3 flex flex-wrap items-center justify-between",
         className,
       )}
     >
@@ -293,13 +306,15 @@ export function FormStepList({ className }: FormStepListProps) {
       variant="outline"
       size="sm"
       spacing={1}
-      className={cn("flex-wrap", className)}
+      className={cn("max-w-full flex-wrap", className)}
       disabled={ui.busy}
       value={steps.key ? [steps.key] : []}
       aria-label={t("Steps", { note: "step list" })}
       onValueChange={(next) => {
         const key = next[0];
-        if (typeof key === "string") void steps.goTo(key);
+        if (typeof key === "string" && key !== steps.key) {
+          void steps.goTo(key);
+        }
       }}
     >
       {steps.steps.map((item, index) => (
@@ -308,7 +323,7 @@ export function FormStepList({ className }: FormStepListProps) {
           value={item.key}
           aria-current={index === steps.index ? "step" : undefined}
         >
-          {item.title}
+          {stepLabel(item, index, steps.total, t)}
         </ToggleGroupItem>
       ))}
     </ToggleGroup>

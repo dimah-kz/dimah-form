@@ -76,6 +76,9 @@ export {
 } from "@/components/dimah-form/form-progress";
 export {
   FormSaveState,
+  type FormSaveStateClassNames,
+  type FormSaveStateIcons,
+  type FormSaveStateKind,
   type FormSaveStateProps,
 } from "@/components/dimah-form/form-save-state";
 export {

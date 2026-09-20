@@ -14,6 +14,7 @@ import {
 } from "@/components/dimah-form/form-context";
 import { FormField } from "@/components/dimah-form/form-field";
 import { FormSection } from "@/components/dimah-form/form-section";
+import { useFormStepsOptional } from "@/components/dimah-form/form-steps";
 import {
   groupFieldsBySection,
   selectVisibleFields,
@@ -60,6 +61,7 @@ export function FormFields<TAnswers extends FormAnswers = FormAnswers>({
   renderField,
 }: FormFieldsProps<TAnswers>) {
   const session = useFormSession(form);
+  const steps = useFormStepsOptional();
   const visible = selectVisibleFields(session.visibleFields, {
     ids: fieldIds,
     filter,
@@ -78,14 +80,14 @@ export function FormFields<TAnswers extends FormAnswers = FormAnswers>({
         : [{ key: "__all", title: undefined, fields: visible }];
 
   const fields = (
-    <FieldGroup className={cn(className)}>
+    <FieldGroup className={cn("gap-6", className)}>
       {grouped.map((group) => {
         const grid = fieldsUseGrid(group.fields);
         const items = (
           <div
             className={
               grid
-                ? "gap-5 grid grid-cols-1 @min-[32rem]/field-group:grid-cols-6"
+                ? "gap-x-5 gap-y-6 grid grid-cols-1 @min-[32rem]/field-group:grid-cols-6"
                 : "contents"
             }
           >
@@ -106,12 +108,17 @@ export function FormFields<TAnswers extends FormAnswers = FormAnswers>({
             })}
           </div>
         );
-        if (!group.title) {
+        const titleMatchesStep =
+          group.title != null &&
+          steps?.step != null &&
+          (group.title === steps.step.title || group.title === steps.step.key);
+
+        if (!group.title || titleMatchesStep) {
           return <Fragment key={group.key}>{items}</Fragment>;
         }
         return (
           <FormSection key={group.key} title={group.title}>
-            <FieldGroup>{items}</FieldGroup>
+            <FieldGroup className="gap-6">{items}</FieldGroup>
           </FormSection>
         );
       })}

@@ -31,7 +31,8 @@ pnpm --filter @dimah-form/example-next dev
 
 Open http://localhost:3000 — header toggle switches light / dark (`next-themes`).
 
-- `/` — feedback form. Built-in types plus `showWhen`; `rating` is the only custom type
+- `/` — catalog. Feedback is a single page; Onboarding is a stepped wizard (`meta.step`)
+- `/f/:formId` fills one questionnaire. Built-in types plus `showWhen`; `rating` is the only custom type
 - Save draft patches answers; Submit replaces them. Both send `updatedAt` for optimistic concurrency
 - `/responses` lists stored answers (`include=full`)
 - `/r/:id` resumes a draft or shows a submitted / abandoned response. Edit calls `reopenResponse` (same snapshot and answers)

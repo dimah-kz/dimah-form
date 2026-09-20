@@ -11,9 +11,11 @@ import type { FormFieldBinding } from "@dimah-form/react";
 
 import type { FormActionsProps } from "@/components/dimah-form/form-actions";
 import type { FormFieldFrameProps } from "@/components/dimah-form/form-field-frame";
+import type { FormHeaderProps } from "@/components/dimah-form/form-header";
 import type { FormInactiveProps } from "@/components/dimah-form/form-inactive";
 import type { FormProgressProps } from "@/components/dimah-form/form-progress";
 import type { FormReviewProps } from "@/components/dimah-form/form-review";
+import type { FormSaveStateProps } from "@/components/dimah-form/form-save-state";
 
 /**
  * Chrome swaps for `FormUiProvider`. Only pass keys you want to replace.
@@ -24,8 +26,10 @@ export type FormUiComponents = {
   FieldFrame?: ComponentType<FormFieldFrameProps>;
   /** Replaces the default review body (FormFields). Pass FormReview for a compact list. */
   Review?: ComponentType<FormReviewProps>;
+  Header?: ComponentType<FormHeaderProps>;
   Actions?: ComponentType<FormActionsProps>;
   Progress?: ComponentType<FormProgressProps>;
+  SaveState?: ComponentType<FormSaveStateProps>;
   Inactive?: ComponentType<FormInactiveProps>;
 };
 
@@ -67,25 +71,17 @@ function mergeComponents(
   patch?: FormUiComponents,
 ): FormUiComponents {
   if (!patch) return parent;
-  const next: FormUiComponents = {
-    RequiredMark: patch.RequiredMark ?? parent.RequiredMark,
-    FieldFrame: patch.FieldFrame ?? parent.FieldFrame,
-    Review: patch.Review ?? parent.Review,
-    Actions: patch.Actions ?? parent.Actions,
-    Progress: patch.Progress ?? parent.Progress,
-    Inactive: patch.Inactive ?? parent.Inactive,
-  };
-  if (
-    next.RequiredMark === parent.RequiredMark &&
-    next.FieldFrame === parent.FieldFrame &&
-    next.Review === parent.Review &&
-    next.Actions === parent.Actions &&
-    next.Progress === parent.Progress &&
-    next.Inactive === parent.Inactive
-  ) {
-    return parent;
+  const next: FormUiComponents = { ...parent };
+  let changed = false;
+  const target = next as Record<keyof FormUiComponents, unknown>;
+  for (const key of Object.keys(patch) as (keyof FormUiComponents)[]) {
+    const value = patch[key];
+    if (value != null && value !== parent[key]) {
+      target[key] = value;
+      changed = true;
+    }
   }
-  return next;
+  return changed ? next : parent;
 }
 
 export function FormUiComponentsProvider({

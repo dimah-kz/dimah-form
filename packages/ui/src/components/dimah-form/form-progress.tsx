@@ -14,7 +14,8 @@ export type FormProgressProps<TAnswers extends FormAnswers = FormAnswers> = {
    * `required` — answered / required visible fields.
    * `step` — current wizard page.
    * `auto` (default) — step when inside {@link FormSteps} with more than one
-   * page, otherwise required.
+   * page, otherwise required. {@link FormView} omits this chrome in stepped
+   * layouts when the step list is shown.
    */
   variant?: "auto" | "required" | "step";
 };
@@ -35,8 +36,8 @@ export function FormProgress<TAnswers extends FormAnswers = FormAnswers>({
     variant === "step" ||
     (variant === "auto" && steps != null && steps.total > 1);
 
-  if (useStep && steps) {
-    if (steps.total <= 1) return null;
+  if (useStep) {
+    if (steps == null || steps.total <= 1) return null;
     const current = steps.index + 1;
     const label = t("Step {current} of {total}", {
       note: "step heading",

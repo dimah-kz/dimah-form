@@ -22,14 +22,21 @@ export function ChoiceOption({
   control: ReactNode;
 }) {
   return (
-    <Field orientation="horizontal" data-disabled={disabled || undefined}>
+    <Field
+      orientation="horizontal"
+      data-disabled={disabled || undefined}
+      className="items-start"
+    >
       {control}
       <FieldContent>
-        <FieldLabel htmlFor={id} className="font-normal">
+        <FieldLabel
+          htmlFor={id}
+          className="font-normal cursor-pointer select-none"
+        >
           {label}
         </FieldLabel>
         {description ? (
-          <FieldDescription>{description}</FieldDescription>
+          <FieldDescription className="text-xs">{description}</FieldDescription>
         ) : null}
       </FieldContent>
     </Field>

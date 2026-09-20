@@ -14,6 +14,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { respondentId, useFormResponse } from "@/lib/client";
+import type { Form } from "@/lib/form";
+
+type CatalogKey = keyof Form["$Infer"]["answers"];
 
 export function Questionnaire({
   form,
@@ -23,7 +26,7 @@ export function Questionnaire({
   response?: ResponseRecord;
 }) {
   const router = useRouter();
-  const session = useFormResponse<"feedback">({
+  const session = useFormResponse<CatalogKey>({
     snapshot: form,
     response,
     respondentId,
@@ -40,25 +43,42 @@ export function Questionnaire({
     <FormView
       form={session}
       header={false}
-      render={({ status, progress, fields, error, saveState, actions }) => (
+      render={({
+        status,
+        progress,
+        errorSummary,
+        stepList,
+        stepHeading,
+        fields,
+        error,
+        saveState,
+        actions,
+      }) => (
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
           <FormRoot>
             <Card>
               <CardHeader>
-                <CardTitle>{form.title}</CardTitle>
-                <CardDescription>
-                  {form.description ??
-                    `${form.slug} · widgets are yours, validation is the snapshot`}
-                </CardDescription>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <CardTitle>{form.title}</CardTitle>
+                    <CardDescription>
+                      {form.description ??
+                        `${form.slug} · widgets are yours, validation is the snapshot`}
+                    </CardDescription>
+                  </div>
+                  {saveState}
+                </div>
               </CardHeader>
               <CardContent className="flex flex-col gap-6">
                 {status}
                 {progress}
+                {errorSummary}
+                {stepList}
+                {stepHeading}
                 {fields}
                 {error}
               </CardContent>
               <CardFooter className="flex flex-col items-stretch gap-3">
-                {saveState}
                 {actions}
               </CardFooter>
             </Card>

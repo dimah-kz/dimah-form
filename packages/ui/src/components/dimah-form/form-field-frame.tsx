@@ -30,7 +30,7 @@ import { readFieldUiMeta } from "@/lib/field-ui-meta";
 /** Default required-field mark. Swap via `FormUiProvider` `components.RequiredMark`. */
 export function RequiredMark() {
   return (
-    <span className="ms-1 text-dimah-form-destructive" aria-hidden>
+    <span className="ms-0.5 text-dimah-form-destructive" aria-hidden>
       *
     </span>
   );
@@ -128,7 +128,7 @@ function FormFieldFrameView<TValue = unknown>({
   const descriptionNode = descriptionContent ? (
     <FieldDescription
       id={fieldDescriptionId(field.id)}
-      className={classNames?.description}
+      className={cn("text-xs", classNames?.description)}
     >
       {descriptionContent}
     </FieldDescription>
@@ -136,7 +136,10 @@ function FormFieldFrameView<TValue = unknown>({
   const helpNode = helpContent ? (
     <FieldDescription
       id={fieldHelpId(field.id)}
-      className={cn("text-dimah-form-muted-foreground", classNames?.help)}
+      className={cn(
+        "text-xs text-dimah-form-muted-foreground",
+        classNames?.help,
+      )}
     >
       {helpContent}
     </FieldDescription>
