@@ -1,31 +1,110 @@
 core:changelogs:
-  - content: "---\npackages:\n  group:dimah-form:\n    type: minor\n---\n\n## Typed fill, visibility, and store concurrency\n\n### Issues, `$Infer`, and answer parsing\n\n`ValidationIssue` includes a stable `code` and optional `params` (`FIELD_ISSUE_CODES`). Select `$Infer` is a union of option values. Required keys with `showWhen` are omitted from `$Infer`. Date fields accept `min` / `max`.\n\n`parseAnswers` drops empty values (blank text, empty `multiSelect`), not only `null` / `undefined`. `parseAnswers`, `assertAnswers`, `collectAnswerIssues`, field `validate`, and `validateAnswers` may be async. `validateAnswers` on the instance, client, and fill session runs after per-field validators. After a failed submit, `validate: \"change\"` keeps `REQUIRED` until the field is filled.\n\n### `showWhen`\n\nNested `showWhen` follows the parent field. Conditions support `all` / `any` / `notEquals`, and `equals` / `includes` accept a non-empty scalar list (one-of / any-of). `defineForm` and `saveForm` reject unknown targets, self-references, cycles, extra keys, and `equals` against a `multiSelect`. `field(id).required` is true only while the field is visible.\n\n### Store CAS, resume, and listing\n\n`ResponseStore.save` and `saveForm` take `{ expectedUpdatedAt }` and throw `StoreConflictError` (`STALE_UPDATE`). `saveForm` re-reads the stored form so the concurrency token matches the adapter. The FumaDB adapter treats a stale CAS write as a conflict even when answers already match.\n\n`startResponse({ resume: true, respondentId })` returns the latest draft for that pair via `findLatestDraft` / `getOrCreateDraft`. `listResponses({ include: \"summary\" })` skips snapshot JSON at the adapter. `listForms` pages from the store window so skipped invalid rows do not collapse `nextOffset`. `guard` receives `getResponse` / `getForm` (store reads, no HTTP re-entry).\n\n### Fill session\n\n`useFormResponse<Form[\"$Infer\"][\"answers\"][key]>()` types the session. Session state includes `issueParams` and `completion`. `validate()` is async; `autosave` debounces `saveDraft`; local edits during an in-flight save are kept. Headless helpers: `emptyToNull`, `formatAnswer`, `formCompletion`.\n\n### Database schema examples and CLI\n\n`@dimah-form/db` ships copy-paste Drizzle, Prisma, and SQL schemas (with recommended indexes) and `runCli` from `@dimah-form/db/cli` for FumaDB generate / migrate.\n"
-    filename: 2026-09-19.md
+  - content: "---\npackages:\n  group:dimah-form:\n    type: minor\n---\n\n### Add optional `@dimah-form/ui`\n\nOptional shadcn questionnaire renderer on top of `useFormResponse`. Install from npm or the shadcn registry. Headless `@dimah-form/react` is unchanged.\n"
+    filename: 2026-09-19-optional-ui.md
+    v: 0.0.0
+  - content: "---\npackages:\n  group:dimah-form:\n    type: minor\n---\n\n### Tighten the client fill path\n\nBound `useFormResponse<\"catalogKey\">` types answers from `$Infer`. `FormView` locked review renders widgets (`mode=\"review\"`); compact `FormReview` is opt-in. `stepList` follows the same slot rules as other chrome. Built-in `meta.widget` variants (`radio` / `switch` / `chips`) stay on the type widget and are not registry keys.\n"
+    filename: 2026-09-20-client-compose.md
+    v: 0.0.0
+  - content: "---\npackages:\n  group:dimah-form:\n    type: minor\n---\n\n# Align package seams\n\n### Shared app protocol on server and react\n\nApps import protocol helpers from `@dimah-form/server` or `@dimah-form/react`. Both re-export `@dimah-form/core/app-protocol`. `@dimah-form/core` stays for plugin authors and shared `defineFieldType` modules.\n\n### Field types: `format` and client plugin registries\n\n`defineFieldType` accepts optional `format` (English display string). `formatAnswer` / review use it when `fieldTypes` are passed. `defineClientPlugin` accepts `fieldTypes` and merges them the same way server plugins do. `$Infer` from `createFormClient<Form>()` is still type-only — pass `fieldTypes` or a client plugin for local validation.\n\n### `ResponseStore` response methods\n\n`create` / `get` / `save` / `delete` are now `createResponse` / `getResponse` / `saveResponse` / `deleteResponse`. Questionnaire methods stay `*Form`. `findLatestDraft` is newest-by-`updatedAt`; `getOrCreateDraft` keeps the oldest-by-`createdAt` race winner.\n\n### Plugin author surface\n\n`errors` is exported from `@dimah-form/server`. Plugin `init` receives `basePath`, `fieldTypes`, sibling `plugins`, and `getPluginContext` — not the internal resolved config.\n\n### UI types entry\n\n`import type { FormDefinitionUi } from \"@dimah-form/ui/types\"` in server form catalogs. `fieldsUseHalfWidth` is removed (`fieldsUseGrid`). `@dimah-form/db` peers on `@dimah-form/server` with `workspace:^`.\n"
+    filename: 2026-09-20-package-seams.md
+    v: 0.0.0
+  - content: "---\npackages:\n  group:dimah-form:\n    type: minor\n---\n\n### Swap the required-field mark from FormUiProvider\n\nPass `components.RequiredMark` to render your own required indicator on every `FormFieldFrame`. Per-field `requiredIndicator={false}` still hides it.\n"
+    filename: 2026-09-20-required-mark.md
+    v: 0.0.0
+  - content: "---\npackages:\n  group:dimah-form:\n    type: minor\n---\n\n### Replace hand-rolled fill chrome with shadcn\n\n`@dimah-form/ui` now composes shadcn `Progress`, `InputGroup`, `Item`, `Badge`, `ButtonGroup`, `Empty`, and `ToggleGroup` instead of custom affix, meter, review list, save hint, step jump list, and inactive markup.\n\n`FieldControlAffix` is removed — wrap controls in shadcn `InputGroup` (`InputGroupInput` / `InputGroupAddon` / `InputGroupText`). `FormProgressClassNames` is removed; style `FormProgress` with `className` or `[data-slot=form-progress]`. Compact `FormReview` renders an `Item` list. Default `FormActions` buttons sit in a `ButtonGroup`. `FormInactive` is an `Empty` state.\n"
+    filename: 2026-09-20-shadcn-chrome.md
+    v: 0.0.0
+  - content: "---\npackages:\n  group:dimah-form:\n    type: minor\n---\n\n### Open the UI renderer for composition and per-field widgets\n\n`FormView` `render` and wrap-style slots keep the default chrome while swapping layout. Widgets resolve `meta.widget` before `field.type`. `FormSteps` is keyed from the snapshot (controlled `step` / `onStepChange`) so `showWhen` does not reset the page. `FormUiProvider` `components` and `formatIssue` swap frame/actions/review copy without forking. Built-in widgets honor `mode=\"review\"`. `FormRoot` / `FormActions` use Base UI `render`. Extra `field.meta` keys type-check; `help`, `width: \"third\"`, and `FormActions` `before` / `after` are supported.\n"
+    filename: 2026-09-20-ui-compose.md
+    v: 0.0.0
+  - content: "---\npackages:\n  group:dimah-form:\n    type: minor\n---\n\n### Add fill chrome, layout primitives, and widget variants\n\n`FormProgress`, `FormSaveState`, and `FormReview` wrap session completion, dirty drafts, and `formatAnswer`. `FormSteps` groups `meta.step`; `FormFields` can filter ids and group `meta.section`. Built-in widgets read `meta.placeholder` and `meta.widget` (`radio`, `switch`, `chips`). Submit focuses the first invalid control.\n"
+    filename: 2026-09-20-ui-fill-chrome.md
+    v: 0.0.0
+  - content: "---\npackages:\n  group:dimah-form:\n    type: minor\n---\n\n### Improve fill template, typed UI meta, and session errors\n\n`FormView` infers `layout` (`fill` / `steps` / `review`). Wizard Next validates the current step; Enter advances when `FormSteps` wraps `FormRoot`. Field `meta` is a typed `FieldUiMeta` bag (`width`, `prefix` / `suffix`, …). Type-check a document with `defineForm({ ... } satisfies FormDefinitionUi)` from `@dimah-form/ui`. Step headings live on `form.meta.steps`. Boolean `unsetOnOff` is a field key: off writes `false` unless set, then `null`. Session state exposes `errorCode` and `autosave` so the UI can localize request errors and hide Save draft during autosave.\n"
+    filename: 2026-09-20-ui-fill-ux.md
+    v: 0.0.0
+  - content: "---\npackages:\n  group:dimah-form:\n    type: minor\n---\n\n### Add built-in UI field widgets and composition primitives\n\n`FormView` is a template over `FormScope`, `FormRoot`, `FormFields`, and chrome slots. Built-in types render through a widget registry; custom types register once on `FormUiProvider`.\n\nField widgets receive `{ binding, className }`. `FormFieldFrame` covers stack / choice / group chrome so custom widgets reuse the same label and issue markup.\n"
+    filename: 2026-09-20-ui-widgets.md
     v: 0.0.0
 core:packages:
   - changelogIds:
-      - 2026-09-19.md
-    id: npm:@dimah-form/docs
-    updated: true
-  - changelogIds:
-      - 2026-09-19.md
-    id: npm:@dimah-form/core
-    updated: true
-  - changelogIds:
-      - 2026-09-19.md
+      - 2026-09-19-optional-ui.md
+      - 2026-09-20-client-compose.md
+      - 2026-09-20-package-seams.md
+      - 2026-09-20-required-mark.md
+      - 2026-09-20-shadcn-chrome.md
+      - 2026-09-20-ui-compose.md
+      - 2026-09-20-ui-fill-chrome.md
+      - 2026-09-20-ui-fill-ux.md
+      - 2026-09-20-ui-widgets.md
     id: npm:@dimah-form/db
     updated: true
   - changelogIds:
-      - 2026-09-19.md
-    id: npm:@dimah-form/react
+      - 2026-09-19-optional-ui.md
+      - 2026-09-20-client-compose.md
+      - 2026-09-20-package-seams.md
+      - 2026-09-20-required-mark.md
+      - 2026-09-20-shadcn-chrome.md
+      - 2026-09-20-ui-compose.md
+      - 2026-09-20-ui-fill-chrome.md
+      - 2026-09-20-ui-fill-ux.md
+      - 2026-09-20-ui-widgets.md
+    id: npm:@dimah-form/docs
     updated: true
   - changelogIds:
-      - 2026-09-19.md
+      - 2026-09-19-optional-ui.md
+      - 2026-09-20-client-compose.md
+      - 2026-09-20-package-seams.md
+      - 2026-09-20-required-mark.md
+      - 2026-09-20-shadcn-chrome.md
+      - 2026-09-20-ui-compose.md
+      - 2026-09-20-ui-fill-chrome.md
+      - 2026-09-20-ui-fill-ux.md
+      - 2026-09-20-ui-widgets.md
+    id: npm:@dimah-form/core
+    updated: true
+  - changelogIds:
+      - 2026-09-19-optional-ui.md
+      - 2026-09-20-client-compose.md
+      - 2026-09-20-package-seams.md
+      - 2026-09-20-required-mark.md
+      - 2026-09-20-shadcn-chrome.md
+      - 2026-09-20-ui-compose.md
+      - 2026-09-20-ui-fill-chrome.md
+      - 2026-09-20-ui-fill-ux.md
+      - 2026-09-20-ui-widgets.md
     id: npm:@dimah-form/server
     updated: true
+  - changelogIds:
+      - 2026-09-19-optional-ui.md
+      - 2026-09-20-client-compose.md
+      - 2026-09-20-package-seams.md
+      - 2026-09-20-required-mark.md
+      - 2026-09-20-shadcn-chrome.md
+      - 2026-09-20-ui-compose.md
+      - 2026-09-20-ui-fill-chrome.md
+      - 2026-09-20-ui-fill-ux.md
+      - 2026-09-20-ui-widgets.md
+    id: npm:@dimah-form/ui
+    updated: true
+  - changelogIds:
+      - 2026-09-19-optional-ui.md
+      - 2026-09-20-client-compose.md
+      - 2026-09-20-package-seams.md
+      - 2026-09-20-required-mark.md
+      - 2026-09-20-shadcn-chrome.md
+      - 2026-09-20-ui-compose.md
+      - 2026-09-20-ui-fill-chrome.md
+      - 2026-09-20-ui-fill-ux.md
+      - 2026-09-20-ui-widgets.md
+    id: npm:@dimah-form/react
+    updated: true
+npm:mark-latest:
+  - id: npm:@dimah-form/ui
 npm:packages:
+  - id: npm:@dimah-form/db
   - id: npm:@dimah-form/docs
   - id: npm:@dimah-form/core
-  - id: npm:@dimah-form/db
-  - id: npm:@dimah-form/react
   - id: npm:@dimah-form/server
+  - id: npm:@dimah-form/ui
+  - id: npm:@dimah-form/react

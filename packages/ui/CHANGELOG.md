@@ -1,4 +1,4 @@
-## @dimah-form/core@0.3.0
+## @dimah-form/ui@0.3.0
 
 ### Add optional `@dimah-form/ui`
 
@@ -59,60 +59,3 @@ Pass `components.RequiredMark` to render your own required indicator on every `F
 `FormView` is a template over `FormScope`, `FormRoot`, `FormFields`, and chrome slots. Built-in types render through a widget registry; custom types register once on `FormUiProvider`.
 
 Field widgets receive `{ binding, className }`. `FormFieldFrame` covers stack / choice / group chrome so custom widgets reuse the same label and issue markup.
-
-## @dimah-form/core@0.2.0
-
-### Typed fill, visibility, and store concurrency
-
-
-
-### Issues, `$Infer`, and answer parsing
-
-`ValidationIssue` includes a stable `code` and optional `params` (`FIELD_ISSUE_CODES`). Select `$Infer` is a union of option values. Required keys with `showWhen` are omitted from `$Infer`. Date fields accept `min` / `max`.
-
-`parseAnswers` drops empty values (blank text, empty `multiSelect`), not only `null` / `undefined`. `parseAnswers`, `assertAnswers`, `collectAnswerIssues`, field `validate`, and `validateAnswers` may be async. `validateAnswers` on the instance, client, and fill session runs after per-field validators. After a failed submit, `validate: "change"` keeps `REQUIRED` until the field is filled.
-
-### `showWhen`
-
-Nested `showWhen` follows the parent field. Conditions support `all` / `any` / `notEquals`, and `equals` / `includes` accept a non-empty scalar list (one-of / any-of). `defineForm` and `saveForm` reject unknown targets, self-references, cycles, extra keys, and `equals` against a `multiSelect`. `field(id).required` is true only while the field is visible.
-
-### Store CAS, resume, and listing
-
-`ResponseStore.save` and `saveForm` take `{ expectedUpdatedAt }` and throw `StoreConflictError` (`STALE_UPDATE`). `saveForm` re-reads the stored form so the concurrency token matches the adapter. The FumaDB adapter treats a stale CAS write as a conflict even when answers already match.
-
-`startResponse({ resume: true, respondentId })` returns the latest draft for that pair via `findLatestDraft` / `getOrCreateDraft`. `listResponses({ include: "summary" })` skips snapshot JSON at the adapter. `listForms` pages from the store window so skipped invalid rows do not collapse `nextOffset`. `guard` receives `getResponse` / `getForm` (store reads, no HTTP re-entry).
-
-### Fill session
-
-`useFormResponse<Form["$Infer"]["answers"][key]>()` types the session. Session state includes `issueParams` and `completion`. `validate()` is async; `autosave` debounces `saveDraft`; local edits during an in-flight save are kept. Headless helpers: `emptyToNull`, `formatAnswer`, `formCompletion`.
-
-### Database schema examples and CLI
-
-`@dimah-form/db` ships copy-paste Drizzle, Prisma, and SQL schemas (with recommended indexes) and `runCli` from `@dimah-form/db/cli` for FumaDB generate / migrate.
-
-## @dimah-form/core@0.1.0
-
-### Require Node.js 24 and ES2025
-
-Published packages compile to ES2025. The repo Node.js baseline is 24 or later.
-
-## @dimah-form/core@0.0.2
-
-### Align package metadata and TypeScript emit
-
-- npm `author` is `dimah` on every `@dimah-form/*` package.
-- `FormField` is a type alias instead of an interface.
-- Declaration files use `verbatimModuleSyntax` (type-only imports). Runtime API is unchanged.
-
-## @dimah-form/core@0.0.1
-
-### Initial release
-
-First public release of the dimah-form questionnaire toolkit:
-
-- `@dimah-form/core` — protocol, error catalog, typed fetch client, and headless fill session
-- `@dimah-form/server` — `dimahForm()` HTTP `handler` and better-call `api`
-- `@dimah-form/db` — FumaDB adapter for questionnaires and responses
-- `@dimah-form/react` — thin React client (`createFormClient` / `useFormResponse`)
-
-The library owns definition snapshots, drafts, and submit validation. Consumers own UI, auth, and the database driver.
