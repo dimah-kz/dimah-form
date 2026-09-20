@@ -1,9 +1,14 @@
 "use client";
 
 import { emptyToNull } from "@dimah-form/react";
+import { FieldDescription } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  InputGroupInput,
+  InputGroupTextarea,
+} from "@/components/ui/input-group";
 import { Textarea } from "@/components/ui/textarea";
-import { FieldControlAffix } from "@/components/dimah-form/field-control-affix";
+import { FieldInputGroup } from "@/components/dimah-form/field-input-group";
 import { FieldReviewValue } from "@/components/dimah-form/field-review-value";
 import { FormFieldFrame } from "@/components/dimah-form/form-field-frame";
 import { fieldControlProps, fieldNumber, fieldString } from "@/lib/field-attr";
@@ -36,6 +41,8 @@ export function StringField({
     inputType === "text" ? fieldNumber(field, "minLength") : undefined;
   const nearLimit =
     maxLength != null && value.length >= Math.ceil(maxLength * 0.9);
+  const hasAffix = Boolean(ui.prefix || ui.suffix);
+  const useGroup = hasAffix || maxLength != null;
   const controlProps = {
     ...fieldControlProps(binding),
     value,
@@ -47,41 +54,82 @@ export function StringField({
 
   const count =
     maxLength != null ? (
-      <p
-        className="text-xs text-end text-dimah-form-muted-foreground tabular-nums"
-        aria-live={nearLimit ? "polite" : undefined}
-      >
+      <span aria-live={nearLimit ? "polite" : undefined}>
         {value.length}/{maxLength}
-      </p>
+      </span>
     ) : null;
+  const groupedCount = hasAffix ? undefined : count;
+  const trailingCount = hasAffix ? count : null;
 
   if (inputType === "text" && ui.multiline) {
+    const textarea = useGroup ? (
+      <InputGroupTextarea
+        {...controlProps}
+        rows={ui.rows}
+        maxLength={maxLength}
+        minLength={minLength}
+      />
+    ) : (
+      <Textarea
+        {...controlProps}
+        rows={ui.rows}
+        maxLength={maxLength}
+        minLength={minLength}
+      />
+    );
+
     return (
       <FormFieldFrame binding={binding} className={className}>
-        <Textarea
-          {...controlProps}
-          rows={ui.rows}
-          maxLength={maxLength}
-          minLength={minLength}
-        />
-        {count}
+        <FieldInputGroup
+          prefix={ui.prefix}
+          suffix={ui.suffix}
+          count={groupedCount}
+        >
+          {textarea}
+        </FieldInputGroup>
+        {trailingCount ? (
+          <FieldDescription className="text-end text-dimah-form-muted-foreground tabular-nums">
+            {trailingCount}
+          </FieldDescription>
+        ) : null}
       </FormFieldFrame>
     );
   }
 
+  const input = useGroup ? (
+    <InputGroupInput
+      {...controlProps}
+      type={inputType}
+      min={inputType === "date" ? fieldString(field, "min") : undefined}
+      max={inputType === "date" ? fieldString(field, "max") : undefined}
+      minLength={minLength}
+      maxLength={maxLength}
+    />
+  ) : (
+    <Input
+      {...controlProps}
+      type={inputType}
+      min={inputType === "date" ? fieldString(field, "min") : undefined}
+      max={inputType === "date" ? fieldString(field, "max") : undefined}
+      minLength={minLength}
+      maxLength={maxLength}
+    />
+  );
+
   return (
     <FormFieldFrame binding={binding} className={className}>
-      <FieldControlAffix prefix={ui.prefix} suffix={ui.suffix}>
-        <Input
-          {...controlProps}
-          type={inputType}
-          min={inputType === "date" ? fieldString(field, "min") : undefined}
-          max={inputType === "date" ? fieldString(field, "max") : undefined}
-          minLength={minLength}
-          maxLength={maxLength}
-        />
-      </FieldControlAffix>
-      {count}
+      <FieldInputGroup
+        prefix={ui.prefix}
+        suffix={ui.suffix}
+        count={groupedCount}
+      >
+        {input}
+      </FieldInputGroup>
+      {trailingCount ? (
+        <FieldDescription className="text-end text-dimah-form-muted-foreground tabular-nums">
+          {trailingCount}
+        </FieldDescription>
+      ) : null}
     </FormFieldFrame>
   );
 }

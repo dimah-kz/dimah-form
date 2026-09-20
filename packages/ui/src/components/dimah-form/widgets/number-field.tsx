@@ -1,7 +1,8 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
-import { FieldControlAffix } from "@/components/dimah-form/field-control-affix";
+import { InputGroupInput } from "@/components/ui/input-group";
+import { FieldInputGroup } from "@/components/dimah-form/field-input-group";
 import { FieldReviewValue } from "@/components/dimah-form/field-review-value";
 import { FormFieldFrame } from "@/components/dimah-form/form-field-frame";
 import {
@@ -21,23 +22,29 @@ export function NumberField({ binding, className, mode }: FieldWidgetProps) {
   }
 
   const ui = readFieldUiMeta(field);
+  const hasAffix = Boolean(ui.prefix || ui.suffix);
+  const controlProps = {
+    ...fieldControlProps(binding),
+    type: "number" as const,
+    placeholder: ui.placeholder,
+    min: fieldNumber(field, "min"),
+    max: fieldNumber(field, "max"),
+    step: fieldFlag(field, "integer") ? 1 : undefined,
+    value: typeof binding.value === "number" ? binding.value : "",
+    onChange: (event: { target: { value: string } }) => {
+      binding.onChange(parseNumberInput(event.target.value));
+    },
+  };
 
   return (
     <FormFieldFrame binding={binding} className={className}>
-      <FieldControlAffix prefix={ui.prefix} suffix={ui.suffix}>
-        <Input
-          {...fieldControlProps(binding)}
-          type="number"
-          placeholder={ui.placeholder}
-          min={fieldNumber(field, "min")}
-          max={fieldNumber(field, "max")}
-          step={fieldFlag(field, "integer") ? 1 : undefined}
-          value={typeof binding.value === "number" ? binding.value : ""}
-          onChange={(event) => {
-            binding.onChange(parseNumberInput(event.target.value));
-          }}
-        />
-      </FieldControlAffix>
+      <FieldInputGroup prefix={ui.prefix} suffix={ui.suffix}>
+        {hasAffix ? (
+          <InputGroupInput {...controlProps} />
+        ) : (
+          <Input {...controlProps} />
+        )}
+      </FieldInputGroup>
     </FormFieldFrame>
   );
 }

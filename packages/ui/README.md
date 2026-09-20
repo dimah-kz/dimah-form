@@ -64,11 +64,12 @@ variants, not registry keys). Swap chrome with `components` (`RequiredMark`,
 types (`text`, `email`, `date`, `number`, `boolean`, `select`, `multiSelect`)
 ship with the package. `FormView layout="auto"` picks a wizard when `meta.step`
 groups, and widgets in `mode="review"` when locked (`FormReview` is a compact
-opt-in). `render` / wrap-style slots keep the template
-while you own layout. Presentation lives on `meta` (`widget`, `placeholder`,
-`section`, `step`, `width`, `help`, …) — `defineForm({ ... } satisfies FormDefinitionUi)`
-so those keys autocomplete; extra keys stay allowed. Compose `FormScope` +
-primitives when you want every piece by hand.
+`Item` list). Prefix / suffix use shadcn `InputGroup`. `render` / wrap-style
+slots keep the template while you own layout. Presentation lives on `meta`
+(`widget`, `placeholder`, `section`, `step`, `width`, `help`, …) —
+`defineForm({ ... } satisfies FormDefinitionUi)` so those keys autocomplete;
+extra keys stay allowed. Compose `FormScope` + primitives when you want every
+piece by hand.
 
 ## License
 

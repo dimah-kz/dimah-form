@@ -46,7 +46,7 @@ return (
 );
 ```
 
-`FormView` is the default layout. `layout="auto"` (default) uses a wizard when `meta.step` spans more than one page on the snapshot, and widgets with `mode="review"` when the response is locked. Pass `layout="fill" | "steps" | "review"` — or `form.meta.layout` — to force one. Compact `FormReview` (`<dl>` of formatted answers) is opt-in: `review={<FormReview />}` or `components={{ Review: FormReview }}`.
+`FormView` is the default layout. `layout="auto"` (default) uses a wizard when `meta.step` spans more than one page on the snapshot, and widgets with `mode="review"` when the response is locked. Pass `layout="fill" | "steps" | "review"` — or `form.meta.layout` — to force one. Compact `FormReview` (shadcn `Item` list of formatted answers) is opt-in: `review={<FormReview />}` or `components={{ Review: FormReview }}`.
 
 Slot props take `false` to hide, a node to replace, or a function to wrap the default (`header={({ default: node }) => <Card>{node}</Card>}`): `header`, `progress`, `status`, `errorSummary`, `error`, `saveState`, `actions`, `stepList`, `stepHeading`, `stepNav`, `review`, `inactive`.
 
@@ -115,11 +115,11 @@ Every chrome piece is a primitive. `FormScope` provides the session so they do n
 - `FormField` — looks up `meta.widget` (when registered and not a built-in `radio` / `switch` / `chips` variant) then `field.type`. Pass `children` to replace that widget. Widgets receive `mode: "edit" | "review"`.
 - `FormFieldFrame` — label / description / help / issue chrome. `layout="stack"` (default), `"choice"` (checkbox), or `"group"` (fieldset). `data-field-type`, `data-widget`, `data-required`, `data-invalid` are set for CSS hooks.
 - `FormFields` — maps `visibleFields`. `fields` / `filter` restrict the loop; `meta.section` groups into `FormSection` (or `groupBy={false}` to opt out). `meta.width` `"half"` / `"third"` shares a row. `renderField={(binding, { defaultField }) => …}` keeps the loop.
-- `FormProgress` / `FormSaveState` / `FormReview` — completion (wizard page when inside `FormSteps`), dirty/saving/saved draft, compact read-only answers (`renderValue` to swap one row). Locked `FormView` review uses `FormFields` / widgets (`mode="review"`) unless you opt into `FormReview`.
+- `FormProgress` / `FormSaveState` / `FormReview` — shadcn `Progress` (wizard page when inside `FormSteps`), `Badge` for dirty/saving/saved drafts, compact `Item` list (`renderValue` to swap one row). Locked `FormView` review uses `FormFields` / widgets (`mode="review"`) unless you opt into `FormReview`.
 - `FormErrorSummary` — links to invalid fields after validate/submit.
-- `FormSteps` — groups snapshot `meta.step` (number or string, default `"1"`). Hidden fields drop out of the page; the current page is a **key**, not an index (`step` / `defaultStep` / `onStepChange`). Titles come from `form.meta.steps`. Wrap **around** `FormRoot` so Enter advances. `FormStepFields` + `FormStepHeading` + `FormStepList` + `FormStepNav` (Next validates the step; last step renders `children`, usually `FormActions`).
-- `FormActions` — `save="auto"` hides Save draft when the session autosaves. `before` / `after` add controls without replacing Submit. `abandon` is opt-in. `saveProps` / `submitProps` merge onto the shadcn buttons (Base UI `render` included). `sticky` pins the bar. `FormRoot` / `FormActions` also take Base UI `render` to replace the host element.
-- Built-in widgets (`TextField`, `BooleanField`, …) are usable on their own: `<EmailField binding={form.field("email")} />`. `ChoiceOption`, `FieldControlAffix`, and `StringField` are exported for custom widgets.
+- `FormSteps` — groups snapshot `meta.step` (number or string, default `"1"`). Hidden fields drop out of the page; the current page is a **key**, not an index (`step` / `defaultStep` / `onStepChange`). Titles come from `form.meta.steps`. Wrap **around** `FormRoot` so Enter advances. `FormStepFields` + `FormStepHeading` + `FormStepList` (`ToggleGroup`) + `FormStepNav` (Next validates the step; last step renders `children`, usually `FormActions`).
+- `FormActions` — default save / submit / edit sit in a shadcn `ButtonGroup`. `save="auto"` hides Save draft when the session autosaves. `before` / `after` add controls without replacing Submit. `abandon` is opt-in. `saveProps` / `submitProps` merge onto the shadcn buttons (Base UI `render` included). `sticky` pins the bar. `FormRoot` / `FormActions` also take Base UI `render` to replace the host element.
+- Built-in widgets (`TextField`, `BooleanField`, …) are usable on their own: `<EmailField binding={form.field("email")} />`. `ChoiceOption` and `StringField` are exported for custom widgets. Prefix / suffix / character count use shadcn `InputGroup`.
 
 A widget receives `{ binding, className, mode }` — not a spread `FormFieldBinding`. Presentation stays on `meta`. Type-check the document with `satisfies FormDefinitionUi` so this package's keys autocomplete; extra `meta` keys are allowed. For `saveForm` rows, pass a Zod object to `dimahForm({ metaSchema })`.
 
@@ -156,7 +156,7 @@ export const onboarding = defineForm({
 | `section`                   | heading in `FormFields`                                                                   |
 | `step`                      | page in `FormSteps`                                                                       |
 | `width: "half"` / `"third"` | share a row                                                                               |
-| `prefix` / `suffix`         | affix inside the control (React node on the widget)                                       |
+| `prefix` / `suffix`         | shadcn `InputGroup` addon on the control                                                  |
 | `help`                      | persistent hint under the control                                                         |
 | `autocomplete`              | native `autoComplete` (`email` defaults to `email`)                                       |
 | `inputMode`                 | native `inputMode`                                                                        |

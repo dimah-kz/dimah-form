@@ -9,6 +9,13 @@ import {
 } from "@dimah-form/react";
 import { useTranslations } from "@fuma-translate/react";
 import { cn } from "cn";
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemTitle,
+} from "@/components/ui/item";
 import { useFormSession } from "@/components/dimah-form/form-context";
 import { reviewValue } from "@/lib/review-value";
 
@@ -23,7 +30,7 @@ export type FormReviewProps<TAnswers extends FormAnswers = FormAnswers> = {
 };
 
 /**
- * Compact read-only `<dl>` of visible answers (`formatAnswer` / option labels).
+ * Compact read-only list of visible answers (`formatAnswer` / option labels).
  * FormView locked review uses widgets (`mode="review"`) by default.
  * Opt in with `review={<FormReview />}` or `components={{ Review: FormReview }}`.
  */
@@ -43,26 +50,29 @@ export function FormReview<TAnswers extends FormAnswers = FormAnswers>({
   if (session.visibleFields.length === 0) return null;
 
   return (
-    <dl
-      data-slot="form-review"
-      className={cn("gap-3 flex flex-col", className)}
-    >
+    <ItemGroup data-slot="form-review" className={cn(className)}>
       {session.visibleFields.map((field) => {
         const value = session.answers[field.id];
         const formatted = reviewValue(field, value, labels);
         return (
-          <div key={field.id} className="gap-0.5 flex flex-col">
-            <dt className="text-sm text-dimah-form-muted-foreground">
-              {fieldLabel(field)}
-            </dt>
-            <dd className="wrap-anywhere">
-              {renderValue
-                ? renderValue({ field, value, formatted })
-                : formatted}
-            </dd>
-          </div>
+          <Item key={field.id} size="sm" role="listitem">
+            <ItemContent>
+              <ItemTitle className="line-clamp-none">
+                {fieldLabel(field)}
+              </ItemTitle>
+              {renderValue ? (
+                <div className="text-sm wrap-anywhere text-dimah-form-muted-foreground">
+                  {renderValue({ field, value, formatted })}
+                </div>
+              ) : (
+                <ItemDescription className="line-clamp-none wrap-anywhere">
+                  {formatted}
+                </ItemDescription>
+              )}
+            </ItemContent>
+          </Item>
         );
       })}
-    </dl>
+    </ItemGroup>
   );
 }

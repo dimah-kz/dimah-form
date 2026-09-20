@@ -42,6 +42,7 @@ export type Translations = {
   "Saving…(form action)": string;
   "Select…(select placeholder)": string;
   "Step {current} of {total}(step heading)": string;
+  "Steps(step list)": string;
   "Submit(form action)": string;
   "Submitted(status)": string;
   "Submitting…(form action)": string;

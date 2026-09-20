@@ -71,7 +71,6 @@ export {
 } from "@/components/dimah-form/form-inactive";
 export {
   FormProgress,
-  type FormProgressClassNames,
   type FormProgressProps,
 } from "@/components/dimah-form/form-progress";
 export {
@@ -111,10 +110,6 @@ export { MultiSelectField } from "@/components/dimah-form/widgets/multi-select-f
 export { UnknownField } from "@/components/dimah-form/widgets/unknown-field";
 export { StringField } from "@/components/dimah-form/widgets/string-field";
 export { FieldReviewValue } from "@/components/dimah-form/field-review-value";
-export {
-  FieldControlAffix,
-  type FieldControlAffixProps,
-} from "@/components/dimah-form/field-control-affix";
 export { ChoiceOption } from "@/components/dimah-form/choice-option";
 export {
   defaultFieldWidgets,

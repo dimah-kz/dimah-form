@@ -2,7 +2,8 @@
 
 import type { FormAnswers, FormResponseApi } from "@dimah-form/react";
 import { useTranslations } from "@fuma-translate/react";
-import { cn } from "cn";
+import { Badge } from "@/components/ui/badge";
+import { Spinner } from "@/components/ui/spinner";
 import { useFormSession } from "@/components/dimah-form/form-context";
 
 export type FormSaveStateProps<TAnswers extends FormAnswers = FormAnswers> = {
@@ -18,24 +19,45 @@ export function FormSaveState<TAnswers extends FormAnswers = FormAnswers>({
   const session = useFormSession(form);
   const t = useTranslations();
 
-  let message: string | null = null;
   if (session.pending === "save") {
-    message = t("Saving…", { note: "form action" });
-  } else if (session.dirty) {
-    message = t("Unsaved changes", { note: "save state" });
-  } else if (session.autosave && session.responseId) {
-    message = t("Saved", { note: "save state" });
+    return (
+      <Badge
+        variant="secondary"
+        data-slot="form-save-state"
+        className={className}
+        aria-live="polite"
+      >
+        <Spinner data-icon="inline-start" />
+        {t("Saving…", { note: "form action" })}
+      </Badge>
+    );
   }
 
-  if (!message) return null;
+  if (session.dirty) {
+    return (
+      <Badge
+        variant="outline"
+        data-slot="form-save-state"
+        className={className}
+        aria-live="polite"
+      >
+        {t("Unsaved changes", { note: "save state" })}
+      </Badge>
+    );
+  }
 
-  return (
-    <p
-      data-slot="form-save-state"
-      className={cn("text-sm text-dimah-form-muted-foreground", className)}
-      aria-live="polite"
-    >
-      {message}
-    </p>
-  );
+  if (session.autosave && session.responseId) {
+    return (
+      <Badge
+        variant="secondary"
+        data-slot="form-save-state"
+        className={className}
+        aria-live="polite"
+      >
+        {t("Saved", { note: "save state" })}
+      </Badge>
+    );
+  }
+
+  return null;
 }

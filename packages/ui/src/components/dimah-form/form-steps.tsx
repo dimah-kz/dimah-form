@@ -10,6 +10,8 @@ import {
 import { useTranslations } from "@fuma-translate/react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
+import { FieldTitle } from "@/components/ui/field";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useFormSession } from "@/components/dimah-form/form-context";
 import {
   FormFields,
@@ -212,12 +214,12 @@ export function FormStepHeading({ className }: FormStepHeadingProps) {
     });
 
   return (
-    <p
+    <FieldTitle
       data-slot="form-step-heading"
-      className={cn("text-sm font-medium text-balance", className)}
+      className={cn("text-balance", className)}
     >
       {label}
-    </p>
+    </FieldTitle>
   );
 }
 
@@ -282,29 +284,33 @@ export type FormStepListProps = {
 export function FormStepList({ className }: FormStepListProps) {
   const steps = useFormSteps();
   const ui = useFormUi(steps.form);
+  const t = useTranslations();
   if (steps.total <= 1) return null;
 
   return (
-    <ol
+    <ToggleGroup
       data-slot="form-step-list"
-      className={cn("gap-1 flex flex-wrap", className)}
+      variant="outline"
+      size="sm"
+      spacing={1}
+      className={cn("flex-wrap", className)}
+      disabled={ui.busy}
+      value={steps.key ? [steps.key] : []}
+      aria-label={t("Steps", { note: "step list" })}
+      onValueChange={(next) => {
+        const key = next[0];
+        if (typeof key === "string") void steps.goTo(key);
+      }}
     >
       {steps.steps.map((item, index) => (
-        <li key={item.key}>
-          <Button
-            type="button"
-            size="sm"
-            variant={index === steps.index ? "default" : "ghost"}
-            disabled={ui.busy}
-            aria-current={index === steps.index ? "step" : undefined}
-            onClick={() => {
-              void steps.goTo(item.key);
-            }}
-          >
-            {item.title}
-          </Button>
-        </li>
+        <ToggleGroupItem
+          key={item.key}
+          value={item.key}
+          aria-current={index === steps.index ? "step" : undefined}
+        >
+          {item.title}
+        </ToggleGroupItem>
       ))}
-    </ol>
+    </ToggleGroup>
   );
 }

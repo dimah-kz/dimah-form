@@ -6,6 +6,7 @@ import { useRender } from "@base-ui/react/use-render";
 import type { FormAnswers, FormResponseApi } from "@dimah-form/react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
 import { Field } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import { useFormSession } from "@/components/dimah-form/form-context";
@@ -73,25 +74,27 @@ export function FormActions<TAnswers extends FormAnswers = FormAnswers>({
   const controls =
     children ??
     (session.locked ? (
-      <Button
-        {...mergeProps(
-          {
-            type: "button",
-            variant: "outline",
-            disabled: ui.busy || !session.responseId,
-            className: classNames?.edit,
-            onClick: () => void session.reopen(),
-          },
-          editProps,
-        )}
-      >
-        {session.pending === "reopen" ? (
-          <Spinner data-icon="inline-start" />
-        ) : null}
-        {ui.editLabel}
-      </Button>
+      <ButtonGroup>
+        <Button
+          {...mergeProps(
+            {
+              type: "button",
+              variant: "outline",
+              disabled: ui.busy || !session.responseId,
+              className: classNames?.edit,
+              onClick: () => void session.reopen(),
+            },
+            editProps,
+          )}
+        >
+          {session.pending === "reopen" ? (
+            <Spinner data-icon="inline-start" />
+          ) : null}
+          {ui.editLabel}
+        </Button>
+      </ButtonGroup>
     ) : (
-      <>
+      <ButtonGroup>
         {showSave ? (
           <Button
             {...mergeProps(
@@ -145,7 +148,7 @@ export function FormActions<TAnswers extends FormAnswers = FormAnswers>({
           ) : null}
           {ui.submitLabel}
         </Button>
-      </>
+      </ButtonGroup>
     ));
 
   return useRender({

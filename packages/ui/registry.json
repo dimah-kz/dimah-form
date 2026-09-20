@@ -35,10 +35,16 @@
       },
       "registryDependencies": [
         "alert",
+        "badge",
         "button",
+        "button-group",
         "checkbox",
+        "empty",
         "field",
         "input",
+        "input-group",
+        "item",
+        "progress",
         "radio-group",
         "select",
         "spinner",
@@ -89,9 +95,9 @@
           "target": "@components/dimah-form/field-review-value.tsx"
         },
         {
-          "path": "src/components/dimah-form/field-control-affix.tsx",
+          "path": "src/components/dimah-form/field-input-group.tsx",
           "type": "registry:component",
-          "target": "@components/dimah-form/field-control-affix.tsx"
+          "target": "@components/dimah-form/field-input-group.tsx"
         },
         {
           "path": "src/components/dimah-form/choice-option.tsx",

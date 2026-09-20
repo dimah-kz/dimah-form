@@ -2,7 +2,13 @@
 
 import type { FormAnswers, FormResponseApi } from "@dimah-form/react";
 import { CircleAlertIcon } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { useFormSession } from "@/components/dimah-form/form-context";
 import { useFormUi } from "@/hooks/use-form-ui";
 
@@ -20,10 +26,14 @@ export function FormInactive<TAnswers extends FormAnswers = FormAnswers>({
   const ui = useFormUi(session);
 
   return (
-    <Alert data-slot="form-inactive" className={className}>
-      <CircleAlertIcon />
-      <AlertTitle>{ui.inactiveTitle}</AlertTitle>
-      <AlertDescription>{ui.inactiveMessage}</AlertDescription>
-    </Alert>
+    <Empty data-slot="form-inactive" className={className}>
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <CircleAlertIcon />
+        </EmptyMedia>
+        <EmptyTitle>{ui.inactiveTitle}</EmptyTitle>
+        <EmptyDescription>{ui.inactiveMessage}</EmptyDescription>
+      </EmptyHeader>
+    </Empty>
   );
 }
