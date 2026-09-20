@@ -2,6 +2,8 @@
 
 Explore the package you are changing. This file is what to **keep in sync**, not an API reference.
 
+Until the first `1.0.0` **and until [architecture.md](./architecture.md) Pre-v1 is edited**, breaking changes are allowed. Do not keep old architecture for compatibility.
+
 ## Protocol
 
 Keep these in lockstep (same paths, same payloads — no duplicate route strings):

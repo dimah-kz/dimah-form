@@ -10,6 +10,8 @@ Not a map of the repo. Explore `packages/*/src` for what exists.
 
 If an agent can see it in source (paths, schemas, hook names, current endpoints), it does not belong here. Put **constraints and sync rules** here, not a snapshot of the tree.
 
+Until the first `1.0.0` **and until [architecture.md](./architecture.md) Pre-v1 is edited**, breaking changes are allowed. Do not keep old architecture for compatibility.
+
 | File                                 | Read when                                       |
 | ------------------------------------ | ----------------------------------------------- |
 | [architecture.md](./architecture.md) | New package, or moving behavior across packages |

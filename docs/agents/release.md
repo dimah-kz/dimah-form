@@ -39,6 +39,8 @@ Package references: `"@dimah-form/core"`, `"npm:@dimah-form/core"`, or `"group:d
 | minor | Backward-compatible feature               |
 | major | Breaking API, types, or consumer contract |
 
+Until the first `1.0.0` **and until [architecture.md](./architecture.md) Pre-v1 is edited**, a breaking change is allowed. Prefer the clean API over a shim. Still use `major` so the changelog names the break.
+
 ## Before opening a PR
 
 ```bash

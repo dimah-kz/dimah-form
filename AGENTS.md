@@ -22,6 +22,7 @@ pnpm + Turbo. From the root: `pnpm lint`, `pnpm check-types`, `pnpm test`.
 - Deps: `core` ← `server` | `react` ← `ui`; `db` → `server` (peer).
 - Do not hand-edit `packages/ui/registry.json` or `packages/ui/src/components/ui/`.
 - Published `@dimah-form/*` behavior, API, or build output change → changelog under `.tegami/` ([release.md](docs/agents/release.md)). Do not edit `.tegami/publish-lock.yaml` or package `CHANGELOG.md` files.
+- Pre-v1: breaking changes are allowed. Do not keep old architecture for compatibility ([architecture.md](docs/agents/architecture.md)).
 - Commit when asked. Never `git push` (or force-push) unless the human explicitly asks.
 
 `examples/` = workspace demos. `apps/` = product docs site. `docs/agents/` = these maintainer checklists. `tooling/` = private ESLint / TS / Vitest configs.

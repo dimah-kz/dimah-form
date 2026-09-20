@@ -45,6 +45,10 @@ Shared protocol changes start in `core`, then wire `server` and `react`. Do not 
 - Custom fields are `defineFieldType` validators in `core`. Optional UI widgets register by the same `type` string, or a `meta.widget` key.
 - Server plugins may add `endpoints`, `hooks`, `fieldTypes`, and `$ERROR_CODES`. Optional `dependsOn` (topological order), `options`, and synchronous `init` (`{ context }` → `config.pluginContext`). Browser companions use `defineClientPlugin` on `createFormClient({ plugins })`. They are not inferred from the server plugin.
 
+## Pre-v1
+
+Until the first `1.0.0` **and until this section is edited**, breaking changes are allowed. Do not keep a dual API, compatibility shim, or leftover path just to avoid a break. If the old architecture would only stay for compatibility, remove it and land the cleaner shape. Still changelog the contract change (`major` — [release.md](./release.md)).
+
 ## Do not
 
 - Put auth inside `@dimah-form/server` or `@dimah-form/core` — consumer `guard` hooks.
