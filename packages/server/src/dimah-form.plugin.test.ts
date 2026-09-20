@@ -1,7 +1,11 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import * as z from "zod";
 
-import { defineErrorCodes, defineForm, isFormErrorCode } from "@dimah-form/core";
+import {
+  defineErrorCodes,
+  defineForm,
+  isFormErrorCode,
+} from "@dimah-form/core";
 
 import { createFormEndpoint } from "./api/create-form-endpoint";
 import { dimahForm } from "./dimah-form";
@@ -318,6 +322,58 @@ describe("plugins", () => {
           id: "live",
           title: "Live",
           meta: { scoring: { variables: [] } },
+          fields: [{ id: "n", type: "text" }],
+        },
+      }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "VALIDATION_ERROR"),
+    );
+  });
+
+  it("chains plugin validateDefinition at init and saveForm", async () => {
+    const scoring = definePlugin({
+      id: "scoring",
+      validateDefinition: (form) => {
+        const scoringMeta = (
+          form.meta as { scoring?: { variables?: unknown } } | undefined
+        )?.scoring;
+        if (!scoringMeta) return;
+        if (!Array.isArray(scoringMeta.variables)) {
+          return [
+            {
+              field: "meta.scoring",
+              message: "variables required",
+              code: "SCORING_INVALID_META",
+            },
+          ];
+        }
+        return;
+      },
+    });
+    expect(() =>
+      dimahForm({
+        database: memoryAdapter(),
+        plugins: [scoring],
+        forms: {
+          quiz: defineForm({
+            title: "Quiz",
+            meta: { scoring: { variables: 1 } },
+            fields: [{ id: "n", type: "text" }],
+          }),
+        },
+      }),
+    ).toThrow(/variables required/);
+
+    const form = dimahForm({
+      database: memoryAdapter(),
+      plugins: [scoring],
+    });
+    await expect(
+      form.api.saveForm({
+        body: {
+          id: "live",
+          title: "Live",
+          meta: { scoring: { variables: 1 } },
           fields: [{ id: "n", type: "text" }],
         },
       }),

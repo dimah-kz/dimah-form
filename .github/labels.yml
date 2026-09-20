@@ -44,3 +44,7 @@
 - name: pkg:ui
   color: "e99695"
   description: "@dimah-form/ui"
+
+- name: pkg:scoring
+  color: "c2e0c6"
+  description: "@dimah-form/scoring"

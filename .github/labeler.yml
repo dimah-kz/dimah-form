@@ -20,6 +20,10 @@ pkg:ui:
           - packages/ui/**
           - registry.json
 
+pkg:scoring:
+  - changed-files:
+      - any-glob-to-any-file: packages/scoring/**
+
 documentation:
   - changed-files:
       - any-glob-to-any-file:

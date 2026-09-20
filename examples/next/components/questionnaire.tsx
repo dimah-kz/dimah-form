@@ -5,6 +5,7 @@ import { FormRoot, FormView } from "@dimah-form/ui";
 import { useRouter } from "next/navigation";
 
 import { AnswersPreview } from "@/components/answers-preview";
+import { ScoresPreview } from "@/components/scores-preview";
 import {
   Card,
   CardContent,
@@ -83,7 +84,8 @@ export function Questionnaire({
               </CardFooter>
             </Card>
           </FormRoot>
-          <div className="lg:sticky lg:top-6">
+          <div className="flex flex-col gap-4 lg:sticky lg:top-6">
+            <ScoresPreview form={session.snapshot} answers={session.answers} />
             <AnswersPreview
               form={session.snapshot}
               answers={session.answers}

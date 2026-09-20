@@ -188,7 +188,7 @@ export type FormClientApi = {
 };
 
 export type CreateFormClientResult<
-  TPlugins extends readonly FormClientPlugin[] = [],
+  TPlugins extends readonly FormClientPlugin[] = readonly FormClientPlugin[],
   TForms extends Record<string, unknown> = Record<string, unknown>,
   TFieldTypes extends readonly FieldTypeDefinition[] =
     readonly FieldTypeDefinition[],
@@ -250,7 +250,8 @@ const CORE_CLIENT_KEYS = new Set([
  */
 export function createFormClient<
   TServer extends FormServerLike | undefined = undefined,
-  const TPlugins extends readonly FormClientPlugin[] = [],
+  const TPlugins extends readonly FormClientPlugin[] =
+    readonly FormClientPlugin[],
   const TForms extends Record<string, unknown> = Record<string, unknown>,
   const TFieldTypes extends readonly FieldTypeDefinition[] =
     readonly FieldTypeDefinition[],

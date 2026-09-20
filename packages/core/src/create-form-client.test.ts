@@ -353,6 +353,29 @@ describe("createFormClient protocol", () => {
     expect(client.fieldTypes).toEqual([extra]);
   });
 
+  it("accepts client plugins with a server generic", async () => {
+    const plugin = defineClientPlugin({
+      id: "ping",
+      endpoints: ({ $fetch }) => ({
+        ping: () => $fetch<{ ok: true }>("/ping", { method: "GET" }),
+      }),
+    });
+    type Server = {
+      $Infer: {
+        forms: Record<string, never>;
+        answers: Record<string, never>;
+        plugins: [];
+      };
+    };
+    const { fetch, calls } = captureFetch(() => jsonResponse({ ok: true }));
+    const client = createFormClient<Server, [typeof plugin]>({
+      plugins: [plugin],
+      fetch,
+    });
+    await expect(client.ping()).resolves.toEqual({ ok: true });
+    expect(calls[0]?.url).toContain("/ping");
+  });
+
   it("merges client plugin fieldTypes onto the client", () => {
     const rating = defineFieldType({
       type: "rating",
@@ -394,11 +417,7 @@ describe("createFormClient protocol", () => {
       },
     });
     await expect(
-      client.validateAnswers?.(
-        snapshot,
-        { name: "Ada" },
-        "submit",
-      ),
+      client.validateAnswers?.(snapshot, { name: "Ada" }, "submit"),
     ).resolves.toEqual([
       { field: "name", message: "plugin", code: "PLUGIN" },
       { field: "name", message: "user", code: "USER" },

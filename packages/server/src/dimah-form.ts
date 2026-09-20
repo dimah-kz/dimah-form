@@ -17,12 +17,14 @@ import { createFormRouter } from "./api/router";
 import { assertFormsConfig } from "./forms";
 import {
   applyPlugins,
+  mergeDefinitionValidators,
   mergeHooks,
   runPluginInits,
   type PluginEndpointMap,
 } from "./plugin/apply-plugins";
 import type { ResponseStore } from "./store";
 import type {
+  DefinitionValidator,
   DimahFormGuard,
   DimahFormHooks,
   DimahFormMetaSchema,
@@ -33,6 +35,7 @@ import type {
 } from "./types";
 
 export type {
+  DefinitionValidator,
   DimahFormGuard,
   DimahFormHooks,
   DimahFormMetaSchema,
@@ -76,6 +79,11 @@ export type DimahFormConfig<
    * Plugin `validateAnswers` callbacks run first (`dependsOn` order).
    */
   validateAnswers?: AnswersValidator;
+  /**
+   * Whole-document checks after plugin `metaSchema`. Plugin callbacks run
+   * first (`dependsOn` order). Synchronous — runs at init / `saveForm`.
+   */
+  validateDefinition?: DefinitionValidator;
 };
 
 export type DimahForm<
@@ -135,7 +143,11 @@ export function dimahForm<
     applied.validateAnswers,
     config.validateAnswers,
   );
-  assertFormsConfig(forms, fieldTypes, metaSchemas);
+  const validateDefinition = mergeDefinitionValidators(
+    applied.validateDefinition,
+    config.validateDefinition,
+  );
+  assertFormsConfig(forms, fieldTypes, metaSchemas, validateDefinition);
 
   const pluginMap = new Map(
     applied.plugins.map((plugin) => [plugin.id, plugin]),
@@ -154,6 +166,7 @@ export function dimahForm<
     pluginOperations: applied.pluginOperations,
     metaSchemas,
     validateAnswers,
+    validateDefinition,
   };
 
   runPluginInits(applied.plugins, resolved);

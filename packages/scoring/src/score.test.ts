@@ -1,0 +1,467 @@
+import {
+  defineForm,
+  isFormErrorCode,
+  normalizeFormSnapshot,
+  type FormAnswers,
+} from "@dimah-form/core";
+import { describe, expect, it } from "vitest";
+
+import { collectScoringIssues, scoreResponse } from "./score";
+
+const likert = [
+  { value: "0", label: "Not at all", meta: { scoring: { points: 0 } } },
+  { value: "1", label: "Several days", meta: { scoring: { points: 1 } } },
+  {
+    value: "2",
+    label: "More than half the days",
+    meta: { scoring: { points: 2 } },
+  },
+  { value: "3", label: "Nearly every day", meta: { scoring: { points: 3 } } },
+];
+
+function item(
+  id: string,
+  extra?: { reverse?: boolean; showWhen?: { field: string; equals: string } },
+) {
+  return {
+    id,
+    type: "select" as const,
+    options: likert,
+    ...(extra?.showWhen ? { showWhen: extra.showWhen } : {}),
+    meta: {
+      scoring: {
+        variable: "gad7",
+        ...(extra?.reverse ? { reverse: true } : {}),
+      },
+    },
+  };
+}
+
+function gad7(overrides?: {
+  missing?: "zero" | "omit" | "incomplete";
+  fields?: ReturnType<typeof item>[];
+  extraFields?: Record<string, unknown>[];
+}) {
+  const fields = overrides?.fields ?? [
+    item("q1"),
+    item("q2"),
+    item("q3"),
+    item("q4"),
+    item("q5"),
+    item("q6"),
+    item("q7"),
+  ];
+  return normalizeFormSnapshot({
+    id: "gad7",
+    ...defineForm({
+      title: "GAD-7",
+      meta: {
+        scoring: {
+          variables: [
+            {
+              id: "gad7",
+              label: "GAD-7",
+              min: 0,
+              max: 21,
+              ...(overrides?.missing ? { missing: overrides.missing } : {}),
+            },
+          ],
+          bands: [
+            { variable: "gad7", from: 0, to: 4, label: "Minimal" },
+            { variable: "gad7", from: 5, to: 9, label: "Mild" },
+            { variable: "gad7", from: 10, to: 14, label: "Moderate" },
+            { variable: "gad7", from: 15, to: 21, label: "Severe" },
+          ],
+        },
+      },
+      fields: [...fields, ...(overrides?.extraFields ?? [])] as never,
+    }),
+  });
+}
+
+const allTwos: FormAnswers = {
+  q1: "2",
+  q2: "2",
+  q3: "2",
+  q4: "2",
+  q5: "2",
+  q6: "2",
+  q7: "2",
+};
+
+describe("scoreResponse", () => {
+  it("sums GAD-7 select points and assigns a band", () => {
+    const result = scoreResponse(gad7(), allTwos);
+    expect(result.complete).toBe(true);
+    expect(result.variables.gad7).toMatchObject({
+      raw: 14,
+      min: 0,
+      max: 21,
+      missing: 0,
+      complete: true,
+      label: "GAD-7",
+      band: "Moderate",
+    });
+  });
+
+  it("reverses a select item using option min + max - points", () => {
+    const definition = gad7({
+      fields: [item("q1", { reverse: true }), item("q2")],
+    });
+    const result = scoreResponse(definition, { q1: "0", q2: "3" });
+    expect(result.variables.gad7.raw).toBe(6);
+  });
+
+  it("excludes hidden showWhen fields from the sum and missing count", () => {
+    const definition = gad7({
+      fields: [
+        item("q1"),
+        item("q2", { showWhen: { field: "q1", equals: "3" } }),
+      ],
+    });
+    const hidden = scoreResponse(definition, { q1: "0", q2: "3" });
+    expect(hidden.variables.gad7).toMatchObject({
+      raw: 0,
+      missing: 0,
+      complete: true,
+    });
+    const shown = scoreResponse(definition, { q1: "3", q2: "3" });
+    expect(shown.variables.gad7).toMatchObject({
+      raw: 6,
+      missing: 0,
+      complete: true,
+    });
+  });
+
+  it("treats unanswered optional items as 0 when missing is zero", () => {
+    const result = scoreResponse(gad7({ missing: "zero" }), { q1: "3" });
+    expect(result.complete).toBe(true);
+    expect(result.variables.gad7).toMatchObject({
+      raw: 3,
+      missing: 6,
+      complete: true,
+    });
+  });
+
+  it("omits unanswered items and returns null when none are present", () => {
+    const partial = scoreResponse(gad7({ missing: "omit" }), { q1: "3" });
+    expect(partial.complete).toBe(true);
+    expect(partial.variables.gad7).toMatchObject({ raw: 3, missing: 6 });
+    const empty = scoreResponse(gad7({ missing: "omit" }), {});
+    expect(empty.complete).toBe(false);
+    expect(empty.variables.gad7).toMatchObject({ raw: null, missing: 7 });
+  });
+
+  it("defaults missing to incomplete", () => {
+    const result = scoreResponse(gad7(), { q1: "3" });
+    expect(result.complete).toBe(false);
+    expect(result.variables.gad7).toMatchObject({
+      raw: null,
+      missing: 6,
+      complete: false,
+    });
+  });
+
+  it("scores number fields as the numeric value", () => {
+    const definition = normalizeFormSnapshot({
+      id: "n",
+      ...defineForm({
+        title: "N",
+        meta: {
+          scoring: { variables: [{ id: "hours", min: 0, max: 10 }] },
+        },
+        fields: [
+          {
+            id: "hours",
+            type: "number",
+            meta: { scoring: { variable: "hours" } },
+          },
+        ],
+      }),
+    });
+    expect(scoreResponse(definition, { hours: 4 }).variables.hours.raw).toBe(4);
+  });
+
+  it("reverses number fields with variable min/max", () => {
+    const definition = normalizeFormSnapshot({
+      id: "n",
+      ...defineForm({
+        title: "N",
+        meta: {
+          scoring: { variables: [{ id: "hours", min: 0, max: 10 }] },
+        },
+        fields: [
+          {
+            id: "hours",
+            type: "number",
+            meta: { scoring: { variable: "hours", reverse: true } },
+          },
+        ],
+      }),
+    });
+    expect(scoreResponse(definition, { hours: 2 }).variables.hours.raw).toBe(8);
+  });
+
+  it("scores boolean as 1/0 and reverse as 1 - value", () => {
+    const definition = normalizeFormSnapshot({
+      id: "b",
+      ...defineForm({
+        title: "B",
+        meta: { scoring: { variables: [{ id: "ok" }] } },
+        fields: [
+          {
+            id: "ok",
+            type: "boolean",
+            meta: { scoring: { variable: "ok" } },
+          },
+          {
+            id: "flag",
+            type: "boolean",
+            meta: { scoring: { variable: "ok", reverse: true } },
+          },
+        ],
+      }),
+    });
+    expect(
+      scoreResponse(definition, { ok: true, flag: true }).variables.ok.raw,
+    ).toBe(1);
+    expect(
+      scoreResponse(definition, { ok: false, flag: false }).variables.ok.raw,
+    ).toBe(1);
+  });
+
+  it("sums multiSelect option points", () => {
+    const definition = normalizeFormSnapshot({
+      id: "m",
+      ...defineForm({
+        title: "M",
+        meta: { scoring: { variables: [{ id: "total" }] } },
+        fields: [
+          {
+            id: "picks",
+            type: "multiSelect",
+            meta: { scoring: { variable: "total" } },
+            options: [
+              { value: "a", meta: { scoring: { points: 1 } } },
+              { value: "b", meta: { scoring: { points: 2 } } },
+              { value: "c", meta: { scoring: { points: 4 } } },
+            ],
+          },
+        ],
+      }),
+    });
+    expect(
+      scoreResponse(definition, { picks: ["a", "c"] }).variables.total.raw,
+    ).toBe(5);
+    expect(scoreResponse(definition, { picks: [] }).variables.total.raw).toBe(
+      0,
+    );
+  });
+
+  it("reverses each selected multiSelect option using option min + max", () => {
+    const definition = normalizeFormSnapshot({
+      id: "m",
+      ...defineForm({
+        title: "M",
+        meta: { scoring: { variables: [{ id: "total" }] } },
+        fields: [
+          {
+            id: "picks",
+            type: "multiSelect",
+            meta: { scoring: { variable: "total", reverse: true } },
+            options: [
+              { value: "a", meta: { scoring: { points: 1 } } },
+              { value: "b", meta: { scoring: { points: 2 } } },
+              { value: "c", meta: { scoring: { points: 4 } } },
+            ],
+          },
+        ],
+      }),
+    });
+    // min 1, max 4 → reverse(2) = 3
+    expect(
+      scoreResponse(definition, { picks: ["b"] }).variables.total.raw,
+    ).toBe(3);
+  });
+
+  it("uses the snapshot you pass, not a live questionnaire", () => {
+    const started = gad7();
+    const live = gad7({
+      fields: [item("q1"), item("q2")],
+    });
+    const result = scoreResponse(started, allTwos);
+    expect(result.variables.gad7.raw).toBe(14);
+    expect(scoreResponse(live, { q1: "3", q2: "3" }).variables.gad7.raw).toBe(
+      6,
+    );
+  });
+
+  it("is a no-op when meta.scoring is absent", () => {
+    const definition = normalizeFormSnapshot({
+      id: "plain",
+      ...defineForm({
+        title: "Plain",
+        fields: [{ id: "n", type: "text" }],
+      }),
+    });
+    expect(scoreResponse(definition, { n: "Ada" })).toEqual({
+      variables: {},
+      complete: true,
+    });
+    expect(collectScoringIssues(definition)).toEqual([]);
+  });
+
+  it("sums formulas from variable raws", () => {
+    const definition = normalizeFormSnapshot({
+      id: "f",
+      ...defineForm({
+        title: "F",
+        meta: {
+          scoring: {
+            variables: [
+              { id: "a", max: 3 },
+              { id: "b", max: 3 },
+            ],
+            formulas: [{ id: "total", op: "sum", vars: ["a", "b"] }],
+            bands: [{ variable: "total", from: 4, label: "High" }],
+          },
+        },
+        fields: [
+          {
+            id: "q1",
+            type: "select",
+            options: likert,
+            meta: { scoring: { variable: "a" } },
+          },
+          {
+            id: "q2",
+            type: "select",
+            options: likert,
+            meta: { scoring: { variable: "b" } },
+          },
+        ],
+      }),
+    });
+    const result = scoreResponse(definition, { q1: "2", q2: "3" });
+    expect(result.variables.a.raw).toBe(2);
+    expect(result.variables.b.raw).toBe(3);
+    expect(result.variables.total).toMatchObject({
+      raw: 5,
+      max: 6,
+      band: "High",
+      complete: true,
+    });
+  });
+
+  it("leaves a formula incomplete when a source variable is incomplete", () => {
+    const definition = normalizeFormSnapshot({
+      id: "f",
+      ...defineForm({
+        title: "F",
+        meta: {
+          scoring: {
+            variables: [{ id: "a" }, { id: "b" }],
+            formulas: [{ id: "total", op: "sum", vars: ["a", "b"] }],
+          },
+        },
+        fields: [
+          {
+            id: "q1",
+            type: "select",
+            options: likert,
+            meta: { scoring: { variable: "a" } },
+          },
+          {
+            id: "q2",
+            type: "select",
+            options: likert,
+            meta: { scoring: { variable: "b" } },
+          },
+        ],
+      }),
+    });
+    const result = scoreResponse(definition, { q1: "2" });
+    expect(result.variables.a.raw).toBe(2);
+    expect(result.variables.b).toMatchObject({ raw: null, complete: false });
+    expect(result.variables.total).toMatchObject({
+      raw: null,
+      complete: false,
+      missing: 1,
+    });
+    expect(result.complete).toBe(false);
+  });
+});
+
+describe("collectScoringIssues", () => {
+  it("reports unknown variables, missing option points, and unsupported types", () => {
+    const definition = normalizeFormSnapshot({
+      id: "bad",
+      ...defineForm({
+        title: "Bad",
+        meta: { scoring: { variables: [{ id: "gad7" }] } },
+        fields: [
+          {
+            id: "q1",
+            type: "select",
+            options: [{ value: "0" }],
+            meta: { scoring: { variable: "nope" } },
+          },
+          {
+            id: "note",
+            type: "text",
+            meta: { scoring: { variable: "gad7" } },
+          },
+        ],
+      }),
+    });
+    const codes = collectScoringIssues(definition).map((issue) => issue.code);
+    expect(codes).toContain("SCORING_UNKNOWN_VARIABLE");
+    expect(codes).toContain("SCORING_MISSING_POINTS");
+    expect(codes).toContain("SCORING_UNSUPPORTED_TYPE");
+  });
+
+  it("rejects field scoring when form meta.scoring is absent", () => {
+    const definition = normalizeFormSnapshot({
+      id: "plain",
+      ...defineForm({
+        title: "Plain",
+        fields: [
+          {
+            id: "q1",
+            type: "select",
+            options: [{ value: "0", meta: { scoring: { points: 0 } } }],
+            meta: { scoring: { variable: "gad7" } },
+          },
+        ],
+      }),
+    });
+    const codes = collectScoringIssues(definition).map((issue) => issue.code);
+    expect(codes).toContain("SCORING_FORM_REQUIRED");
+  });
+
+  it("throws those codes from scoreResponse", () => {
+    const definition = normalizeFormSnapshot({
+      id: "bad",
+      ...defineForm({
+        title: "Bad",
+        meta: { scoring: { variables: [{ id: "gad7" }] } },
+        fields: [
+          {
+            id: "q1",
+            type: "select",
+            options: [{ value: "0", meta: { scoring: { points: 0 } } }],
+            meta: { scoring: { variable: "missing" } },
+          },
+        ],
+      }),
+    });
+    expect(() => scoreResponse(definition, { q1: "0" })).toThrow();
+    let error: unknown;
+    try {
+      scoreResponse(definition, { q1: "0" });
+    } catch (caught) {
+      error = caught;
+    }
+    expect(isFormErrorCode(error, "SCORING_UNKNOWN_VARIABLE")).toBe(true);
+  });
+});

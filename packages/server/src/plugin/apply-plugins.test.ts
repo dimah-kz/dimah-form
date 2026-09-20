@@ -239,4 +239,34 @@ describe("applyPlugins", () => {
     ]);
     expect(order).toEqual(["a", "b"]);
   });
+
+  it("chains plugin validateDefinition in dependsOn order", () => {
+    const order: string[] = [];
+    const applied = applyPlugins([
+      {
+        id: "b",
+        dependsOn: ["a"],
+        validateDefinition: () => {
+          order.push("b");
+          return [{ field: "b", message: "b", code: "B" }];
+        },
+      },
+      {
+        id: "a",
+        validateDefinition: () => {
+          order.push("a");
+          return [{ field: "a", message: "a", code: "A" }];
+        },
+      },
+    ]);
+    expect(
+      applied.validateDefinition?.({
+        fields: [],
+      }),
+    ).toEqual([
+      { field: "a", message: "a", code: "A" },
+      { field: "b", message: "b", code: "B" },
+    ]);
+    expect(order).toEqual(["a", "b"]);
+  });
 });

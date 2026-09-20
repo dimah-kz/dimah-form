@@ -48,7 +48,7 @@ type ResolveFormResponseAnswers<T, TAnswersMap> = [T] extends [
     : FormAnswers;
 
 export type FormClient<
-  TPlugins extends readonly FormClientPlugin[] = [],
+  TPlugins extends readonly FormClientPlugin[] = readonly FormClientPlugin[],
   TForms extends Record<string, unknown> = Record<string, unknown>,
   TFieldTypes extends readonly FieldTypeDefinition[] =
     readonly FieldTypeDefinition[],
@@ -97,7 +97,8 @@ export type FormClient<
  */
 export function createFormClient<
   TServer extends FormServerLike | undefined = undefined,
-  const TPlugins extends readonly FormClientPlugin[] = [],
+  const TPlugins extends readonly FormClientPlugin[] =
+    readonly FormClientPlugin[],
   const TForms extends Record<string, unknown> = Record<string, unknown>,
   const TFieldTypes extends readonly FieldTypeDefinition[] =
     readonly FieldTypeDefinition[],

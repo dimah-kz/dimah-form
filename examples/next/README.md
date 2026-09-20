@@ -4,12 +4,13 @@ Workspace demo of `@dimah-form/ui` on a headless `useFormResponse` session. Cust
 `rating` is a server validator plus a widget — not a library field.
 
 ```
-lib/form.ts              dimahForm() + database
-lib/client.ts            createFormClient<Form>()
-lib/forms.ts             defineForm
+lib/form.ts              dimahForm() + database + scoringPlugin
+lib/client.ts            createFormClient<Form>() + scoringClientPlugin
+lib/forms/               defineForm (feedback, onboarding, GAD-7)
 lib/field-types.ts       defineFieldType("rating")
 components/providers.tsx theme + FormUiProvider
 components/questionnaire.tsx  FormView + chrome around app layout
+components/scores-preview.tsx live score from snapshot + answers
 components/fields/       widget for type "rating" (same string as the validator)
 ```
 
@@ -31,8 +32,8 @@ pnpm --filter @dimah-form/example-next dev
 
 Open http://localhost:3000 — header toggle switches light / dark (`next-themes`).
 
-- `/` — catalog. Feedback is a single page; Onboarding is a stepped wizard (`meta.step`)
+- `/` — catalog. Feedback is a single page; Onboarding is a stepped wizard (`meta.step`); GAD-7 is a scored Likert questionnaire (`@dimah-form/scoring`)
 - `/f/:formId` fills one questionnaire. Built-in types plus `showWhen`; `rating` is the only custom type
 - Save draft patches answers; Submit replaces them. Both send `updatedAt` for optimistic concurrency
 - `/responses` lists stored answers (`include=full`)
-- `/r/:id` resumes a draft or shows a submitted / abandoned response. Edit calls `reopenResponse` (same snapshot and answers)
+- `/r/:id` resumes a draft or shows a submitted / abandoned response. Edit calls `reopenResponse` (same snapshot and answers). GAD-7 shows a live score from the snapshot, not from `answers`

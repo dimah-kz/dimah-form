@@ -24,17 +24,18 @@ export const form = dimahForm({
 
 ### Configuration Options
 
-| Option                | Type                                  | Required | Default       | Description                                                                                                                            |
-| :-------------------- | :------------------------------------ | :------- | :------------ | :------------------------------------------------------------------------------------------------------------------------------------- |
-| **`database`**        | `ResponseStore`                       | **Yes**  | —             | Persistence adapter (`memoryAdapter()`, `db(formDb)` from `@dimah-form/db`, or a custom `ResponseStore`).                              |
-| **`forms`**           | `Record<string, FormDefinitionInput>` | No       | `{}`          | Catalog of code-authored forms created with `defineForm()`. Feeds `$Infer`.                                                            |
-| **`fieldTypes`**      | `FieldTypeDefinition[]`               | No       | `[]`          | Custom field type definitions created with `defineFieldType()`.                                                                        |
-| **`basePath`**        | `string`                              | No       | `"/api/form"` | Base path prefix for HTTP route mounting.                                                                                              |
-| **`guard`**           | `DimahFormGuard`                      | No       | `undefined`   | Security callback executed before every query or mutation.                                                                             |
-| **`hooks`**           | `DimahFormHooks`                      | No       | `{}`          | Pre-write (`onStart`, `onSaveDraft`, `onSubmit`, …) and post-write (`afterStart`, `afterSaveDraft`, `afterSubmit`, …) lifecycle hooks. |
-| **`validateAnswers`** | `AnswersValidator`                    | No       | `undefined`   | Custom cross-field validation. Plugin callbacks run first (`dependsOn` order), then this function.                                     |
-| **`plugins`**         | `DimahFormPlugin[]`                   | No       | `[]`          | Server plugins created with `definePlugin()`. Merge endpoints, hooks, field types, error codes, `metaSchema`, and `validateAnswers`.   |
-| **`metaSchema`**      | `DimahFormMetaSchema`                 | No       | `undefined`   | Zod schemas for the whole `meta` bag on forms, fields, and options. Plugin namespaced schemas run first, then this bag.                |
+| Option                   | Type                                  | Required | Default       | Description                                                                                                                                                |
+| :----------------------- | :------------------------------------ | :------- | :------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`database`**           | `ResponseStore`                       | **Yes**  | —             | Persistence adapter (`memoryAdapter()`, `db(formDb)` from `@dimah-form/db`, or a custom `ResponseStore`).                                                  |
+| **`forms`**              | `Record<string, FormDefinitionInput>` | No       | `{}`          | Catalog of code-authored forms created with `defineForm()`. Feeds `$Infer`.                                                                                |
+| **`fieldTypes`**         | `FieldTypeDefinition[]`               | No       | `[]`          | Custom field type definitions created with `defineFieldType()`.                                                                                            |
+| **`basePath`**           | `string`                              | No       | `"/api/form"` | Base path prefix for HTTP route mounting.                                                                                                                  |
+| **`guard`**              | `DimahFormGuard`                      | No       | `undefined`   | Security callback executed before every query or mutation.                                                                                                 |
+| **`hooks`**              | `DimahFormHooks`                      | No       | `{}`          | Pre-write (`onStart`, `onSaveDraft`, `onSubmit`, …) and post-write (`afterStart`, `afterSaveDraft`, `afterSubmit`, …) lifecycle hooks.                     |
+| **`validateAnswers`**    | `AnswersValidator`                    | No       | `undefined`   | Custom cross-field validation. Plugin callbacks run first (`dependsOn` order), then this function.                                                         |
+| **`validateDefinition`** | `DefinitionValidator`                 | No       | `undefined`   | Whole-document checks after plugin `metaSchema`. Plugin callbacks run first, then this function. Init / `saveForm` only.                                   |
+| **`plugins`**            | `DimahFormPlugin[]`                   | No       | `[]`          | Server plugins created with `definePlugin()`. Merge endpoints, hooks, field types, error codes, `metaSchema`, `validateAnswers`, and `validateDefinition`. |
+| **`metaSchema`**         | `DimahFormMetaSchema`                 | No       | `undefined`   | Zod schemas for the whole `meta` bag on forms, fields, and options. Plugin namespaced schemas run first, then this bag.                                    |
 
 ---
 

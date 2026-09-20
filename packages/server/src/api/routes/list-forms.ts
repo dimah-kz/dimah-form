@@ -35,6 +35,7 @@ export const listForms = createFormEndpoint(
               form,
               ctx.context.config.fieldTypes,
               ctx.context.config.metaSchemas,
+              ctx.context.config.validateDefinition,
             ),
           );
         } catch {

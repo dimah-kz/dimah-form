@@ -1,6 +1,6 @@
 ---
 description: Library packages — placement and protocol sync; read docs/agents when changing published behavior
-globs: packages/core/**/*,packages/server/**/*,packages/react/**/*,packages/db/**/*
+globs: packages/core/**/*,packages/server/**/*,packages/react/**/*,packages/db/**/*,packages/scoring/**/*
 alwaysApply: false
 ---
 

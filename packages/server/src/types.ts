@@ -10,6 +10,7 @@ import type {
   FormSnapshot,
   MaybePromise,
   ResponseRecord,
+  ValidationIssue,
 } from "@dimah-form/core";
 
 import type { ResponseStore } from "./store";
@@ -99,6 +100,15 @@ export type PluginInitResult = {
 };
 
 /**
+ * Whole-document checks after per-bag `metaSchema`. Synchronous.
+ * Used for cross-field plugin rules (e.g. `meta.scoring` variable refs).
+ */
+export type DefinitionValidator = (form: {
+  meta?: unknown;
+  fields: readonly Record<string, unknown>[];
+}) => ValidationIssue[] | void;
+
+/**
  * Additive feature plugin. Persistence is `database`, not a plugin.
  *
  * Prefer a factory that closes over options and returns {@link definePlugin}.
@@ -135,6 +145,12 @@ export type DimahFormPlugin<
    * order, then `dimahForm({ validateAnswers })`.
    */
   validateAnswers?: AnswersValidator;
+  /**
+   * Whole-document checks after namespaced `metaSchema`. Chained in
+   * `dependsOn` order, then `dimahForm({ validateDefinition })`. Runs at
+   * init / `saveForm`. Must be synchronous.
+   */
+  validateDefinition?: DefinitionValidator;
   /**
    * Phantom authoring types for `createDefineForm({ plugins })` and
    * `FormDefinitionUi<typeof fieldTypes, typeof plugins>`. Prefer
@@ -173,4 +189,5 @@ export type ResolvedDimahFormConfig = {
   pluginOperations: ReadonlyMap<string, string>;
   metaSchemas: readonly AppliedMetaSchema[];
   validateAnswers?: AnswersValidator;
+  validateDefinition?: DefinitionValidator;
 };

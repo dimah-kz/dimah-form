@@ -17,6 +17,7 @@
     "@dimah-form/core": "workspace:*",
     "@dimah-form/db": "workspace:*",
     "@dimah-form/react": "workspace:*",
+    "@dimah-form/scoring": "workspace:*",
     "@dimah-form/server": "workspace:*",
     "@dimah-form/ui": "workspace:*",
     "@fuma-translate/react": "^1.0.2",

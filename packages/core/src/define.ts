@@ -124,8 +124,7 @@ export function createDefineForm<
   const TPlugins extends readonly PluginMetaSource[] = [],
 >(_options?: CreateDefineFormOptions<TFieldTypes, TPlugins>) {
   type MergedFields = readonly (
-    | TFieldTypes[number]
-    | PluginFieldTypeUnion<TPlugins>
+    TFieldTypes[number] | PluginFieldTypeUnion<TPlugins>
   )[];
   type MergedMeta = MergeFormMeta<TMeta, PluginMetaMap<TPlugins>>;
   return function defineTypedForm<const T extends FormDefinitionInput>(

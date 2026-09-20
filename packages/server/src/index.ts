@@ -5,6 +5,7 @@ export {
   type DimahFormPlugin,
   type DimahFormHooks,
   type DimahFormMetaSchema,
+  type DefinitionValidator,
   type PluginInitContext,
   type PluginInitResult,
 } from "./dimah-form";

@@ -1,3 +1,4 @@
+import { hasScoringMeta } from "@dimah-form/scoring/client";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -47,21 +48,26 @@ export default async function Page() {
       <div>
         <h1 className="font-medium">Forms</h1>
         <p className="text-sm text-muted-foreground">
-          One single-page questionnaire and one stepped wizard. Each keeps its
-          own draft.
+          Feedback, a stepped onboarding wizard, and a scored GAD-7. Each keeps
+          its own draft.
         </p>
       </div>
       <ul className="grid gap-4 sm:grid-cols-2">
         {listed.forms.map((item) => {
           const stepped = isStepped(item.fields);
+          const scored = hasScoringMeta(item);
           return (
             <li key={item.id}>
               <Card className="h-full">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     {item.title}
-                    <Badge variant={stepped ? "default" : "secondary"}>
-                      {stepped ? "Stepped" : "Single page"}
+                    <Badge
+                      variant={
+                        scored ? "default" : stepped ? "default" : "secondary"
+                      }
+                    >
+                      {scored ? "Scored" : stepped ? "Stepped" : "Single page"}
                     </Badge>
                   </CardTitle>
                   <CardDescription>

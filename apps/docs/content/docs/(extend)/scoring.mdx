@@ -1,0 +1,189 @@
+---
+title: Scoring
+description: Likert and subscale totals from option points, computed from the response snapshot.
+icon: Gauge
+---
+
+`@dimah-form/scoring` is the first-party plugin for psychological / Likert / scale questionnaires. Named variables accumulate points from field options (and mapped number / boolean fields). After fill you get totals plus optional interpretation bands.
+
+Scores are **derived**. They are never written into `answers`. The plugin does not add tables. Compute from the **response definition snapshot** and stored answers — never the live questionnaire.
+
+---
+
+## Install
+
+```bash
+pnpm add @dimah-form/scoring
+```
+
+```ts title="lib/form.ts"
+import { scoringPlugin } from "@dimah-form/scoring";
+import { dimahForm } from "@dimah-form/server";
+
+export const form = dimahForm({
+  database,
+  forms,
+  plugins: [scoringPlugin()],
+});
+```
+
+```ts title="lib/client.ts"
+"use client";
+
+import { createFormClient } from "@dimah-form/react";
+import { scoringClientPlugin } from "@dimah-form/scoring/client";
+import type { Form } from "@/lib/form";
+
+export const formClient = createFormClient<Form>({
+  plugins: [scoringClientPlugin()],
+});
+```
+
+Import the server factory from `@dimah-form/scoring` and the browser companion from `@dimah-form/scoring/client`. Persist to **your** database in `onScore` if you need a column — the library will not store scores.
+
+```ts
+scoringPlugin({
+  onScore: async ({ response, scores }) => {
+    await db.insert(results).values({
+      responseId: response.id,
+      payload: scores,
+    });
+  },
+});
+```
+
+`onScore` runs from `afterSubmit` (after persist). Do not mutate `response.answers`. Throwing fails the submit HTTP response after the row is already stored.
+
+---
+
+## Author a scored form
+
+Own the `scoring` namespace on the opaque `meta` bag. Use built-in `select` plus `meta.widget: "radio"` for Likert items — do not add a `likert` field type.
+
+```ts title="lib/forms/gad7.ts"
+import { scoringPlugin } from "@dimah-form/scoring";
+import { createDefineForm } from "@dimah-form/server";
+import type { FormDefinitionUi } from "@dimah-form/ui/types";
+import { fieldTypes } from "@/lib/field-types";
+
+const plugins = [scoringPlugin()] as const;
+const defineAppForm = createDefineForm({ fieldTypes, plugins });
+
+const likert = [
+  { value: "0", label: "Not at all", meta: { scoring: { points: 0 } } },
+  { value: "1", label: "Several days", meta: { scoring: { points: 1 } } },
+  {
+    value: "2",
+    label: "More than half the days",
+    meta: { scoring: { points: 2 } },
+  },
+  { value: "3", label: "Nearly every day", meta: { scoring: { points: 3 } } },
+];
+
+export const gad7 = defineAppForm({
+  title: "GAD-7",
+  meta: {
+    scoring: {
+      variables: [{ id: "gad7", label: "GAD-7", min: 0, max: 21 }],
+      bands: [
+        { variable: "gad7", from: 0, to: 4, label: "Minimal" },
+        { variable: "gad7", from: 5, to: 9, label: "Mild" },
+        { variable: "gad7", from: 10, to: 14, label: "Moderate" },
+        { variable: "gad7", from: 15, to: 21, label: "Severe" },
+      ],
+    },
+  },
+  fields: [
+    {
+      id: "q1",
+      type: "select",
+      required: true,
+      label: "Feeling nervous, anxious, or on edge",
+      options: likert,
+      meta: { widget: "radio", scoring: { variable: "gad7" } },
+    },
+  ],
+} satisfies FormDefinitionUi<typeof fieldTypes, typeof plugins>);
+```
+
+`createDefineForm({ plugins })` types `meta.scoring`. `satisfies FormDefinitionUi<…, typeof plugins>` adds UI keys (`widget`) next to the namespace. Forms without `meta.scoring` still init — the namespaced schema runs only when the key is present.
+
+### Contributors
+
+| Field type    | Points                                    |
+| :------------ | :---------------------------------------- |
+| `select`      | Chosen option's `meta.scoring.points`     |
+| `multiSelect` | Sum of selected option points (`[]` is 0) |
+| `number`      | The numeric value                         |
+| `boolean`     | `true` → 1, `false` → 0                   |
+
+Hidden `showWhen` fields do not contribute and do not count as missing.
+
+### Reverse scoring
+
+`reversed = min + max - points`.
+
+- **select / multiSelect** — min/max are **that field's** option points (a 0–3 item on a 0–21 scale reverses as `3 − points`).
+- **number** — min is `variable.min ?? 0`; `variable.max` is required when `reverse` is true.
+- **boolean** — `1 − value`.
+
+Set `meta.scoring.reverse: true` on the field.
+
+### Missing items
+
+`variables[].missing` defaults to `"incomplete"`:
+
+| Policy                     | Unanswered visible items                                    |
+| :------------------------- | :---------------------------------------------------------- |
+| **`incomplete`** (default) | `raw` is `null`, `complete` is false                        |
+| **`zero`**                 | Count as 0 (running Likert total)                           |
+| **`omit`**                 | Drop from the sum; `raw` is `null` only when nothing scored |
+
+Prefer the default for clinical totals. Set `zero` when a running quiz score is the product.
+
+### Bands and optional sums
+
+Bands are interpretation, not scoring. `from` / `to` are inclusive; omit either for an open end. The first matching band in document order wins.
+
+Optional typed sums — not a formula language, and never `eval`:
+
+```ts
+formulas: [{ id: "total", op: "sum", vars: ["subscaleA", "subscaleB"] }];
+```
+
+---
+
+## Read scores
+
+```ts
+import { scoreResponse } from "@dimah-form/scoring/client";
+
+const live = scoreResponse(session.snapshot, session.answers);
+const stored = await formClient.getResponseScores({ responseId });
+const fromApi = await form.api.getResponseScores({
+  query: { responseId },
+});
+```
+
+Pass the **snapshot** you are filling or the stored `response.definition`. Live preview during fill is `scoreResponse(session.snapshot, session.answers)` — do not fork `useFormResponse`.
+
+```ts
+{
+  complete: boolean,
+  variables: {
+    gad7: {
+      raw: number | null,
+      min?: number,
+      max?: number,
+      missing: number,
+      band?: string,
+      complete: boolean,
+      label?: string,
+    },
+  },
+}
+```
+
+Guard operation for `GET /scoring/response` is `getResponseScores`. Document validity (unknown variables, missing option points) is checked at `dimahForm()` / `saveForm` via `metaSchema` + `validateDefinition`. Scoring is not answer validation.
+
+Malformed mapping uses stable codes such as `SCORING_UNKNOWN_VARIABLE` and `SCORING_MISSING_POINTS` (`form.$ERROR_CODES`).

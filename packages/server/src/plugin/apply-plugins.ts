@@ -18,6 +18,7 @@ import type { Endpoint } from "better-call";
 import { CORE_ENDPOINT_NAMES } from "@/api/routes";
 import {
   FORM_HOOK_KEYS,
+  type DefinitionValidator,
   type DimahFormHooks,
   type DimahFormPlugin,
   type ResolvedDimahFormConfig,
@@ -52,6 +53,7 @@ export type AppliedPlugins = {
   pluginOperations: Map<string, string>;
   metaSchemas: AppliedMetaSchema[];
   validateAnswers?: AnswersValidator;
+  validateDefinition?: DefinitionValidator;
 };
 
 function routeKey(endpoint: Endpoint) {
@@ -72,6 +74,33 @@ function chainHooks<Context>(
   };
 }
 
+function chainDefinitionValidators(
+  ...validators: (DefinitionValidator | undefined)[]
+): DefinitionValidator | undefined {
+  const present = validators.filter(
+    (validator): validator is DefinitionValidator => validator != null,
+  );
+  if (present.length === 0) return undefined;
+  if (present.length === 1) return present[0];
+  return (form) => {
+    const issues: NonNullable<ReturnType<DefinitionValidator>> = [];
+    for (const validator of present) {
+      const extra = validator(form);
+      if (extra) {
+        for (const item of extra) issues.push(item);
+      }
+    }
+    return issues.length > 0 ? issues : undefined;
+  };
+}
+
+export function mergeDefinitionValidators(
+  pluginValidator: DefinitionValidator | undefined,
+  userValidator: DefinitionValidator | undefined,
+): DefinitionValidator | undefined {
+  return chainDefinitionValidators(pluginValidator, userValidator);
+}
+
 export function mergeHookBags(bags: DimahFormHooks[]): DimahFormHooks {
   return Object.fromEntries(
     FORM_HOOK_KEYS.map((key) => [
@@ -88,8 +117,8 @@ const builtinTypeNames = new Set<string>(
 /**
  * Validate plugins, honor `dependsOn`, collect endpoints / field types /
  * error codes / meta schemas, and chain plugin hooks and `validateAnswers`.
- * User config hooks / `validateAnswers` / `metaSchema` are chained
- * afterwards in `dimahForm()`.
+ * User config hooks / `validateAnswers` / `validateDefinition` /
+ * `metaSchema` are chained afterwards in `dimahForm()`.
  */
 export function applyPlugins(
   plugins: readonly DimahFormPlugin[] | undefined,
@@ -123,6 +152,7 @@ export function applyPlugins(
   const namespaceOwner = new Map<string, string>();
   const metaSchemas: AppliedMetaSchema[] = [];
   const validators: AnswersValidator[] = [];
+  const definitionValidators: DefinitionValidator[] = [];
 
   for (const plugin of sorted) {
     if (plugin.hooks) {
@@ -130,6 +160,9 @@ export function applyPlugins(
     }
     if (plugin.validateAnswers) {
       validators.push(plugin.validateAnswers);
+    }
+    if (plugin.validateDefinition) {
+      definitionValidators.push(plugin.validateDefinition);
     }
 
     let namespace: string | undefined;
@@ -200,6 +233,7 @@ export function applyPlugins(
     pluginOperations,
     metaSchemas,
     validateAnswers: chainAnswersValidators(...validators),
+    validateDefinition: chainDefinitionValidators(...definitionValidators),
   };
 }
 

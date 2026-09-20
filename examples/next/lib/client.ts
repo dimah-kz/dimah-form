@@ -1,11 +1,15 @@
 "use client";
 
 import { createFormClient } from "@dimah-form/react";
+import { scoringClientPlugin } from "@dimah-form/scoring/client";
 
 import type { Form } from "./form";
 import { fieldTypes } from "./field-types";
 
-export const formClient = createFormClient<Form>({ fieldTypes });
+export const formClient = createFormClient<Form>({
+  fieldTypes,
+  plugins: [scoringClientPlugin()],
+});
 export const { useFormClient, useFormResponse } = formClient;
 
 export function respondentId() {

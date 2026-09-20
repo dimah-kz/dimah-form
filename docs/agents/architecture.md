@@ -8,8 +8,9 @@ Backend-first questionnaire engine. Consumers own auth and the database adapter.
 @dimah-form/core
         ↓
     @dimah-form/server | @dimah-form/react  ←  @dimah-form/ui
-        ↑
-@dimah-form/db  (peer: server — `db()` adapter for `database`)
+        ↑                    ↑
+@dimah-form/db         @dimah-form/scoring
+(peer: server)         (peer: server / core)
 ```
 
 `apps/docs` and `examples/*` consume workspace packages (not published). Registry item manifests: `packages/ui/scripts/` (see [registry.md](./registry.md)).
@@ -18,19 +19,20 @@ Backend-first questionnaire engine. Consumers own auth and the database adapter.
 
 Edit the **smallest package that owns the behavior**. Search that package before adding files.
 
-| Package  | Owns                                                            |
-| -------- | --------------------------------------------------------------- |
-| `core`   | Protocol, `createFormClient`, fill session, errors, field types |
-| `server` | HTTP, `dimahForm()`, server plugins, adapters                   |
-| `react`  | Thin client hooks / `useFormResponse`                           |
-| `ui`     | Optional components + registry source                           |
-| `db`     | FumaDB `database` adapter                                       |
+| Package   | Owns                                                            |
+| --------- | --------------------------------------------------------------- |
+| `core`    | Protocol, `createFormClient`, fill session, errors, field types |
+| `server`  | HTTP, `dimahForm()`, server plugins, adapters                   |
+| `react`   | Thin client hooks / `useFormResponse`                           |
+| `ui`      | Optional components + registry source                           |
+| `db`      | FumaDB `database` adapter                                       |
+| `scoring` | Official Likert / subscale plugin (`meta.scoring`)              |
 
 Shared protocol changes start in `core`, then wire `server` and `react`. Do not copy a parallel schema or URL string into another package.
 
 ## Product shape
 
-- Config is instance-based: `dimahForm({ fieldTypes, forms, database, plugins, hooks, guard, metaSchema, validateAnswers })`.
+- Config is instance-based: `dimahForm({ fieldTypes, forms, database, plugins, hooks, guard, metaSchema, validateAnswers, validateDefinition })`.
 - Field types are registered on the instance. `defineForm` does not take `fieldTypes` at runtime. Optional `fieldSchema` on `defineFieldType` validates the field document at init / `saveForm` and feeds `FormDefinitionFor` / `createDefineForm({ fieldTypes })` (type-only).
 - Optional `meta` on the form, field, and option documents is an opaque JSON object for consumer UI and plugin namespaces. Type-specific keys stay on the field document (boolean `unsetOnOff` is one). Optional `metaSchema.form` / `field` / `option` on `dimahForm()` and on plugins validate that bag at init / `saveForm`. Plugin `metaNamespace` owns one key (`meta.scoring`). `@dimah-form/ui` types the bag as `FormDefinitionUi<typeof fieldTypes, typeof plugins>` (`satisfies` on `defineForm` / `createDefineForm`; import from `@dimah-form/ui/types` on the server). `createDefineForm({ fieldTypes, plugins })` merges plugin field types and `$Meta`.
 - Snapshots include `slug` (defaults to `id`) and `status` (`draft` \| `active` \| `archived`). Only `active` forms can be started. `getForm` / `startResponse` accept id or slug.
@@ -43,7 +45,7 @@ Shared protocol changes start in `core`, then wire `server` and `react`. Do not 
 - Browser `$Infer` is `createFormClient<typeof form>({ fieldTypes })` (type-only). Apps import from `server` or `react`; `core` is protocol/plugin internals and shared field-type modules.
 - Each response stores the definition it was started with. Submit validates that snapshot. Starting a response does not rewrite the live questionnaire row.
 - Custom fields are `defineFieldType` validators in `core` (optional `format` for `formatAnswer`). Optional UI widgets register by the same `type` string, or a `meta.widget` key. `@dimah-form/ui` types the `meta` bag as `FormDefinitionUi<typeof fieldTypes>` (`@dimah-form/ui/types` on the server).
-- Server plugins may add `endpoints`, `hooks`, `fieldTypes`, `$ERROR_CODES`, `metaSchema` / `metaNamespace`, `validateAnswers`, and phantom `$Meta`. Optional `dependsOn` (topological order), `options`, and synchronous `init` (`basePath`, `fieldTypes`, `getPluginContext`). `metaSchema` and `validateAnswers` merge in `dimahForm()` like field types and hooks. Namespaced `meta` schemas run on `meta[namespace]` only when that key is present. Browser companions use `defineClientPlugin` on `createFormClient({ plugins })` and may list the same `fieldTypes`, `validateAnswers`, and `$Meta`. They are not inferred from the server plugin.
+- Server plugins may add `endpoints`, `hooks`, `fieldTypes`, `$ERROR_CODES`, `metaSchema` / `metaNamespace`, `validateAnswers`, `validateDefinition`, and phantom `$Meta`. Optional `dependsOn` (topological order), `options`, and synchronous `init` (`basePath`, `fieldTypes`, `getPluginContext`). `metaSchema`, `validateAnswers`, and `validateDefinition` merge in `dimahForm()` like field types and hooks. Namespaced `meta` schemas run on `meta[namespace]` only when that key is present. Browser companions use `defineClientPlugin` on `createFormClient({ plugins })` and may list the same `fieldTypes`, `validateAnswers`, and `$Meta`. They are not inferred from the server plugin.
 
 ## Pre-v1
 

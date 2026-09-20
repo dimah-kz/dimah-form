@@ -1,4 +1,5 @@
 import { db } from "@dimah-form/db";
+import { scoringPlugin } from "@dimah-form/scoring";
 import { dimahForm } from "@dimah-form/server";
 
 import { formDb } from "./db";
@@ -9,6 +10,7 @@ export const form = dimahForm({
   database: db(formDb),
   fieldTypes,
   forms,
+  plugins: [scoringPlugin()],
 });
 
 export type Form = typeof form;

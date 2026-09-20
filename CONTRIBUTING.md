@@ -36,7 +36,7 @@ pnpm --filter @dimah-form/core check-types
 
 Use the **Bug report**, **Feature request**, or **Documentation** forms. Do not file public issues for security problems — see [SECURITY.md](./SECURITY.md).
 
-PRs that touch a published package are labeled `pkg:core`, `pkg:server`, `pkg:db`, `pkg:react`, or `pkg:ui` from the changed paths.
+PRs that touch a published package are labeled `pkg:core`, `pkg:server`, `pkg:db`, `pkg:react`, `pkg:ui`, or `pkg:scoring` from the changed paths.
 
 ## Contribution workflow
 

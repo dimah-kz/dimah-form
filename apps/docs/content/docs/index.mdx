@@ -45,17 +45,18 @@ The problems it is built around:
 @dimah-form/core
         ↓
 @dimah-form/server  ←  @dimah-form/db (optional)
-        │
+        │           ←  @dimah-form/scoring (optional plugin)
 @dimah-form/react  ←  @dimah-form/ui (optional)
 ```
 
-| Package                  | Where                    | What you import it for                                                                                                            |
-| :----------------------- | :----------------------- | :-------------------------------------------------------------------------------------------------------------------------------- |
-| **`@dimah-form/core`**   | Protocol / plugins       | Route schemas and plugin internals. Apps import from `server` / `react` instead. Shared `defineFieldType` modules may use `core`. |
-| **`@dimah-form/server`** | Node / Edge              | `dimahForm()`, HTTP adapters, `form.api`, `memoryAdapter()`, app protocol helpers.                                                |
-| **`@dimah-form/react`**  | Browser (`"use client"`) | `createFormClient()`, `useFormResponse()`, field helpers.                                                                         |
-| **`@dimah-form/ui`**     | Browser                  | Optional. shadcn renderer (`FormView` / `FormField`). Use `@dimah-form/ui/types` on the server.                                   |
-| **`@dimah-form/db`**     | Server                   | Optional. Production SQL adapter via FumaDB.                                                                                      |
+| Package                   | Where                    | What you import it for                                                                                                            |
+| :------------------------ | :----------------------- | :-------------------------------------------------------------------------------------------------------------------------------- |
+| **`@dimah-form/core`**    | Protocol / plugins       | Route schemas and plugin internals. Apps import from `server` / `react` instead. Shared `defineFieldType` modules may use `core`. |
+| **`@dimah-form/server`**  | Node / Edge              | `dimahForm()`, HTTP adapters, `form.api`, `memoryAdapter()`, app protocol helpers.                                                |
+| **`@dimah-form/react`**   | Browser (`"use client"`) | `createFormClient()`, `useFormResponse()`, field helpers.                                                                         |
+| **`@dimah-form/ui`**      | Browser                  | Optional. shadcn renderer (`FormView` / `FormField`). Use `@dimah-form/ui/types` on the server.                                   |
+| **`@dimah-form/db`**      | Server                   | Optional. Production SQL adapter via FumaDB.                                                                                      |
+| **`@dimah-form/scoring`** | Server / isomorphic      | Optional. Likert / subscale plugin (`meta.scoring`). Import `/client` in the browser.                                             |
 
 ---
 
@@ -90,5 +91,5 @@ After that, pick the layer you are implementing:
 
 - **Client** — [React](/docs/react) and [Widgets](/docs/widgets)
 - **Backend** — [Server](/docs/server), [Database](/docs/database), [Auth](/docs/auth)
-- **Extending** — [Custom Fields](/docs/custom-fields) and [Plugins](/docs/plugins)
+- **Extending** — [Custom Fields](/docs/custom-fields), [Plugins](/docs/plugins), and [Scoring](/docs/scoring)
 - **Reference** — [Configuration](/docs/configuration), [Field Types](/docs/field-types), [Protocol](/docs/protocol), [Errors](/docs/errors)

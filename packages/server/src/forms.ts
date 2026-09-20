@@ -14,7 +14,7 @@ import {
 import * as z from "zod";
 
 import { errors } from "./errors";
-import type { ResolvedDimahFormConfig } from "./types";
+import type { DefinitionValidator, ResolvedDimahFormConfig } from "./types";
 
 function fail(
   asError: "init" | "request",
@@ -114,9 +114,19 @@ function assertFormDocument(
   fieldTypes: ReadonlyMap<string, FieldTypeDefinition>,
   metaSchemas: readonly AppliedMetaSchema[],
   asError: "init" | "request",
+  validateDefinition?: DefinitionValidator,
 ): void {
   assertFieldDocuments(formId, form.fields, fieldTypes, asError);
   assertDocumentMeta(formId, form, metaSchemas, asError);
+  if (validateDefinition) {
+    const issues = validateDefinition(form) ?? [];
+    if (issues[0]) {
+      if (asError === "request") {
+        throw errors.validationError(issues);
+      }
+      fail(asError, formId, issues[0].message);
+    }
+  }
   const showWhenIssue = collectShowWhenIssues(form.fields as FormField[])[0];
   if (showWhenIssue) fail(asError, formId, showWhenIssue);
 }
@@ -125,13 +135,21 @@ export function assertFormsConfig(
   forms: Record<string, unknown>,
   fieldTypes: ReadonlyMap<string, FieldTypeDefinition>,
   metaSchemas: readonly AppliedMetaSchema[] = [],
+  validateDefinition?: DefinitionValidator,
 ): void {
   for (const [id, form] of Object.entries(forms)) {
     const parsed = formDefinitionSchema.safeParse(form);
     if (!parsed.success) {
       throw new Error(`Invalid form "${id}": ${z.prettifyError(parsed.error)}`);
     }
-    assertFormDocument(id, parsed.data, fieldTypes, metaSchemas, "init");
+    assertFormDocument(
+      id,
+      parsed.data,
+      fieldTypes,
+      metaSchemas,
+      "init",
+      validateDefinition,
+    );
   }
 }
 
@@ -140,12 +158,20 @@ export function snapshotFromConfig(
   formId: string,
   fieldTypes: ReadonlyMap<string, FieldTypeDefinition>,
   metaSchemas: readonly AppliedMetaSchema[] = [],
+  validateDefinition?: DefinitionValidator,
 ): FormSnapshot {
   const parsed = formDefinitionSchema.safeParse(forms[formId]);
   if (!parsed.success) {
     throw errors.validationError(`Invalid form "${formId}"`);
   }
-  assertFormDocument(formId, parsed.data, fieldTypes, metaSchemas, "request");
+  assertFormDocument(
+    formId,
+    parsed.data,
+    fieldTypes,
+    metaSchemas,
+    "request",
+    validateDefinition,
+  );
   return normalizeFormSnapshot({ id: formId, ...parsed.data });
 }
 
@@ -153,6 +179,7 @@ export function parseLiveSnapshot(
   form: unknown,
   fieldTypes: ReadonlyMap<string, FieldTypeDefinition>,
   metaSchemas: readonly AppliedMetaSchema[] = [],
+  validateDefinition?: DefinitionValidator,
 ): FormSnapshot {
   const parsed = safeParseFormSnapshot(form);
   if (!parsed.success) {
@@ -164,6 +191,7 @@ export function parseLiveSnapshot(
     fieldTypes,
     metaSchemas,
     "request",
+    validateDefinition,
   );
   return parsed.data;
 }
@@ -178,6 +206,7 @@ export async function resolveLiveForm(
       idOrSlug,
       config.fieldTypes,
       config.metaSchemas,
+      config.validateDefinition,
     );
   }
   for (const formId of Object.keys(config.forms)) {
@@ -186,6 +215,7 @@ export async function resolveLiveForm(
       formId,
       config.fieldTypes,
       config.metaSchemas,
+      config.validateDefinition,
     );
     if (snapshot.slug === idOrSlug) return snapshot;
   }
@@ -193,7 +223,12 @@ export async function resolveLiveForm(
   if (!stored) {
     throw errors.unknownForm(idOrSlug);
   }
-  return parseLiveSnapshot(stored, config.fieldTypes, config.metaSchemas);
+  return parseLiveSnapshot(
+    stored,
+    config.fieldTypes,
+    config.metaSchemas,
+    config.validateDefinition,
+  );
 }
 
 export async function findLiveForm(
@@ -225,6 +260,7 @@ export async function listLiveForms(
         formId,
         config.fieldTypes,
         config.metaSchemas,
+        config.validateDefinition,
       ),
     )
     .filter((form) => !query.status || form.status === query.status);
@@ -236,7 +272,14 @@ export async function listLiveForms(
   for (const form of fromDatabase) {
     if (seen.has(form.id)) continue;
     try {
-      extra.push(parseLiveSnapshot(form, config.fieldTypes, config.metaSchemas));
+      extra.push(
+        parseLiveSnapshot(
+          form,
+          config.fieldTypes,
+          config.metaSchemas,
+          config.validateDefinition,
+        ),
+      );
     } catch {
       continue;
     }
@@ -256,6 +299,7 @@ export async function assertSlugAvailable(
       formId,
       config.fieldTypes,
       config.metaSchemas,
+      config.validateDefinition,
     );
     if (snapshot.id === form.id) continue;
     if (snapshot.id === form.slug || snapshot.slug === form.slug) {
