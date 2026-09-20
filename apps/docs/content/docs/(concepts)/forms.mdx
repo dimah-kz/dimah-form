@@ -10,7 +10,7 @@ Forms are TypeScript (`defineForm`) or rows in your database (`saveForm`). Code-
 
 ## Authoring Forms in TypeScript
 
-We recommend defining each questionnaire in a dedicated file under `lib/forms/`. If you render with `@dimah-form/ui`, `satisfies FormDefinitionUi` types `meta` against that package. Pass `FormDefinitionUi<typeof fieldTypes>` (or wrap the catalog in `createDefineForm({ fieldTypes })`) so custom field keys autocomplete too:
+We recommend defining each questionnaire in a dedicated file under `lib/forms/`. If you render with `@dimah-form/ui`, `satisfies FormDefinitionUi` types `meta` against that package — skip it when you do not use `@dimah-form/ui`. Custom `defineFieldType` keys are a separate bind (`createDefineForm`); see [Custom fields](/docs/custom-fields).
 
 ```ts title="lib/forms/onboarding.ts"
 import { defineForm } from "@dimah-form/server";
@@ -144,7 +144,7 @@ Each item in `fields` requires an `id`, a `type`, and an optional `label`:
 - **`defaultValue`**: Seeded into the answers map upon calling `startResponse`.
 - **`showWhen`**: Conditional visibility rules.
 - **`description`**: Helper copy under the control in `@dimah-form/ui`.
-- **`meta`**: Opaque JSON for UI. When you use `@dimah-form/ui`, type the document with `satisfies FormDefinitionUi` (or `FormDefinitionUi<typeof fieldTypes>`) so `placeholder`, `widget`, `section`, `step`, `width`, … autocomplete. See [UI](/docs/ui). Boolean `unsetOnOff` is a field key, not meta.
+- **`meta`**: Opaque JSON for UI. When you use `@dimah-form/ui`, type the document with `satisfies FormDefinitionUi` so `placeholder`, `widget`, `section`, `step`, `width`, … autocomplete (`FormDefinitionUi<typeof fieldTypes>` when the catalog has custom field types). See [UI](/docs/ui). Boolean `unsetOnOff` is a field key, not meta.
 
 ---
 

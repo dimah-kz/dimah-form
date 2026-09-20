@@ -30,8 +30,8 @@ export type FormViewLayout = "auto" | "fill" | "steps" | "review";
 /**
  * Presentation bag on `field.meta`. Validation stays on the field document.
  * Known keys autocomplete; extra keys are allowed (same as core `meta`).
- * Author with `defineForm({ ... } satisfies FormDefinitionUi)` or
- * `FormDefinitionUi<typeof fieldTypes>` for custom `defineFieldType` keys.
+ * Author with `defineForm({ ... } satisfies FormDefinitionUi)`;
+ * pass `FormDefinitionUi<typeof fieldTypes>` for custom `defineFieldType` keys.
  */
 export type FieldUiMeta = {
   /**
@@ -72,9 +72,10 @@ export type FormUiMeta = {
 /**
  * `defineForm({ ... } satisfies FormDefinitionUi)` when using this package.
  * `meta` autocompletes known UI keys; extra keys stay allowed.
- * Pass `FormDefinitionUi<typeof fieldTypes>` (or `createDefineForm`) so custom
- * `defineFieldType` / `fieldSchema` keys type-check. Unregistered `type`
- * strings belong on `defineForm`, not this union.
+ * Pass `FormDefinitionUi<typeof fieldTypes>` so custom `defineFieldType` /
+ * `fieldSchema` keys type-check (`createDefineForm` binds those keys on its
+ * own — this type still adds UI `meta`). Unregistered `type` strings belong
+ * on `defineForm`, not this union.
  */
 export type FormUiDefinitionMeta = {
   form: FormUiMeta;

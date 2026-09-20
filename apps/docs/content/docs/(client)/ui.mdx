@@ -121,7 +121,7 @@ Every chrome piece is a primitive. `FormScope` provides the session so they do n
 - `FormActions` — default save / submit / edit sit in a shadcn `ButtonGroup`. `save="auto"` hides Save draft when the session autosaves. `before` / `after` add controls without replacing Submit. `abandon` is opt-in. `saveProps` / `submitProps` merge onto the shadcn buttons (Base UI `render` included). `sticky` pins the bar. `FormRoot` / `FormActions` also take Base UI `render` to replace the host element.
 - Built-in widgets (`TextField`, `BooleanField`, …) are usable on their own: `<EmailField binding={form.field("email")} />`. `ChoiceOption` and `StringField` are exported for custom widgets. Prefix / suffix / character count use shadcn `InputGroup`.
 
-A widget receives `{ binding, className, mode }` — not a spread `FormFieldBinding`. Presentation stays on `meta`. Type-check the document with `satisfies FormDefinitionUi` so this package's keys autocomplete; pass `FormDefinitionUi<typeof fieldTypes>` when the catalog has custom field types. Extra `meta` keys are allowed. For `saveForm` rows, pass a Zod object to `dimahForm({ metaSchema })`.
+A widget receives `{ binding, className, mode }` — not a spread `FormFieldBinding`. Presentation stays on `meta`. Type-check the document with `satisfies FormDefinitionUi` so this package's keys autocomplete; pass `FormDefinitionUi<typeof fieldTypes>` when the catalog has custom field types (`createDefineForm` types those field keys — it does not replace this `meta` check). Extra `meta` keys are allowed. For `saveForm` rows, pass a Zod object to `dimahForm({ metaSchema })`.
 
 ```ts
 import { defineForm } from "@dimah-form/server";

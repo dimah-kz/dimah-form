@@ -100,8 +100,8 @@ export function defineForm<const T extends FormDefinitionInput>(form: T): T {
  *
  * Does not register validators — pass the same `fieldTypes` to
  * `dimahForm({ fieldTypes })` and `createFormClient({ fieldTypes })`.
- * Pair with `satisfies FormDefinitionUi<typeof fieldTypes>` when authoring
- * `@dimah-form/ui` `meta` keys.
+ * `meta` stays the opaque JSON bag. Apps that use `@dimah-form/ui` can also
+ * `satisfies FormDefinitionUi<typeof fieldTypes>` on the same document.
  */
 export function createDefineForm<
   const TFieldTypes extends readonly FieldTypeDefinition[] = [],
