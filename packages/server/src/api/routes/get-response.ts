@@ -13,7 +13,9 @@ export const getResponse = createFormEndpoint(
   path,
   { method, query: getResponseQuerySchema },
   async (ctx): Promise<ResponseRecord> => {
-    const row = await ctx.context.config.database.get(ctx.query.responseId);
+    const row = await ctx.context.config.database.getResponse(
+      ctx.query.responseId,
+    );
     if (!row) {
       throw errors.unknownResponse(ctx.query.responseId);
     }

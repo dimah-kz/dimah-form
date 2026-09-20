@@ -228,8 +228,3 @@ export function fieldsUseGrid(fields: readonly FormField[]): boolean {
     return width === "half" || width === "third";
   });
 }
-
-/** @deprecated Use {@link fieldsUseGrid}. */
-export function fieldsUseHalfWidth(fields: readonly FormField[]): boolean {
-  return fieldsUseGrid(fields);
-}

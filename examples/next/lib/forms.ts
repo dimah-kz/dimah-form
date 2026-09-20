@@ -1,5 +1,5 @@
 import { defineForm } from "@dimah-form/server";
-import type { FormDefinitionUi } from "@dimah-form/ui";
+import type { FormDefinitionUi } from "@dimah-form/ui/types";
 
 export const forms = {
   feedback: defineForm({

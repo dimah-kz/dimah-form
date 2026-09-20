@@ -61,6 +61,13 @@ export function useFormSession<TAnswers extends FormAnswers = FormAnswers>(
   return resolved;
 }
 
+/** Nearest {@link FormScope} / {@link FormView} session, or `null`. */
+export function useFormSessionOptional<
+  TAnswers extends FormAnswers = FormAnswers,
+>(): FormResponseApi<TAnswers> | null {
+  return useContext(FormSessionContext) as FormResponseApi<TAnswers> | null;
+}
+
 export function useFormFillMode(): "edit" | "review" {
   return useContext(FormFillModeContext);
 }

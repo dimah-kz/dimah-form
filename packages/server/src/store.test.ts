@@ -24,9 +24,9 @@ describe("memoryAdapter", () => {
   it("isolates rows across adapter instances", async () => {
     const a = memoryAdapter();
     const b = memoryAdapter();
-    await a.create(row);
-    expect(await b.get("r1")).toBeUndefined();
-    expect(await a.get("r1")).toMatchObject({ id: "r1" });
+    await a.createResponse(row);
+    expect(await b.getResponse("r1")).toBeUndefined();
+    expect(await a.getResponse("r1")).toMatchObject({ id: "r1" });
   });
 
   it("stores live forms without rewriting them on create", async () => {
@@ -38,7 +38,7 @@ describe("memoryAdapter", () => {
       title: "Intake",
       fields: [{ id: "n", type: "text" }],
     });
-    await store.create({
+    await store.createResponse({
       ...row,
       formId: "intake",
       definition: {
@@ -81,8 +81,8 @@ describe("memoryAdapter", () => {
 
   it("filters responses by respondentId", async () => {
     const store = memoryAdapter();
-    await store.create(row);
-    await store.create({ ...row, id: "r2", respondentId: "user-1" });
+    await store.createResponse(row);
+    await store.createResponse({ ...row, id: "r2", respondentId: "user-1" });
     expect(
       (await store.listResponses({ respondentId: "user-1" })).map(
         (item) => item.id,
@@ -140,17 +140,17 @@ describe("memoryAdapter", () => {
       title: "Intake",
       fields: [],
     });
-    await store.create(row);
-    await store.delete("r1");
+    await store.createResponse(row);
+    await store.deleteResponse("r1");
     await store.deleteForm("intake");
-    expect(await store.get("r1")).toBeUndefined();
+    expect(await store.getResponse("r1")).toBeUndefined();
     expect(await store.getForm("intake")).toBeUndefined();
   });
 
   it("filters responses by formId and status", async () => {
     const store = memoryAdapter();
-    await store.create(row);
-    await store.create({
+    await store.createResponse(row);
+    await store.createResponse({
       ...row,
       id: "r2",
       formId: "other",
@@ -165,25 +165,25 @@ describe("memoryAdapter", () => {
 
   it("CAS rejects a stale save token", async () => {
     const store = memoryAdapter();
-    await store.create(row);
+    await store.createResponse(row);
     await expect(
       (async () =>
-        store.save(
+        store.saveResponse(
           { ...row, answers: { n: 1 }, updatedAt: "newer" },
           { expectedUpdatedAt: "old" },
         ))(),
     ).rejects.toMatchObject({ name: "StoreConflictError" });
-    expect((await store.get("r1"))?.answers).toEqual({});
-    await store.save(
+    expect((await store.getResponse("r1"))?.answers).toEqual({});
+    await store.saveResponse(
       { ...row, answers: { n: 1 }, updatedAt: "newer" },
       { expectedUpdatedAt: "t" },
     );
-    expect((await store.get("r1"))?.answers).toEqual({ n: 1 });
+    expect((await store.getResponse("r1"))?.answers).toEqual({ n: 1 });
   });
 
   it("returns summaries without answers", async () => {
     const store = memoryAdapter();
-    await store.create({ ...row, answers: { name: "Ada" } });
+    await store.createResponse({ ...row, answers: { name: "Ada" } });
     expect(await store.listResponses({ include: "summary" })).toEqual([
       {
         id: "r1",
@@ -199,7 +199,7 @@ describe("memoryAdapter", () => {
 
   it("getOrCreateDraft returns the existing draft", async () => {
     const store = memoryAdapter();
-    await store.create({ ...row, respondentId: "user-1" });
+    await store.createResponse({ ...row, respondentId: "user-1" });
     const again = await store.getOrCreateDraft({
       ...row,
       id: "r2",
@@ -218,14 +218,14 @@ describe("memoryAdapter", () => {
 
   it("findLatestDraft and getOrCreateDraft pick the newest updated draft", async () => {
     const store = memoryAdapter();
-    await store.create({
+    await store.createResponse({
       ...row,
       id: "older",
       respondentId: "user-1",
       createdAt: "2026-01-01T00:00:00.000Z",
       updatedAt: "2026-01-01T00:00:00.000Z",
     });
-    await store.create({
+    await store.createResponse({
       ...row,
       id: "newer",
       respondentId: "user-1",

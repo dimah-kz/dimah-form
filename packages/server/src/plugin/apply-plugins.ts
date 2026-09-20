@@ -182,8 +182,11 @@ export function runPluginInits(
     const result = plugin.init?.({
       id: plugin.id,
       options: plugin.options,
-      config,
+      basePath: config.basePath,
+      fieldTypes: config.fieldTypes,
       plugins: config.plugins,
+      getPluginContext: <T = unknown>(id: string) =>
+        config.pluginContext.get(id) as T | undefined,
     });
     if (result instanceof Promise) {
       throw new TypeError(

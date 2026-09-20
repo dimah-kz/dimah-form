@@ -80,7 +80,7 @@ export const form = dimahForm({
 });
 ```
 
-Pair with `defineClientPlugin({ id: "ping", $ERROR_CODES: PING_ERROR_CODES, endpoints })` on `createFormClient({ plugins })`. The client companion is never inferred from the server instance.
+Pair with `defineClientPlugin({ id: "ping", $ERROR_CODES: PING_ERROR_CODES, endpoints, fieldTypes })` on `createFormClient({ plugins })`. The client companion is never inferred from the server instance. Plugin endpoints should throw `errors.*` from this package.
 
 ## License
 

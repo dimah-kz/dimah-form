@@ -1,4 +1,5 @@
 import type { FormFetch } from "./create-form-fetch";
+import type { FieldTypeDefinition } from "./define";
 import type { ErrorCodeCatalog } from "./error-codes";
 import type { IntersectDefined } from "./plugin/types";
 
@@ -23,6 +24,11 @@ export type FormClientPlugin<
   readonly options?: unknown;
   /** Extra `client.api` methods. Receive the typed protocol `$fetch`. */
   endpoints?: (ctx: { $fetch: FormFetch }) => TEndpoints;
+  /**
+   * Custom field types for local session validation and `formatAnswer`.
+   * Pass the same definitions as the matching server plugin.
+   */
+  fieldTypes?: readonly FieldTypeDefinition[];
   /**
    * Plugin error catalog — same module as the server plugin. Merged onto
    * `client.$ERROR_CODES`. Cannot shadow core or another plugin's codes.

@@ -136,7 +136,7 @@ describe("createDbResponseStore", () => {
     const { store, create, upsert, findFirst } = createOrm({
       questionnaire: null,
     });
-    await store.create(record);
+    await store.createResponse(record);
     expect(findFirst).toHaveBeenCalledWith("questionnaire", expect.any(Object));
     expect(create).toHaveBeenCalledWith(
       "questionnaire",
@@ -149,14 +149,14 @@ describe("createDbResponseStore", () => {
     const { store, create, upsert } = createOrm({
       questionnaire: { id: "onboarding" },
     });
-    await store.create(record);
+    await store.createResponse(record);
     expect(create).not.toHaveBeenCalled();
     expect(upsert).toHaveBeenCalledWith("response", expect.any(Object));
   });
 
   it("loads a mapped record by id", async () => {
     const { store } = createOrm();
-    await expect(store.get("resp-1")).resolves.toMatchObject({
+    await expect(store.getResponse("resp-1")).resolves.toMatchObject({
       id: "resp-1",
       formId: "onboarding",
       status: "draft",
@@ -166,12 +166,12 @@ describe("createDbResponseStore", () => {
 
   it("returns undefined when missing", async () => {
     const { store } = createOrm({ response: null });
-    await expect(store.get("missing")).resolves.toBeUndefined();
+    await expect(store.getResponse("missing")).resolves.toBeUndefined();
   });
 
   it("does not touch questionnaire on save", async () => {
     const { store, upsert, create } = createOrm();
-    await store.save(record);
+    await store.saveResponse(record);
     expect(create).not.toHaveBeenCalled();
     expect(upsert).toHaveBeenCalledTimes(1);
     expect(upsert).toHaveBeenCalledWith("response", expect.any(Object));
@@ -228,7 +228,7 @@ describe("createDbResponseStore", () => {
 
   it("deletes a response and a form", async () => {
     const { store, deleteMany } = createOrm();
-    await store.delete("resp-1");
+    await store.deleteResponse("resp-1");
     await store.deleteForm("onboarding");
     expect(deleteMany).toHaveBeenCalledWith("response", expect.any(Object));
     expect(deleteMany).toHaveBeenCalledWith(
@@ -292,7 +292,7 @@ describe("createDbResponseStore", () => {
 
   it("CAS save uses updateMany", async () => {
     const { store, updateMany, upsert } = createOrm();
-    await store.save(record, {
+    await store.saveResponse(record, {
       expectedUpdatedAt: "2026-01-01T00:00:00.000Z",
     });
     expect(updateMany).toHaveBeenCalledWith(
@@ -310,7 +310,7 @@ describe("createDbResponseStore", () => {
       }),
     });
     await expect(
-      store.save(
+      store.saveResponse(
         {
           ...record,
           answers: {},

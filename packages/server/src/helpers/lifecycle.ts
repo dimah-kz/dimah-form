@@ -25,7 +25,7 @@ export async function commitLifecycle<T>(
 
 /**
  * Adapters may round timestamps (SQLite integer seconds). Re-read so the
- * client concurrency token matches the next `get()`.
+ * client concurrency token matches the next `getResponse()`.
  */
 export async function persistedResponse(
   get: (id: string) => MaybePromise<ResponseRecord | undefined>,
@@ -35,17 +35,17 @@ export async function persistedResponse(
 }
 
 export async function writeResponse(
-  store: Pick<ResponseStore, "save" | "get">,
+  store: Pick<ResponseStore, "saveResponse" | "getResponse">,
   row: ResponseRecord,
   options?: StoreWriteOptions,
 ): Promise<ResponseRecord> {
   try {
-    await store.save(row, options);
+    await store.saveResponse(row, options);
   } catch (error) {
     if (isStoreConflictError(error)) throw errors.staleUpdate();
     throw error;
   }
-  return persistedResponse((id) => store.get(id), row);
+  return persistedResponse((id) => store.getResponse(id), row);
 }
 
 export async function persistedForm(

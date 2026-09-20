@@ -78,7 +78,7 @@ function guardHandler(
       request: ctx.context.request,
       operation: inferOperation(options, path, config.pluginOperations),
       ...idsFrom(ctx),
-      getResponse: (responseId) => config.database.get(responseId),
+      getResponse: (responseId) => config.database.getResponse(responseId),
       getForm: (idOrSlug) => findLiveForm(config, idOrSlug),
     });
     return handler(ctx as never);

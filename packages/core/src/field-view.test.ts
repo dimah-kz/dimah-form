@@ -13,6 +13,7 @@ import {
   issuesByField,
   visibleFields,
 } from "./field-view";
+import { defineFieldType } from "./define";
 
 describe("fieldLabel", () => {
   it("falls back to the field id", () => {
@@ -177,5 +178,24 @@ describe("formatAnswer", () => {
     expect(formatAnswer({ id: "ok", type: "boolean" }, false)).toBe("No");
     expect(formatAnswer({ id: "ok", type: "boolean" }, "x")).toBe("");
     expect(formatAnswer({ id: "name", type: "text" }, null)).toBe("");
+  });
+
+  it("uses defineFieldType.format when fieldTypes are passed", () => {
+    const rating = defineFieldType({
+      type: "rating",
+      validate: () => undefined,
+      format: (value, field) => {
+        const max =
+          typeof field.max === "number" && Number.isInteger(field.max)
+            ? field.max
+            : 5;
+        return typeof value === "number" ? `${value}/${max}` : "";
+      },
+      $Infer: 0 as number,
+    });
+    expect(
+      formatAnswer({ id: "score", type: "rating", max: 5 }, 4, [rating]),
+    ).toBe("4/5");
+    expect(formatAnswer({ id: "score", type: "rating" }, 4)).toBe("4");
   });
 });

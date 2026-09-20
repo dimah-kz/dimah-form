@@ -8,6 +8,7 @@ export {
   useFieldWidgets,
   useFormFillMode,
   useFormSession,
+  useFormSessionOptional,
   type FormScopeProps,
 } from "@/components/dimah-form/form-context";
 export {
@@ -153,7 +154,6 @@ export {
   booleanOffValue,
   FIELD_UI_WIDGETS,
   fieldsUseGrid,
-  fieldsUseHalfWidth,
   fieldWidthClass,
   isFieldUiWidget,
   readFieldUiMeta,

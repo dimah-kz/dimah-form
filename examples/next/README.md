@@ -13,8 +13,8 @@ components/questionnaire.tsx  FormView + chrome around app layout
 components/fields/       widget for type "rating" (same string as the validator)
 ```
 
-`FormView` is the default template; this app composes `FormScope` / `FormRoot` /
-`FormFields` so the Card and answers preview stay outside the library.
+`FormView` is the default template; this app uses `render` so the Card and
+answers preview stay around the library chrome.
 
 Reads go through `form.api` in Server Components (`{ query }` / `{ body }`).
 Writes go through `createFormClient<Form>()` in the browser. Persistence is

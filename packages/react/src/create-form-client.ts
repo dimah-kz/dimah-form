@@ -181,3 +181,5 @@ export type {
   FormClientPlugin,
   FormServerLike,
 } from "@dimah-form/core";
+
+export { defineClientPlugin } from "@dimah-form/core";

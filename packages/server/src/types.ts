@@ -85,8 +85,10 @@ export const FORM_HOOK_KEYS = listedFormHookKeys([
 export type PluginInitContext = {
   id: string;
   options: unknown;
-  config: ResolvedDimahFormConfig;
+  basePath: string;
+  fieldTypes: ReadonlyMap<string, FieldTypeDefinition>;
   plugins: ReadonlyMap<string, DimahFormPlugin>;
+  getPluginContext: <T = unknown>(id: string) => T | undefined;
 };
 
 export type PluginInitResult = {

@@ -13,7 +13,8 @@ import {
   type FormClientPlugin,
 } from "./client-plugin";
 import { applyClientPlugins } from "./plugin/apply-client-plugins";
-import type { PluginErrorCodeMap } from "./plugin/types";
+import type { PluginErrorCodeMap, PluginFieldTypeUnion } from "./plugin/types";
+import { createFieldTypeRegistry } from "./field-types";
 import {
   FORM_API_BASE_PATH,
   FORM_API_OPERATIONS,
@@ -47,13 +48,19 @@ type InferClientForms<TServer, TForms> = TServer extends {
   ? F
   : TForms;
 
+type ClientFieldTypes<
+  TPlugins extends readonly FormClientPlugin[],
+  TFieldTypes extends readonly FieldTypeDefinition[],
+> = readonly (PluginFieldTypeUnion<TPlugins> | TFieldTypes[number])[];
+
 type InferClientAnswers<
   TServer,
   TForms extends Record<string, unknown>,
+  TPlugins extends readonly FormClientPlugin[],
   TFieldTypes extends readonly FieldTypeDefinition[],
 > = TServer extends { $Infer: { answers: infer A } }
   ? A
-  : InferAnswersMap<TForms, TFieldTypes>;
+  : InferAnswersMap<TForms, ClientFieldTypes<TPlugins, TFieldTypes>>;
 
 export type CreateFormClientOptions<
   TPlugins extends readonly FormClientPlugin[] = readonly FormClientPlugin[],
@@ -76,10 +83,12 @@ export type CreateFormClientOptions<
    */
   forms?: TForms;
   /**
-   * Custom field types. Used for `$Infer` and kept at runtime for
+   * Custom field types. Used for `$Infer` (when not using
+   * `createFormClient<typeof form>()`) and kept at runtime for
    * `createFormResponseSession` / `useFormResponse` validation.
-   * Skip for `$Infer` when using `createFormClient<typeof form>()` — still
-   * pass the same array as `dimahForm({ fieldTypes })` for local validation.
+   * `$Infer` from the server type does not install validators — pass the
+   * same array as `dimahForm({ fieldTypes })`, or register them on client
+   * plugins.
    */
   fieldTypes?: TFieldTypes;
   /**
@@ -188,14 +197,14 @@ export type CreateFormClientResult<
   ClientPluginEndpointMap<TPlugins> & {
     $fetch: FormFetch;
     baseURL: string;
-    /** Runtime field types for local session validation. */
-    fieldTypes: TFieldTypes;
+    /** Runtime field types for local session validation (plugins, then options). */
+    fieldTypes: ClientFieldTypes<TPlugins, TFieldTypes>;
     /** Form-level validator for the fill session. */
     validateAnswers?: AnswersValidator;
     $ERROR_CODES: typeof FORM_ERROR_CODES & PluginErrorCodeMap<TPlugins>;
     $Infer: {
       forms: InferClientForms<TServer, TForms>;
-      answers: InferClientAnswers<TServer, TForms, TFieldTypes>;
+      answers: InferClientAnswers<TServer, TForms, TPlugins, TFieldTypes>;
       plugins: TPlugins;
     };
   };
@@ -228,13 +237,15 @@ const CORE_CLIENT_KEYS = new Set([
 /**
  * Typed better-fetch client for the questionnaire protocol.
  *
- * Prefer `createFormClient<typeof form>()` so `$Infer` matches the server
- * catalog (including plugin field types) without sending `forms` to the browser.
+ * Prefer `createFormClient<typeof form>({ fieldTypes })` so `$Infer` matches
+ * the server catalog (including plugin field types) without sending `forms`
+ * to the browser. `$Infer` is type-only — pass `fieldTypes` or client
+ * plugins that register them for local session validation.
  *
  * @example
  * ```ts
  * export type Form = typeof form;
- * export const formClient = createFormClient<Form>();
+ * export const formClient = createFormClient<Form>({ fieldTypes });
  * ```
  */
 export function createFormClient<
@@ -251,7 +262,7 @@ export function createFormClient<
     baseURL,
     plugins,
     forms: _forms,
-    fieldTypes = [] as unknown as TFieldTypes,
+    fieldTypes: optionFieldTypes,
     validateAnswers,
     ...fetchOptions
   } = options;
@@ -281,12 +292,17 @@ export function createFormClient<
   }
 
   const applied = applyClientPlugins(plugins, { $fetch }, CORE_CLIENT_KEYS);
+  const fieldTypes = [
+    ...applied.fieldTypes,
+    ...(optionFieldTypes ?? []),
+  ] as unknown as ClientFieldTypes<TPlugins, TFieldTypes>;
+  createFieldTypeRegistry(fieldTypes);
 
   const api: FormClientApi &
     Record<string, unknown> & {
       $fetch: FormFetch;
       baseURL: string;
-      fieldTypes: TFieldTypes;
+      fieldTypes: ClientFieldTypes<TPlugins, TFieldTypes>;
       validateAnswers?: AnswersValidator;
       $ERROR_CODES: typeof FORM_ERROR_CODES & PluginErrorCodeMap<TPlugins>;
       $Infer: CreateFormClientResult<

@@ -73,13 +73,13 @@ flowchart TD
 
 Each package has one job and a one-way dependency graph:
 
-| Package                  | Environment | Responsibility                                                                                         | Key Exports                                                             |
-| :----------------------- | :---------- | :----------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------- |
-| **`@dimah-form/core`**   | Universal   | Protocol SSOT, Zod schemas, field definitions, answer validation, error codes, and type inference.     | `defineForm`, `defineFieldType`, `APIError`, `FORM_ERROR_CODES`         |
-| **`@dimah-form/server`** | Server      | Backend router, HTTP framework adapters, `form.api`, lifecycle hook dispatcher, and `memoryAdapter()`. | `dimahForm()`, `toNextJsHandler`, `toHonoHandler`, `memoryAdapter`      |
-| **`@dimah-form/react`**  | Browser     | Headless React client, session state machine, visibility resolver, field bindings, and autosave.       | `createFormClient()`, `useFormResponse()`, `fieldLabel`, `fieldOptions` |
-| **`@dimah-form/ui`**     | Browser     | Optional. shadcn renderer and registry source on top of `FormResponseApi` / `FormFieldBinding`.        | `FormView`, `FormScope`, `FormField`, `FormUiProvider`                  |
-| **`@dimah-form/db`**     | Server      | Optional. Production SQL adapter using FumaDB for Drizzle, Prisma, and Kysely.                         | `DimahFormDB`, `db()`                                                   |
+| Package                  | Environment | Responsibility                                                                                                                                                                                   | Key Exports                                                                  |
+| :----------------------- | :---------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------- |
+| **`@dimah-form/core`**   | Universal   | Protocol SSOT, Zod schemas, field definitions, answer validation, error codes, and type inference. Shared app helpers live on `@dimah-form/core/app-protocol` (re-exported by server and react). | `defineForm`, `defineFieldType`, `APIError`, `FORM_ERROR_CODES`              |
+| **`@dimah-form/server`** | Server      | Backend router, HTTP framework adapters, `form.api`, lifecycle hook dispatcher, and `memoryAdapter()`. Apps import protocol helpers from here, not from `core`.                                  | `dimahForm()`, `toNextJsHandler`, `toHonoHandler`, `memoryAdapter`, `errors` |
+| **`@dimah-form/react`**  | Browser     | Headless React client, session state machine, visibility resolver, field bindings, and autosave. Apps import protocol helpers from here in client modules.                                       | `createFormClient()`, `useFormResponse()`, `fieldLabel`, `fieldOptions`      |
+| **`@dimah-form/ui`**     | Browser     | Optional. shadcn renderer and registry source on top of `FormResponseApi` / `FormFieldBinding`.                                                                                                  | `FormView`, `FormScope`, `FormField`, `FormUiProvider`                       |
+| **`@dimah-form/db`**     | Server      | Optional. Production SQL adapter using FumaDB for Drizzle, Prisma, and Kysely.                                                                                                                   | `DimahFormDB`, `db()`                                                        |
 
 ---
 
@@ -113,7 +113,7 @@ When saving drafts or submitting responses, answer values are validated **agains
 
 ### 4. Pre-Write Hooks (`on*`)
 
-Pre-persistence hooks (such as `onStart`, `onDraft`, `onSubmit`) run before the database transaction. You can attach user identifiers (`response.respondentId = user.id`) or enrich metadata directly on the in-memory record.
+Pre-persistence hooks (such as `onStart`, `onSaveDraft`, `onSubmit`) run before the database transaction. You can attach user identifiers (`response.respondentId = user.id`) or enrich metadata directly on the in-memory record.
 
 ### 5. Persistence & Optimistic Concurrency (CAS)
 
@@ -121,7 +121,7 @@ The `ResponseStore` writes the record to the database. If an `expectedUpdatedAt`
 
 ### 6. Post-Write Hooks (`after*`)
 
-After the database write successfully commits, post-persistence hooks (such as `afterSubmit`, `afterDraft`) trigger side-effects, such as sending confirmation emails, posting webhooks, or enqueuing background worker jobs.
+After the database write successfully commits, post-persistence hooks (such as `afterSubmit`, `afterSaveDraft`) trigger side-effects, such as sending confirmation emails, posting webhooks, or enqueuing background worker jobs.
 
 ---
 

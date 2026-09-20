@@ -17,7 +17,9 @@ export const saveDraft = createFormEndpoint(
   path,
   { method, body: saveDraftBodySchema },
   async (ctx): Promise<ResponseRecord> => {
-    const existing = await ctx.context.config.database.get(ctx.body.responseId);
+    const existing = await ctx.context.config.database.getResponse(
+      ctx.body.responseId,
+    );
     if (!existing) {
       throw errors.unknownResponse(ctx.body.responseId);
     }

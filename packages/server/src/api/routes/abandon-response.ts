@@ -15,7 +15,9 @@ export const abandonResponse = createFormEndpoint(
   path,
   { method, body: abandonResponseBodySchema },
   async (ctx): Promise<ResponseRecord> => {
-    const existing = await ctx.context.config.database.get(ctx.body.responseId);
+    const existing = await ctx.context.config.database.getResponse(
+      ctx.body.responseId,
+    );
     if (!existing) {
       throw errors.unknownResponse(ctx.body.responseId);
     }

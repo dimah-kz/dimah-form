@@ -53,7 +53,7 @@ export function FormReview<TAnswers extends FormAnswers = FormAnswers>({
     <ItemGroup data-slot="form-review" className={cn(className)}>
       {session.visibleFields.map((field) => {
         const value = session.answers[field.id];
-        const formatted = reviewValue(field, value, labels);
+        const formatted = reviewValue(field, value, labels, session.fieldTypes);
         return (
           <Item key={field.id} size="sm" role="listitem">
             <ItemContent>

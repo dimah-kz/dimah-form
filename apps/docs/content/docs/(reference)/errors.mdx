@@ -104,6 +104,20 @@ const message = formErrorMessage(error);
 
 ---
 
+## Server helpers (`errors`)
+
+Plugin routes and guards throw mapped `APIError`s from `@dimah-form/server` instead of reconstructing `APIError.from(status, FORM_ERROR_CODES.*)`:
+
+```ts
+import { errors } from "@dimah-form/server";
+
+throw errors.unknownForm(formId);
+throw errors.unknownResponse(responseId);
+throw errors.staleUpdate();
+```
+
+---
+
 ## Declaring Custom Error Codes with `defineErrorCodes`
 
 When authoring plugins or custom field validators, use `defineErrorCodes()` to declare type-safe custom error catalogs:

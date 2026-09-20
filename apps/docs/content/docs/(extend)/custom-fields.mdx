@@ -10,7 +10,7 @@ Custom field types are **server validators**, not React components. You define h
 
 ## 1. Defining a Custom Field Type
 
-Use `defineFieldType()` from `@dimah-form/core` to declare a new field validator:
+Use `defineFieldType()` from `@dimah-form/core` in a shared module (imported by both `dimahForm` and `createFormClient`). Server-only files may import it from `@dimah-form/server`.
 
 ```ts title="lib/field-types/rating.ts"
 import { defineFieldType } from "@dimah-form/core";
@@ -62,6 +62,13 @@ export const ratingFieldType = defineFieldType({
 
   // 4. Type token for TypeScript compile-time answer inference
   $Infer: 0 as number,
+
+  // 5. English display string for `formatAnswer` / review
+  format: (value, field) => {
+    if (typeof value !== "number") return "";
+    const max = field.max ?? 5;
+    return `${value}/${max}`;
+  },
 });
 ```
 
@@ -111,6 +118,26 @@ export const formClient = createFormClient<Form>({
 
 export const { useFormResponse } = formClient;
 ```
+
+A plugin package can ship the same definition on both sides:
+
+```ts
+import { definePlugin } from "@dimah-form/server";
+import { defineClientPlugin } from "@dimah-form/react";
+import { ratingFieldType } from "./rating";
+
+export const ratingPlugin = definePlugin({
+  id: "rating",
+  fieldTypes: [ratingFieldType],
+});
+
+export const ratingClient = defineClientPlugin({
+  id: "rating",
+  fieldTypes: [ratingFieldType],
+});
+```
+
+`createFormClient({ plugins: [ratingClient()] })` then installs the local validator without a second `fieldTypes` array. `$Infer` from `createFormClient<Form>()` is still type-only — the client plugin (or `options.fieldTypes`) is required for session checks.
 
 ---
 

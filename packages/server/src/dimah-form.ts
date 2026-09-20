@@ -7,6 +7,7 @@ import {
   type FieldTypeDefinition,
   type InferAnswersMap,
   type PluginErrorCodeMap,
+  type PluginFieldTypeUnion,
 } from "@dimah-form/core";
 import type { Endpoint } from "better-call";
 
@@ -38,17 +39,6 @@ export type {
   PluginInitContext,
   PluginInitResult,
 };
-
-type PluginFieldTypeUnion<P extends readonly DimahFormPlugin[]> =
-  P extends readonly []
-    ? never
-    : P[number] extends infer Plugin
-      ? Plugin extends { fieldTypes?: infer F }
-        ? F extends readonly FieldTypeDefinition[]
-          ? F[number]
-          : never
-        : never
-      : never;
 
 export type DimahFormConfig<
   TPlugins extends readonly DimahFormPlugin[] = readonly DimahFormPlugin[],
@@ -107,8 +97,10 @@ export type DimahForm<
 /**
  * Create a dimah-form server instance.
  *
- * Pair with `export type Form = typeof form` and `createFormClient<Form>()`
- * so the browser client reuses `$Infer` without a runtime catalog copy.
+ * Pair with `export type Form = typeof form` and
+ * `createFormClient<Form>({ fieldTypes })` so the browser client reuses
+ * `$Infer` without a runtime catalog copy. Pass the same `fieldTypes` (or
+ * client plugins that register them) for local session validation.
  *
  * Submit validates against the definition snapshot taken at start, not the
  * live questionnaire in {@link DimahFormConfig.forms}.

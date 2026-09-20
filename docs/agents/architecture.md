@@ -32,7 +32,7 @@ Shared protocol changes start in `core`, then wire `server` and `react`. Do not 
 
 - Config is instance-based: `dimahForm({ fieldTypes, forms, database, plugins, hooks, guard, metaSchema, validateAnswers })`.
 - Field types are registered on the instance. `defineForm` does not take `fieldTypes`. Optional `fieldSchema` on `defineFieldType` validates the field document at init / `saveForm`.
-- Optional `meta` on the form, field, and option documents is an opaque JSON object for consumer UI. Type-specific keys stay on the field document (boolean `unsetOnOff` is one). Optional `metaSchema.form` / `field` / `option` on `dimahForm()` validate that bag at init / `saveForm`. `@dimah-form/ui` types the bag as `FormDefinitionUi` (`satisfies` on `defineForm`).
+- Optional `meta` on the form, field, and option documents is an opaque JSON object for consumer UI. Type-specific keys stay on the field document (boolean `unsetOnOff` is one). Optional `metaSchema.form` / `field` / `option` on `dimahForm()` validate that bag at init / `saveForm`. `@dimah-form/ui` types the bag as `FormDefinitionUi` (`satisfies` on `defineForm`; import from `@dimah-form/ui/types` on the server).
 - Snapshots include `slug` (defaults to `id`) and `status` (`draft` \| `active` \| `archived`). Only `active` forms can be started. `getForm` / `startResponse` accept id or slug.
 - Draft answers are a patch (`null` deletes a key). Submit replaces the whole answers object, or omits `answers` to submit the stored draft. `reopenResponse` returns a submitted or abandoned row to draft without rewriting the snapshot. Optional `updatedAt` on draft/submit/abandon/reopen/`saveForm` is optimistic concurrency (`STALE_UPDATE`) enforced in the store (`expectedUpdatedAt`). `startResponse({ resume: true, respondentId })` uses `findLatestDraft` / `getOrCreateDraft` so concurrent resumes converge on one row.
 - `database` is required (`memoryAdapter()` or `db()` from `@dimah-form/db`). Plugins merge once in `dimahForm()` and do not replace persistence. `listResponses({ include: "summary" })` omits `definition` / `answers` at the adapter.
@@ -40,10 +40,10 @@ Shared protocol changes start in `core`, then wire `server` and `react`. Do not 
 - Field `showWhen` is sibling visibility on that snapshot. Nested rules follow the parent. Leaf rules: `equals` / `notEquals` / `includes` (scalar or non-empty scalar list). Compound: `all` / `any`. Hidden answers are stripped before validate / persist.
 - Domain hooks: `on*` after validation before persist; `after*` after persist. Auth stays in `guard`. Guard may load rows via `getResponse` / `getForm` (store, no HTTP re-entry).
 - Code-authored `forms` feed `$Infer`. `getForm` / `startResponse` read config first, then the live questionnaire row. `saveForm` writes that row and cannot overwrite a code-authored id.
-- Browser `$Infer` is `createFormClient<typeof form>()` (type-only). Apps import from `server` or `react`; `core` is protocol/plugin internals.
+- Browser `$Infer` is `createFormClient<typeof form>({ fieldTypes })` (type-only). Apps import from `server` or `react`; `core` is protocol/plugin internals and shared field-type modules.
 - Each response stores the definition it was started with. Submit validates that snapshot. Starting a response does not rewrite the live questionnaire row.
-- Custom fields are `defineFieldType` validators in `core`. Optional UI widgets register by the same `type` string, or a `meta.widget` key.
-- Server plugins may add `endpoints`, `hooks`, `fieldTypes`, and `$ERROR_CODES`. Optional `dependsOn` (topological order), `options`, and synchronous `init` (`{ context }` → `config.pluginContext`). Browser companions use `defineClientPlugin` on `createFormClient({ plugins })`. They are not inferred from the server plugin.
+- Custom fields are `defineFieldType` validators in `core` (optional `format` for `formatAnswer`). Optional UI widgets register by the same `type` string, or a `meta.widget` key. `@dimah-form/ui` types the `meta` bag as `FormDefinitionUi` (`@dimah-form/ui/types` on the server).
+- Server plugins may add `endpoints`, `hooks`, `fieldTypes`, and `$ERROR_CODES`. Optional `dependsOn` (topological order), `options`, and synchronous `init` (`basePath`, `fieldTypes`, `getPluginContext`). Browser companions use `defineClientPlugin` on `createFormClient({ plugins })` and may list the same `fieldTypes`. They are not inferred from the server plugin.
 
 ## Pre-v1
 

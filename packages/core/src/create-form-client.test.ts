@@ -352,4 +352,61 @@ describe("createFormClient protocol", () => {
     const client = createFormClient<Server>({ fieldTypes: [extra] });
     expect(client.fieldTypes).toEqual([extra]);
   });
+
+  it("merges client plugin fieldTypes onto the client", () => {
+    const rating = defineFieldType({
+      type: "rating",
+      validate: () => undefined,
+      format: (value) => String(value),
+      $Infer: 0 as number,
+    });
+    const plugin = defineClientPlugin({
+      id: "rating",
+      fieldTypes: [rating],
+    });
+    const forms = {
+      scored: defineForm({
+        title: "Scored",
+        fields: [{ id: "score", type: "rating", required: true }],
+      }),
+    };
+    const client = createFormClient({ plugins: [plugin], forms });
+    expect(client.fieldTypes).toEqual([rating]);
+    expectTypeOf<
+      typeof client.$Infer.answers.scored.score
+    >().toEqualTypeOf<number>();
+  });
+
+  it("rejects a client plugin field type that collides with options", () => {
+    const rating = defineFieldType({
+      type: "rating",
+      validate: () => undefined,
+      $Infer: 0 as number,
+    });
+    const plugin = defineClientPlugin({
+      id: "rating",
+      fieldTypes: [rating],
+    });
+    expect(() =>
+      createFormClient({ plugins: [plugin], fieldTypes: [rating] }),
+    ).toThrow(/Duplicate dimah-form field type "rating"/);
+  });
+
+  it("rejects a client plugin field type that shadows a builtin", () => {
+    expect(() =>
+      createFormClient({
+        plugins: [
+          defineClientPlugin({
+            id: "bad",
+            fieldTypes: [
+              defineFieldType({
+                type: "text",
+                validate: () => undefined,
+              }),
+            ],
+          }),
+        ],
+      }),
+    ).toThrow(/conflicts with a built-in type/);
+  });
 });

@@ -134,7 +134,7 @@ export const form = dimahForm({
     },
 
     // 2. Pre-write: Runs before saving a draft
-    onDraft: async ({ request, response, patch }) => {
+    onSaveDraft: async ({ response }) => {
       console.log(`User updating draft for response ${response.id}`);
     },
 

@@ -54,14 +54,14 @@ export const startResponse = createFormEndpoint(
       if (result.created) {
         await hooks.afterStart?.({ request, response: result.row });
       }
-      return persistedResponse((id) => database.get(id), result.row);
+      return persistedResponse((id) => database.getResponse(id), result.row);
     }
 
     await commitLifecycle(
       () => hooks.onStart?.({ request, response: row }),
-      () => database.create(row),
+      () => database.createResponse(row),
       () => hooks.afterStart?.({ request, response: row }),
     );
-    return persistedResponse((id) => database.get(id), row);
+    return persistedResponse((id) => database.getResponse(id), row);
   },
 );

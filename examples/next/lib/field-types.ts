@@ -36,6 +36,13 @@ export const ratingFieldType = defineFieldType({
     if (value > max) return `Must be at most ${max}`;
     return undefined;
   },
+  format: (value, field) => {
+    if (typeof value !== "number" || !Number.isInteger(value)) return "";
+    const min = asFiniteNumber(field.min) ?? 1;
+    const max = asFiniteNumber(field.max) ?? 5;
+    const filled = Math.min(Math.max(value, min), max);
+    return `${"★".repeat(filled)}${"☆".repeat(max - filled)}`;
+  },
   $Infer: 0 as number,
 });
 

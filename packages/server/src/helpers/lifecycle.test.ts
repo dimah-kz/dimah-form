@@ -96,7 +96,7 @@ describe("writeResponse", () => {
       createdAt: "t",
       updatedAt: "t",
     };
-    await store.create(record);
+    await store.createResponse(record);
     await expect(
       writeResponse(
         store,

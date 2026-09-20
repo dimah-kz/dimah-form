@@ -28,6 +28,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./app-protocol": {
+      "types": "./dist/app-protocol.d.ts",
+      "default": "./dist/app-protocol.js"
     }
   },
   "files": [

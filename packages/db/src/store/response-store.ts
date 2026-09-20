@@ -237,20 +237,20 @@ export function createDbResponseStore(db: DimahFormDbClient): ResponseStore {
       }
       return forms;
     },
-    async create(row) {
+    async createResponse(row) {
       await insertQuestionnaireIfMissing(row);
       await upsertResponse(row);
     },
-    async get(id) {
+    async getResponse(id) {
       const row = await orm.findFirst("response", {
         where: (b) => b("id", "=", id),
       });
       return row ? toResponseRecord(row) : undefined;
     },
-    async save(row, options) {
+    async saveResponse(row, options) {
       await upsertResponse(row, options);
     },
-    async delete(id) {
+    async deleteResponse(id) {
       await orm.deleteMany("response", {
         where: (b) => b("id", "=", id),
       });

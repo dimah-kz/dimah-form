@@ -72,6 +72,15 @@ export type FieldTypeDefinition<
    * `saveForm` — unknown types still round-trip through `defineForm`.
    */
   fieldSchema?: z.ZodType;
+  /**
+   * English display string for a stored answer. Same rule as `validate`
+   * messages — the UI may localize. `formatAnswer` prefers this over the
+   * builtin switch.
+   */
+  format?: (
+    value: unknown,
+    field: { type: TType } & Record<string, unknown>,
+  ) => string;
   /** Phantom answer type for `$Infer`. */
   readonly $Infer?: TAnswer;
 };
@@ -81,7 +90,7 @@ export function defineForm<const T extends FormDefinitionInput>(form: T): T {
   return formDefinitionSchema.parse(form) as unknown as T;
 }
 
-/** Custom field type — validator + answer shape. Not a UI component. */
+/** Custom field type — validator, optional display `format`, and answer shape. Not a UI component. */
 export function defineFieldType<const T extends FieldTypeDefinition>(
   fieldType: T,
 ): T {

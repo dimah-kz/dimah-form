@@ -4,7 +4,6 @@ import type { FormField } from "@dimah-form/react";
 import {
   booleanOffValue,
   fieldsUseGrid,
-  fieldsUseHalfWidth,
   fieldWidthClass,
   isFieldUiWidget,
   readFieldUiMeta,
@@ -130,7 +129,7 @@ describe("field width helpers", () => {
       meta: { width: "third" },
     });
     expect(fieldsUseGrid([full])).toBe(false);
-    expect(fieldsUseHalfWidth([full, half])).toBe(true);
+    expect(fieldsUseGrid([full, half])).toBe(true);
     expect(fieldsUseGrid([third])).toBe(true);
     expect(fieldWidthClass(full, false)).toBeUndefined();
     expect(fieldWidthClass(full, true)).toBe(

@@ -13,7 +13,9 @@ export const deleteResponse = createFormEndpoint(
   path,
   { method, body: deleteResponseBodySchema },
   async (ctx): Promise<{ ok: true; responseId: string }> => {
-    const existing = await ctx.context.config.database.get(ctx.body.responseId);
+    const existing = await ctx.context.config.database.getResponse(
+      ctx.body.responseId,
+    );
     if (!existing) {
       throw errors.unknownResponse(ctx.body.responseId);
     }
@@ -21,7 +23,7 @@ export const deleteResponse = createFormEndpoint(
     const hooks = ctx.context.config.hooks;
     await commitLifecycle(
       () => hooks.onDeleteResponse?.({ request, response: existing }),
-      () => ctx.context.config.database.delete(existing.id),
+      () => ctx.context.config.database.deleteResponse(existing.id),
       () => hooks.afterDeleteResponse?.({ request, response: existing }),
     );
     return { ok: true, responseId: existing.id };

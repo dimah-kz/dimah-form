@@ -134,6 +134,8 @@ export type FormResponseSessionState<
   inactive: boolean;
   visibleFields: FormField[];
   completion: FormCompletion;
+  /** Extra field types for local validation and {@link formatAnswer}. */
+  fieldTypes: FormResponseFieldTypes | undefined;
 };
 
 /** Headless binding for one field — the contract a UI package would wrap. */
@@ -384,6 +386,7 @@ export function createFormResponseSession<
           internal.responseId === undefined && snapshot.status !== "active",
         visibleFields: visibleFields(snapshot, internal.answers),
         completion: formCompletion(snapshot, internal.answers, registry),
+        fieldTypes: config.fieldTypes,
       };
     }
     return cached;

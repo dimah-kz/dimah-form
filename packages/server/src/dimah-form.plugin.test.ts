@@ -91,7 +91,7 @@ describe("hooks", () => {
     const form = createInstance({
       database: {
         ...memory,
-        save() {
+        saveResponse() {
           throw new Error("disk full");
         },
       },
@@ -235,9 +235,14 @@ describe("plugins", () => {
     const a = definePlugin({
       id: "a",
       options: { n: 1 },
-      init({ options }) {
+      init(ctx) {
         order.push("a");
-        return { context: { n: (options as { n: number }).n } };
+        expect(ctx.id).toBe("a");
+        expect(ctx.basePath).toBe("/api/form");
+        expect(ctx.fieldTypes).toBeInstanceOf(Map);
+        expect(ctx.plugins.has("b")).toBe(true);
+        expect("database" in ctx).toBe(false);
+        return { context: { n: (ctx.options as { n: number }).n } };
       },
     });
     const b = definePlugin({
@@ -248,8 +253,9 @@ describe("plugins", () => {
           a: getPluginContext<{ n: number }>(ctx.context.config, "a"),
         })),
       },
-      init() {
+      init({ getPluginContext }) {
         order.push("b");
+        expect(getPluginContext<{ n: number }>("a")).toEqual({ n: 1 });
       },
     });
     const form = dimahForm({

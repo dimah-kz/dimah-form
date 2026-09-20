@@ -1,6 +1,6 @@
 ---
 packages:
-  group:dimah-form: major
+  group:dimah-form: minor
 ---
 
 ### Replace hand-rolled fill chrome with shadcn

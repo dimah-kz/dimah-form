@@ -17,6 +17,7 @@ import {
   createFormEndpoint,
   defineErrorCodes,
   definePlugin,
+  errors,
 } from "@dimah-form/server";
 import * as z from "zod";
 
@@ -41,16 +42,17 @@ export const analyticsPlugin = () =>
             formId: z.string(),
           }),
         },
-        async ({ query, store, request }) => {
-          const list = await store.listResponses({
+        async ({ query, context }) => {
+          const form = await context.config.database.getForm(query.formId);
+          if (!form) throw errors.unknownForm(query.formId);
+
+          const list = await context.config.database.listResponses({
             formId: query.formId,
             limit: 100,
           });
 
-          const total = list.responses.length;
-          const submitted = list.responses.filter(
-            (r) => r.status === "submitted",
-          ).length;
+          const total = list.length;
+          const submitted = list.filter((r) => r.status === "submitted").length;
 
           return {
             formId: query.formId,
@@ -125,7 +127,9 @@ export const analyticsClientPlugin = () =>
   });
 ```
 
-Register the client plugin with `createFormClient`:
+Register the client plugin with `createFormClient`. If the server plugin
+registers `fieldTypes`, list the same array on the client plugin so local
+session validation matches.
 
 ```ts title="lib/form-client.ts"
 "use client";
@@ -147,14 +151,15 @@ const stats = await formClient.getStats("feedback");
 
 ## Plugin Options Reference
 
-| Property           | Type                           | Description                                                          |
-| :----------------- | :----------------------------- | :------------------------------------------------------------------- |
-| **`id`**           | `string`                       | Unique alphanumeric identifier for the plugin.                       |
-| **`$ERROR_CODES`** | `ErrorCodeCatalog`             | Custom error codes declared via `defineErrorCodes()`.                |
-| **`endpoints`**    | `Record<string, FormEndpoint>` | Map of custom route handlers.                                        |
-| **`hooks`**        | `DimahFormHooks`               | Pre-write and post-write lifecycle hooks.                            |
-| **`fieldTypes`**   | `FieldTypeDefinition[]`        | Custom field validators added by this plugin.                        |
-| **`dependsOn`**    | `string[]`                     | Array of required plugin IDs that must be loaded before this plugin. |
+| Property           | Type                           | Description                                                                   |
+| :----------------- | :----------------------------- | :---------------------------------------------------------------------------- |
+| **`id`**           | `string`                       | Unique alphanumeric identifier for the plugin.                                |
+| **`$ERROR_CODES`** | `ErrorCodeCatalog`             | Custom error codes declared via `defineErrorCodes()`.                         |
+| **`endpoints`**    | `Record<string, FormEndpoint>` | Map of custom route handlers.                                                 |
+| **`hooks`**        | `DimahFormHooks`               | Pre-write and post-write lifecycle hooks.                                     |
+| **`fieldTypes`**   | `FieldTypeDefinition[]`        | Custom field validators (server and matching client plugin).                  |
+| **`init`**         | `(ctx) => { context? }`        | Sync setup. Receives `basePath`, `fieldTypes`, `plugins`, `getPluginContext`. |
+| **`dependsOn`**    | `string[]`                     | Array of required plugin IDs that must be loaded before this plugin.          |
 
 ---
 

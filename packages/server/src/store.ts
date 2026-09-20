@@ -46,6 +46,13 @@ export function isStoreConflictError(
   );
 }
 
+/**
+ * Persistence for live questionnaires and response rows.
+ *
+ * Questionnaire methods are `*Form`. Response methods are `*Response`.
+ * `findLatestDraft` returns the newest draft by `updatedAt`.
+ * `getOrCreateDraft` keeps the oldest row by `createdAt` when two starts race.
+ */
 export type ResponseStore = {
   getForm: (
     idOrSlug: string,
@@ -58,27 +65,32 @@ export type ResponseStore = {
   listForms: (
     query?: ListFormsStoreQuery,
   ) => FormSnapshot[] | Promise<FormSnapshot[]>;
-  create: (row: ResponseRecord) => void | Promise<void>;
-  get: (
+  createResponse: (row: ResponseRecord) => void | Promise<void>;
+  getResponse: (
     id: string,
   ) => ResponseRecord | undefined | Promise<ResponseRecord | undefined>;
-  save: (
+  saveResponse: (
     row: ResponseRecord,
     options?: StoreWriteOptions,
   ) => void | Promise<void>;
-  delete: (id: string) => void | Promise<void>;
+  deleteResponse: (id: string) => void | Promise<void>;
   listResponses: (
     query?: ListResponsesStoreQuery,
   ) =>
     | (ResponseRecord | ResponseSummary)[]
     | Promise<(ResponseRecord | ResponseSummary)[]>;
+  /**
+   * Newest draft for this form + respondent (`updatedAt` descending).
+   * Used by `startResponse({ resume: true })` before inserting.
+   */
   findLatestDraft: (query: {
     formId: string;
     respondentId: string;
   }) => ResponseRecord | undefined | Promise<ResponseRecord | undefined>;
   /**
    * Insert `row` when no draft exists for this form + respondent.
-   * Concurrent creates keep the oldest row and drop the loser.
+   * Concurrent creates keep the oldest row (`createdAt`, then `id`) and
+   * drop the loser.
    */
   getOrCreateDraft: (
     row: ResponseRecord,
@@ -212,20 +224,20 @@ export function memoryAdapter(): ResponseStore {
       );
       return slicePage(filtered, query).map(clone);
     },
-    create(row) {
+    createResponse(row) {
       insertFormIfMissing(row);
       rows.set(row.id, clone(row));
     },
-    get(id) {
+    getResponse(id) {
       const row = rows.get(id);
       return row ? clone(row) : undefined;
     },
-    save(row, options) {
+    saveResponse(row, options) {
       const existing = rows.get(row.id);
       assertFreshToken(existing, options?.expectedUpdatedAt);
       rows.set(row.id, clone(row));
     },
-    delete(id) {
+    deleteResponse(id) {
       rows.delete(id);
     },
     listResponses(query) {

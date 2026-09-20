@@ -1,22 +1,11 @@
 import {
-  formatAnswer as formatBuiltinAnswer,
+  formatAnswer as formatStoredAnswer,
   type FormField,
-} from "@dimah-form/core";
+} from "@dimah-form/react";
 
-function ratingMax(field: FormField) {
-  return typeof field.max === "number" &&
-    Number.isInteger(field.max) &&
-    field.max > 0
-    ? field.max
-    : 5;
-}
+import { fieldTypes } from "@/lib/field-types";
 
 export function formatAnswer(field: FormField, value: unknown) {
-  if (field.type === "rating" && typeof value === "number") {
-    const max = ratingMax(field);
-    const filled = Math.min(Math.max(value, 0), max);
-    return `${"★".repeat(filled)}${"☆".repeat(max - filled)}`;
-  }
-  const formatted = formatBuiltinAnswer(field, value);
+  const formatted = formatStoredAnswer(field, value, fieldTypes);
   return formatted === "" ? "—" : formatted;
 }

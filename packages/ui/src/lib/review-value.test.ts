@@ -32,4 +32,16 @@ describe("reviewValue", () => {
       ),
     ).toBe("Engineer");
   });
+
+  it("uses defineFieldType.format when fieldTypes are passed", () => {
+    const rating = {
+      type: "rating",
+      validate: () => undefined,
+      format: (value: unknown) =>
+        typeof value === "number" ? `${value}/5` : "",
+    };
+    expect(
+      reviewValue(field({ id: "score", type: "rating" }), 4, labels, [rating]),
+    ).toBe("4/5");
+  });
 });

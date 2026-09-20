@@ -2,20 +2,27 @@
 
 import { useTranslations } from "@fuma-translate/react";
 import { FormFieldFrame } from "@/components/dimah-form/form-field-frame";
+import { useFormSessionOptional } from "@/components/dimah-form/form-context";
 import { reviewValue } from "@/lib/review-value";
 import type { FieldWidgetProps } from "@/lib/widget-registry";
 
 /** Read-only value used by built-in widgets when `mode="review"`. */
 export function FieldReviewValue({ binding, className }: FieldWidgetProps) {
   const t = useTranslations();
+  const session = useFormSessionOptional();
   const field = binding.field;
   if (!field) return null;
 
-  const formatted = reviewValue(field, binding.value, {
-    yes: t("Yes", { note: "review" }),
-    no: t("No", { note: "review" }),
-    empty: t("Not answered", { note: "review" }),
-  });
+  const formatted = reviewValue(
+    field,
+    binding.value,
+    {
+      yes: t("Yes", { note: "review" }),
+      no: t("No", { note: "review" }),
+      empty: t("Not answered", { note: "review" }),
+    },
+    session?.fieldTypes,
+  );
 
   return (
     <FormFieldFrame binding={binding} className={className}>

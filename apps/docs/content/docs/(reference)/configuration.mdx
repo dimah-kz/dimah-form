@@ -24,17 +24,17 @@ export const form = dimahForm({
 
 ### Configuration Options
 
-| Option                | Type                                  | Required | Default       | Description                                                                                                               |
-| :-------------------- | :------------------------------------ | :------- | :------------ | :------------------------------------------------------------------------------------------------------------------------ |
-| **`database`**        | `ResponseStore`                       | **Yes**  | —             | Persistence adapter (`memoryAdapter()`, `db(formDb)` from `@dimah-form/db`, or a custom `ResponseStore`).                 |
-| **`forms`**           | `Record<string, FormDefinitionInput>` | No       | `{}`          | Catalog of code-authored forms created with `defineForm()`. Feeds `$Infer`.                                               |
-| **`fieldTypes`**      | `FieldTypeDefinition[]`               | No       | `[]`          | Custom field type definitions created with `defineFieldType()`.                                                           |
-| **`basePath`**        | `string`                              | No       | `"/api/form"` | Base path prefix for HTTP route mounting.                                                                                 |
-| **`guard`**           | `DimahFormGuard`                      | No       | `undefined`   | Security callback executed before every query or mutation.                                                                |
-| **`hooks`**           | `DimahFormHooks`                      | No       | `{}`          | Pre-write (`onStart`, `onDraft`, `onSubmit`) and post-write (`afterSubmit`, `afterDraft`, `afterDelete`) lifecycle hooks. |
-| **`validateAnswers`** | `AnswersValidator`                    | No       | `undefined`   | Custom cross-field validation function running on submit.                                                                 |
-| **`plugins`**         | `DimahFormPlugin[]`                   | No       | `[]`          | Server plugins created with `definePlugin()`.                                                                             |
-| **`metaSchema`**      | `DimahFormMetaSchema`                 | No       | `undefined`   | Custom Zod schemas for validating `meta` dictionaries on forms and fields.                                                |
+| Option                | Type                                  | Required | Default       | Description                                                                                                                            |
+| :-------------------- | :------------------------------------ | :------- | :------------ | :------------------------------------------------------------------------------------------------------------------------------------- |
+| **`database`**        | `ResponseStore`                       | **Yes**  | —             | Persistence adapter (`memoryAdapter()`, `db(formDb)` from `@dimah-form/db`, or a custom `ResponseStore`).                              |
+| **`forms`**           | `Record<string, FormDefinitionInput>` | No       | `{}`          | Catalog of code-authored forms created with `defineForm()`. Feeds `$Infer`.                                                            |
+| **`fieldTypes`**      | `FieldTypeDefinition[]`               | No       | `[]`          | Custom field type definitions created with `defineFieldType()`.                                                                        |
+| **`basePath`**        | `string`                              | No       | `"/api/form"` | Base path prefix for HTTP route mounting.                                                                                              |
+| **`guard`**           | `DimahFormGuard`                      | No       | `undefined`   | Security callback executed before every query or mutation.                                                                             |
+| **`hooks`**           | `DimahFormHooks`                      | No       | `{}`          | Pre-write (`onStart`, `onSaveDraft`, `onSubmit`, …) and post-write (`afterStart`, `afterSaveDraft`, `afterSubmit`, …) lifecycle hooks. |
+| **`validateAnswers`** | `AnswersValidator`                    | No       | `undefined`   | Custom cross-field validation function running on submit.                                                                              |
+| **`plugins`**         | `DimahFormPlugin[]`                   | No       | `[]`          | Server plugins created with `definePlugin()`.                                                                                          |
+| **`metaSchema`**      | `DimahFormMetaSchema`                 | No       | `undefined`   | Custom Zod schemas for validating `meta` dictionaries on forms and fields.                                                             |
 
 ---
 
@@ -111,14 +111,14 @@ interface ResponseStore {
     nextOffset: number | null;
   }>;
 
-  // Response Sessions
-  create(row: ResponseRecord): MaybePromise<void>;
-  get(id: string): MaybePromise<ResponseRecord | undefined>;
-  save(
+  // Response rows
+  createResponse(row: ResponseRecord): MaybePromise<void>;
+  getResponse(id: string): MaybePromise<ResponseRecord | undefined>;
+  saveResponse(
     row: ResponseRecord,
     options?: { expectedUpdatedAt?: string },
   ): MaybePromise<void>;
-  delete(id: string): MaybePromise<void>;
+  deleteResponse(id: string): MaybePromise<void>;
   listResponses(query?: ListResponsesQuery): MaybePromise<{
     responses: (ResponseRecord | ResponseSummary)[];
     limit: number;

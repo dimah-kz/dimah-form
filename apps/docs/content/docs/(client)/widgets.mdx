@@ -190,14 +190,14 @@ export function FormFieldControl(binding: FormFieldBinding) {
 
 ## Utility Functions
 
-`@dimah-form/react` and `@dimah-form/core` export helpful formatting utilities:
+`@dimah-form/react` (and `@dimah-form/server` on the server) export helpful formatting utilities:
 
-| Helper                           | Signature                                      | Description                                                                 |
-| :------------------------------- | :--------------------------------------------- | :-------------------------------------------------------------------------- |
-| **`fieldLabel(field)`**          | `(field: FormField) => string`                 | Returns `field.label ?? field.id`.                                          |
-| **`fieldOptions(field)`**        | `(field: FormField) => FieldOption[]`          | Normalizes `{ value, label?, meta? }` arrays with label fallbacks.          |
-| **`emptyToNull(value)`**         | `(value: unknown) => unknown`                  | Converts empty strings `""` to `null` so draft patches delete empty values. |
-| **`formatAnswer(field, value)`** | `(field: FormField, value: unknown) => string` | Returns a human-friendly formatted string representation for summary views. |
+| Helper                                        | Signature                                                   | Description                                                                                        |
+| :-------------------------------------------- | :---------------------------------------------------------- | :------------------------------------------------------------------------------------------------- |
+| **`fieldLabel(field)`**                       | `(field: FormField) => string`                              | Returns `field.label ?? field.id`.                                                                 |
+| **`fieldOptions(field)`**                     | `(field: FormField) => FieldOption[]`                       | Normalizes `{ value, label?, meta? }` arrays with label fallbacks.                                 |
+| **`emptyToNull(value)`**                      | `(value: unknown) => unknown`                               | Converts empty strings `""` to `null` so draft patches delete empty values.                        |
+| **`formatAnswer(field, value, fieldTypes?)`** | `(field: FormField, value: unknown, fieldTypes?) => string` | English display string. Custom types use `defineFieldType.format` when `fieldTypes` includes them. |
 
 ---
 
@@ -221,7 +221,7 @@ Split long questionnaires with `field.meta.step` (number or string) and optional
 </FormScope>
 ```
 
-On the headless path, filter `q.visibleFields` by `meta.step` yourself — or use `visibleSteps(snapshot.fields, q.visibleFields)` from `@dimah-form/ui`. Type-check UI `meta` with `import type { FormDefinitionUi } from "@dimah-form/ui"` and `defineForm({ ... } satisfies FormDefinitionUi)`.
+On the headless path, filter `q.visibleFields` by `meta.step` yourself — or use `visibleSteps(snapshot.fields, q.visibleFields)` from `@dimah-form/ui`. Type-check UI `meta` with `import type { FormDefinitionUi } from "@dimah-form/ui/types"` and `defineForm({ ... } satisfies FormDefinitionUi)`.
 
 ---
 

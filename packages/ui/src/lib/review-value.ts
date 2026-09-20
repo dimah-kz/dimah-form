@@ -1,4 +1,8 @@
-import { formatAnswer, type FormField } from "@dimah-form/react";
+import {
+  formatAnswer,
+  type FormField,
+  type FormResponseFieldTypes,
+} from "@dimah-form/react";
 
 export type ReviewValueLabels = {
   yes: string;
@@ -11,12 +15,13 @@ export function reviewValue(
   field: FormField,
   value: unknown,
   labels: ReviewValueLabels,
+  fieldTypes?: FormResponseFieldTypes,
 ): string {
   if (field.type === "boolean") {
     if (value === true) return labels.yes;
     if (value === false) return labels.no;
     return labels.empty;
   }
-  const formatted = formatAnswer(field, value);
+  const formatted = formatAnswer(field, value, fieldTypes);
   return formatted === "" ? labels.empty : formatted;
 }

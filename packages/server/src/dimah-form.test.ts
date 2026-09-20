@@ -30,9 +30,9 @@ describe("dimahForm instance", () => {
     const form = createInstance({
       database: {
         ...memory,
-        create(row) {
+        createResponse(row) {
           created.push(row.id);
-          return memory.create(row);
+          return memory.createResponse(row);
         },
       },
     });

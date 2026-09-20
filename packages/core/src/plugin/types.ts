@@ -1,3 +1,4 @@
+import type { FieldTypeDefinition } from "../define";
 import type { ErrorCodeCatalog } from "../error-codes";
 
 export type UnionToIntersection<U> = (
@@ -34,3 +35,14 @@ export type PluginErrorCodeMap<
 > = [P] extends [readonly []]
   ? Record<string, never>
   : IntersectDefined<CodesOf<P[number]>>;
+
+type FieldTypesOf<P> = P extends { readonly fieldTypes?: infer F }
+  ? F extends readonly FieldTypeDefinition[]
+    ? F[number]
+    : never
+  : never;
+
+/** Field types contributed by a plugin tuple. Empty lists add nothing. */
+export type PluginFieldTypeUnion<
+  P extends readonly { readonly fieldTypes?: readonly FieldTypeDefinition[] }[],
+> = [P] extends [readonly []] ? never : FieldTypesOf<P[number]>;

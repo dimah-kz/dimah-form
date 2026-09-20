@@ -175,11 +175,22 @@ export function formCompletion(
 }
 
 /**
- * English display string for a builtin answer. Empty / unknown shapes are `""`.
- * Select / multiSelect use option labels. Custom types stringify primitives.
+ * English display string for an answer. Empty / unknown shapes are `""`.
+ * Select / multiSelect use option labels. Custom types use
+ * {@link FieldTypeDefinition.format} when `fieldTypes` includes them,
+ * otherwise stringify primitives.
  */
-export function formatAnswer(field: FormField, value: unknown): string {
+export function formatAnswer(
+  field: FormField,
+  value: unknown,
+  fieldTypes?:
+    ReadonlyMap<string, FieldTypeDefinition> | readonly FieldTypeDefinition[],
+): string {
   if (value == null) return "";
+  if (fieldTypes) {
+    const custom = resolveFieldTypeRegistry(fieldTypes).get(field.type)?.format;
+    if (custom) return custom(value, field);
+  }
   if (field.type === "boolean") {
     if (value === true) return "Yes";
     if (value === false) return "No";

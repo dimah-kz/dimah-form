@@ -1,3 +1,5 @@
+"use client";
+
 import {
   fieldLabel,
   stripHiddenAnswers,
@@ -5,7 +7,7 @@ import {
   type FormAnswers,
   type FormSnapshot,
   type ResponseStatus,
-} from "@dimah-form/core";
+} from "@dimah-form/react";
 
 import { Badge } from "@/components/ui/badge";
 import {

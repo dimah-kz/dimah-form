@@ -65,7 +65,7 @@
     "vitest": "catalog:"
   },
   "peerDependencies": {
-    "@dimah-form/server": "workspace:*",
+    "@dimah-form/server": "workspace:^",
     "drizzle-orm": "^0.44.0 || ^0.45.0 || >=1.0.0-rc.1 <2.0.0"
   },
   "peerDependenciesMeta": {
