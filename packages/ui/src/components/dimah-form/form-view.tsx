@@ -159,7 +159,7 @@ function FormViewChrome<TAnswers extends FormAnswers = FormAnswers>({
   const headerNode = renderFormSlot(
     header,
     createElement(ui.Header ?? FormHeader, {
-      saveState: saveHidden || !usesDefaultHeader ? false : saveStateNode,
+      saveState: !saveHidden && usesDefaultHeader && saveStateNode,
     }),
   );
 

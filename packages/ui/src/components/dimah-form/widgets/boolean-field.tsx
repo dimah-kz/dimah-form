@@ -18,7 +18,7 @@ export function BooleanField({ binding, className, mode }: FieldWidgetProps) {
   const checked = binding.value === true;
   const off = booleanOffValue(binding.field);
   const commit = (on: boolean) => {
-    binding.onChange(on ? true : off);
+    binding.onChange(on || off);
   };
 
   if (fieldWidget(binding.field) === "switch") {

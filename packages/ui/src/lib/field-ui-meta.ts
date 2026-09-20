@@ -200,7 +200,8 @@ export function readFormUiMeta(
 
 /** Unchecked boolean: `false`, or `null` when `field.unsetOnOff`. */
 export function booleanOffValue(field: FormField | undefined): false | null {
-  return field?.unsetOnOff === true ? null : false;
+  if (field?.unsetOnOff === true) return null;
+  return false;
 }
 
 const WIDTH_SPAN: Record<FieldUiWidth, string> = {

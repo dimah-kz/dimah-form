@@ -117,9 +117,9 @@ export function FormSteps<TAnswers extends FormAnswers = FormAnswers>({
   const index = currentKey ? Math.max(0, keys.indexOf(currentKey)) : 0;
   const total = steps.length;
   const current = steps[index];
-  const complete = current
-    ? formCompletion({ fields: current.fields }, session.answers).complete
-    : true;
+  const complete =
+    current == null ||
+    formCompletion({ fields: current.fields }, session.answers).complete;
 
   function setCurrent(nextKey: string) {
     onStepChange?.(nextKey);

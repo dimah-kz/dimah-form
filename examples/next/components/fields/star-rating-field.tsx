@@ -26,7 +26,7 @@ export function StarRatingField({
         value={binding.value}
         max={max && max > 0 ? max : 5}
         disabled={binding.disabled || review}
-        invalid={review ? false : binding.invalid}
+        invalid={!review && binding.invalid}
         required={binding.required}
         onChange={(value) => {
           if (review) return;
