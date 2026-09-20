@@ -1,6 +1,6 @@
 {
   "name": "@dimah-form/ui",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Optional shadcn form renderer for dimah-form — wraps FormFieldBinding, not the fill session",
   "keywords": [
     "form",
