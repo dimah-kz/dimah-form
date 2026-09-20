@@ -37,7 +37,7 @@ export function HeroSection() {
           className="mt-6 text-4xl font-extrabold tracking-[-0.035em] text-balance text-fd-foreground sm:text-5xl lg:text-6xl"
         >
           Backend-first questionnaires.{" "}
-          <span className="bg-gradient-to-r from-fd-primary via-amber-500 to-orange-500 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-sky-500 via-fd-primary to-blue-600 bg-clip-text text-transparent">
             Rendered by you.
           </span>
         </h1>

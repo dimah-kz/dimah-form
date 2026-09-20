@@ -10,7 +10,7 @@ export function HomeBackground() {
       <div className="absolute -top-40 left-1/2 h-[500px] w-[800px] -translate-x-1/2 rounded-full bg-fd-primary/10 blur-[120px]" />
 
       {/* Subtle secondary glow */}
-      <div className="absolute top-[40%] right-[-10%] h-[400px] w-[500px] rounded-full bg-amber-500/5 blur-[100px]" />
+      <div className="absolute top-[40%] right-[-10%] h-[400px] w-[500px] rounded-full bg-sky-500/8 blur-[100px]" />
       <div className="absolute top-[75%] left-[-10%] h-[400px] w-[500px] rounded-full bg-fd-primary/5 blur-[100px]" />
 
       {/* Precision Grid Pattern */}
