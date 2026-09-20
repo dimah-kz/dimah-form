@@ -19,9 +19,6 @@ export type FormDefinitionMetaDefault = {
   option: DocumentMeta;
 };
 
-export type BuiltinFieldTypeName =
-  "text" | "number" | "boolean" | "select" | "multiSelect" | "email" | "date";
-
 type FieldMetaOf<T extends FormDefinitionMeta> = T extends { field: infer M }
   ? M
   : DocumentMeta;
@@ -33,6 +30,38 @@ type FormMetaOf<T extends FormDefinitionMeta> = T extends { form: infer M }
 type OptionMetaOf<T extends FormDefinitionMeta> = T extends { option: infer M }
   ? M
   : DocumentMeta;
+
+/**
+ * Intersect two authoring `meta` layers (UI + plugin, two plugins, …).
+ * Extra JSON keys stay allowed when either side is {@link DocumentMeta}.
+ */
+export type MergeFormMeta<
+  A extends FormDefinitionMeta,
+  B extends FormDefinitionMeta,
+> = {
+  form: FormMetaOf<A> & FormMetaOf<B>;
+  field: FieldMetaOf<A> & FieldMetaOf<B>;
+  option: OptionMetaOf<A> & OptionMetaOf<B>;
+};
+
+/**
+ * Plugin authoring types under one `meta` key (`meta.scoring`, …).
+ * The namespace is optional on the document so forms without the plugin pass.
+ *
+ * Pair with `metaNamespace` + `metaSchema` on the server plugin — schemas
+ * validate the inner object, this type is the outer bag.
+ */
+export type NamespacedMeta<
+  TNamespace extends string,
+  TInner extends FormDefinitionMeta,
+> = {
+  [L in keyof TInner & ("form" | "field" | "option")]: TInner[L] extends infer V
+    ? Partial<Record<TNamespace, V>>
+    : never;
+};
+
+export type BuiltinFieldTypeName =
+  "text" | "number" | "boolean" | "select" | "multiSelect" | "email" | "date";
 
 type AuthorOption<TOptionMeta> = {
   value: string;

@@ -21,7 +21,7 @@ export const saveForm = createFormEndpoint(
     const parsed = parseLiveSnapshot(
       ctx.body,
       ctx.context.config.fieldTypes,
-      ctx.context.config.metaSchema,
+      ctx.context.config.metaSchemas,
     );
     await assertSlugAvailable(ctx.context.config, parsed);
     const existing = await ctx.context.config.database.getForm(parsed.id);

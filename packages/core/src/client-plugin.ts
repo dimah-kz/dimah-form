@@ -1,6 +1,8 @@
 import type { FormFetch } from "./create-form-fetch";
 import type { FieldTypeDefinition } from "./define";
 import type { ErrorCodeCatalog } from "./error-codes";
+import type { AnswersValidator } from "./answers";
+import type { FormDefinitionMeta } from "./form-definition";
 import type { IntersectDefined } from "./plugin/types";
 
 /**
@@ -17,7 +19,7 @@ export type FormClientPlugin<
   readonly id: string;
   /**
    * Other client plugin ids that must be installed. Sorted before this
-   * plugin (hooks / `init` on the server; endpoint merge order here).
+   * plugin (endpoint merge order, `fieldTypes`, `validateAnswers`).
    */
   readonly dependsOn?: readonly string[];
   /** Factory options for sibling plugins. Prefer closures for your own config. */
@@ -29,6 +31,17 @@ export type FormClientPlugin<
    * Pass the same definitions as the matching server plugin.
    */
   fieldTypes?: readonly FieldTypeDefinition[];
+  /**
+   * Extra answer checks after per-field validators. Chained with
+   * `createFormClient({ validateAnswers })` in `dependsOn` order.
+   */
+  validateAnswers?: AnswersValidator;
+  /**
+   * Phantom authoring types for `createDefineForm({ plugins })` and
+   * `FormDefinitionUi<typeof fieldTypes, typeof plugins>`. Prefer
+   * `NamespacedMeta` so keys sit under `meta.scoring` (and similar).
+   */
+  readonly $Meta?: FormDefinitionMeta;
   /**
    * Plugin error catalog — same module as the server plugin. Merged onto
    * `client.$ERROR_CODES`. Cannot shadow core or another plugin's codes.

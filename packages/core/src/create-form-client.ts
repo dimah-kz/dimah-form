@@ -4,7 +4,7 @@ import {
   type FormClientFetchOptions,
   type FormFetch,
 } from "./create-form-fetch";
-import type { AnswersValidator } from "./answers";
+import { chainAnswersValidators, type AnswersValidator } from "./answers";
 import type { FieldTypeDefinition } from "./define";
 import type { InferAnswersMap } from "./infer";
 import {
@@ -93,7 +93,7 @@ export type CreateFormClientOptions<
   fieldTypes?: TFieldTypes;
   /**
    * Same function as `dimahForm({ validateAnswers })`. Used by the fill
-   * session for local checks.
+   * session for local checks. Plugin `validateAnswers` callbacks run first.
    */
   validateAnswers?: AnswersValidator;
 } & FormClientFetchOptions;
@@ -297,6 +297,10 @@ export function createFormClient<
     ...(optionFieldTypes ?? []),
   ] as unknown as ClientFieldTypes<TPlugins, TFieldTypes>;
   createFieldTypeRegistry(fieldTypes);
+  const mergedValidateAnswers = chainAnswersValidators(
+    applied.validateAnswers,
+    validateAnswers,
+  );
 
   const api: FormClientApi &
     Record<string, unknown> & {
@@ -392,7 +396,7 @@ export function createFormClient<
     $fetch,
     baseURL: base,
     fieldTypes,
-    validateAnswers,
+    validateAnswers: mergedValidateAnswers,
     $ERROR_CODES: applied.errorCodes as typeof FORM_ERROR_CODES &
       PluginErrorCodeMap<TPlugins>,
     $Infer: undefined as unknown as CreateFormClientResult<

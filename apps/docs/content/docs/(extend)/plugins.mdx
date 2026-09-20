@@ -1,10 +1,10 @@
 ---
 title: Plugins
-description: Add endpoints, hooks, error codes, field types, and matching client methods.
+description: Add endpoints, hooks, error codes, field types, meta schemas, and matching client methods.
 icon: Puzzle
 ---
 
-A plugin can add HTTP endpoints, lifecycle hooks, error codes, field types, and matching methods on `createFormClient`.
+A plugin can add HTTP endpoints, lifecycle hooks, error codes, field types, `meta` validation, answer validators, and matching methods on `createFormClient`.
 
 ---
 
@@ -129,7 +129,8 @@ export const analyticsClientPlugin = () =>
 
 Register the client plugin with `createFormClient`. If the server plugin
 registers `fieldTypes`, list the same array on the client plugin so local
-session validation matches.
+session validation matches. Client plugins may also list `validateAnswers`
+and phantom `$Meta` (same types as the server plugin).
 
 ```ts title="lib/form-client.ts"
 "use client";
@@ -149,17 +150,102 @@ const stats = await formClient.getStats("feedback");
 
 ---
 
+## 4. Meta, namespaces, and authoring types
+
+Plugin rules that belong on the questionnaire (scores, variables, formulas)
+live in the opaque `meta` bag — not as extra keys on the form document.
+Own a **namespace** so several plugins can share the same bag next to UI
+keys (`widget`, `step`, …):
+
+```ts title="lib/plugins/scoring-plugin.ts"
+import {
+  definePlugin,
+  type NamespacedMeta,
+} from "@dimah-form/server";
+import * as z from "zod";
+
+type ScoringInner = {
+  form: { variables: { id: string; max: number }[] };
+  option: { points: number };
+};
+
+export const scoringPlugin = () =>
+  definePlugin({
+    id: "scoring",
+    metaNamespace: "scoring",
+    $Meta: {} as NamespacedMeta<"scoring", ScoringInner>,
+    metaSchema: {
+      form: z.object({
+        variables: z.array(
+          z.object({ id: z.string(), max: z.number() }),
+        ),
+      }),
+      option: z.object({ points: z.number() }),
+    },
+    validateAnswers: (_definition, _answers, mode) => {
+      if (mode !== "submit") return;
+      // Read `_definition.meta?.scoring` — same snapshot submit already uses.
+    },
+  });
+```
+
+`metaNamespace` is unique across plugins. `metaSchema` then validates
+`meta.scoring` (the inner object) **only when that key is present**, so
+forms without the plugin still init. Instance `dimahForm({ metaSchema })`
+still runs on the whole bag afterwards.
+
+Author catalogs against the same plugin objects (type-only — same as
+`fieldTypes`):
+
+```ts
+import { createDefineForm } from "@dimah-form/server";
+import type { FormDefinitionUi } from "@dimah-form/ui/types";
+import { scoringPlugin } from "@/lib/plugins/scoring-plugin";
+import { fieldTypes } from "@/lib/field-types";
+
+const plugins = [scoringPlugin()] as const;
+const defineAppForm = createDefineForm({
+  fieldTypes,
+  plugins,
+});
+
+export const quiz = defineAppForm({
+  title: "GAD-7",
+  meta: { scoring: { variables: [{ id: "gad7", max: 21 }] } },
+  fields: [
+    {
+      id: "q1",
+      type: "select",
+      options: [{ value: "0", meta: { scoring: { points: 0 } } }],
+    },
+  ],
+} satisfies FormDefinitionUi<typeof fieldTypes, typeof plugins>);
+```
+
+`createDefineForm({ plugins })` types the field document and plugin `meta`.
+`satisfies FormDefinitionUi<typeof fieldTypes, typeof plugins>` adds UI
+`meta` keys. Share the `$Meta` module with the client plugin.
+
+`validateAnswers` on a plugin is chained in `dependsOn` order, then the
+instance callback, on both `dimahForm()` and `createFormClient({ plugins })`.
+
+---
+
 ## Plugin Options Reference
 
-| Property           | Type                           | Description                                                                   |
-| :----------------- | :----------------------------- | :---------------------------------------------------------------------------- |
-| **`id`**           | `string`                       | Unique alphanumeric identifier for the plugin.                                |
-| **`$ERROR_CODES`** | `ErrorCodeCatalog`             | Custom error codes declared via `defineErrorCodes()`.                         |
-| **`endpoints`**    | `Record<string, FormEndpoint>` | Map of custom route handlers.                                                 |
-| **`hooks`**        | `DimahFormHooks`               | Pre-write and post-write lifecycle hooks.                                     |
-| **`fieldTypes`**   | `FieldTypeDefinition[]`        | Custom field validators (server and matching client plugin).                  |
-| **`init`**         | `(ctx) => { context? }`        | Sync setup. Receives `basePath`, `fieldTypes`, `plugins`, `getPluginContext`. |
-| **`dependsOn`**    | `string[]`                     | Array of required plugin IDs that must be loaded before this plugin.          |
+| Property              | Type                           | Description                                                                                        |
+| :-------------------- | :----------------------------- | :------------------------------------------------------------------------------------------------- |
+| **`id`**              | `string`                       | Unique alphanumeric identifier for the plugin.                                                     |
+| **`$ERROR_CODES`**    | `ErrorCodeCatalog`             | Custom error codes declared via `defineErrorCodes()`.                                              |
+| **`endpoints`**       | `Record<string, FormEndpoint>` | Map of custom route handlers.                                                                      |
+| **`hooks`**           | `DimahFormHooks`               | Pre-write and post-write lifecycle hooks.                                                          |
+| **`fieldTypes`**      | `FieldTypeDefinition[]`        | Custom field validators (server and matching client plugin).                                       |
+| **`metaNamespace`**   | `string`                       | Unique `meta` key this plugin owns (`meta.scoring`).                                               |
+| **`metaSchema`**      | `FormDefinitionMetaSchema`     | Zod checks for form / field / option `meta`. Namespaced bags run only when the key is present.     |
+| **`validateAnswers`** | `AnswersValidator`             | Extra answer checks after per-field validators. Chained, then the instance callback.               |
+| **`$Meta`**           | `FormDefinitionMeta`           | Phantom authoring types. Prefer `NamespacedMeta`. Used by `createDefineForm` / `FormDefinitionUi`. |
+| **`init`**            | `(ctx) => { context? }`        | Sync setup. Receives `basePath`, `fieldTypes`, `plugins`, `getPluginContext`.                      |
+| **`dependsOn`**       | `string[]`                     | Array of required plugin IDs that must be loaded before this plugin.                               |
 
 ---
 

@@ -4,7 +4,13 @@ import type {
   FormDefinitionFor,
   FormDefinitionMeta,
   FormDefinitionMetaDefault,
+  MergeFormMeta,
 } from "./form-definition";
+import type {
+  PluginFieldTypeUnion,
+  PluginMetaMap,
+  PluginMetaSource,
+} from "./plugin/types";
 import type { MaybePromise } from "./maybe-promise";
 import {
   formDefinitionSchema,
@@ -96,19 +102,34 @@ export function defineForm<const T extends FormDefinitionInput>(form: T): T {
 }
 
 /**
- * `defineForm` bound to extra field types (type-only).
+ * `defineForm` bound to extra field types and plugin `$Meta` (type-only).
  *
- * Does not register validators — pass the same `fieldTypes` to
- * `dimahForm({ fieldTypes })` and `createFormClient({ fieldTypes })`.
- * `meta` stays the opaque JSON bag. Apps that use `@dimah-form/ui` can also
- * `satisfies FormDefinitionUi<typeof fieldTypes>` on the same document.
+ * Does not register validators or meta schemas — pass the same `fieldTypes`
+ * / plugins to `dimahForm()` and `createFormClient()`. `meta` stays the
+ * opaque JSON bag. Apps that use `@dimah-form/ui` can also
+ * `satisfies FormDefinitionUi<typeof fieldTypes, typeof plugins>` on the
+ * same document.
  */
+export type CreateDefineFormOptions<
+  TFieldTypes extends readonly FieldTypeDefinition[] = [],
+  TPlugins extends readonly PluginMetaSource[] = [],
+> = {
+  fieldTypes?: TFieldTypes;
+  plugins?: TPlugins;
+};
+
 export function createDefineForm<
   const TFieldTypes extends readonly FieldTypeDefinition[] = [],
   TMeta extends FormDefinitionMeta = FormDefinitionMetaDefault,
->(_options?: { fieldTypes?: TFieldTypes }) {
+  const TPlugins extends readonly PluginMetaSource[] = [],
+>(_options?: CreateDefineFormOptions<TFieldTypes, TPlugins>) {
+  type MergedFields = readonly (
+    | TFieldTypes[number]
+    | PluginFieldTypeUnion<TPlugins>
+  )[];
+  type MergedMeta = MergeFormMeta<TMeta, PluginMetaMap<TPlugins>>;
   return function defineTypedForm<const T extends FormDefinitionInput>(
-    form: T & FormDefinitionFor<TFieldTypes, TMeta>,
+    form: T & FormDefinitionFor<MergedFields, MergedMeta>,
   ): T {
     return defineForm(form) as unknown as T;
   };

@@ -1,6 +1,7 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
+import * as z from "zod";
 
-import { defineErrorCodes, defineForm } from "@dimah-form/core";
+import { defineErrorCodes, defineForm, isFormErrorCode } from "@dimah-form/core";
 
 import { createFormEndpoint } from "./api/create-form-endpoint";
 import { dimahForm } from "./dimah-form";
@@ -264,6 +265,97 @@ describe("plugins", () => {
     });
     expect(order).toEqual(["a", "b"]);
     await expect(form.api.peek({})).resolves.toEqual({ a: { n: 1 } });
+  });
+
+  it("merges plugin metaSchema and skips namespaced keys that are absent", async () => {
+    const scoring = definePlugin({
+      id: "scoring",
+      metaNamespace: "scoring",
+      metaSchema: {
+        form: z.object({ variables: z.array(z.string()).min(1) }),
+      },
+    });
+    expect(() =>
+      dimahForm({
+        database: memoryAdapter(),
+        plugins: [scoring],
+        forms: {
+          quiz: defineForm({
+            title: "Quiz",
+            meta: { scoring: { variables: [] } },
+            fields: [{ id: "n", type: "text" }],
+          }),
+        },
+      }),
+    ).toThrow(/Invalid form "quiz"/);
+
+    const form = dimahForm({
+      database: memoryAdapter(),
+      plugins: [scoring],
+      forms: {
+        plain: defineForm({
+          title: "Plain",
+          fields: [{ id: "n", type: "text" }],
+        }),
+        quiz: defineForm({
+          title: "Quiz",
+          meta: { scoring: { variables: ["gad7"] } },
+          fields: [{ id: "n", type: "text" }],
+        }),
+      },
+    });
+    await expect(
+      form.api.getForm({ query: { formId: "plain" } }),
+    ).resolves.toMatchObject({ id: "plain" });
+    await expect(
+      form.api.getForm({ query: { formId: "quiz" } }),
+    ).resolves.toMatchObject({
+      meta: { scoring: { variables: ["gad7"] } },
+    });
+    await expect(
+      form.api.saveForm({
+        body: {
+          id: "live",
+          title: "Live",
+          meta: { scoring: { variables: [] } },
+          fields: [{ id: "n", type: "text" }],
+        },
+      }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "VALIDATION_ERROR"),
+    );
+  });
+
+  it("chains plugin validateAnswers before the instance callback", async () => {
+    const order: string[] = [];
+    const scoring = definePlugin({
+      id: "scoring",
+      validateAnswers: () => {
+        order.push("plugin");
+        return [{ field: "name", message: "plugin", code: "PLUGIN" }];
+      },
+    });
+    const form = createInstance({
+      plugins: [scoring],
+      validateAnswers: () => {
+        order.push("user");
+        return [{ field: "name", message: "user", code: "USER" }];
+      },
+    });
+    const started = await form.api.startResponse({
+      body: { formId: "onboarding" },
+    });
+    await expect(
+      form.api.submitResponse({
+        body: {
+          responseId: started.id,
+          answers: { name: "Ada", ok: true },
+        },
+      }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "VALIDATION_ERROR"),
+    );
+    expect(order).toEqual(["plugin", "user"]);
   });
 
   it("rejects async plugin init", () => {

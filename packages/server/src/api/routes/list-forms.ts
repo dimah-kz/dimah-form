@@ -34,7 +34,7 @@ export const listForms = createFormEndpoint(
             parseLiveSnapshot(
               form,
               ctx.context.config.fieldTypes,
-              ctx.context.config.metaSchema,
+              ctx.context.config.metaSchemas,
             ),
           );
         } catch {

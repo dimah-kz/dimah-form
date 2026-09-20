@@ -49,7 +49,7 @@ Code-authored `forms` are optional. Dynamic questionnaires use `saveForm` / `get
 
 ## Plugins
 
-Feature plugins are factories that return `definePlugin({ ... })`. They add endpoints, hooks, field types, and error codes — not persistence.
+Feature plugins are factories that return `definePlugin({ ... })`. They add endpoints, hooks, field types, error codes, `metaSchema`, and `validateAnswers` — not persistence.
 
 ```ts
 import {

@@ -1,14 +1,16 @@
 import type { Endpoint } from "better-call";
 import type {
   AnswersValidator,
+  AppliedMetaSchema,
   ErrorCodeCatalog,
   FieldTypeDefinition,
   FormApiOperation,
+  FormDefinitionMeta,
+  FormDefinitionMetaSchema,
   FormSnapshot,
   MaybePromise,
   ResponseRecord,
 } from "@dimah-form/core";
-import type { z } from "zod";
 
 import type { ResponseStore } from "./store";
 
@@ -109,7 +111,7 @@ export type DimahFormPlugin<
   readonly id: string;
   /**
    * Other plugin ids that must be installed. Sorted before this plugin
-   * (`init`, hooks, field types, endpoints).
+   * (`init`, hooks, field types, endpoints, `metaSchema`, `validateAnswers`).
    */
   readonly dependsOn?: readonly string[];
   /** Factory options for sibling plugins. Prefer closures for your own config. */
@@ -117,6 +119,28 @@ export type DimahFormPlugin<
   endpoints?: TEndpoints;
   hooks?: DimahFormHooks;
   fieldTypes?: readonly FieldTypeDefinition[];
+  /**
+   * `meta` key this plugin owns (`meta.scoring`). Unique across plugins.
+   * {@link metaSchema} runs on that nested object when the key is present.
+   */
+  readonly metaNamespace?: string;
+  /**
+   * Zod checks for form / field / option `meta`. Merged in `dimahForm()`
+   * (`dependsOn` order, then the instance `metaSchema`). Namespaced
+   * schemas skip documents that omit the key.
+   */
+  metaSchema?: FormDefinitionMetaSchema;
+  /**
+   * Extra answer checks after per-field validators. Chained in `dependsOn`
+   * order, then `dimahForm({ validateAnswers })`.
+   */
+  validateAnswers?: AnswersValidator;
+  /**
+   * Phantom authoring types for `createDefineForm({ plugins })` and
+   * `FormDefinitionUi<typeof fieldTypes, typeof plugins>`. Prefer
+   * `NamespacedMeta` so keys sit under `meta.scoring` (and similar).
+   */
+  readonly $Meta?: FormDefinitionMeta;
   /**
    * Plugin error catalog. Merged onto `form.$ERROR_CODES`. Cannot shadow
    * core or another plugin's codes. Share the same module with the client plugin.
@@ -130,11 +154,7 @@ export type DimahFormPlugin<
 };
 
 /** Optional Zod schemas for the opaque `meta` bag. Applied at init / `saveForm`. */
-export type DimahFormMetaSchema = {
-  form?: z.ZodType;
-  field?: z.ZodType;
-  option?: z.ZodType;
-};
+export type DimahFormMetaSchema = FormDefinitionMetaSchema;
 
 export type ResolvedDimahFormConfig = {
   basePath: string;
@@ -151,6 +171,6 @@ export type ResolvedDimahFormConfig = {
    * Guard uses this when `metadata.operation` is omitted.
    */
   pluginOperations: ReadonlyMap<string, string>;
-  metaSchema?: DimahFormMetaSchema;
+  metaSchemas: readonly AppliedMetaSchema[];
   validateAnswers?: AnswersValidator;
 };

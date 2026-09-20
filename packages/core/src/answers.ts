@@ -23,6 +23,30 @@ export type AnswersValidator = (
   mode: AnswerValidationMode,
 ) => MaybePromise<ValidationIssue[] | void>;
 
+/**
+ * Run validators in order and concatenate issues. `undefined` entries are
+ * skipped. Used to merge plugin `validateAnswers` with the instance callback.
+ */
+export function chainAnswersValidators(
+  ...validators: (AnswersValidator | undefined)[]
+): AnswersValidator | undefined {
+  const present = validators.filter(
+    (validator): validator is AnswersValidator => validator != null,
+  );
+  if (present.length === 0) return undefined;
+  if (present.length === 1) return present[0];
+  return async (definition, answers, mode) => {
+    const issues: ValidationIssue[] = [];
+    for (const validator of present) {
+      const extra = await awaitMaybe(validator(definition, answers, mode));
+      if (extra) {
+        for (const item of extra) issues.push(item);
+      }
+    }
+    return issues.length > 0 ? issues : undefined;
+  };
+}
+
 const builtinRegistry = createFieldTypeRegistry();
 
 function isAbsent(value: unknown): boolean {

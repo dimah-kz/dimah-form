@@ -173,7 +173,7 @@ export const reviewForm = defineAppForm({
 } satisfies FormDefinitionUi<typeof customFieldTypes>);
 ```
 
-`createDefineForm({ fieldTypes })` is type-only — still pass the same array to `dimahForm({ fieldTypes })` and `createFormClient({ fieldTypes })`. It types the field document (`min` / `max` here). `satisfies FormDefinitionUi<typeof customFieldTypes>` is only for `@dimah-form/ui` `meta` keys; drop it if you do not use that package. TypeScript infers `Form["$Infer"]["answers"]["review"]["score"]` as `number`.
+`createDefineForm({ fieldTypes, plugins })` is type-only — still pass the same array and plugins to `dimahForm()` and `createFormClient()`. It types the field document (`min` / `max` here) and plugin `$Meta`. `satisfies FormDefinitionUi<typeof customFieldTypes, typeof plugins>` is for `@dimah-form/ui` `meta` keys plus plugin namespaces; drop it if you do not use that package. TypeScript infers `Form["$Infer"]["answers"]["review"]["score"]` as `number`.
 
 ---
 

@@ -1,10 +1,14 @@
 import {
+  assertMetaNamespace,
   assertPluginId,
   builtinFieldTypes,
+  chainAnswersValidators,
   FORM_API_ROUTE_KEYS,
   formApiRouteKey,
   mergeErrorCodes,
   sortPluginsByDependsOn,
+  type AnswersValidator,
+  type AppliedMetaSchema,
   type ErrorCodeCatalog,
   type FieldTypeDefinition,
   type IntersectDefined,
@@ -46,6 +50,8 @@ export type AppliedPlugins = {
   hooks: DimahFormHooks;
   errorCodes: ErrorCodeCatalog;
   pluginOperations: Map<string, string>;
+  metaSchemas: AppliedMetaSchema[];
+  validateAnswers?: AnswersValidator;
 };
 
 function routeKey(endpoint: Endpoint) {
@@ -81,7 +87,8 @@ const builtinTypeNames = new Set<string>(
 
 /**
  * Validate plugins, honor `dependsOn`, collect endpoints / field types /
- * error codes, and chain plugin hooks. User config hooks are chained
+ * error codes / meta schemas, and chain plugin hooks and `validateAnswers`.
+ * User config hooks / `validateAnswers` / `metaSchema` are chained
  * afterwards in `dimahForm()`.
  */
 export function applyPlugins(
@@ -113,10 +120,40 @@ export function applyPlugins(
   const reservedNames = new Set<string>(CORE_ENDPOINT_NAMES);
   const pluginOperations = new Map<string, string>();
   const typeOwner = new Map<string, string>();
+  const namespaceOwner = new Map<string, string>();
+  const metaSchemas: AppliedMetaSchema[] = [];
+  const validators: AnswersValidator[] = [];
 
   for (const plugin of sorted) {
     if (plugin.hooks) {
       hookBags.push(plugin.hooks);
+    }
+    if (plugin.validateAnswers) {
+      validators.push(plugin.validateAnswers);
+    }
+
+    let namespace: string | undefined;
+    if (plugin.metaNamespace !== undefined) {
+      namespace = assertMetaNamespace(
+        plugin.metaNamespace,
+        plugin.id,
+        "plugin",
+      );
+      const owner = namespaceOwner.get(namespace);
+      if (owner) {
+        throw new Error(
+          `Duplicate dimah-form meta namespace "${namespace}". Plugin "${plugin.id}" conflicts with plugin "${owner}".`,
+        );
+      }
+      namespaceOwner.set(namespace, plugin.id);
+    }
+
+    if (plugin.metaSchema) {
+      metaSchemas.push(
+        namespace
+          ? { ...plugin.metaSchema, namespace }
+          : { ...plugin.metaSchema },
+      );
     }
 
     for (const fieldType of plugin.fieldTypes ?? []) {
@@ -161,6 +198,8 @@ export function applyPlugins(
     hooks: mergeHookBags(hookBags),
     errorCodes: mergeErrorCodes(sorted, "plugin"),
     pluginOperations,
+    metaSchemas,
+    validateAnswers: chainAnswersValidators(...validators),
   };
 }
 

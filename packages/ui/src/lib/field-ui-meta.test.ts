@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { defineFieldType, type FormField } from "@dimah-form/react";
+import {
+  defineFieldType,
+  type FormField,
+  type NamespacedMeta,
+} from "@dimah-form/react";
 
 import {
   booleanOffValue,
@@ -204,5 +208,29 @@ describe("FormDefinitionUi", () => {
       ],
     } satisfies FormDefinitionUi<readonly [typeof rating]>;
     expect(form.fields[0]?.type).toBe("rating");
+  });
+
+  it("merges plugin $Meta keys next to UI meta", () => {
+    const scoring = {
+      id: "scoring",
+      $Meta: {} as NamespacedMeta<"scoring", { form: { variables: string[] } }>,
+    };
+    expect(scoring.id).toBe("scoring");
+    const form = {
+      title: "X",
+      meta: {
+        layout: "steps",
+        scoring: { variables: ["gad7"] },
+      },
+      fields: [{ id: "n", type: "text", meta: { placeholder: "Ada" } }],
+    } satisfies FormDefinitionUi<[], readonly [typeof scoring]>;
+    expect(form.meta.scoring?.variables).toEqual(["gad7"]);
+    expect(form.meta.layout).toBe("steps");
+    ({
+      title: "X",
+      fields: [{ id: "n", type: "text" }],
+      // @ts-expect-error scoring.variables must be string[]
+      meta: { scoring: { variables: 1 } },
+    }) satisfies FormDefinitionUi<[], readonly [typeof scoring]>;
   });
 });

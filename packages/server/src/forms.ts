@@ -2,8 +2,10 @@ import {
   collectShowWhenIssues,
   formDefinitionSchema,
   isFormErrorCode,
+  metaSchemaTarget,
   normalizeFormSnapshot,
   safeParseFormSnapshot,
+  type AppliedMetaSchema,
   type FieldTypeDefinition,
   type FormField,
   type FormSnapshot,
@@ -12,7 +14,7 @@ import {
 import * as z from "zod";
 
 import { errors } from "./errors";
-import type { DimahFormMetaSchema, ResolvedDimahFormConfig } from "./types";
+import type { ResolvedDimahFormConfig } from "./types";
 
 function fail(
   asError: "init" | "request",
@@ -33,7 +35,7 @@ function assertMeta(
   label: string,
 ): void {
   if (!schema) return;
-  const parsed = schema.safeParse(value ?? {});
+  const parsed = schema.safeParse(value);
   if (parsed.success) return;
   fail(asError, formId, parsed.error.issues[0]?.message ?? `Invalid ${label}`);
 }
@@ -41,24 +43,38 @@ function assertMeta(
 function assertDocumentMeta(
   formId: string,
   form: { meta?: unknown; fields: readonly Record<string, unknown>[] },
-  metaSchema: DimahFormMetaSchema | undefined,
+  metaSchemas: readonly AppliedMetaSchema[],
   asError: "init" | "request",
 ): void {
-  if (!metaSchema) return;
-  assertMeta(metaSchema.form, form.meta, asError, formId, "form meta");
-  if (!metaSchema.field && !metaSchema.option) return;
-  for (const field of form.fields) {
-    assertMeta(metaSchema.field, field.meta, asError, formId, "field meta");
-    if (!metaSchema.option || !Array.isArray(field.options)) continue;
-    for (const option of field.options) {
-      if (!option || typeof option !== "object") continue;
-      assertMeta(
-        metaSchema.option,
-        (option as { meta?: unknown }).meta,
-        asError,
-        formId,
-        "option meta",
-      );
+  if (metaSchemas.length === 0) return;
+  for (const bag of metaSchemas) {
+    const formTarget = metaSchemaTarget(form.meta, bag.namespace);
+    if (formTarget.present) {
+      assertMeta(bag.form, formTarget.value, asError, formId, "form meta");
+    }
+    if (!bag.field && !bag.option) continue;
+    for (const field of form.fields) {
+      const fieldTarget = metaSchemaTarget(field.meta, bag.namespace);
+      if (fieldTarget.present) {
+        assertMeta(bag.field, fieldTarget.value, asError, formId, "field meta");
+      }
+      if (!bag.option || !Array.isArray(field.options)) continue;
+      for (const option of field.options) {
+        if (!option || typeof option !== "object") continue;
+        const optionTarget = metaSchemaTarget(
+          (option as { meta?: unknown }).meta,
+          bag.namespace,
+        );
+        if (optionTarget.present) {
+          assertMeta(
+            bag.option,
+            optionTarget.value,
+            asError,
+            formId,
+            "option meta",
+          );
+        }
+      }
     }
   }
 }
@@ -96,11 +112,11 @@ function assertFormDocument(
   formId: string,
   form: { meta?: unknown; fields: readonly Record<string, unknown>[] },
   fieldTypes: ReadonlyMap<string, FieldTypeDefinition>,
-  metaSchema: DimahFormMetaSchema | undefined,
+  metaSchemas: readonly AppliedMetaSchema[],
   asError: "init" | "request",
 ): void {
   assertFieldDocuments(formId, form.fields, fieldTypes, asError);
-  assertDocumentMeta(formId, form, metaSchema, asError);
+  assertDocumentMeta(formId, form, metaSchemas, asError);
   const showWhenIssue = collectShowWhenIssues(form.fields as FormField[])[0];
   if (showWhenIssue) fail(asError, formId, showWhenIssue);
 }
@@ -108,14 +124,14 @@ function assertFormDocument(
 export function assertFormsConfig(
   forms: Record<string, unknown>,
   fieldTypes: ReadonlyMap<string, FieldTypeDefinition>,
-  metaSchema?: DimahFormMetaSchema,
+  metaSchemas: readonly AppliedMetaSchema[] = [],
 ): void {
   for (const [id, form] of Object.entries(forms)) {
     const parsed = formDefinitionSchema.safeParse(form);
     if (!parsed.success) {
       throw new Error(`Invalid form "${id}": ${z.prettifyError(parsed.error)}`);
     }
-    assertFormDocument(id, parsed.data, fieldTypes, metaSchema, "init");
+    assertFormDocument(id, parsed.data, fieldTypes, metaSchemas, "init");
   }
 }
 
@@ -123,20 +139,20 @@ export function snapshotFromConfig(
   forms: Record<string, unknown>,
   formId: string,
   fieldTypes: ReadonlyMap<string, FieldTypeDefinition>,
-  metaSchema?: DimahFormMetaSchema,
+  metaSchemas: readonly AppliedMetaSchema[] = [],
 ): FormSnapshot {
   const parsed = formDefinitionSchema.safeParse(forms[formId]);
   if (!parsed.success) {
     throw errors.validationError(`Invalid form "${formId}"`);
   }
-  assertFormDocument(formId, parsed.data, fieldTypes, metaSchema, "request");
+  assertFormDocument(formId, parsed.data, fieldTypes, metaSchemas, "request");
   return normalizeFormSnapshot({ id: formId, ...parsed.data });
 }
 
 export function parseLiveSnapshot(
   form: unknown,
   fieldTypes: ReadonlyMap<string, FieldTypeDefinition>,
-  metaSchema?: DimahFormMetaSchema,
+  metaSchemas: readonly AppliedMetaSchema[] = [],
 ): FormSnapshot {
   const parsed = safeParseFormSnapshot(form);
   if (!parsed.success) {
@@ -146,7 +162,7 @@ export function parseLiveSnapshot(
     parsed.data.id,
     parsed.data,
     fieldTypes,
-    metaSchema,
+    metaSchemas,
     "request",
   );
   return parsed.data;
@@ -161,7 +177,7 @@ export async function resolveLiveForm(
       config.forms,
       idOrSlug,
       config.fieldTypes,
-      config.metaSchema,
+      config.metaSchemas,
     );
   }
   for (const formId of Object.keys(config.forms)) {
@@ -169,7 +185,7 @@ export async function resolveLiveForm(
       config.forms,
       formId,
       config.fieldTypes,
-      config.metaSchema,
+      config.metaSchemas,
     );
     if (snapshot.slug === idOrSlug) return snapshot;
   }
@@ -177,7 +193,7 @@ export async function resolveLiveForm(
   if (!stored) {
     throw errors.unknownForm(idOrSlug);
   }
-  return parseLiveSnapshot(stored, config.fieldTypes, config.metaSchema);
+  return parseLiveSnapshot(stored, config.fieldTypes, config.metaSchemas);
 }
 
 export async function findLiveForm(
@@ -208,7 +224,7 @@ export async function listLiveForms(
         config.forms,
         formId,
         config.fieldTypes,
-        config.metaSchema,
+        config.metaSchemas,
       ),
     )
     .filter((form) => !query.status || form.status === query.status);
@@ -220,7 +236,7 @@ export async function listLiveForms(
   for (const form of fromDatabase) {
     if (seen.has(form.id)) continue;
     try {
-      extra.push(parseLiveSnapshot(form, config.fieldTypes, config.metaSchema));
+      extra.push(parseLiveSnapshot(form, config.fieldTypes, config.metaSchemas));
     } catch {
       continue;
     }
@@ -239,7 +255,7 @@ export async function assertSlugAvailable(
       config.forms,
       formId,
       config.fieldTypes,
-      config.metaSchema,
+      config.metaSchemas,
     );
     if (snapshot.id === form.id) continue;
     if (snapshot.id === form.slug || snapshot.slug === form.slug) {

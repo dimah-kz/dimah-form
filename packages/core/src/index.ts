@@ -1,5 +1,5 @@
 export * from "./app-protocol";
-export { assertAnswers } from "./answers";
+export { assertAnswers, chainAnswersValidators } from "./answers";
 export { collectShowWhenIssues } from "./show-when";
 export {
   createFormResponseSession,
@@ -32,9 +32,17 @@ export type {
   IntersectDefined,
   PluginErrorCodeMap,
   PluginFieldTypeUnion,
+  PluginMetaMap,
+  PluginMetaSource,
 } from "./plugin/types";
 export { RESERVED_CLIENT_PLUGIN_IDS } from "./client-plugin";
 export { mergeErrorCodes } from "./plugin/merge-error-codes";
+export {
+  assertMetaNamespace,
+  metaSchemaTarget,
+  type AppliedMetaSchema,
+  type FormDefinitionMetaSchema,
+} from "./plugin/meta-schema";
 export { assertPluginId, sortPluginsByDependsOn } from "./plugin/sort-plugins";
 export {
   FORM_API_OPERATIONS,

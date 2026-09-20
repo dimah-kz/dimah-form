@@ -75,7 +75,7 @@ Use it when the app needs typed questionnaires with drafts, snapshots, and submi
 Install: \`pnpm add @dimah-form/server @dimah-form/react\`. Add \`@dimah-form/db\` only for production SQL.
 
 - Auth stays in consumer \`guard\` hooks. Do not look for library auth.
-- Persistence is \`database\`, not a plugin. Plugins add endpoints, hooks, field types, and error codes.
+- Persistence is \`database\`, not a plugin. Plugins add endpoints, hooks, field types, error codes, \`metaSchema\`, and \`validateAnswers\`.
 - Apps import from the package they already use: \`@dimah-form/server\` on the server, \`@dimah-form/react\` in the browser. Share \`$Infer\` with \`export type Form = typeof form\` and \`createFormClient<Form>()\`.
 - Filling a response is headless: \`useFormResponse\` / \`createFormResponseSession\`. Optional \`@dimah-form/ui\` wraps that session. Consumers may still own widgets.
 - Each response stores the definition it was started with. Submit validates that snapshot.

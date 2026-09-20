@@ -6,6 +6,7 @@ import {
   RESERVED_CLIENT_PLUGIN_IDS,
   type FormClientPlugin,
 } from "../client-plugin";
+import { chainAnswersValidators, type AnswersValidator } from "../answers";
 import { mergeErrorCodes } from "./merge-error-codes";
 import { assertPluginId, sortPluginsByDependsOn } from "./sort-plugins";
 
@@ -13,6 +14,7 @@ export type AppliedClientPlugins = {
   endpoints: Record<string, (...args: never[]) => unknown>;
   errorCodes: ErrorCodeCatalog;
   fieldTypes: FieldTypeDefinition[];
+  validateAnswers?: AnswersValidator;
 };
 
 const builtinTypeNames = new Set<string>(
@@ -50,8 +52,13 @@ export function applyClientPlugins(
   const endpoints: Record<string, (...args: never[]) => unknown> = {};
   const fieldTypes: FieldTypeDefinition[] = [];
   const typeOwner = new Map<string, string>();
+  const validators: AnswersValidator[] = [];
 
   for (const plugin of sorted) {
+    if (plugin.validateAnswers) {
+      validators.push(plugin.validateAnswers);
+    }
+
     for (const fieldType of plugin.fieldTypes ?? []) {
       if (builtinTypeNames.has(fieldType.type)) {
         throw new Error(
@@ -83,5 +90,6 @@ export function applyClientPlugins(
     endpoints,
     errorCodes: mergeErrorCodes(sorted, "client plugin"),
     fieldTypes,
+    validateAnswers: chainAnswersValidators(...validators),
   };
 }

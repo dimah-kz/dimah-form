@@ -5,6 +5,10 @@ import type {
   FormDefinitionFor,
   FormField,
   FormSnapshot,
+  MergeFormMeta,
+  PluginFieldTypeUnion,
+  PluginMetaMap,
+  PluginMetaSource,
 } from "@dimah-form/react";
 
 /** Built-in `meta.widget` presentation variants. Not registry keys. */
@@ -74,7 +78,8 @@ export type FormUiMeta = {
  * `meta` autocompletes known UI keys; extra keys stay allowed.
  * Pass `FormDefinitionUi<typeof fieldTypes>` so custom `defineFieldType` /
  * `fieldSchema` keys type-check (`createDefineForm` binds those keys on its
- * own — this type still adds UI `meta`). Unregistered `type` strings belong
+ * own — this type still adds UI `meta`). Pass plugins as the second type
+ * argument so `$Meta` keys autocomplete. Unregistered `type` strings belong
  * on `defineForm`, not this union.
  */
 export type FormUiDefinitionMeta = {
@@ -83,9 +88,20 @@ export type FormUiDefinitionMeta = {
   option: OptionUiMeta;
 };
 
+type UiFieldTypes<
+  TFieldTypes extends readonly FieldTypeDefinition[],
+  TPlugins extends readonly PluginMetaSource[],
+> = readonly (TFieldTypes[number] | PluginFieldTypeUnion<TPlugins>)[];
+
+type UiMeta<TPlugins extends readonly PluginMetaSource[]> = MergeFormMeta<
+  FormUiDefinitionMeta,
+  PluginMetaMap<TPlugins>
+>;
+
 export type FormDefinitionUi<
   TFieldTypes extends readonly FieldTypeDefinition[] = [],
-> = FormDefinitionFor<TFieldTypes, FormUiDefinitionMeta>;
+  TPlugins extends readonly PluginMetaSource[] = [],
+> = FormDefinitionFor<UiFieldTypes<TFieldTypes, TPlugins>, UiMeta<TPlugins>>;
 
 export type FormDefinitionUiOption = {
   value: string;
@@ -95,7 +111,8 @@ export type FormDefinitionUiOption = {
 
 export type FormDefinitionUiField<
   TFieldTypes extends readonly FieldTypeDefinition[] = [],
-> = FieldDocumentFor<TFieldTypes, FormUiDefinitionMeta>;
+  TPlugins extends readonly PluginMetaSource[] = [],
+> = FieldDocumentFor<UiFieldTypes<TFieldTypes, TPlugins>, UiMeta<TPlugins>>;
 
 const WIDTHS = new Set<string>(["full", "half", "third"]);
 const ORIENTATIONS = new Set<string>(["vertical", "horizontal", "responsive"]);

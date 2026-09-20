@@ -1,5 +1,10 @@
 import type { FieldTypeDefinition } from "../define";
 import type { ErrorCodeCatalog } from "../error-codes";
+import type {
+  FormDefinitionMeta,
+  FormDefinitionMetaDefault,
+  MergeFormMeta,
+} from "../form-definition";
 
 export type UnionToIntersection<U> = (
   U extends unknown ? (k: U) => void : never
@@ -46,3 +51,34 @@ type FieldTypesOf<P> = P extends { readonly fieldTypes?: infer F }
 export type PluginFieldTypeUnion<
   P extends readonly { readonly fieldTypes?: readonly FieldTypeDefinition[] }[],
 > = [P] extends [readonly []] ? never : FieldTypesOf<P[number]>;
+
+/** Server or client plugin that can contribute `$Meta` / `fieldTypes` to authoring. */
+export type PluginMetaSource = {
+  readonly $Meta?: FormDefinitionMeta;
+  readonly fieldTypes?: readonly FieldTypeDefinition[];
+};
+
+type MetaOf<P> = P extends { readonly $Meta: infer M }
+  ? M extends FormDefinitionMeta
+    ? M
+    : never
+  : never;
+
+/**
+ * Merged plugin `$Meta` bags, always allowing extra JSON keys (protocol `meta`).
+ * Empty lists and plugins that omit `$Meta` yield {@link FormDefinitionMetaDefault}.
+ */
+export type PluginMetaMap<
+  P extends readonly { readonly $Meta?: FormDefinitionMeta }[],
+> = [P] extends [readonly []]
+  ? FormDefinitionMetaDefault
+  : [MetaOf<P[number]>] extends [never]
+    ? FormDefinitionMetaDefault
+    : MergeFormMeta<
+        FormDefinitionMetaDefault,
+        IntersectDefined<MetaOf<P[number]>> extends infer I
+          ? I extends FormDefinitionMeta
+            ? I
+            : FormDefinitionMetaDefault
+          : FormDefinitionMetaDefault
+      >;

@@ -17,6 +17,7 @@ export {
 } from "./error";
 export {
   applyAnswerPatch,
+  chainAnswersValidators,
   collectAnswerIssues,
   isFieldVisible,
   parseAnswers,
@@ -44,6 +45,7 @@ export {
   createDefineForm,
   defineFieldType,
   defineForm,
+  type CreateDefineFormOptions,
   type FieldIssueInput,
   type FieldTypeDefinition,
   type FieldValidateContext,
@@ -57,7 +59,15 @@ export type {
   FormDefinitionMeta,
   FormDefinitionMetaDefault,
   InferFieldDocument,
+  MergeFormMeta,
+  NamespacedMeta,
 } from "./form-definition";
+export type {
+  PluginFieldTypeUnion,
+  PluginMetaMap,
+  PluginMetaSource,
+} from "./plugin/types";
+export type { FormDefinitionMetaSchema } from "./plugin/meta-schema";
 export { FORM_API_BASE_PATH } from "./routes";
 export type {
   InferAnswersMap,

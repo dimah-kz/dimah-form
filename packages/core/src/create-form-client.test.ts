@@ -377,6 +377,35 @@ describe("createFormClient protocol", () => {
     >().toEqualTypeOf<number>();
   });
 
+  it("chains client plugin validateAnswers before options.validateAnswers", async () => {
+    const order: string[] = [];
+    const plugin = defineClientPlugin({
+      id: "scoring",
+      validateAnswers: () => {
+        order.push("plugin");
+        return [{ field: "name", message: "plugin", code: "PLUGIN" }];
+      },
+    });
+    const client = createFormClient({
+      plugins: [plugin],
+      validateAnswers: () => {
+        order.push("user");
+        return [{ field: "name", message: "user", code: "USER" }];
+      },
+    });
+    await expect(
+      client.validateAnswers?.(
+        snapshot,
+        { name: "Ada" },
+        "submit",
+      ),
+    ).resolves.toEqual([
+      { field: "name", message: "plugin", code: "PLUGIN" },
+      { field: "name", message: "user", code: "USER" },
+    ]);
+    expect(order).toEqual(["plugin", "user"]);
+  });
+
   it("rejects a client plugin field type that collides with options", () => {
     const rating = defineFieldType({
       type: "rating",

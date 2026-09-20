@@ -1,4 +1,5 @@
 import {
+  chainAnswersValidators,
   createFieldTypeRegistry,
   FORM_API_BASE_PATH,
   type FORM_ERROR_CODES,
@@ -62,6 +63,7 @@ export type DimahFormConfig<
   /**
    * Optional schemas for the opaque `meta` bag on forms, fields, and options.
    * Protocol already requires a JSON object; these tighten the contents.
+   * Plugin `metaSchema` bags run first (`dependsOn` order).
    */
   metaSchema?: DimahFormMetaSchema;
   /** Runs before every operation. Throw to reject. */
@@ -71,6 +73,7 @@ export type DimahFormConfig<
   /**
    * Extra answer checks after per-field validators. Same function on
    * `createFormClient({ validateAnswers })` for local session checks.
+   * Plugin `validateAnswers` callbacks run first (`dependsOn` order).
    */
   validateAnswers?: AnswersValidator;
 };
@@ -124,7 +127,15 @@ export function dimahForm<
     ...(config.fieldTypes ?? []),
   ]);
   const forms = (config.forms ?? {}) as Record<string, unknown>;
-  assertFormsConfig(forms, fieldTypes, config.metaSchema);
+  const metaSchemas = [
+    ...applied.metaSchemas,
+    ...(config.metaSchema ? [config.metaSchema] : []),
+  ];
+  const validateAnswers = chainAnswersValidators(
+    applied.validateAnswers,
+    config.validateAnswers,
+  );
+  assertFormsConfig(forms, fieldTypes, metaSchemas);
 
   const pluginMap = new Map(
     applied.plugins.map((plugin) => [plugin.id, plugin]),
@@ -141,8 +152,8 @@ export function dimahForm<
     plugins: pluginMap,
     pluginContext,
     pluginOperations: applied.pluginOperations,
-    metaSchema: config.metaSchema,
-    validateAnswers: config.validateAnswers,
+    metaSchemas,
+    validateAnswers,
   };
 
   runPluginInits(applied.plugins, resolved);

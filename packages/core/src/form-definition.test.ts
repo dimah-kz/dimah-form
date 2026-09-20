@@ -2,7 +2,11 @@ import { describe, expect, expectTypeOf, it } from "vitest";
 import * as z from "zod";
 
 import { createDefineForm, defineFieldType, defineForm } from "./define";
-import type { FieldDocumentFor, InferFieldDocument } from "./form-definition";
+import type {
+  FieldDocumentFor,
+  InferFieldDocument,
+  NamespacedMeta,
+} from "./form-definition";
 import type { InferFormAnswers } from "./infer";
 
 const rating = defineFieldType({
@@ -91,5 +95,42 @@ describe("createDefineForm", () => {
       fields: [{ id: "file", type: "file", required: true }],
     });
     expect(form.fields[0]?.type).toBe("file");
+  });
+
+  it("merges plugin $Meta and fieldTypes onto the authored document", () => {
+    const scoring = {
+      id: "scoring",
+      $Meta: {} as NamespacedMeta<
+        "scoring",
+        { form: { variables: string[] }; option: { points: number } }
+      >,
+      fieldTypes: [rating],
+    };
+    const defineAppForm = createDefineForm({ plugins: [scoring] });
+    const form = defineAppForm({
+      title: "Scored",
+      meta: { scoring: { variables: ["gad7"] }, locale: "en" },
+      fields: [
+        {
+          id: "score",
+          type: "rating",
+          required: true,
+          max: 5,
+        },
+        {
+          id: "mood",
+          type: "select",
+          options: [{ value: "ok", meta: { scoring: { points: 1 } } }],
+        },
+      ],
+    });
+    expect(form.meta?.scoring?.variables).toEqual(["gad7"]);
+    expect(form.fields[0]?.type).toBe("rating");
+    defineAppForm({
+      title: "Bad",
+      fields: [{ id: "n", type: "text" }],
+      // @ts-expect-error scoring.variables must be string[]
+      meta: { scoring: { variables: 1 } },
+    });
   });
 });

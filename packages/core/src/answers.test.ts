@@ -6,6 +6,7 @@ import { isFormErrorCode } from "./error";
 import { createFieldTypeRegistry } from "./field-types";
 import {
   applyAnswerPatch,
+  chainAnswersValidators,
   collectAnswerIssues,
   isFieldVisible,
   parseAnswers,
@@ -308,6 +309,19 @@ describe("collectAnswerIssues", () => {
         async () => [{ field: "ok", message: "No", code: "BLOCKED" }],
       ),
     ).resolves.toEqual([{ field: "ok", message: "No", code: "BLOCKED" }]);
+  });
+
+  it("chains validateAnswers and concatenates issues", async () => {
+    const chained = chainAnswersValidators(
+      () => [{ field: "name", message: "A", code: "A" }],
+      async () => [{ field: "ok", message: "B", code: "B" }],
+    );
+    await expect(
+      chained?.(snapshot, { name: "Ada", ok: true }, "submit"),
+    ).resolves.toEqual([
+      { field: "name", message: "A", code: "A" },
+      { field: "ok", message: "B", code: "B" },
+    ]);
   });
 });
 

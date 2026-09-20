@@ -172,4 +172,71 @@ describe("applyPlugins", () => {
       ]),
     ).toThrow(/conflicts with a core code/);
   });
+
+  it("collects namespaced meta schemas in dependsOn order", () => {
+    const applied = applyPlugins([
+      {
+        id: "b",
+        dependsOn: ["a"],
+        metaNamespace: "formula",
+        metaSchema: { form: {} as never },
+      },
+      {
+        id: "a",
+        metaNamespace: "scoring",
+        metaSchema: { form: {} as never },
+      },
+    ]);
+    expect(applied.metaSchemas.map((bag) => bag.namespace)).toEqual([
+      "scoring",
+      "formula",
+    ]);
+  });
+
+  it("rejects duplicate meta namespaces", () => {
+    expect(() =>
+      applyPlugins([
+        { id: "a", metaNamespace: "scoring" },
+        { id: "b", metaNamespace: "scoring" },
+      ]),
+    ).toThrow(/Duplicate dimah-form meta namespace "scoring"/);
+  });
+
+  it("rejects an empty meta namespace", () => {
+    expect(() => applyPlugins([{ id: "a", metaNamespace: "  " }])).toThrow(
+      /metaNamespace must be a non-empty string/,
+    );
+  });
+
+  it("chains plugin validateAnswers in dependsOn order", async () => {
+    const order: string[] = [];
+    const applied = applyPlugins([
+      {
+        id: "b",
+        dependsOn: ["a"],
+        validateAnswers: () => {
+          order.push("b");
+          return [{ field: "b", message: "b", code: "B" }];
+        },
+      },
+      {
+        id: "a",
+        validateAnswers: () => {
+          order.push("a");
+          return [{ field: "a", message: "a", code: "A" }];
+        },
+      },
+    ]);
+    await expect(
+      applied.validateAnswers?.(
+        { id: "f", slug: "f", status: "active", title: "F", fields: [] },
+        {},
+        "submit",
+      ),
+    ).resolves.toEqual([
+      { field: "a", message: "a", code: "A" },
+      { field: "b", message: "b", code: "B" },
+    ]);
+    expect(order).toEqual(["a", "b"]);
+  });
 });
