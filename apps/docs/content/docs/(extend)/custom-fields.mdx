@@ -170,9 +170,11 @@ import {
 export function StarRatingField({
   binding,
   className,
+  mode,
 }: FieldWidgetProps<number>) {
   const field = binding.field;
   if (!field) return null;
+  const review = mode === "review";
 
   return (
     <FormFieldFrame binding={binding} className={className}>
@@ -180,8 +182,11 @@ export function StarRatingField({
         id={field.id}
         value={binding.value}
         max={fieldNumber(field, "max") ?? 5}
-        disabled={binding.disabled}
-        onChange={(value) => binding.onChange(value)}
+        disabled={binding.disabled || review}
+        onChange={(value) => {
+          if (review) return;
+          binding.onChange(value);
+        }}
       />
     </FormFieldFrame>
   );

@@ -25,6 +25,8 @@ export const formClient = createFormClient<Form>({
 export const { useFormClient, useFormResponse } = formClient;
 ```
 
+Re-exported hooks close over this instance. `formClient.Provider` is only for the unbound `useFormClient` / `useFormResponse` imported from `@dimah-form/react`.
+
 ---
 
 ## The `useFormResponse` Hook
@@ -34,10 +36,9 @@ The `useFormResponse` hook connects your UI to a questionnaire fill session:
 ```tsx title="components/questionnaire.tsx"
 "use client";
 
-import { emptyToNull, fieldLabel, fieldOptions } from "@dimah-form/react";
+import { emptyToNull, fieldLabel } from "@dimah-form/react";
 import type { FormSnapshot, ResponseRecord } from "@dimah-form/react";
 import { useFormResponse } from "@/lib/form-client";
-import type { Form } from "@/lib/form";
 
 interface QuestionnaireProps {
   form: FormSnapshot;
@@ -45,7 +46,7 @@ interface QuestionnaireProps {
 }
 
 export function Questionnaire({ form, response }: QuestionnaireProps) {
-  const q = useFormResponse<Form["$Infer"]["answers"]["onboarding"]>({
+  const q = useFormResponse<"onboarding">({
     snapshot: form,
     response, // Pass existing row when editing an existing draft
     autosave: { debounceMs: 1000 },
@@ -148,14 +149,17 @@ Returns a typed `FormFieldBinding` helper object for connecting an input control
 
 ```ts
 const {
+  id, // Field id
   field, // The FormField definition object
   value, // Current answer value (or undefined)
   error, // Error message string for this field
   errorCode, // Issue code (e.g. "REQUIRED")
+  errorParams, // Interpolation params for the issue
+  invalid, // boolean
+  visible, // boolean
   disabled, // boolean (true when locked or pending)
   required, // boolean
-  onChange, // (value: unknown) => void
-  onBlur, // () => void
+  onChange, // (value: unknown) => void — pass null to clear
 } = q.field("fullName");
 ```
 
@@ -163,13 +167,13 @@ const {
 
 Directly sets an answer value in the local state. Passing `null` removes the answer key.
 
-### `q.saveDraft(options?)`
+### `q.saveDraft()`
 
-Explicitly saves the current answers to the backend as a draft with optimistic concurrency (`updatedAt`) checks.
+Saves the current answers as a draft with optimistic concurrency (`updatedAt`).
 
-### `q.submit(options?)`
+### `q.submit()`
 
-Validates all visible required fields against the snapshot schema. If valid, persists answers and locks the response to `"submitted"`.
+Validates visible required fields against the snapshot. If valid, persists answers and locks the response to `"submitted"`.
 
 ### `q.reopen()`
 
@@ -182,10 +186,6 @@ Marks the current draft as `"abandoned"`, preventing further edits.
 ### `q.refresh()`
 
 Fetches the latest response record from the server and syncs local state.
-
-### `q.reset()`
-
-Resets in-memory answers back to the last persisted server state.
 
 ---
 

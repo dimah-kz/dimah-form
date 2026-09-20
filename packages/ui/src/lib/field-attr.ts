@@ -60,9 +60,9 @@ export function fieldMetaNumber(
 }
 
 /**
- * Presentation hint on `meta.widget`. Built-ins: `radio` (select),
- * `switch` (boolean), `chips` (multiSelect). A matching registry key wins
- * over `field.type`.
+ * Presentation hint on `meta.widget`. Built-in variants (`radio`, `switch`,
+ * `chips`) stay on the type widget — they are not registry keys. A matching
+ * custom registry key (`text.mask`) wins over `field.type`.
  */
 export function fieldWidget(field: FormField | undefined): string | undefined {
   return readFieldUiMeta(field).widget;

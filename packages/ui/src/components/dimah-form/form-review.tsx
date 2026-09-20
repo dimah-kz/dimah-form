@@ -22,7 +22,11 @@ export type FormReviewProps<TAnswers extends FormAnswers = FormAnswers> = {
   }) => ReactNode;
 };
 
-/** Read-only visible answers. Uses option labels via `formatAnswer`. */
+/**
+ * Compact read-only `<dl>` of visible answers (`formatAnswer` / option labels).
+ * FormView locked review uses widgets (`mode="review"`) by default.
+ * Opt in with `review={<FormReview />}` or `components={{ Review: FormReview }}`.
+ */
 export function FormReview<TAnswers extends FormAnswers = FormAnswers>({
   form,
   className,

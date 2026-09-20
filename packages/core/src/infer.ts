@@ -96,6 +96,7 @@ export type InferAnswersMap<
  * ```ts
  * type Intake = InferClientFormAnswers<typeof formClient, "intake">;
  * const q = useFormResponse<Intake>({ snapshot });
+ * // Bound hook: useFormResponse<"intake">({ snapshot })
  * ```
  */
 export type InferClientFormAnswers<

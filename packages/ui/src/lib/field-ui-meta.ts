@@ -5,10 +5,19 @@ import type {
   FormStatus,
 } from "@dimah-form/react";
 
-/** Built-in `meta.widget` values. Other strings are ignored by stock widgets. */
+/** Built-in `meta.widget` presentation variants. Not registry keys. */
 export const FIELD_UI_WIDGETS = ["radio", "switch", "chips"] as const;
 
 export type FieldUiWidget = (typeof FIELD_UI_WIDGETS)[number];
+
+const FIELD_UI_WIDGET_SET = new Set<string>(FIELD_UI_WIDGETS);
+
+/** True for built-in presentation variants (`radio` / `switch` / `chips`). */
+export function isFieldUiWidget(
+  value: string | undefined,
+): value is FieldUiWidget {
+  return value != null && FIELD_UI_WIDGET_SET.has(value);
+}
 
 export type FieldUiWidth = "full" | "half" | "third";
 
@@ -22,6 +31,10 @@ export type FormViewLayout = "auto" | "fill" | "steps" | "review";
  * Author with `defineForm({ ... } satisfies FormDefinitionUi)`.
  */
 export type FieldUiMeta = {
+  /**
+   * Custom registry key, or a built-in variant (`radio` / `switch` /
+   * `chips`) handled by the type widget — those names are not registry keys.
+   */
   widget?: string;
   placeholder?: string;
   multiline?: boolean;

@@ -14,7 +14,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { respondentId, useFormResponse } from "@/lib/client";
-import type { Form } from "@/lib/form";
 
 export function Questionnaire({
   form,
@@ -24,7 +23,7 @@ export function Questionnaire({
   response?: ResponseRecord;
 }) {
   const router = useRouter();
-  const session = useFormResponse<Form["$Infer"]["answers"]["feedback"]>({
+  const session = useFormResponse<"feedback">({
     snapshot: form,
     response,
     respondentId,

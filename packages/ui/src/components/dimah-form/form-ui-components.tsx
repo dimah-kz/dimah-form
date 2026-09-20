@@ -22,6 +22,7 @@ export type FormUiComponents = {
   /** Required-field mark next to the label. Omit for the built-in asterisk. */
   RequiredMark?: ComponentType;
   FieldFrame?: ComponentType<FormFieldFrameProps>;
+  /** Replaces the default review body (FormFields). Pass FormReview for a compact list. */
   Review?: ComponentType<FormReviewProps>;
   Actions?: ComponentType<FormActionsProps>;
   Progress?: ComponentType<FormProgressProps>;

@@ -6,6 +6,7 @@ import {
   fieldStepTitle,
   groupFieldsBySection,
   groupFieldsByStep,
+  resolveFormViewLayout,
   selectVisibleFields,
   shouldGroupBySection,
   visibleSteps,
@@ -121,5 +122,47 @@ describe("visibleSteps", () => {
       ["1", undefined, ["name"]],
       ["2", "Work", ["team"]],
     ]);
+  });
+});
+
+describe("resolveFormViewLayout", () => {
+  const fillSnapshot = {
+    fields: [field({ id: "name", type: "text" })],
+  };
+  const steppedSnapshot = {
+    fields: [
+      field({ id: "name", type: "text", meta: { step: 1 } }),
+      field({ id: "role", type: "select", meta: { step: 2 } }),
+    ],
+  };
+
+  it("honors an explicit layout over meta and auto", () => {
+    expect(
+      resolveFormViewLayout(
+        {
+          locked: true,
+          snapshot: { ...steppedSnapshot, meta: { layout: "steps" } },
+        },
+        "fill",
+      ),
+    ).toBe("fill");
+    expect(
+      resolveFormViewLayout({
+        locked: false,
+        snapshot: { ...fillSnapshot, meta: { layout: "review" } },
+      }),
+    ).toBe("review");
+  });
+
+  it("uses review when locked, else steps when grouped, else fill", () => {
+    expect(
+      resolveFormViewLayout({ locked: true, snapshot: fillSnapshot }),
+    ).toBe("review");
+    expect(
+      resolveFormViewLayout({ locked: false, snapshot: steppedSnapshot }),
+    ).toBe("steps");
+    expect(
+      resolveFormViewLayout({ locked: false, snapshot: fillSnapshot }),
+    ).toBe("fill");
   });
 });

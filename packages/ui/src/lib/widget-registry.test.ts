@@ -54,6 +54,29 @@ describe("resolveFieldWidget", () => {
     ).toBe(WidgetB);
     expect(resolveFieldWidget(field, { text: WidgetA })).toBe(WidgetA);
   });
+
+  it("keeps radio / switch / chips on the type widget", () => {
+    const select = {
+      id: "role",
+      type: "select",
+      meta: { widget: "radio" },
+    };
+    expect(
+      resolveFieldWidget(select, { select: WidgetA, radio: WidgetB }),
+    ).toBe(WidgetA);
+    expect(
+      resolveFieldWidget(
+        { id: "ok", type: "boolean", meta: { widget: "switch" } },
+        { boolean: WidgetA, switch: WidgetB },
+      ),
+    ).toBe(WidgetA);
+    expect(
+      resolveFieldWidget(
+        { id: "tags", type: "multiSelect", meta: { widget: "chips" } },
+        { multiSelect: WidgetA, chips: WidgetB },
+      ),
+    ).toBe(WidgetA);
+  });
 });
 
 describe("sameFieldWidgets", () => {

@@ -6,6 +6,7 @@ import {
   fieldsUseGrid,
   fieldsUseHalfWidth,
   fieldWidthClass,
+  isFieldUiWidget,
   readFieldUiMeta,
   readFormUiMeta,
   readOptionUiMeta,
@@ -69,6 +70,16 @@ describe("readFieldUiMeta", () => {
     );
     expect(meta.width).toBeUndefined();
     expect(meta.orientation).toBeUndefined();
+  });
+});
+
+describe("isFieldUiWidget", () => {
+  it("matches built-in presentation variants only", () => {
+    expect(isFieldUiWidget("radio")).toBe(true);
+    expect(isFieldUiWidget("switch")).toBe(true);
+    expect(isFieldUiWidget("chips")).toBe(true);
+    expect(isFieldUiWidget("text.mask")).toBe(false);
+    expect(isFieldUiWidget(undefined)).toBe(false);
   });
 });
 

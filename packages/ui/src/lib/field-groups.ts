@@ -1,6 +1,11 @@
-import type { FormField } from "@dimah-form/react";
+import type { FormField, FormSnapshot } from "@dimah-form/react";
 
-import { readFieldUiMeta, type FormUiMeta } from "@/lib/field-ui-meta";
+import {
+  readFieldUiMeta,
+  readFormUiMeta,
+  type FormUiMeta,
+  type FormViewLayout,
+} from "@/lib/field-ui-meta";
 
 export type FieldGroupBucket = {
   key: string;
@@ -131,4 +136,24 @@ export function visibleSteps(
       fields: group.fields.filter((field) => allow.has(field.id)),
     }))
     .filter((group) => group.fields.length > 0);
+}
+
+/**
+ * `auto` — review when locked, steps when `meta.step` spans more than one
+ * page, otherwise fill. An explicit `layout` prop wins over `form.meta.layout`.
+ */
+export function resolveFormViewLayout(
+  session: {
+    locked: boolean;
+    snapshot: Pick<FormSnapshot, "meta" | "fields">;
+  },
+  layout?: FormViewLayout,
+): Exclude<FormViewLayout, "auto"> {
+  const requested = layout ?? readFormUiMeta(session.snapshot).layout ?? "auto";
+  if (requested === "fill" || requested === "steps" || requested === "review") {
+    return requested;
+  }
+  if (session.locked) return "review";
+  if (shouldGroupByStep(session.snapshot.fields)) return "steps";
+  return "fill";
 }

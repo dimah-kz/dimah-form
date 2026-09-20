@@ -38,8 +38,8 @@ export type FormUiProviderProps = {
 };
 
 /**
- * i18n + widget registry + chrome boundary. Protocol stays on
- * `formClient.Provider`.
+ * i18n + widget registry + chrome boundary. Bound `formClient.useFormResponse`
+ * does not need `formClient.Provider` — that is only for unbound package hooks.
  *
  * @example
  * ```tsx
@@ -53,15 +53,13 @@ export type FormUiProviderProps = {
  *   return <span className="ms-1" aria-hidden>*</span>;
  * }
  *
- * <formClient.Provider>
- *   <FormUiProvider
- *     translations={fa}
- *     widgets={widgets}
- *     components={{ RequiredMark }}
- *   >
- *     {children}
- *   </FormUiProvider>
- * </formClient.Provider>
+ * <FormUiProvider
+ *   translations={fa}
+ *   widgets={widgets}
+ *   components={{ RequiredMark }}
+ * >
+ *   {children}
+ * </FormUiProvider>
  * ```
  */
 export function FormUiProvider({

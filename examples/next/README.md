@@ -8,8 +8,8 @@ lib/form.ts              dimahForm() + database
 lib/client.ts            createFormClient<Form>()
 lib/forms.ts             defineForm
 lib/field-types.ts       defineFieldType("rating")
-components/providers.tsx theme + formClient.Provider + FormUiProvider
-components/questionnaire.tsx  FormScope + chrome around app layout
+components/providers.tsx theme + FormUiProvider
+components/questionnaire.tsx  FormView + chrome around app layout
 components/fields/       widget for type "rating" (same string as the validator)
 ```
 

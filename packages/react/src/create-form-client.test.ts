@@ -1,8 +1,10 @@
 import { createElement } from "react";
 import { renderToString } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
+import { defineForm, type FormAnswers } from "@dimah-form/core";
 
 import { createFormClient, useFormClient } from "./create-form-client";
+import type { FormResponseApi } from "./use-form-response";
 
 describe("createFormClient", () => {
   it("exposes a Provider and the protocol client", () => {
@@ -35,5 +37,54 @@ describe("createFormClient", () => {
     expect(() => renderToString(createElement(Probe))).toThrow(
       /useFormClient must be used under formClient.Provider/,
     );
+  });
+
+  it("types bound useFormResponse from a catalog key", () => {
+    const forms = {
+      contact: defineForm({
+        title: "Contact",
+        fields: [{ id: "name", type: "text", required: true }],
+      }),
+    };
+    const client = createFormClient({ forms });
+
+    expect(forms.contact.title).toBe("Contact");
+    expectTypeOf(client.useFormResponse<"contact">).returns.toEqualTypeOf<
+      FormResponseApi<{ name: string }>
+    >();
+    expectTypeOf(
+      client.useFormResponse<{ name: string }>,
+    ).returns.toEqualTypeOf<FormResponseApi<{ name: string }>>();
+    expectTypeOf(client.useFormResponse).returns.toEqualTypeOf<
+      FormResponseApi<FormAnswers>
+    >();
+
+    const { useFormResponse } = client;
+    expectTypeOf(useFormResponse<"contact">).returns.toEqualTypeOf<
+      FormResponseApi<{ name: string }>
+    >();
+  });
+
+  it("types bound useFormResponse from a server $Infer catalog", () => {
+    const forms = {
+      contact: defineForm({
+        title: "Contact",
+        fields: [{ id: "name", type: "text", required: true }],
+      }),
+    };
+    type Server = {
+      $Infer: {
+        forms: typeof forms;
+        answers: { contact: { name: string } };
+        plugins: [];
+      };
+    };
+    const client = createFormClient<Server>();
+    const { useFormResponse } = client;
+
+    expect(forms.contact.title).toBe("Contact");
+    expectTypeOf(useFormResponse<"contact">).returns.toEqualTypeOf<
+      FormResponseApi<{ name: string }>
+    >();
   });
 });

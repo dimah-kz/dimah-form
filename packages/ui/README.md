@@ -48,11 +48,9 @@ export function IntakeForm({ snapshot }) {
   const form = useFormResponse({ snapshot });
 
   return (
-    <formClient.Provider>
-      <FormUiProvider widgets={widgets}>
-        <FormView form={form} />
-      </FormUiProvider>
-    </formClient.Provider>
+    <FormUiProvider widgets={widgets}>
+      <FormView form={form} />
+    </FormUiProvider>
   );
 }
 ```
@@ -60,11 +58,13 @@ export function IntakeForm({ snapshot }) {
 A widget is `{ binding, className, mode? }`. Wrap the control in `FormFieldFrame`
 (`layout`: `stack` | `choice` | `group`) so `components.FieldFrame` applies. Register custom `defineFieldType`
 widgets once on `FormUiProvider` (or per `FormView` / `FormScope`) — same `type`
-string, or a `meta.widget` key. Swap chrome with `components` (`RequiredMark`,
+string, or a `meta.widget` key (`radio` / `switch` / `chips` are built-in
+variants, not registry keys). Swap chrome with `components` (`RequiredMark`,
 `FieldFrame`, …) and localize extra issue codes with `formatIssue`. Built-in
 types (`text`, `email`, `date`, `number`, `boolean`, `select`, `multiSelect`)
 ship with the package. `FormView layout="auto"` picks a wizard when `meta.step`
-groups, and review when locked. `render` / wrap-style slots keep the template
+groups, and widgets in `mode="review"` when locked (`FormReview` is a compact
+opt-in). `render` / wrap-style slots keep the template
 while you own layout. Presentation lives on `meta` (`widget`, `placeholder`,
 `section`, `step`, `width`, `help`, …) — `defineForm({ ... } satisfies FormDefinitionUi)`
 so those keys autocomplete; extra keys stay allowed. Compose `FormScope` +

@@ -136,10 +136,9 @@ export const { useFormResponse } = formClient;
 import { emptyToNull, fieldLabel, fieldOptions } from "@dimah-form/react";
 import type { FormSnapshot } from "@dimah-form/react";
 import { useFormResponse } from "@/lib/form-client";
-import type { Form } from "@/lib/form";
 
 export function Questionnaire({ form }: { form: FormSnapshot }) {
-  const q = useFormResponse<Form["$Infer"]["answers"]["feedback"]>({
+  const q = useFormResponse<"feedback">({
     snapshot: form,
     autosave: { debounceMs: 1000 },
   });

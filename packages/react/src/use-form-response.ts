@@ -36,8 +36,8 @@ function sessionKey(options: UseFormResponseOptions) {
  * Prefer `formClient.useFormResponse` (or a re-export) so the protocol client
  * and field types come from your instance. This unbound hook reads context.
  *
- * Pass `InferClientFormAnswers<typeof formClient, "intake">` (or
- * `Form["$Infer"]["answers"]["intake"]`) to type `answers` / `setAnswer`.
+ * On the bound hook, pass a catalog key (`useFormResponse<"intake">`) or an
+ * answers type (`Form["$Infer"]["answers"]["intake"]`).
  */
 export function useFormResponse<TAnswers extends FormAnswers = FormAnswers>(
   options: UseFormResponseOptions,

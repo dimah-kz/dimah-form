@@ -16,6 +16,37 @@ import {
   type UseFormResponseOptions,
 } from "./use-form-response";
 
+type ClientAnswersMap<
+  TPlugins extends readonly FormClientPlugin[],
+  TForms extends Record<string, unknown>,
+  TFieldTypes extends readonly FieldTypeDefinition[],
+  TServer,
+> = CreateFormClientResult<
+  TPlugins,
+  TForms,
+  TFieldTypes,
+  TServer
+>["$Infer"]["answers"];
+
+/** Literal catalog keys — not `string` from an index signature. */
+type CatalogFormKey<TAnswersMap> = keyof TAnswersMap extends infer K
+  ? K extends string
+    ? string extends K
+      ? never
+      : K
+    : never
+  : never;
+
+type ResolveFormResponseAnswers<T, TAnswersMap> = [T] extends [
+  CatalogFormKey<TAnswersMap>,
+]
+  ? TAnswersMap[T & CatalogFormKey<TAnswersMap>] extends FormAnswers
+    ? TAnswersMap[T & CatalogFormKey<TAnswersMap>]
+    : FormAnswers
+  : T extends FormAnswers
+    ? T
+    : FormAnswers;
+
 export type FormClient<
   TPlugins extends readonly FormClientPlugin[] = [],
   TForms extends Record<string, unknown> = Record<string, unknown>,
@@ -30,9 +61,20 @@ export type FormClient<
     TFieldTypes,
     TServer
   >;
-  useFormResponse: <TAnswers extends FormAnswers = FormAnswers>(
+  useFormResponse: <
+    T extends
+      | FormAnswers
+      | CatalogFormKey<
+          ClientAnswersMap<TPlugins, TForms, TFieldTypes, TServer>
+        > = FormAnswers,
+  >(
     options: Omit<UseFormResponseOptions, "client">,
-  ) => FormResponseApi<TAnswers>;
+  ) => FormResponseApi<
+    ResolveFormResponseAnswers<
+      T,
+      ClientAnswersMap<TPlugins, TForms, TFieldTypes, TServer>
+    >
+  >;
 };
 
 /**
@@ -41,8 +83,8 @@ export type FormClient<
  * Re-export hooks from this instance so the protocol client and field types
  * stay tied to it. `$Infer` lives on the client (`formClient.$Infer` /
  * `useFormClient`). Bound `useFormResponse` is the headless fill session.
- * Pass `Form["$Infer"]["answers"][key]` to type answers. Bound hooks do not
- * need `Provider`.
+ * Pass a catalog key (`useFormResponse<"intake">`) or an answers type.
+ * Bound hooks do not need `Provider`.
  * Package-level `useFormClient` / `useFormResponse` read context and are the
  * untyped escape hatch.
  *
@@ -83,15 +125,31 @@ export function createFormClient<
     return client;
   }
 
-  function useBoundFormResponse<TAnswers extends FormAnswers = FormAnswers>(
+  function useBoundFormResponse<
+    T extends
+      | FormAnswers
+      | CatalogFormKey<
+          ClientAnswersMap<TPlugins, TForms, TFieldTypes, TServer>
+        > = FormAnswers,
+  >(
     options: Omit<UseFormResponseOptions, "client">,
-  ): FormResponseApi<TAnswers> {
-    return useFormResponse<TAnswers>({
+  ): FormResponseApi<
+    ResolveFormResponseAnswers<
+      T,
+      ClientAnswersMap<TPlugins, TForms, TFieldTypes, TServer>
+    >
+  > {
+    return useFormResponse({
       ...options,
       client,
       fieldTypes: options.fieldTypes ?? client.fieldTypes,
       validateAnswers: options.validateAnswers ?? client.validateAnswers,
-    });
+    }) as FormResponseApi<
+      ResolveFormResponseAnswers<
+        T,
+        ClientAnswersMap<TPlugins, TForms, TFieldTypes, TServer>
+      >
+    >;
   }
 
   return {

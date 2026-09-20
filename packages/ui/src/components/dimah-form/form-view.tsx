@@ -18,7 +18,6 @@ import {
 import { FormHeader } from "@/components/dimah-form/form-header";
 import { FormInactive } from "@/components/dimah-form/form-inactive";
 import { FormProgress } from "@/components/dimah-form/form-progress";
-import { FormReview } from "@/components/dimah-form/form-review";
 import {
   FormRoot,
   type FormRootProps,
@@ -33,8 +32,8 @@ import {
   FormSteps,
 } from "@/components/dimah-form/form-steps";
 import { useFormUiComponents } from "@/components/dimah-form/form-ui-components";
-import { shouldGroupByStep } from "@/lib/field-groups";
-import { readFormUiMeta, type FormViewLayout } from "@/lib/field-ui-meta";
+import { resolveFormViewLayout } from "@/lib/field-groups";
+import type { FormViewLayout } from "@/lib/field-ui-meta";
 import { renderFormSlot, type FormSlot } from "@/lib/form-slot";
 import type { FieldWidgetRegistry } from "@/lib/widget-registry";
 
@@ -66,7 +65,9 @@ export type FormViewProps<TAnswers extends FormAnswers = FormAnswers> = {
   layout?: FormViewLayout;
   /**
    * Custom field layout. When omitted, visible fields render through
-   * {@link FormFields} (or {@link FormStepFields} / {@link FormReview}).
+   * {@link FormFields} (or {@link FormStepFields}). Locked / `layout="review"`
+   * uses {@link FormFields} with `mode="review"` unless `components.Review` or
+   * the `review` slot opts into a compact FormReview.
    */
   children?: ReactNode;
   /**
@@ -93,22 +94,6 @@ export type FormViewProps<TAnswers extends FormAnswers = FormAnswers> = {
   review?: FormSlot;
   inactive?: FormSlot;
 };
-
-function resolveLayout(
-  session: {
-    locked: boolean;
-    snapshot: FormResponseApi["snapshot"];
-  },
-  layout: FormViewLayout | undefined,
-): Exclude<FormViewLayout, "auto"> {
-  const requested = layout ?? readFormUiMeta(session.snapshot).layout ?? "auto";
-  if (requested === "fill" || requested === "steps" || requested === "review") {
-    return requested;
-  }
-  if (session.locked) return "review";
-  if (shouldGroupByStep(session.snapshot.fields)) return "steps";
-  return "fill";
-}
 
 function FormViewChrome<TAnswers extends FormAnswers = FormAnswers>({
   className,
@@ -138,10 +123,15 @@ function FormViewChrome<TAnswers extends FormAnswers = FormAnswers>({
   const showProgress = resolved !== "review";
   const showSave = resolved !== "review";
   const fieldProps = { renderField, filter, groupBy };
+  const reviewFields = ui.Review ? (
+    createElement(ui.Review)
+  ) : (
+    <FormFields {...fieldProps} fields={fieldIds} />
+  );
   const fields =
     children ??
     (resolved === "review" ? (
-      renderFormSlot(review, createElement(ui.Review ?? FormReview))
+      renderFormSlot(review, reviewFields)
     ) : resolved === "steps" ? (
       <FormStepFields {...fieldProps} />
     ) : (
@@ -167,9 +157,7 @@ function FormViewChrome<TAnswers extends FormAnswers = FormAnswers>({
     status: renderFormSlot(status, <FormStatus />),
     errorSummary: renderFormSlot(errorSummary, <FormErrorSummary />),
     stepList:
-      resolved === "steps" && stepList !== undefined
-        ? renderFormSlot(stepList, <FormStepList />)
-        : null,
+      resolved === "steps" ? renderFormSlot(stepList, <FormStepList />) : null,
     stepHeading:
       resolved === "steps"
         ? renderFormSlot(stepHeading, <FormStepHeading />)
@@ -217,7 +205,7 @@ function FormViewTree<TAnswers extends FormAnswers = FormAnswers>({
     );
   }
 
-  const resolved = resolveLayout(session, layout);
+  const resolved = resolveFormViewLayout(session, layout);
   const tree = (
     <FormViewChrome {...chrome} className={className} resolved={resolved} />
   );
@@ -232,9 +220,11 @@ function FormViewTree<TAnswers extends FormAnswers = FormAnswers>({
 /**
  * Default questionnaire template: header, progress, status, fields, error,
  * save state, actions. `layout` picks fill / steps / review (`auto` infers).
- * Slot props take `false` to hide, a node to replace, or a function to wrap
- * the default. `render` replaces the whole composition (bring your own
- * {@link FormRoot}). Compose {@link FormScope} + primitives for a custom layout.
+ * Locked review renders widgets (`mode="review"`); pass `review={<FormReview />}`
+ * or `components.Review` for a compact summary. Slot props take `false` to
+ * hide, a node to replace, or a function to wrap the default. `render`
+ * replaces the whole composition (bring your own {@link FormRoot}). Compose
+ * {@link FormScope} + primitives for a custom layout.
  */
 export function FormView<TAnswers extends FormAnswers = FormAnswers>({
   form,

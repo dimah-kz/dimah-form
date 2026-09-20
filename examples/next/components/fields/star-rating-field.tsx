@@ -11,11 +11,13 @@ import { StarRating } from "@/components/fields/star-rating";
 export function StarRatingField({
   binding,
   className,
+  mode,
 }: FieldWidgetProps<number>) {
   const field = binding.field;
   if (!field) return null;
 
   const max = fieldNumber(field, "max");
+  const review = mode === "review";
 
   return (
     <FormFieldFrame binding={binding} className={className}>
@@ -23,10 +25,13 @@ export function StarRatingField({
         id={field.id}
         value={binding.value}
         max={max && max > 0 ? max : 5}
-        disabled={binding.disabled}
-        invalid={binding.invalid}
+        disabled={binding.disabled || review}
+        invalid={review ? false : binding.invalid}
         required={binding.required}
-        onChange={(value) => binding.onChange(value)}
+        onChange={(value) => {
+          if (review) return;
+          binding.onChange(value);
+        }}
       />
     </FormFieldFrame>
   );

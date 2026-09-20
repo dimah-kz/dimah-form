@@ -220,7 +220,7 @@ type OnboardingAnswers = Form["$Infer"]["answers"]["onboarding"];
 Use this type in your React client:
 
 ```tsx
-const q = useFormResponse<Form["$Infer"]["answers"]["onboarding"]>({
+const q = useFormResponse<"onboarding">({
   snapshot: formSnapshot,
 });
 ```
