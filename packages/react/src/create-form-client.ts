@@ -88,6 +88,10 @@ export type FormClient<
  * Package-level `useFormClient` / `useFormResponse` read context and are the
  * untyped escape hatch.
  *
+ * TypeScript cannot infer later type parameters once a server generic is
+ * set. Pass the plugin tuple as the second argument when you need literal
+ * endpoint names: `createFormClient<Form, typeof plugins>({ plugins })`.
+ *
  * @example
  * ```ts
  * export type Form = typeof form;
@@ -97,8 +101,7 @@ export type FormClient<
  */
 export function createFormClient<
   TServer extends FormServerLike | undefined = undefined,
-  const TPlugins extends readonly FormClientPlugin[] =
-    readonly FormClientPlugin[],
+  const TPlugins extends readonly FormClientPlugin[] = [],
   const TForms extends Record<string, unknown> = Record<string, unknown>,
   const TFieldTypes extends readonly FieldTypeDefinition[] =
     readonly FieldTypeDefinition[],

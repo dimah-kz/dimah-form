@@ -5,7 +5,7 @@ Workspace demo of `@dimah-form/ui` on a headless `useFormResponse` session. Cust
 
 ```
 lib/form.ts              dimahForm() + database + scoringPlugin
-lib/client.ts            createFormClient<Form>() + scoringClientPlugin
+lib/client.ts            createFormClient<Form, typeof plugins>() + scoringClientPlugin
 lib/forms/               defineForm (feedback, onboarding, GAD-7)
 lib/field-types.ts       defineFieldType("rating")
 components/providers.tsx theme + FormUiProvider

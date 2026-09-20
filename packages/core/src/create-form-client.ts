@@ -242,6 +242,11 @@ const CORE_CLIENT_KEYS = new Set([
  * to the browser. `$Infer` is type-only — pass `fieldTypes` or client
  * plugins that register them for local session validation.
  *
+ * TypeScript cannot infer later type parameters once a server generic is
+ * set. Pass the plugin tuple as the second argument when you need literal
+ * endpoint names: `createFormClient<Form, typeof plugins>({ plugins })`.
+ * `createFormClient({ plugins })` without a server generic infers them.
+ *
  * @example
  * ```ts
  * export type Form = typeof form;
@@ -250,8 +255,7 @@ const CORE_CLIENT_KEYS = new Set([
  */
 export function createFormClient<
   TServer extends FormServerLike | undefined = undefined,
-  const TPlugins extends readonly FormClientPlugin[] =
-    readonly FormClientPlugin[],
+  const TPlugins extends readonly FormClientPlugin[] = [],
   const TForms extends Record<string, unknown> = Record<string, unknown>,
   const TFieldTypes extends readonly FieldTypeDefinition[] =
     readonly FieldTypeDefinition[],

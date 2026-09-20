@@ -24,18 +24,18 @@ export const form = dimahForm({
 
 ### Configuration Options
 
-| Option                   | Type                                  | Required | Default       | Description                                                                                                                                                |
-| :----------------------- | :------------------------------------ | :------- | :------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`database`**           | `ResponseStore`                       | **Yes**  | —             | Persistence adapter (`memoryAdapter()`, `db(formDb)` from `@dimah-form/db`, or a custom `ResponseStore`).                                                  |
-| **`forms`**              | `Record<string, FormDefinitionInput>` | No       | `{}`          | Catalog of code-authored forms created with `defineForm()`. Feeds `$Infer`.                                                                                |
-| **`fieldTypes`**         | `FieldTypeDefinition[]`               | No       | `[]`          | Custom field type definitions created with `defineFieldType()`.                                                                                            |
-| **`basePath`**           | `string`                              | No       | `"/api/form"` | Base path prefix for HTTP route mounting.                                                                                                                  |
-| **`guard`**              | `DimahFormGuard`                      | No       | `undefined`   | Security callback executed before every query or mutation.                                                                                                 |
-| **`hooks`**              | `DimahFormHooks`                      | No       | `{}`          | Pre-write (`onStart`, `onSaveDraft`, `onSubmit`, …) and post-write (`afterStart`, `afterSaveDraft`, `afterSubmit`, …) lifecycle hooks.                     |
-| **`validateAnswers`**    | `AnswersValidator`                    | No       | `undefined`   | Custom cross-field validation. Plugin callbacks run first (`dependsOn` order), then this function.                                                         |
-| **`validateDefinition`** | `DefinitionValidator`                 | No       | `undefined`   | Whole-document checks after plugin `metaSchema`. Plugin callbacks run first, then this function. Init / `saveForm` only.                                   |
-| **`plugins`**            | `DimahFormPlugin[]`                   | No       | `[]`          | Server plugins created with `definePlugin()`. Merge endpoints, hooks, field types, error codes, `metaSchema`, `validateAnswers`, and `validateDefinition`. |
-| **`metaSchema`**         | `DimahFormMetaSchema`                 | No       | `undefined`   | Zod schemas for the whole `meta` bag on forms, fields, and options. Plugin namespaced schemas run first, then this bag.                                    |
+| Option                   | Type                                  | Required | Default       | Description                                                                                                                                                                   |
+| :----------------------- | :------------------------------------ | :------- | :------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`database`**           | `ResponseStore`                       | **Yes**  | —             | Persistence adapter (`memoryAdapter()`, `db(formDb)` from `@dimah-form/db`, or a custom `ResponseStore`).                                                                     |
+| **`forms`**              | `Record<string, FormDefinitionInput>` | No       | `{}`          | Catalog of code-authored forms created with `defineForm()`. Feeds `$Infer`.                                                                                                   |
+| **`fieldTypes`**         | `FieldTypeDefinition[]`               | No       | `[]`          | Custom field type definitions created with `defineFieldType()`.                                                                                                               |
+| **`basePath`**           | `string`                              | No       | `"/api/form"` | Base path prefix for HTTP route mounting.                                                                                                                                     |
+| **`guard`**              | `DimahFormGuard`                      | No       | `undefined`   | Security callback executed before every query or mutation.                                                                                                                    |
+| **`hooks`**              | `DimahFormHooks`                      | No       | `{}`          | Pre-write (`onStart`, `onSaveDraft`, `onSubmit`, …) and post-write (`afterStart`, `afterSaveDraft`, `afterSubmit`, …) lifecycle hooks.                                        |
+| **`validateAnswers`**    | `AnswersValidator`                    | No       | `undefined`   | Custom cross-field validation. Plugin callbacks run first (`dependsOn` order), then this function.                                                                            |
+| **`validateDefinition`** | `DefinitionValidator`                 | No       | `undefined`   | Whole-document checks after plugin `metaSchema`. Plugin callbacks run first, then this function. Synchronous. Init, `saveForm`, and live form reads — not response snapshots. |
+| **`plugins`**            | `DimahFormPlugin[]`                   | No       | `[]`          | Server plugins created with `definePlugin()`. Merge endpoints, hooks, field types, error codes, `metaSchema`, `validateAnswers`, and `validateDefinition`.                    |
+| **`metaSchema`**         | `DimahFormMetaSchema`                 | No       | `undefined`   | Zod schemas for the whole `meta` bag on forms, fields, and options. Plugin namespaced schemas run first, then this bag.                                                       |
 
 ---
 
@@ -54,15 +54,15 @@ export const formClient = createFormClient<Form>({
 
 ### Configuration Options
 
-| Option            | Type                                               | Default            | Description                                                                             |
-| :---------------- | :------------------------------------------------- | :----------------- | :-------------------------------------------------------------------------------------- |
-| **`basePath`**    | `string`                                           | `"/api/form"`      | Relative URL path prefix matching the server's `basePath`.                              |
-| **`baseURL`**     | `string`                                           | `undefined`        | Absolute URL prefix (e.g., `"https://api.example.com/api/form"`). Overrides `basePath`. |
-| **`credentials`** | `RequestCredentials`                               | `"same-origin"`    | Fetch credentials policy (e.g. `"include"` for cross-origin cookies).                   |
-| **`headers`**     | `HeadersInit \| (() => MaybePromise<HeadersInit>)` | `undefined`        | Static headers or dynamic header generator for auth tokens.                             |
-| **`fieldTypes`**  | `FieldTypeDefinition[]`                            | `[]`               | Custom field types matching the server configuration.                                   |
-| **`plugins`**     | `DimahFormClientPlugin[]`                          | `[]`               | Companion client plugins created with `defineClientPlugin()`.                           |
-| **`fetch`**       | `typeof fetch`                                     | `globalThis.fetch` | Custom fetch implementation for SSR or testing harnesses.                               |
+| Option            | Type                                               | Default            | Description                                                                                                                                          |
+| :---------------- | :------------------------------------------------- | :----------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`basePath`**    | `string`                                           | `"/api/form"`      | Relative URL path prefix matching the server's `basePath`.                                                                                           |
+| **`baseURL`**     | `string`                                           | `undefined`        | Absolute URL prefix (e.g., `"https://api.example.com/api/form"`). Overrides `basePath`.                                                              |
+| **`credentials`** | `RequestCredentials`                               | `"same-origin"`    | Fetch credentials policy (e.g. `"include"` for cross-origin cookies).                                                                                |
+| **`headers`**     | `HeadersInit \| (() => MaybePromise<HeadersInit>)` | `undefined`        | Static headers or dynamic header generator for auth tokens.                                                                                          |
+| **`fieldTypes`**  | `FieldTypeDefinition[]`                            | `[]`               | Custom field types matching the server configuration.                                                                                                |
+| **`plugins`**     | `FormClientPlugin[]`                               | `[]`               | Companion client plugins created with `defineClientPlugin()`. Pass `createFormClient<Form, typeof plugins>({ plugins })` for literal endpoint names. |
+| **`fetch`**       | `typeof fetch`                                     | `globalThis.fetch` | Custom fetch implementation for SSR or testing harnesses.                                                                                            |
 
 ---
 

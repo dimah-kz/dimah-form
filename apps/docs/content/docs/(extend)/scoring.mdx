@@ -34,8 +34,9 @@ import { createFormClient } from "@dimah-form/react";
 import { scoringClientPlugin } from "@dimah-form/scoring/client";
 import type { Form } from "@/lib/form";
 
-export const formClient = createFormClient<Form>({
-  plugins: [scoringClientPlugin()],
+const plugins = [scoringClientPlugin()] as const;
+export const formClient = createFormClient<Form, typeof plugins>({
+  plugins,
 });
 ```
 
@@ -145,7 +146,7 @@ Prefer the default for clinical totals. Set `zero` when a running quiz score is 
 
 Bands are interpretation, not scoring. `from` / `to` are inclusive; omit either for an open end. The first matching band in document order wins.
 
-Optional typed sums — not a formula language, and never `eval`:
+Optional typed sums — not a formula language, and never `eval`. `vars` must be variable ids (not other formulas):
 
 ```ts
 formulas: [{ id: "total", op: "sum", vars: ["subscaleA", "subscaleB"] }];
@@ -184,6 +185,6 @@ Pass the **snapshot** you are filling or the stored `response.definition`. Live 
 }
 ```
 
-Guard operation for `GET /scoring/response` is `getResponseScores`. Document validity (unknown variables, missing option points) is checked at `dimahForm()` / `saveForm` via `metaSchema` + `validateDefinition`. Scoring is not answer validation.
+Guard operation for `GET /scoring/response` is `getResponseScores`. Document validity (unknown variables, missing option points) is checked at `dimahForm()`, `saveForm`, and live form reads via `metaSchema` + `validateDefinition`. Response snapshots are not re-checked on `getResponse`; `scoreResponse` still validates mapping when you compute. Scoring is not answer validation.
 
 Malformed mapping uses stable codes such as `SCORING_UNKNOWN_VARIABLE` and `SCORING_MISSING_POINTS` (`form.$ERROR_CODES`).

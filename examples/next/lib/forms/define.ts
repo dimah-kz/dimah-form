@@ -4,12 +4,11 @@ import type { FormDefinitionUi } from "@dimah-form/ui/types";
 
 import { fieldTypes } from "../field-types";
 
+const plugins = [scoringPlugin()] as const;
+
 export const defineAppForm = createDefineForm({
   fieldTypes,
-  plugins: [scoringPlugin()],
+  plugins,
 });
 
-export type AppForm = FormDefinitionUi<
-  typeof fieldTypes,
-  readonly [ReturnType<typeof scoringPlugin>]
->;
+export type AppForm = FormDefinitionUi<typeof fieldTypes, typeof plugins>;

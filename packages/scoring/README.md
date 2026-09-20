@@ -72,7 +72,7 @@ meta: {
 
 Use built-in `select` plus `meta.widget: "radio"` for Likert items. Do not add a `likert` field type.
 
-Optional typed sums (not a formula language):
+Optional typed sums (not a formula language). `vars` must be variable ids, not other formulas:
 
 ```ts
 formulas: [{ id: "total", op: "sum", vars: ["subscaleA", "subscaleB"] }];

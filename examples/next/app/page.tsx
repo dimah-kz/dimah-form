@@ -1,4 +1,4 @@
-import { hasScoringMeta } from "@dimah-form/scoring/client";
+import { hasScoringMeta } from "@dimah-form/scoring";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";

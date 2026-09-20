@@ -81,7 +81,8 @@ export type DimahFormConfig<
   validateAnswers?: AnswersValidator;
   /**
    * Whole-document checks after plugin `metaSchema`. Plugin callbacks run
-   * first (`dependsOn` order). Synchronous — runs at init / `saveForm`.
+   * first (`dependsOn` order). Synchronous — runs at init, `saveForm`, and
+   * live form reads. Response snapshots are not re-checked.
    */
   validateDefinition?: DefinitionValidator;
 };

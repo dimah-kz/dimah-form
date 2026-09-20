@@ -334,6 +334,7 @@ describe("createFormClient protocol", () => {
       typeof client.$Infer.answers.contact.name
     >().toEqualTypeOf<string>();
     expectTypeOf<typeof client.$Infer.forms>().toEqualTypeOf<typeof forms>();
+    expectTypeOf<typeof client.$Infer.plugins>().toEqualTypeOf<[]>();
   });
 
   it("accepts runtime fieldTypes with a server generic", () => {

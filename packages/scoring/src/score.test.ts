@@ -160,6 +160,7 @@ describe("scoreResponse", () => {
       missing: 6,
       complete: false,
     });
+    expect(scoreResponse(gad7(), { q1: "" }).variables.gad7.missing).toBe(7);
   });
 
   it("scores number fields as the numeric value", () => {
@@ -180,6 +181,13 @@ describe("scoreResponse", () => {
       }),
     });
     expect(scoreResponse(definition, { hours: 4 }).variables.hours.raw).toBe(4);
+    expect(
+      scoreResponse(definition, { hours: 0 }).variables.hours,
+    ).toMatchObject({
+      raw: 0,
+      missing: 0,
+      complete: true,
+    });
   });
 
   it("reverses number fields with variable min/max", () => {
@@ -228,6 +236,25 @@ describe("scoreResponse", () => {
     expect(
       scoreResponse(definition, { ok: false, flag: false }).variables.ok.raw,
     ).toBe(1);
+    const single = normalizeFormSnapshot({
+      id: "b1",
+      ...defineForm({
+        title: "B1",
+        meta: { scoring: { variables: [{ id: "ok" }] } },
+        fields: [
+          {
+            id: "ok",
+            type: "boolean",
+            meta: { scoring: { variable: "ok" } },
+          },
+        ],
+      }),
+    });
+    expect(scoreResponse(single, { ok: false }).variables.ok).toMatchObject({
+      raw: 0,
+      missing: 0,
+      complete: true,
+    });
   });
 
   it("sums multiSelect option points", () => {
@@ -256,6 +283,11 @@ describe("scoreResponse", () => {
     expect(scoreResponse(definition, { picks: [] }).variables.total.raw).toBe(
       0,
     );
+    expect(scoreResponse(definition, {}).variables.total).toMatchObject({
+      raw: null,
+      missing: 1,
+      complete: false,
+    });
   });
 
   it("reverses each selected multiSelect option using option min + max", () => {
@@ -390,6 +422,42 @@ describe("scoreResponse", () => {
     });
     expect(result.complete).toBe(false);
   });
+
+  it("assigns the first matching band and treats omitted from/to as open ends", () => {
+    const overlapping = gad7();
+    overlapping.meta = {
+      scoring: {
+        variables: [{ id: "gad7", min: 0, max: 21 }],
+        bands: [
+          { variable: "gad7", from: 0, to: 14, label: "First" },
+          { variable: "gad7", from: 10, to: 14, label: "Second" },
+        ],
+      },
+    };
+    expect(scoreResponse(overlapping, allTwos).variables.gad7.band).toBe(
+      "First",
+    );
+
+    const open = gad7();
+    open.meta = {
+      scoring: {
+        variables: [{ id: "gad7", min: 0, max: 21 }],
+        bands: [{ variable: "gad7", from: 15, label: "Severe" }],
+      },
+    };
+    expect(scoreResponse(open, allTwos).variables.gad7.band).toBeUndefined();
+    expect(
+      scoreResponse(open, {
+        q1: "3",
+        q2: "3",
+        q3: "3",
+        q4: "3",
+        q5: "3",
+        q6: "0",
+        q7: "0",
+      }).variables.gad7.band,
+    ).toBe("Severe");
+  });
 });
 
 describe("collectScoringIssues", () => {
@@ -463,5 +531,102 @@ describe("collectScoringIssues", () => {
       error = caught;
     }
     expect(isFormErrorCode(error, "SCORING_UNKNOWN_VARIABLE")).toBe(true);
+  });
+
+  it("rejects option scoring when form meta.scoring is absent", () => {
+    const definition = normalizeFormSnapshot({
+      id: "plain",
+      ...defineForm({
+        title: "Plain",
+        fields: [
+          {
+            id: "q1",
+            type: "select",
+            options: [{ value: "0", meta: { scoring: { points: 0 } } }],
+          },
+        ],
+      }),
+    });
+    const codes = collectScoringIssues(definition).map((issue) => issue.code);
+    expect(codes).toContain("SCORING_FORM_REQUIRED");
+  });
+
+  it("rejects duplicate variable and formula ids", () => {
+    const definition = normalizeFormSnapshot({
+      id: "dup",
+      ...defineForm({
+        title: "Dup",
+        meta: {
+          scoring: {
+            variables: [{ id: "gad7" }, { id: "gad7" }],
+            formulas: [{ id: "gad7", op: "sum", vars: ["gad7"] }],
+          },
+        },
+        fields: [{ id: "n", type: "text" }],
+      }),
+    });
+    const codes = collectScoringIssues(definition).map((issue) => issue.code);
+    expect(codes).toContain("SCORING_DUPLICATE_VARIABLE");
+    expect(codes).toContain("SCORING_DUPLICATE_FORMULA");
+  });
+
+  it("rejects formula vars that are not variables, including other formulas", () => {
+    const definition = normalizeFormSnapshot({
+      id: "f",
+      ...defineForm({
+        title: "F",
+        meta: {
+          scoring: {
+            variables: [{ id: "a" }, { id: "b" }],
+            formulas: [
+              { id: "ab", op: "sum", vars: ["a", "b"] },
+              { id: "total", op: "sum", vars: ["ab"] },
+            ],
+          },
+        },
+        fields: [
+          {
+            id: "q1",
+            type: "select",
+            options: likert,
+            meta: { scoring: { variable: "a" } },
+          },
+        ],
+      }),
+    });
+    const issues = collectScoringIssues(definition);
+    expect(issues.map((issue) => issue.code)).toContain(
+      "SCORING_FORMULA_UNKNOWN_VAR",
+    );
+    expect(issues.some((issue) => issue.params?.variable === "ab")).toBe(true);
+  });
+
+  it("rejects unknown band variables, inverted bands, and reverse without a range", () => {
+    const definition = normalizeFormSnapshot({
+      id: "bad",
+      ...defineForm({
+        title: "Bad",
+        meta: {
+          scoring: {
+            variables: [{ id: "hours" }, { id: "ok" }],
+            bands: [
+              { variable: "hours", from: 4, to: 1, label: "Backwards" },
+              { variable: "missing", from: 0, label: "Ghost" },
+            ],
+          },
+        },
+        fields: [
+          {
+            id: "hours",
+            type: "number",
+            meta: { scoring: { variable: "hours", reverse: true } },
+          },
+        ],
+      }),
+    });
+    const codes = collectScoringIssues(definition).map((issue) => issue.code);
+    expect(codes).toContain("SCORING_INVALID_BAND");
+    expect(codes).toContain("SCORING_UNKNOWN_BAND_VARIABLE");
+    expect(codes).toContain("SCORING_REVERSE_RANGE");
   });
 });

@@ -175,6 +175,12 @@ describe("scoringPlugin", () => {
     await expect(
       form.api.getResponseScores({ query: { responseId: plainStart.id } }),
     ).resolves.toEqual({ variables: {}, complete: true });
+
+    await expect(
+      form.api.getResponseScores({ query: { responseId: "missing" } }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "UNKNOWN_RESPONSE"),
+    );
   });
 
   it("uses getResponseScores as the guard operation", async () => {
@@ -274,6 +280,91 @@ describe("scoringPlugin", () => {
     });
   });
 
+  it("scores the stored snapshot after the live questionnaire changes", async () => {
+    const form = dimahForm({
+      database: memoryAdapter(),
+      plugins: [scoringPlugin()],
+    });
+    const saved = await form.api.saveForm({
+      body: {
+        id: "live",
+        title: "Live",
+        meta: { scoring: { variables: [{ id: "gad7", max: 3 }] } },
+        fields: [
+          {
+            id: "q1",
+            type: "select",
+            required: true,
+            options: likert,
+            meta: { scoring: { variable: "gad7" } },
+          },
+        ],
+      },
+    });
+    const started = await form.api.startResponse({ body: { formId: "live" } });
+    await form.api.submitResponse({
+      body: { responseId: started.id, answers: { q1: "3" } },
+    });
+    const live = await form.api.getForm({ query: { formId: "live" } });
+    await form.api.saveForm({
+      body: {
+        id: "live",
+        title: "Live",
+        meta: { scoring: { variables: [{ id: "gad7", max: 6 }] } },
+        fields: [
+          {
+            id: "q1",
+            type: "select",
+            required: true,
+            options: likert,
+            meta: { scoring: { variable: "gad7" } },
+          },
+          {
+            id: "q2",
+            type: "select",
+            required: true,
+            options: likert,
+            meta: { scoring: { variable: "gad7" } },
+          },
+        ],
+        updatedAt: live.updatedAt ?? saved.updatedAt,
+      },
+    });
+    const scores = await form.api.getResponseScores({
+      query: { responseId: started.id },
+    });
+    expect(scores.variables.gad7).toMatchObject({
+      raw: 3,
+      max: 3,
+      complete: true,
+    });
+  });
+
+  it("keeps submitted answers when onScore throws", async () => {
+    const form = dimahForm({
+      database: memoryAdapter(),
+      plugins: [
+        scoringPlugin({
+          onScore: () => {
+            throw new Error("score persist failed");
+          },
+        }),
+      ],
+      forms: { quiz },
+    });
+    const started = await form.api.startResponse({ body: { formId: "quiz" } });
+    await expect(
+      form.api.submitResponse({
+        body: { responseId: started.id, answers: { q1: "2" } },
+      }),
+    ).rejects.toThrow(/score persist failed/);
+    const stored = await form.api.getResponse({
+      query: { responseId: started.id },
+    });
+    expect(stored.status).toBe("submitted");
+    expect(stored.answers).toEqual({ q1: "2" });
+  });
+
   it("types meta.scoring on createDefineForm", () => {
     const plugins = [scoringPlugin()] as const;
     const defineAppForm = createDefineForm({ plugins });
@@ -330,9 +421,49 @@ describe("scoringClientPlugin", () => {
       variables: { gad7: { raw: 2 } },
     });
     expect(calls[0]).toContain("/scoring/response");
+    expect(calls[0]).toContain("responseId=r1");
     expect(client.$ERROR_CODES.SCORING_MISSING_POINTS.code).toBe(
       "SCORING_MISSING_POINTS",
     );
     expectTypeOf(client.getResponseScores).toBeFunction();
+  });
+
+  it("types getResponseScores when the server generic is paired with the plugin tuple", () => {
+    type Server = {
+      $Infer: {
+        forms: { quiz: typeof quiz };
+        answers: { quiz: { q1: string } };
+        plugins: [];
+      };
+    };
+    const plugins = [scoringClientPlugin()] as const;
+    const client = createFormClient<Server, typeof plugins>({
+      plugins,
+    });
+    expect(typeof client.getResponseScores).toBe("function");
+    expectTypeOf(client.getResponseScores).toBeFunction();
+    expectTypeOf<
+      typeof client.$Infer.answers.quiz.q1
+    >().toEqualTypeOf<string>();
+  });
+
+  it("does not import @dimah-form/server from isomorphic modules", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const { dirname, join } = await import("node:path");
+    const { fileURLToPath } = await import("node:url");
+    const dir = dirname(fileURLToPath(import.meta.url));
+    const files = [
+      "client.ts",
+      "score.ts",
+      "meta.ts",
+      "errors.ts",
+      "routes.ts",
+    ];
+    for (const file of files) {
+      const source = await readFile(join(dir, file), "utf8");
+      expect(source).not.toContain("@dimah-form/server");
+      expect(source).not.toContain("@dimah-form/react");
+      expect(source).not.toContain("@dimah-form/ui");
+    }
   });
 });

@@ -100,8 +100,9 @@ export type PluginInitResult = {
 };
 
 /**
- * Whole-document checks after per-bag `metaSchema`. Synchronous.
- * Used for cross-field plugin rules (e.g. `meta.scoring` variable refs).
+ * Whole-document checks after per-bag `metaSchema`. Synchronous on purpose
+ * (`dimahForm()` init cannot be async). Used for cross-field plugin rules
+ * (e.g. `meta.scoring` variable refs). Not answer validation.
  */
 export type DefinitionValidator = (form: {
   meta?: unknown;
@@ -121,7 +122,8 @@ export type DimahFormPlugin<
   readonly id: string;
   /**
    * Other plugin ids that must be installed. Sorted before this plugin
-   * (`init`, hooks, field types, endpoints, `metaSchema`, `validateAnswers`).
+   * (`init`, hooks, field types, endpoints, `metaSchema`, `validateAnswers`,
+   * `validateDefinition`).
    */
   readonly dependsOn?: readonly string[];
   /** Factory options for sibling plugins. Prefer closures for your own config. */
@@ -148,7 +150,9 @@ export type DimahFormPlugin<
   /**
    * Whole-document checks after namespaced `metaSchema`. Chained in
    * `dependsOn` order, then `dimahForm({ validateDefinition })`. Runs at
-   * init / `saveForm`. Must be synchronous.
+   * init, `saveForm`, and live form reads (`getForm` / `listForms` /
+   * `startResponse`). Response snapshots are not re-checked. Must be
+   * synchronous.
    */
   validateDefinition?: DefinitionValidator;
   /**

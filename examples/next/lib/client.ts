@@ -6,9 +6,11 @@ import { scoringClientPlugin } from "@dimah-form/scoring/client";
 import type { Form } from "./form";
 import { fieldTypes } from "./field-types";
 
-export const formClient = createFormClient<Form>({
+const clientPlugins = [scoringClientPlugin()] as const;
+
+export const formClient = createFormClient<Form, typeof clientPlugins>({
   fieldTypes,
-  plugins: [scoringClientPlugin()],
+  plugins: clientPlugins,
 });
 export const { useFormClient, useFormResponse } = formClient;
 
