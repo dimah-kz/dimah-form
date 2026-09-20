@@ -12,15 +12,23 @@ html > body[data-scroll-locked] {
 }
 
 :root {
-  --color-fd-primary: #0f766e;
-  --color-fd-primary-foreground: #fafafa;
-  --color-fd-ring: #0f766e;
+  --color-fd-primary: color-mix(
+    in oklab,
+    var(--color-teal-600) 80%,
+    var(--color-cyan-600) 20%
+  );
+  --color-fd-primary-foreground: var(--color-white);
+  --color-fd-ring: var(--color-fd-primary);
 }
 
 .dark {
-  --color-fd-primary: #7dd3c8;
-  --color-fd-primary-foreground: #0a1f1d;
-  --color-fd-ring: #7dd3c8;
+  --color-fd-primary: color-mix(
+    in oklab,
+    var(--color-teal-300) 80%,
+    var(--color-cyan-300) 20%
+  );
+  --color-fd-primary-foreground: var(--color-teal-950);
+  --color-fd-ring: var(--color-fd-primary);
 }
 
 @keyframes home-enter {
