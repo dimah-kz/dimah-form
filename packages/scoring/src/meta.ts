@@ -81,11 +81,54 @@ export const scoringFieldMetaSchema = z.object({
 
 export type ScoringFieldMeta = z.output<typeof scoringFieldMetaSchema>;
 
-export const scoringOptionMetaSchema = z.object({
+export const scoringAddSchema = z.object({
+  variable: fieldIdSchema,
   points: z.number(),
 });
 
-export type ScoringOptionMeta = z.output<typeof scoringOptionMetaSchema>;
+export type ScoringAdd = z.output<typeof scoringAddSchema>;
+
+/**
+ * Likert `{ points }` or keying `{ add }`. Never both — `points` is sugar
+ * for adding that number to `field.meta.scoring.variable`.
+ */
+export const scoringOptionMetaSchema = z
+  .object({
+    points: z.number().optional(),
+    add: z.array(scoringAddSchema).min(1).optional(),
+  })
+  .check((ctx) => {
+    const { points, add } = ctx.value;
+    const hasPoints = points !== undefined;
+    const hasAdd = add !== undefined;
+    if (hasPoints === hasAdd) {
+      ctx.issues.push({
+        code: "custom",
+        message: hasPoints
+          ? "option scoring cannot mix points and add"
+          : "option scoring needs points or add",
+        input: ctx.value,
+      });
+      return;
+    }
+    if (!add) return;
+    const seen = new Set<string>();
+    for (const row of add) {
+      if (seen.has(row.variable)) {
+        ctx.issues.push({
+          code: "custom",
+          message: "duplicate variable in option add",
+          input: ctx.value,
+          path: ["add"],
+        });
+        return;
+      }
+      seen.add(row.variable);
+    }
+  });
+
+/** Likert points, or per-variable keying. Exclusive. */
+export type ScoringOptionMeta = { points: number } | { add: ScoringAdd[] };
 
 export type ScoringInnerMeta = {
   form: ScoringFormMeta;
@@ -136,5 +179,21 @@ export function parseScoringOptionMeta(
   const target = scoringMetaTarget(meta);
   if (!target.present) return undefined;
   const parsed = scoringOptionMetaSchema.safeParse(target.value);
-  return parsed.success ? parsed.data : undefined;
+  if (!parsed.success) return undefined;
+  const value = parsed.data;
+  if (value.add) return { add: value.add };
+  if (value.points !== undefined) return { points: value.points };
+  return undefined;
+}
+
+export function optionHasPoints(
+  scoring: ScoringOptionMeta | undefined,
+): scoring is { points: number } {
+  return scoring != null && "points" in scoring;
+}
+
+export function optionHasAdd(
+  scoring: ScoringOptionMeta | undefined,
+): scoring is { add: ScoringAdd[] } {
+  return scoring != null && "add" in scoring;
 }

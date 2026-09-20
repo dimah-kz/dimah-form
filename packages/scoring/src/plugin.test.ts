@@ -91,6 +91,65 @@ describe("scoringPlugin", () => {
     ).toThrow(/unknown scoring variable/i);
   });
 
+  it("rejects option add mapped to an unknown variable at init", () => {
+    expect(() =>
+      dimahForm({
+        database: memoryAdapter(),
+        plugins: [scoringPlugin()],
+        forms: {
+          quiz: defineForm({
+            title: "Quiz",
+            meta: { scoring: { variables: [{ id: "x" }] } },
+            fields: [
+              {
+                id: "q1",
+                type: "select",
+                options: [
+                  {
+                    value: "a",
+                    meta: {
+                      scoring: { add: [{ variable: "nope", points: 1 }] },
+                    },
+                  },
+                ],
+              },
+            ],
+          }),
+        },
+      }),
+    ).toThrow(/unknown scoring variable/i);
+  });
+
+  it("rejects mixing field variable with option add at init", () => {
+    expect(() =>
+      dimahForm({
+        database: memoryAdapter(),
+        plugins: [scoringPlugin()],
+        forms: {
+          quiz: defineForm({
+            title: "Quiz",
+            meta: { scoring: { variables: [{ id: "x" }, { id: "y" }] } },
+            fields: [
+              {
+                id: "q1",
+                type: "select",
+                options: [
+                  {
+                    value: "a",
+                    meta: {
+                      scoring: { add: [{ variable: "y", points: 1 }] },
+                    },
+                  },
+                ],
+                meta: { scoring: { variable: "x" } },
+              },
+            ],
+          }),
+        },
+      }),
+    ).toThrow(/cannot mix/i);
+  });
+
   it("calls onScore after submit and does not write scores into answers", async () => {
     const seen: ScoreResult[] = [];
     const requests: Request[] = [];
@@ -181,6 +240,50 @@ describe("scoringPlugin", () => {
     ).rejects.toSatisfy((error: unknown) =>
       isFormErrorCode(error, "UNKNOWN_RESPONSE"),
     );
+  });
+
+  it("scores option add on GET /scoring/response", async () => {
+    const form = dimahForm({
+      database: memoryAdapter(),
+      plugins: [scoringPlugin()],
+      forms: {
+        key: defineForm({
+          title: "Key",
+          meta: { scoring: { variables: [{ id: "x" }, { id: "y" }] } },
+          fields: [
+            {
+              id: "q1",
+              type: "select",
+              required: true,
+              options: [
+                {
+                  value: "a",
+                  meta: { scoring: { add: [{ variable: "x", points: 2 }] } },
+                },
+                {
+                  value: "b",
+                  meta: { scoring: { add: [{ variable: "y", points: 3 }] } },
+                },
+              ],
+            },
+          ],
+        }),
+      },
+    });
+    const started = await form.api.startResponse({ body: { formId: "key" } });
+    await form.api.submitResponse({
+      body: { responseId: started.id, answers: { q1: "b" } },
+    });
+    const scores = await form.api.getResponseScores({
+      query: { responseId: started.id },
+    });
+    expect(scores).toMatchObject({
+      complete: true,
+      variables: {
+        x: { raw: 0, complete: true },
+        y: { raw: 3, complete: true },
+      },
+    });
   });
 
   it("uses getResponseScores as the guard operation", async () => {
@@ -382,6 +485,27 @@ describe("scoringPlugin", () => {
     });
     expect(authored.meta?.scoring?.variables[0]?.id).toBe("gad7");
     expect(authored.meta?.scoring?.variables[0]?.max).toBe(21);
+    const keyed = defineAppForm({
+      title: "Key",
+      meta: { scoring: { variables: [{ id: "x" }, { id: "y" }] } },
+      fields: [
+        {
+          id: "q1",
+          type: "select",
+          options: [
+            {
+              value: "a",
+              meta: {
+                scoring: { add: [{ variable: "x", points: 2 }] },
+              },
+            },
+          ],
+        },
+      ],
+    });
+    expect(keyed.fields[0]?.options?.[0]?.meta?.scoring).toEqual({
+      add: [{ variable: "x", points: 2 }],
+    });
     defineAppForm({
       title: "Bad",
       fields: [{ id: "n", type: "text" }],

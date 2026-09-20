@@ -159,12 +159,13 @@ Own a **namespace** so several plugins can share the same bag next to UI
 keys (`widget`, `step`, …). Pair `metaNamespace` with `metaSchema` and
 phantom `$Meta` (`NamespacedMeta`).
 
-The official Likert plugin is [`@dimah-form/scoring`](/docs/scoring)
+The official scoring plugin is [`@dimah-form/scoring`](/docs/scoring)
 (`meta.scoring`). Cross-field mapping checks (unknown variable ids, missing
-option points) belong on plugin `validateDefinition`, which is synchronous
-and runs at init, `saveForm`, and live form reads after namespaced
-`metaSchema`. Response snapshots are not re-checked. `validateAnswers` is
-for answer payloads, not document shape.
+option points, mixed Likert / `option.add` keying) belong on plugin
+`validateDefinition`, which is synchronous and runs at init, `saveForm`,
+and live form reads after namespaced `metaSchema`. Response snapshots are
+not re-checked. `validateAnswers` is for answer payloads, not document
+shape.
 
 ```ts
 import { createDefineForm } from "@dimah-form/server";
@@ -231,7 +232,7 @@ instance callback, on both `dimahForm()` and `createFormClient({ plugins })`.
   <Card
     title="Scoring"
     href="/docs/scoring"
-    description="Official Likert / subscale plugin — meta.scoring, snapshot totals, bands."
+    description="Official scoring plugin — Likert points, option keying, snapshot totals, bands."
   />
   <Card
     title="Auth"

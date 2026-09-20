@@ -80,7 +80,7 @@ Each package has one job and a one-way dependency graph:
 | **`@dimah-form/react`**   | Browser             | Headless React client, session state machine, visibility resolver, field bindings, and autosave. Apps import protocol helpers from here in client modules.                                       | `createFormClient()`, `useFormResponse()`, `fieldLabel`, `fieldOptions`      |
 | **`@dimah-form/ui`**      | Browser             | Optional. shadcn renderer and registry source on top of `FormResponseApi` / `FormFieldBinding`.                                                                                                  | `FormView`, `FormScope`, `FormField`, `FormUiProvider`                       |
 | **`@dimah-form/db`**      | Server              | Optional. Production SQL adapter using FumaDB for Drizzle, Prisma, and Kysely.                                                                                                                   | `DimahFormDB`, `db()`                                                        |
-| **`@dimah-form/scoring`** | Server / isomorphic | Official Likert / subscale plugin. `meta.scoring` on the snapshot; compute-on-read totals and bands. Peer of `server`.                                                                           | `scoringPlugin()`, `scoreResponse()`, `scoringClientPlugin()`                |
+| **`@dimah-form/scoring`** | Server / isomorphic | Official scoring plugin. `meta.scoring` on the snapshot; Likert points or option `add` keying; compute-on-read totals and bands. Peer of `server`.                                               | `scoringPlugin()`, `scoreResponse()`, `scoringClientPlugin()`                |
 
 ---
 

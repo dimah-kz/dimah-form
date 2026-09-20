@@ -19,14 +19,14 @@ Backend-first questionnaire engine. Consumers own auth and the database adapter.
 
 Edit the **smallest package that owns the behavior**. Search that package before adding files.
 
-| Package   | Owns                                                            |
-| --------- | --------------------------------------------------------------- |
-| `core`    | Protocol, `createFormClient`, fill session, errors, field types |
-| `server`  | HTTP, `dimahForm()`, server plugins, adapters                   |
-| `react`   | Thin client hooks / `useFormResponse`                           |
-| `ui`      | Optional components + registry source                           |
-| `db`      | FumaDB `database` adapter                                       |
-| `scoring` | Official Likert / subscale plugin (`meta.scoring`)              |
+| Package   | Owns                                                              |
+| --------- | ----------------------------------------------------------------- |
+| `core`    | Protocol, `createFormClient`, fill session, errors, field types   |
+| `server`  | HTTP, `dimahForm()`, server plugins, adapters                     |
+| `react`   | Thin client hooks / `useFormResponse`                             |
+| `ui`      | Optional components + registry source                             |
+| `db`      | FumaDB `database` adapter                                         |
+| `scoring` | Official scoring plugin (`meta.scoring` — Likert + option keying) |
 
 Shared protocol changes start in `core`, then wire `server` and `react`. Do not copy a parallel schema or URL string into another package.
 

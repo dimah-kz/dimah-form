@@ -1,6 +1,6 @@
 # @dimah-form/scoring
 
-Official Likert / subscale scoring plugin. Named variables accumulate points from selected options (and mapped number / boolean fields). Scores are computed from the **response definition snapshot** and stored answers — never the live questionnaire.
+Official scoring plugin. Named variables accumulate points from selected options (and mapped number / boolean fields). Likert items map a field to one variable; keying items list `{ variable, points }` on each option. Scores are computed from the **response definition snapshot** and stored answers — never the live questionnaire.
 
 Not a field type. Scores are not stored in `answers`. Persistence is compute-on-read plus an optional `onScore` callback for your own database. The plugin does not add tables.
 
@@ -54,18 +54,27 @@ meta: {
 }
 ```
 
-Field (select / multiSelect / number / boolean):
+Field (select / multiSelect / number / boolean) — Likert:
 
 ```ts
 meta: { scoring: { variable: "gad7", reverse?: true } }
 ```
 
-Option:
+Option — Likert points, or keying `add` (not both; keying omits `field.variable`):
 
 ```ts
 meta: {
   scoring: {
     points: 0;
+  }
+}
+
+meta: {
+  scoring: {
+    add: [
+      { variable: "extraversion", points: 2 },
+      { variable: "openness", points: 1 },
+    ];
   }
 }
 ```
@@ -94,7 +103,7 @@ Hidden `showWhen` fields do not contribute and do not count as missing. Prefer `
 
 `reversed = min + max - points`.
 
-- **select / multiSelect** — min/max are that field's option `meta.scoring.points` (so a 0–3 item on a 0–21 scale reverses as `3 - points`, not `21 - points`).
+- **select / multiSelect** — min/max are that field's option `meta.scoring.points` (so a 0–3 item on a 0–21 scale reverses as `3 - points`, not `21 - points`). `option.add` is not reversed.
 - **number** — min is `variable.min ?? 0`; `variable.max` is required when `reverse` is true.
 - **boolean** — `1 - value`.
 

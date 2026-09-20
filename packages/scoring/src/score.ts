@@ -10,15 +10,19 @@ import * as z from "zod";
 import { SCORING_ERROR_CODES, type ScoringErrorCode } from "./errors";
 import {
   DEFAULT_SCORING_MISSING,
+  optionHasAdd,
+  optionHasPoints,
   parseScoringFieldMeta,
   parseScoringFormMeta,
   parseScoringOptionMeta,
   scoringMetaTarget,
+  type ScoringAdd,
   type ScoringBand,
   type ScoringFieldMeta,
   type ScoringFormMeta,
   type ScoringFormula,
   type ScoringMissing,
+  type ScoringOptionMeta,
   type ScoringVariable,
 } from "./meta";
 
@@ -61,8 +65,11 @@ export const scoreResultSchema = z.object({
 
 type SelectLikeOption = {
   value: string;
-  points: number | undefined;
+  scoring: ScoringOptionMeta | undefined;
+  scoringPresent: boolean;
 };
+
+type ScoreBucket = { sum: number; answered: number; missing: number };
 
 function scoringIssue(
   field: string,
@@ -89,7 +96,8 @@ function optionList(field: FormField): SelectLikeOption[] {
     if (typeof record.value !== "string") continue;
     list.push({
       value: record.value,
-      points: parseScoringOptionMeta(record.meta)?.points,
+      scoring: parseScoringOptionMeta(record.meta),
+      scoringPresent: scoringMetaTarget(record.meta).present,
     });
   }
   return list;
@@ -112,7 +120,9 @@ function optionPointRange(
   options: readonly SelectLikeOption[],
 ): { min: number; max: number } | undefined {
   const points = options
-    .map((option) => option.points)
+    .map((option) =>
+      optionHasPoints(option.scoring) ? option.scoring.points : undefined,
+    )
     .filter(
       (value): value is number => value != null && Number.isFinite(value),
     );
@@ -121,7 +131,8 @@ function optionPointRange(
 }
 
 /**
- * Reverse scoring: `min + max - points`.
+ * Reverse scoring: `min + max - points`. Likert `option.points` only —
+ * `option.add` is never reversed.
  *
  * - select / multiSelect: min/max are that field's option `meta.scoring.points`.
  * - number: min is `variable.min ?? 0`, max is `variable.max` (required).
@@ -150,6 +161,73 @@ function variableById(
   variables: readonly ScoringVariable[],
 ): Map<string, ScoringVariable> {
   return new Map(variables.map((variable) => [variable.id, variable]));
+}
+
+function collectSelectOptionIssues(
+  field: FormField,
+  fieldMeta: ScoringFieldMeta | undefined,
+  options: readonly SelectLikeOption[],
+  knownVariables: Map<string, ScoringVariable>,
+  issues: ValidationIssue[],
+) {
+  if (fieldMeta && options.length === 0) {
+    issues.push(
+      scoringIssue(field.id, "SCORING_MISSING_POINTS", {
+        field: field.id,
+      }),
+    );
+  }
+  for (const option of options) {
+    const path = `${field.id}.${option.value}`;
+    if (option.scoringPresent && !option.scoring) {
+      issues.push(scoringIssue(path, "SCORING_INVALID_META"));
+      continue;
+    }
+    if (optionHasAdd(option.scoring)) {
+      if (fieldMeta) {
+        issues.push(
+          scoringIssue(path, "SCORING_OPTION_ADD_MIX", {
+            field: field.id,
+            option: option.value,
+          }),
+        );
+      }
+      for (const row of option.scoring.add) {
+        if (!knownVariables.has(row.variable)) {
+          issues.push(
+            scoringIssue(path, "SCORING_UNKNOWN_VARIABLE", {
+              field: field.id,
+              option: option.value,
+              variable: row.variable,
+            }),
+          );
+        }
+      }
+      continue;
+    }
+    if (optionHasPoints(option.scoring)) {
+      if (!fieldMeta) {
+        issues.push(
+          scoringIssue(path, "SCORING_OPTION_POINTS_NEED_VARIABLE", {
+            field: field.id,
+            option: option.value,
+          }),
+        );
+      }
+      continue;
+    }
+    if (fieldMeta) {
+      issues.push(
+        scoringIssue(path, "SCORING_MISSING_POINTS", {
+          field: field.id,
+          option: option.value,
+        }),
+      );
+    }
+  }
+  if (fieldMeta?.reverse && optionPointRange(options) == null) {
+    issues.push(scoringIssue(field.id, "SCORING_REVERSE_RANGE"));
+  }
 }
 
 /**
@@ -233,13 +311,19 @@ export function collectScoringIssues(
 
   for (const field of definition.fields) {
     const fieldTarget = scoringMetaTarget(field.meta);
-    if (!fieldTarget.present) continue;
-    const fieldMeta = parseScoringFieldMeta(field.meta);
-    if (!fieldMeta) {
+    const fieldMeta = fieldTarget.present
+      ? parseScoringFieldMeta(field.meta)
+      : undefined;
+    if (fieldTarget.present && !fieldMeta) {
       issues.push(scoringIssue(field.id, "SCORING_INVALID_META"));
       continue;
     }
-    if (!knownVariables.has(fieldMeta.variable)) {
+
+    const options = optionList(field);
+    const hasOptionScoring = options.some((option) => option.scoringPresent);
+    if (!fieldMeta && !hasOptionScoring) continue;
+
+    if (fieldMeta && !knownVariables.has(fieldMeta.variable)) {
       issues.push(
         scoringIssue(field.id, "SCORING_UNKNOWN_VARIABLE", {
           variable: fieldMeta.variable,
@@ -255,41 +339,34 @@ export function collectScoringIssues(
       continue;
     }
 
-    const variable = knownVariables.get(fieldMeta.variable);
     if (field.type === "select" || field.type === "multiSelect") {
-      const options = optionList(field);
-      if (options.length === 0) {
-        issues.push(
-          scoringIssue(field.id, "SCORING_MISSING_POINTS", {
-            field: field.id,
-          }),
-        );
-      }
-      for (const option of options) {
-        if (option.points == null || !Number.isFinite(option.points)) {
-          issues.push(
-            scoringIssue(
-              `${field.id}.${option.value}`,
-              "SCORING_MISSING_POINTS",
-              {
-                field: field.id,
-                option: option.value,
-              },
-            ),
-          );
-        }
-      }
-      if (fieldMeta.reverse && optionPointRange(options) == null) {
-        issues.push(scoringIssue(field.id, "SCORING_REVERSE_RANGE"));
-      }
-    } else if (
+      collectSelectOptionIssues(
+        field,
+        fieldMeta,
+        options,
+        knownVariables,
+        issues,
+      );
+      continue;
+    }
+
+    const variable = fieldMeta
+      ? knownVariables.get(fieldMeta.variable)
+      : undefined;
+    if (
       field.type === "number" &&
-      fieldMeta.reverse &&
+      fieldMeta?.reverse &&
       (variable?.max == null || !Number.isFinite(variable.max))
     ) {
       issues.push(
         scoringIssue(field.id, "SCORING_REVERSE_RANGE", {
           variable: fieldMeta.variable,
+        }),
+      );
+    } else if (!fieldMeta && hasOptionScoring) {
+      issues.push(
+        scoringIssue(field.id, "SCORING_UNSUPPORTED_TYPE", {
+          type: field.type,
         }),
       );
     }
@@ -360,13 +437,13 @@ function contributeSelect(
   if (typeof value !== "string") return "missing";
   const options = optionList(field);
   const option = options.find((item) => item.value === value);
-  if (!option || option.points == null || !Number.isFinite(option.points)) {
+  if (!option || !optionHasPoints(option.scoring)) {
     return "missing";
   }
-  if (!fieldMeta.reverse) return option.points;
+  if (!fieldMeta.reverse) return option.scoring.points;
   const range = optionPointRange(options);
   if (!range) return "missing";
-  return reversePoints(option.points, range);
+  return reversePoints(option.scoring.points, range);
 }
 
 function contributeMultiSelect(
@@ -382,13 +459,13 @@ function contributeMultiSelect(
   for (const selected of value) {
     if (typeof selected !== "string") continue;
     const option = options.find((item) => item.value === selected);
-    if (!option || option.points == null || !Number.isFinite(option.points)) {
+    if (!option || !optionHasPoints(option.scoring)) {
       continue;
     }
     sum +=
       fieldMeta.reverse && range
-        ? reversePoints(option.points, range)
-        : option.points;
+        ? reversePoints(option.scoring.points, range)
+        : option.scoring.points;
   }
   return sum;
 }
@@ -433,6 +510,76 @@ function contribute(
     default:
       return "missing";
   }
+}
+
+function fieldKeyedVariables(
+  fieldMeta: ScoringFieldMeta | undefined,
+  options: readonly SelectLikeOption[],
+): Set<string> {
+  const ids = new Set<string>();
+  if (fieldMeta) ids.add(fieldMeta.variable);
+  for (const option of options) {
+    if (!optionHasAdd(option.scoring)) continue;
+    for (const row of option.scoring.add) ids.add(row.variable);
+  }
+  return ids;
+}
+
+function applyToUnion(
+  totals: Map<string, ScoreBucket>,
+  union: ReadonlySet<string>,
+  pointsByVariable: Map<string, number> | "missing",
+) {
+  for (const id of union) {
+    const bucket = totals.get(id);
+    if (!bucket) continue;
+    if (pointsByVariable === "missing") {
+      bucket.missing += 1;
+    } else {
+      bucket.sum += pointsByVariable.get(id) ?? 0;
+      bucket.answered += 1;
+    }
+  }
+}
+
+function mergeAdds(
+  into: Map<string, number>,
+  add: readonly ScoringAdd[] | undefined,
+) {
+  if (!add) return;
+  for (const row of add) {
+    into.set(row.variable, (into.get(row.variable) ?? 0) + row.points);
+  }
+}
+
+function keyingPoints(
+  field: FormField,
+  value: unknown,
+  options: readonly SelectLikeOption[],
+): Map<string, number> | "missing" {
+  if (isUnanswered(field, value)) return "missing";
+  const points = new Map<string, number>();
+  if (field.type === "select") {
+    if (typeof value !== "string") return "missing";
+    const option = options.find((item) => item.value === value);
+    if (!option) return "missing";
+    mergeAdds(
+      points,
+      optionHasAdd(option.scoring) ? option.scoring.add : undefined,
+    );
+    return points;
+  }
+  if (field.type === "multiSelect") {
+    if (!Array.isArray(value)) return "missing";
+    for (const selected of value) {
+      if (typeof selected !== "string") continue;
+      const option = options.find((item) => item.value === selected);
+      if (!option || !optionHasAdd(option.scoring)) continue;
+      mergeAdds(points, option.scoring.add);
+    }
+    return points;
+  }
+  return "missing";
 }
 
 function finishVariable(
@@ -516,19 +663,27 @@ export function scoreResponse(
 
   for (const field of definition.fields) {
     const fieldMeta = parseScoringFieldMeta(field.meta);
-    if (!fieldMeta) continue;
-    const variable = known.get(fieldMeta.variable);
-    const bucket = totals.get(fieldMeta.variable);
-    if (!variable || !bucket) continue;
+    const options = optionList(field);
+    const union = fieldKeyedVariables(fieldMeta, options);
+    if (union.size === 0) continue;
     if (!isFieldVisible(field, answers, definition.fields)) continue;
 
-    const points = contribute(field, answers[field.id], fieldMeta, variable);
-    if (points === "missing") {
-      bucket.missing += 1;
-    } else {
-      bucket.sum += points;
-      bucket.answered += 1;
+    const value = answers[field.id];
+    if (fieldMeta) {
+      const variable = known.get(fieldMeta.variable);
+      if (!variable) continue;
+      const points = contribute(field, value, fieldMeta, variable);
+      applyToUnion(
+        totals,
+        union,
+        points === "missing"
+          ? "missing"
+          : new Map([[fieldMeta.variable, points]]),
+      );
+      continue;
     }
+
+    applyToUnion(totals, union, keyingPoints(field, value, options));
   }
 
   const variables: Record<string, ScoreVariableResult> = {};

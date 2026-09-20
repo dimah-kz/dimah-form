@@ -423,6 +423,158 @@ describe("scoreResponse", () => {
     expect(result.complete).toBe(false);
   });
 
+  it("keys selected options into named variables via option add", () => {
+    const definition = normalizeFormSnapshot({
+      id: "key",
+      ...defineForm({
+        title: "Key",
+        meta: {
+          scoring: {
+            variables: [{ id: "x" }, { id: "y" }, { id: "z" }],
+          },
+        },
+        fields: [
+          {
+            id: "q1",
+            type: "select",
+            options: [
+              {
+                value: "a",
+                meta: {
+                  scoring: { add: [{ variable: "x", points: 2 }] },
+                },
+              },
+              {
+                value: "b",
+                meta: {
+                  scoring: { add: [{ variable: "y", points: 3 }] },
+                },
+              },
+              {
+                value: "c",
+                meta: {
+                  scoring: {
+                    add: [
+                      { variable: "x", points: 1 },
+                      { variable: "z", points: 4 },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    });
+    expect(scoreResponse(definition, { q1: "a" }).variables).toMatchObject({
+      x: { raw: 2, missing: 0, complete: true },
+      y: { raw: 0, missing: 0, complete: true },
+      z: { raw: 0, missing: 0, complete: true },
+    });
+    expect(scoreResponse(definition, { q1: "c" }).variables).toMatchObject({
+      x: { raw: 1 },
+      y: { raw: 0 },
+      z: { raw: 4 },
+    });
+    expect(scoreResponse(definition, {}).variables).toMatchObject({
+      x: { raw: null, missing: 1, complete: false },
+      y: { raw: null, missing: 1, complete: false },
+      z: { raw: null, missing: 1, complete: false },
+    });
+  });
+
+  it("sums multiSelect option add across variables", () => {
+    const definition = normalizeFormSnapshot({
+      id: "ms",
+      ...defineForm({
+        title: "MS",
+        meta: {
+          scoring: {
+            variables: [{ id: "depression" }, { id: "anxiety" }],
+          },
+        },
+        fields: [
+          {
+            id: "symptoms",
+            type: "multiSelect",
+            options: [
+              {
+                value: "sad",
+                meta: {
+                  scoring: { add: [{ variable: "depression", points: 1 }] },
+                },
+              },
+              {
+                value: "panic",
+                meta: {
+                  scoring: { add: [{ variable: "anxiety", points: 2 }] },
+                },
+              },
+              {
+                value: "insomnia",
+                meta: {
+                  scoring: {
+                    add: [
+                      { variable: "depression", points: 1 },
+                      { variable: "anxiety", points: 1 },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    });
+    expect(
+      scoreResponse(definition, { symptoms: ["sad", "insomnia"] }).variables,
+    ).toMatchObject({
+      depression: { raw: 2, complete: true },
+      anxiety: { raw: 1, complete: true },
+    });
+    expect(
+      scoreResponse(definition, { symptoms: [] }).variables.depression.raw,
+    ).toBe(0);
+  });
+
+  it("does not count a hidden keying field as missing", () => {
+    const definition = normalizeFormSnapshot({
+      id: "hide",
+      ...defineForm({
+        title: "Hide",
+        meta: { scoring: { variables: [{ id: "x" }, { id: "y" }] } },
+        fields: [
+          {
+            id: "gate",
+            type: "select",
+            options: [{ value: "show" }, { value: "hide" }],
+          },
+          {
+            id: "q1",
+            type: "select",
+            showWhen: { field: "gate", equals: "show" },
+            options: [
+              {
+                value: "a",
+                meta: { scoring: { add: [{ variable: "x", points: 2 }] } },
+              },
+              {
+                value: "b",
+                meta: { scoring: { add: [{ variable: "y", points: 2 }] } },
+              },
+            ],
+          },
+        ],
+      }),
+    });
+    expect(scoreResponse(definition, { gate: "hide" }).variables).toMatchObject(
+      {
+        x: { raw: 0, missing: 0, complete: true },
+        y: { raw: 0, missing: 0, complete: true },
+      },
+    );
+  });
+
   it("assigns the first matching band and treats omitted from/to as open ends", () => {
     const overlapping = gad7();
     overlapping.meta = {
@@ -628,5 +780,108 @@ describe("collectScoringIssues", () => {
     expect(codes).toContain("SCORING_INVALID_BAND");
     expect(codes).toContain("SCORING_UNKNOWN_BAND_VARIABLE");
     expect(codes).toContain("SCORING_REVERSE_RANGE");
+  });
+
+  it("rejects mixing field variable with option add, and points without a field variable", () => {
+    const mixed = normalizeFormSnapshot({
+      id: "mix",
+      ...defineForm({
+        title: "Mix",
+        meta: { scoring: { variables: [{ id: "x" }, { id: "y" }] } },
+        fields: [
+          {
+            id: "q1",
+            type: "select",
+            options: [
+              {
+                value: "a",
+                meta: { scoring: { add: [{ variable: "y", points: 1 }] } },
+              },
+            ],
+            meta: { scoring: { variable: "x" } },
+          },
+        ],
+      }),
+    });
+    expect(collectScoringIssues(mixed).map((issue) => issue.code)).toContain(
+      "SCORING_OPTION_ADD_MIX",
+    );
+
+    const orphan = normalizeFormSnapshot({
+      id: "orphan",
+      ...defineForm({
+        title: "Orphan",
+        meta: { scoring: { variables: [{ id: "x" }] } },
+        fields: [
+          {
+            id: "q1",
+            type: "select",
+            options: [{ value: "a", meta: { scoring: { points: 1 } } }],
+          },
+        ],
+      }),
+    });
+    expect(collectScoringIssues(orphan).map((issue) => issue.code)).toContain(
+      "SCORING_OPTION_POINTS_NEED_VARIABLE",
+    );
+  });
+
+  it("rejects unknown variables on option add and invalid mixed option meta", () => {
+    const unknown = normalizeFormSnapshot({
+      id: "unk",
+      ...defineForm({
+        title: "Unk",
+        meta: { scoring: { variables: [{ id: "x" }] } },
+        fields: [
+          {
+            id: "q1",
+            type: "select",
+            options: [
+              {
+                value: "a",
+                meta: {
+                  scoring: { add: [{ variable: "nope", points: 1 }] },
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    });
+    const unknownIssues = collectScoringIssues(unknown);
+    expect(unknownIssues.map((issue) => issue.code)).toContain(
+      "SCORING_UNKNOWN_VARIABLE",
+    );
+    expect(
+      unknownIssues.some((issue) => issue.params?.variable === "nope"),
+    ).toBe(true);
+
+    const both = normalizeFormSnapshot({
+      id: "both",
+      ...defineForm({
+        title: "Both",
+        meta: { scoring: { variables: [{ id: "x" }] } },
+        fields: [
+          {
+            id: "q1",
+            type: "select",
+            options: [
+              {
+                value: "a",
+                meta: {
+                  scoring: {
+                    points: 1,
+                    add: [{ variable: "x", points: 1 }],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    });
+    expect(collectScoringIssues(both).map((issue) => issue.code)).toContain(
+      "SCORING_INVALID_META",
+    );
   });
 });

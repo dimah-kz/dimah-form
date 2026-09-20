@@ -1,13 +1,14 @@
 {
   "name": "@dimah-form/scoring",
   "version": "0.4.0",
-  "description": "Official Likert / subscale scoring plugin for dimah-form",
+  "description": "Official scoring plugin for dimah-form (Likert and option keying)",
   "keywords": [
     "form",
     "questionnaire",
     "survey",
     "scoring",
     "likert",
+    "keying",
     "subscale",
     "gad-7",
     "typescript"

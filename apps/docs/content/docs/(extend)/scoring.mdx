@@ -1,10 +1,10 @@
 ---
 title: Scoring
-description: Likert and subscale totals from option points, computed from the response snapshot.
+description: Likert totals and option keying into named variables, computed from the response snapshot.
 icon: Gauge
 ---
 
-`@dimah-form/scoring` is the first-party plugin for psychological / Likert / scale questionnaires. Named variables accumulate points from field options (and mapped number / boolean fields). After fill you get totals plus optional interpretation bands.
+`@dimah-form/scoring` is the first-party plugin for scored questionnaires. Named variables accumulate points from selected options (and mapped number / boolean fields). Likert items map a field to one variable; keying items list `{ variable, points }` on each option. After fill you get totals plus optional interpretation bands.
 
 Scores are **derived**. They are never written into `answers`. The plugin does not add tables. Compute from the **response definition snapshot** and stored answers — never the live questionnaire.
 
@@ -111,20 +111,59 @@ export const gad7 = defineAppForm({
 
 ### Contributors
 
-| Field type    | Points                                    |
-| :------------ | :---------------------------------------- |
-| `select`      | Chosen option's `meta.scoring.points`     |
-| `multiSelect` | Sum of selected option points (`[]` is 0) |
-| `number`      | The numeric value                         |
-| `boolean`     | `true` → 1, `false` → 0                   |
+| Field type    | Likert (`field.variable` + `option.points`) | Keying (`option.add`)               |
+| :------------ | :------------------------------------------ | :---------------------------------- |
+| `select`      | Chosen option's points                      | That option's `add` rows            |
+| `multiSelect` | Sum of selected option points (`[]` is 0)   | Sum of selected options' `add` rows |
+| `number`      | The numeric value                           | —                                   |
+| `boolean`     | `true` → 1, `false` → 0                     | —                                   |
 
 Hidden `showWhen` fields do not contribute and do not count as missing.
+
+### Option keying
+
+`option.points` is sugar for adding that number to `field.meta.scoring.variable`. Use `option.add` when a choice keys one or more variables — and omit `field.meta.scoring`. Do not mix `points` with `add`, and do not set `field.variable` on a keying item. Reverse scoring does not apply to `add`.
+
+```ts
+{
+  id: "style",
+  type: "select",
+  options: [
+    {
+      value: "parties",
+      label: "A crowded party",
+      meta: { scoring: { add: [{ variable: "extraversion", points: 2 }] } },
+    },
+    {
+      value: "book",
+      label: "A quiet evening",
+      meta: { scoring: { add: [{ variable: "introversion", points: 2 }] } },
+    },
+    {
+      value: "both",
+      label: "Depends on the week",
+      meta: {
+        scoring: {
+          add: [
+            { variable: "extraversion", points: 1 },
+            { variable: "introversion", points: 1 },
+          ],
+        },
+      },
+    },
+  ],
+}
+```
+
+Selecting `parties` adds 2 to extraversion (introversion gets 0 from this item and still counts as answered). An unanswered visible keying item increments `missing` on every variable any of its options names. An option with no `meta.scoring` contributes nothing.
+
+Unknown `add` variables, mixed `points`/`add`, and `field.variable` plus `option.add` fail `validateDefinition` (`SCORING_UNKNOWN_VARIABLE`, `SCORING_INVALID_META`, `SCORING_OPTION_ADD_MIX`).
 
 ### Reverse scoring
 
 `reversed = min + max - points`.
 
-- **select / multiSelect** — min/max are **that field's** option points (a 0–3 item on a 0–21 scale reverses as `3 − points`).
+- **select / multiSelect** — min/max are **that field's** option points (a 0–3 item on a 0–21 scale reverses as `3 − points`). `option.add` is not reversed.
 - **number** — min is `variable.min ?? 0`; `variable.max` is required when `reverse` is true.
 - **boolean** — `1 − value`.
 
@@ -187,4 +226,4 @@ Pass the **snapshot** you are filling or the stored `response.definition`. Live 
 
 Guard operation for `GET /scoring/response` is `getResponseScores`. Document validity (unknown variables, missing option points) is checked at `dimahForm()`, `saveForm`, and live form reads via `metaSchema` + `validateDefinition`. Response snapshots are not re-checked on `getResponse`; `scoreResponse` still validates mapping when you compute. Scoring is not answer validation.
 
-Malformed mapping uses stable codes such as `SCORING_UNKNOWN_VARIABLE` and `SCORING_MISSING_POINTS` (`form.$ERROR_CODES`).
+Malformed mapping uses stable codes such as `SCORING_UNKNOWN_VARIABLE`, `SCORING_MISSING_POINTS`, and `SCORING_OPTION_ADD_MIX` (`form.$ERROR_CODES`).

@@ -67,7 +67,7 @@ export function llmDecisionSheet(): string {
 
 > Backend-first questionnaire engine: the library owns the protocol, definition snapshots, and submit validation. You own UI, auth, and the database adapter. Not a form renderer, and not a hosted survey product.
 
-TypeScript packages: \`@dimah-form/server\` (\`dimahForm()\` handler and \`api\`), \`@dimah-form/react\` (thin client and \`useFormResponse\`). Optional \`@dimah-form/ui\` is a shadcn renderer on top of the headless session. Optional \`@dimah-form/db\` is the FumaDB SQL adapter. Optional \`@dimah-form/scoring\` is the Likert / subscale plugin. Protocol types live in \`@dimah-form/core\`.
+TypeScript packages: \`@dimah-form/server\` (\`dimahForm()\` handler and \`api\`), \`@dimah-form/react\` (thin client and \`useFormResponse\`). Optional \`@dimah-form/ui\` is a shadcn renderer on top of the headless session. Optional \`@dimah-form/db\` is the FumaDB SQL adapter. Optional \`@dimah-form/scoring\` is the scoring plugin (Likert and option keying). Protocol types live in \`@dimah-form/core\`.
 
 HTTP adapters: Next.js App Router, Express, Hono, Fastify, Elysia, SvelteKit, and Node. Persistence is required: \`memoryAdapter()\` from \`@dimah-form/server\` (Quickstart), or optional \`db()\` from \`@dimah-form/db\` for SQL. Built-in field types: text, number, boolean, select, multiSelect, email, date. Extra types are \`defineFieldType\` validators, not components.
 
@@ -91,7 +91,7 @@ export function llmFileLists(origin = getSiteUrl().origin): string {
 - [@dimah-form/core](${npmPackageUrls[2]}): protocol SSOT, field types, fetch client
 - [@dimah-form/db](${npmPackageUrls[3]}): optional FumaDB adapter for production SQL
 - [@dimah-form/ui](${npmPackageUrls[4]}): optional shadcn renderer (npm or registry)
-- [@dimah-form/scoring](${npmPackageUrls[5]}): optional Likert / subscale plugin
+- [@dimah-form/scoring](${npmPackageUrls[5]}): optional scoring plugin (Likert and option keying)
 
 ## Optional
 
