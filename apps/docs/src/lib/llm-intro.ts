@@ -30,6 +30,7 @@ export const LLM_PAGE_PRIORITY = [
   "/docs/custom-fields",
   "/docs/plugins",
   "/docs/scoring",
+  "/docs/dataset",
   "/docs/configuration",
   "/docs/field-types",
   "/docs/protocol",
@@ -67,7 +68,7 @@ export function llmDecisionSheet(): string {
 
 > Backend-first questionnaire engine: the library owns the protocol, definition snapshots, and submit validation. You own UI, auth, and the database adapter. Not a form renderer, and not a hosted survey product.
 
-TypeScript packages: \`@dimah-form/server\` (\`dimahForm()\` handler and \`api\`), \`@dimah-form/react\` (thin client and \`useFormResponse\`). Optional \`@dimah-form/ui\` is a shadcn renderer on top of the headless session. Optional \`@dimah-form/db\` is the FumaDB SQL adapter. Optional \`@dimah-form/scoring\` is the scoring plugin (Likert and option keying). Protocol types live in \`@dimah-form/core\`.
+TypeScript packages: \`@dimah-form/server\` (\`dimahForm()\` handler and \`api\`), \`@dimah-form/react\` (thin client and \`useFormResponse\`). Optional \`@dimah-form/ui\` is a shadcn renderer on top of the headless session. Optional \`@dimah-form/db\` is the FumaDB SQL adapter. Optional \`@dimah-form/scoring\` is the scoring plugin (Likert and option keying). Optional \`@dimah-form/dataset\` is the dataset plugin (JSONL + codebook interchange). Protocol types live in \`@dimah-form/core\`.
 
 HTTP adapters: Next.js App Router, Express, Hono, Fastify, Elysia, SvelteKit, and Node. Persistence is required: \`memoryAdapter()\` from \`@dimah-form/server\` (Quickstart), or optional \`db()\` from \`@dimah-form/db\` for SQL. Built-in field types: text, number, boolean, select, multiSelect, email, date. Extra types are \`defineFieldType\` validators, not components.
 
@@ -76,7 +77,7 @@ Use it when the app needs typed questionnaires with drafts, snapshots, and submi
 Install: \`pnpm add @dimah-form/server @dimah-form/react\`. Add \`@dimah-form/db\` only for production SQL.
 
 - Auth stays in consumer \`guard\` hooks. Do not look for library auth.
-- Persistence is \`database\`, not a plugin. Plugins add endpoints, hooks, field types, error codes, \`metaSchema\`, \`validateAnswers\`, and \`validateDefinition\`. Official Likert scoring is \`@dimah-form/scoring\` (\`meta.scoring\` on the snapshot; do not store scores in \`answers\`).
+- Persistence is \`database\`, not a plugin. Plugins add endpoints, hooks, field types, error codes, \`metaSchema\`, \`validateAnswers\`, and \`validateDefinition\`. Official Likert scoring is \`@dimah-form/scoring\` (\`meta.scoring\` on the snapshot; do not store scores in \`answers\`). Official dataset interchange is \`@dimah-form/dataset\` (JSONL + codebook from the response snapshot; no tables).
 - Apps import from the package they already use: \`@dimah-form/server\` on the server, \`@dimah-form/react\` in the browser. Share \`$Infer\` with \`export type Form = typeof form\` and \`createFormClient<Form>()\`.
 - Filling a response is headless: \`useFormResponse\` / \`createFormResponseSession\`. Optional \`@dimah-form/ui\` wraps that session. Consumers may still own widgets.
 - Each response stores the definition it was started with. Submit validates that snapshot.
@@ -92,6 +93,7 @@ export function llmFileLists(origin = getSiteUrl().origin): string {
 - [@dimah-form/db](${npmPackageUrls[3]}): optional FumaDB adapter for production SQL
 - [@dimah-form/ui](${npmPackageUrls[4]}): optional shadcn renderer (npm or registry)
 - [@dimah-form/scoring](${npmPackageUrls[5]}): optional scoring plugin (Likert and option keying)
+- [@dimah-form/dataset](${npmPackageUrls[6]}): optional dataset plugin (JSONL + codebook interchange)
 
 ## Optional
 

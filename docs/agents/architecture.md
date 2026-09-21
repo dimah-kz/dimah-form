@@ -11,6 +11,8 @@ Backend-first questionnaire engine. Consumers own auth and the database adapter.
         ↑                    ↑
 @dimah-form/db         @dimah-form/scoring
 (peer: server)         (peer: server / core)
+                       @dimah-form/dataset
+                       (peer: server / core / scoring)
 ```
 
 `apps/docs` and `examples/*` consume workspace packages (not published). Registry item manifests: `packages/ui/scripts/` (see [registry.md](./registry.md)).
@@ -27,6 +29,7 @@ Edit the **smallest package that owns the behavior**. Search that package before
 | `ui`      | Optional components + registry source                             |
 | `db`      | FumaDB `database` adapter                                         |
 | `scoring` | Official scoring plugin (`meta.scoring` — Likert + option keying) |
+| `dataset` | Official dataset plugin (JSONL + codebook, compute-on-read)       |
 
 Shared protocol changes start in `core`, then wire `server` and `react`. Do not copy a parallel schema or URL string into another package.
 

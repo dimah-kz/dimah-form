@@ -48,3 +48,7 @@
 - name: pkg:scoring
   color: "c2e0c6"
   description: "@dimah-form/scoring"
+
+- name: pkg:dataset
+  color: "bfd4f2"
+  description: "@dimah-form/dataset"

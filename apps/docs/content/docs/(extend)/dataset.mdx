@@ -1,0 +1,134 @@
+---
+title: Dataset
+description: Paged JSONL + codebook interchange from response snapshots. CSV is a convenience encoding.
+icon: Sheet
+---
+
+`@dimah-form/dataset` is the first-party **read-side** plugin for analysis interchange. It projects stored responses into a versioned spec (`dimah.dataset/v1`): one `DatasetRecord` per response, a **codebook** built from snapshots in the dataset, and optional CSV / Frictionless-style file maps.
+
+Canonical interchange is **JSON Lines + codebook**, not a one-shot CSV download. HTTP stays paged (`limit` max 100). A zip of the whole form lives in your app — the example download route shows how.
+
+Derived data only. The plugin does not add tables or a `meta` namespace. Records are built from the **response definition snapshot**, never the live questionnaire.
+
+---
+
+## Install
+
+```bash
+pnpm add @dimah-form/dataset
+```
+
+```ts title="lib/form.ts"
+import { datasetPlugin } from "@dimah-form/dataset";
+import { dimahForm } from "@dimah-form/server";
+
+export const form = dimahForm({
+  database,
+  forms,
+  plugins: [datasetPlugin()],
+});
+```
+
+```ts title="lib/client.ts"
+"use client";
+
+import { datasetClientPlugin } from "@dimah-form/dataset/client";
+import { createFormClient } from "@dimah-form/react";
+import type { Form } from "@/lib/form";
+
+const plugins = [datasetClientPlugin()] as const;
+export const formClient = createFormClient<Form, typeof plugins>({
+  plugins,
+});
+```
+
+Import the server factory from `@dimah-form/dataset` and the browser companion from `@dimah-form/dataset/client`. Scoring columns need `@dimah-form/scoring` installed (optional peer). `getDatasetPage` attaches `scoreResponse` when the snapshot has `meta.scoring` — scores are never written into `answers`.
+
+Guard operations are `getDatasetPage` and `getLiveCodebook`. Treat them like `listResponses` (admin).
+
+---
+
+## Spec
+
+Every JSON object carries `spec: "dimah.dataset/v1"`.
+
+**Record** — one response, no raw `definition`. Identity: `id`, `formId`, `status`, `submittedAt`, `createdAt`, `snapshotKey`. HTTP includes `respondentId` (nullable); package encode omits it unless you pass `includeRespondentId: true`. `fields` is dense: every snapshot field, unanswered as `value: null`. `formatted` is English [`formatAnswer`](/docs/field-types) (pass the same `fieldTypes` you registered on `dimahForm()`). Optional `scores` matches `scoreResponse`.
+
+**Codebook** — built from **snapshots in the dataset**. If a field label, options, or type drifts, the newest `lastSeenAt` wins and the others go in `labelConflicts` / `typeConflicts`. Do not merge those into the live label.
+
+**`getLiveCodebook`** is the **live** questionnaire. It is not historical. Use `createDatasetReader` for the codebook of what people actually answered.
+
+`snapshotKey` is SHA-256 hex of canonical JSON (sorted keys) of the instrument: `title`, `description`, `fields`, `meta`. Form `id` / `slug` / `status` / timestamps are omitted so a touch-save does not fragment the codebook.
+
+---
+
+## HTTP
+
+Reuse core list limits (default 50, max 100). The plugin always passes `limit + 1` into the store.
+
+- `GET /dataset/responses` (`getDatasetPage`) — `formId` required. Default `status=submitted`. Query: `limit` / `offset`. Returns `{ spec, records, codebook, limit, offset, nextOffset }`. The codebook is **this page only**.
+- `GET /dataset/codebook` (`getLiveCodebook`) — codebook of the live form.
+
+Filename, zip, and timeout stay out of the plugin.
+
+```ts
+const page = await form.api.getDatasetPage({
+  query: { formId: "gad7", limit: 100 },
+});
+```
+
+---
+
+## Full file in the app
+
+Walk pages with `createDatasetReader`, then encode. Same helper for a warehouse job and a Next.js download route.
+
+```ts
+import {
+  createDatasetReader,
+  toCsv,
+  toDataPackage,
+  toJsonl,
+} from "@dimah-form/dataset";
+
+const { records, codebook } = await createDatasetReader({
+  page: ({ limit, offset }) =>
+    form.api.getDatasetPage({
+      query: { formId, limit, offset },
+    }),
+  signal,
+}).readAll();
+
+const jsonl = toJsonl(records);
+const csv = toCsv(records, codebook);
+const files = toDataPackage(records, codebook);
+```
+
+`toDataPackage` returns a filename → contents map (`datapackage.json`, `codebook.json`, `responses.jsonl`, `responses.csv`, `responses.labels.csv`). It is not a zip. UTF-8 BOM is allowed only on `responses.labels.csv`. CSV is RFC 4180; `multiSelect` values join with `;`. Object answers stringify as JSON in the codes CSV. Column order: identity, then codebook field ids (historical codebooks sort ids), then `score.<id>.raw` / `.band` / `.complete`.
+
+CSV column order is stable across newest-first pagination. Pass a live codebook if you want live form order.
+
+---
+
+## Warehouse (`afterSubmit`)
+
+Documented only — same idea as scoring `onScore`. Persist the projected record (and codebook merge) in **your** table. The library will not.
+
+```ts
+import { projectResponse } from "@dimah-form/dataset";
+
+hooks: {
+  afterSubmit: async ({ response }) => {
+    const record = await projectResponse(response, { includeRespondentId: true });
+    await warehouse.insert(record);
+  },
+}
+```
+
+Use the response snapshot. Do not flatten against the live questionnaire.
+
+---
+
+## Out of this package
+
+SPSS / Parquet / FHIR encoders, attachment bytes, `meta.dataset`, census analytics, LLM calls, raising `LIST_MAX_LIMIT`, and zip inside `dimahForm()`.

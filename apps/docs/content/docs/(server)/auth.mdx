@@ -57,7 +57,13 @@ export const form = dimahForm({
     const session = await getAuthSession(request);
 
     // 2. Restrict administrative endpoints to Admins
-    const adminOperations = ["saveForm", "deleteForm", "listResponses"];
+    const adminOperations = [
+      "saveForm",
+      "deleteForm",
+      "listResponses",
+      "getDatasetPage",
+      "getLiveCodebook",
+    ];
     if (adminOperations.includes(operation)) {
       if (!session || session.user.role !== "admin") {
         throw APIError.from("FORBIDDEN", FORM_ERROR_CODES.FORBIDDEN);

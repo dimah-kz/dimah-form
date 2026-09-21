@@ -16,6 +16,7 @@ body:
         - "@dimah-form/react"
         - "@dimah-form/ui"
         - "@dimah-form/scoring"
+        - "@dimah-form/dataset"
         - unsure
     validations:
       required: true

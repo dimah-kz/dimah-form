@@ -167,6 +167,10 @@ and live form reads after namespaced `metaSchema`. Response snapshots are
 not re-checked. `validateAnswers` is for answer payloads, not document
 shape.
 
+The official dataset plugin is [`@dimah-form/dataset`](/docs/dataset). It
+has no `meta` namespace and no tables. Pages are compute-on-read from
+response snapshots (JSONL + codebook). Do not flatten against the live form.
+
 ```ts
 import { createDefineForm } from "@dimah-form/server";
 import type { FormDefinitionUi } from "@dimah-form/ui/types";
@@ -233,6 +237,11 @@ instance callback, on both `dimahForm()` and `createFormClient({ plugins })`.
     title="Scoring"
     href="/docs/scoring"
     description="Official scoring plugin — Likert points, option keying, snapshot totals, bands."
+  />
+  <Card
+    title="Dataset"
+    href="/docs/dataset"
+    description="JSONL + codebook interchange from response snapshots. Paged HTTP, CSV convenience."
   />
   <Card
     title="Auth"

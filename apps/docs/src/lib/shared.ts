@@ -71,6 +71,7 @@ export const npmPackageUrls = [
   "https://www.npmjs.com/package/@dimah-form/db",
   "https://www.npmjs.com/package/@dimah-form/ui",
   "https://www.npmjs.com/package/@dimah-form/scoring",
+  "https://www.npmjs.com/package/@dimah-form/dataset",
 ] as const;
 
 export function githubRepoUrl() {

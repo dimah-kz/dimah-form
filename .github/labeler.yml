@@ -24,6 +24,10 @@ pkg:scoring:
   - changed-files:
       - any-glob-to-any-file: packages/scoring/**
 
+pkg:dataset:
+  - changed-files:
+      - any-glob-to-any-file: packages/dataset/**
+
 documentation:
   - changed-files:
       - any-glob-to-any-file:

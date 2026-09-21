@@ -46,6 +46,7 @@ The problems it is built around:
         ↓
 @dimah-form/server  ←  @dimah-form/db (optional)
         │           ←  @dimah-form/scoring (optional plugin)
+        │           ←  @dimah-form/dataset (optional plugin)
 @dimah-form/react  ←  @dimah-form/ui (optional)
 ```
 
@@ -57,6 +58,7 @@ The problems it is built around:
 | **`@dimah-form/ui`**      | Browser                  | Optional. shadcn renderer (`FormView` / `FormField`). Use `@dimah-form/ui/types` on the server.                                   |
 | **`@dimah-form/db`**      | Server                   | Optional. Production SQL adapter via FumaDB.                                                                                      |
 | **`@dimah-form/scoring`** | Server / isomorphic      | Optional. Scoring plugin (`meta.scoring` — Likert + option keying). Import `/client` in the browser.                              |
+| **`@dimah-form/dataset`** | Server / isomorphic      | Optional. Dataset plugin (JSONL + codebook from snapshots). Import `/client` in the browser.                                      |
 
 ---
 

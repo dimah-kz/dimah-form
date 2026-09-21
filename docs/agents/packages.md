@@ -57,6 +57,7 @@ Feature plugins live in their own package and peer-depend on server.
 - Plugin `init` receives `basePath`, `fieldTypes`, sibling `plugins`, and `getPluginContext` — not the internal resolved config. Persistence is `database`, not a plugin. Plugins must not add tables.
 - Throw `errors.*` from `@dimah-form/server` (or `APIError.from`) in plugin endpoints.
 - First-party `@dimah-form/scoring` is a feature plugin (`meta.scoring`). Likert is `field.variable` plus `option.points`; keying is `option.add` (no field variable, never mixed with `points`). Reverse is `select` / `number` / `boolean` only. Every variable must be mapped by a field. Scores are derived from the response snapshot; do not persist them into `answers` or add scoring tables.
+- First-party `@dimah-form/dataset` is a read-side plugin (no `meta` namespace, no tables). Canonical interchange is JSONL + codebook from **response snapshots**. HTTP is paged (`getDatasetPage`); full-file zip stays in the consumer app. Do not flatten against the live questionnaire. `getLiveCodebook` is the live form only.
 
 ## Strings and errors
 
