@@ -51,7 +51,6 @@
   },
   "devDependencies": {
     "@dimah-form/core": "workspace:*",
-    "@dimah-form/scoring": "workspace:*",
     "@dimah-form/server": "workspace:*",
     "@types/node": "catalog:",
     "@workspace/eslint-config": "workspace:*",
