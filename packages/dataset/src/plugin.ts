@@ -58,6 +58,10 @@ export type DatasetPluginOptions = {
   maxRows?: number;
 };
 
+function walkCap(pluginCap: number, queryMaxRows?: number): number {
+  return Math.min(queryMaxRows ?? pluginCap, pluginCap);
+}
+
 function isFullRecord(row: { definition?: unknown }): row is ResponseRecord {
   return "definition" in row && row.definition != null;
 }
@@ -213,7 +217,7 @@ export function datasetPlugin(options: DatasetPluginOptions = {}) {
               filter,
               (query) => config.database.listResponses(query),
               ctx.context.request.signal,
-              maxRowsCap,
+              walkCap(maxRowsCap, ctx.query.maxRows),
             ),
           ]);
           return {

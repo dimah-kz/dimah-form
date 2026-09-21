@@ -21,7 +21,7 @@ export type EncodeOptions = {
   includeRespondentId?: boolean;
   /** Allowlist of field ids. Omitted → every codebook field. */
   fields?: readonly string[];
-  /** Drop these column names (identity, field ids, or `score.*`). */
+  /** Drop these output column names (identity, field columns, or `score.*`). */
   omit?: readonly string[];
   /** Labels CSV only — protocol `formatted` stays English Yes/No. */
   booleanLabels?: { true?: string; false?: string };
@@ -65,9 +65,11 @@ function scoreColumnIds(
   codebook: Codebook,
   records: readonly DatasetRecord[],
 ): string[] {
-  if (codebook.scores?.variables.length) {
-    return codebook.scores.variables.map((variable) => variable.id);
-  }
+  const documented = [
+    ...(codebook.scores?.variables.map((variable) => variable.id) ?? []),
+    ...(codebook.scores?.formulas?.map((formula) => formula.id) ?? []),
+  ];
+  if (documented.length > 0) return [...new Set(documented)];
   const ids = new Set<string>();
   for (const record of records) {
     if (!record.scores) continue;
@@ -79,9 +81,37 @@ function scoreColumnIds(
 function scoreColumns(variableIds: readonly string[]): string[] {
   const columns: string[] = [];
   for (const id of variableIds) {
-    columns.push(`score.${id}.raw`, `score.${id}.band`, `score.${id}.complete`);
+    columns.push(
+      `score.${id}.raw`,
+      `score.${id}.band`,
+      `score.${id}.complete`,
+      `score.${id}.missing`,
+    );
   }
   return columns;
+}
+
+const RESERVED_FIELD_IDS = new Set<string>([
+  ...DATASET_IDENTITY_COLUMNS,
+  "respondentId",
+]);
+
+/** Identity and `score.*` names are not field columns. Collisions use `field.<id>`. */
+export function csvFieldColumn(id: string): string {
+  if (RESERVED_FIELD_IDS.has(id) || id.startsWith("score."))
+    return `field.${id}`;
+  return id;
+}
+
+function fieldIdForColumn(
+  column: string,
+  fieldIds: ReadonlySet<string>,
+): string | undefined {
+  if (fieldIds.has(column) && csvFieldColumn(column) === column) return column;
+  if (!column.startsWith("field.")) return;
+  const id = column.slice("field.".length);
+  if (fieldIds.has(id) && csvFieldColumn(id) === column) return id;
+  return;
 }
 
 function applyColumnFilters(
@@ -97,9 +127,20 @@ function applyColumnFilters(
   return columns.filter((column) => {
     if (omit?.has(column)) return false;
     if (!allow) return true;
-    if (!fieldIds.has(column)) return true;
-    return allow.has(column);
+    const fieldId = fieldIdForColumn(column, fieldIds);
+    if (!fieldId) return true;
+    return allow.has(fieldId);
   });
+}
+
+function assertUniqueColumns(columns: readonly string[]): void {
+  const seen = new Set<string>();
+  for (const column of columns) {
+    if (seen.has(column)) {
+      throw new Error(`Dataset CSV column "${column}" is ambiguous`);
+    }
+    seen.add(column);
+  }
 }
 
 export function datasetCsvColumns(
@@ -118,9 +159,10 @@ export function datasetCsvColumns(
         ]);
   const columns = [
     ...identityColumns(includeRespondentId),
-    ...fieldIds,
+    ...fieldIds.map(csvFieldColumn),
     ...scoreColumns(scoreColumnIds(codebook, records)),
   ];
+  assertUniqueColumns(columns);
   return applyColumnFilters(columns, options, new Set(fieldIds));
 }
 
@@ -182,14 +224,25 @@ function identityCell(record: DatasetRecord, column: string): string {
 }
 
 function scoreCell(record: DatasetRecord, column: string): string {
-  const match = /^score\.(.+)\.(raw|band|complete)$/.exec(column);
+  const match = /^score\.(.+)\.(raw|band|complete|missing)$/.exec(column);
   if (!match) return "";
-  const variable = record.scores?.variables[match[1]];
+  const id = match[1];
+  if (!id) return "";
+  const variable = record.scores?.variables[id];
   if (!variable) return "";
   if (match[2] === "raw")
     return variable.raw == null ? "" : String(variable.raw);
   if (match[2] === "band") return variable.band ?? "";
+  if (match[2] === "missing") return String(variable.missing);
   return variable.complete ? "true" : "false";
+}
+
+function fieldForColumn(
+  column: string,
+  byId: ReadonlyMap<string, DatasetRecord["fields"][number]>,
+): DatasetRecord["fields"][number] | undefined {
+  const id = fieldIdForColumn(column, new Set(byId.keys()));
+  return id ? byId.get(id) : undefined;
 }
 
 function optionLookup(
@@ -213,15 +266,21 @@ function csvRow(
   ]);
   const byId = new Map(record.fields.map((field) => [field.id, field]));
   const cells = columns.map((column) => {
+    const field = fieldForColumn(column, byId);
+    if (field) {
+      const text =
+        mode === "labels"
+          ? csvLabelValue(
+              field,
+              optionsByField.get(field.id) ?? [],
+              booleanLabels,
+            )
+          : csvCodeValue(field.value, field.type);
+      return rfc4180(text);
+    }
     if (identity.has(column)) return rfc4180(identityCell(record, column));
     if (column.startsWith("score.")) return rfc4180(scoreCell(record, column));
-    const field = byId.get(column);
-    if (!field) return "";
-    const text =
-      mode === "labels"
-        ? csvLabelValue(field, optionsByField.get(column) ?? [], booleanLabels)
-        : csvCodeValue(field.value, field.type);
-    return rfc4180(text);
+    return "";
   });
   return cells.join(",");
 }
@@ -325,9 +384,18 @@ function tableSchemaFields(
     ) {
       return { name, type: "datetime" };
     }
-    if (name.endsWith(".raw")) return { name, type: "number" };
-    if (name.endsWith(".complete")) return { name, type: "boolean" };
-    const type = fieldType.get(name);
+    if (name.startsWith("score.") && name.endsWith(".raw")) {
+      return { name, type: "number" };
+    }
+    if (name.startsWith("score.") && name.endsWith(".complete")) {
+      return { name, type: "boolean" };
+    }
+    if (name.startsWith("score.") && name.endsWith(".missing")) {
+      return { name, type: "integer" };
+    }
+    const type = fieldType.get(
+      fieldIdForColumn(name, new Set(fieldType.keys())) ?? "",
+    );
     if (type === "number") return { name, type: "number" };
     if (type === "boolean") return { name, type: "boolean" };
     if (type === "date") return { name, type: "date" };
@@ -350,26 +418,35 @@ export function toDataPackage(
   const csv = toCsv(encoded, codebook, options);
   const labels = toCsvLabels(encoded, codebook, options);
   const datapackage = {
-    profile: "tabular-data-package",
+    profile: "data-package",
     resources: [
       {
         name: "responses",
         path: "responses.jsonl",
         format: "jsonl",
         mediatype: "application/x-ndjson",
-        schema: { fields: tableSchemaFields(codebook, options, encoded) },
       },
       {
         name: "responses-csv",
         path: "responses.csv",
         format: "csv",
         mediatype: "text/csv",
+        dialect: {
+          delimiter: ",",
+          header: true,
+          lineTerminator: "\r\n",
+        },
+        schema: {
+          fields: tableSchemaFields(codebook, options, encoded),
+          missingValues: [""],
+        },
       },
       {
         name: "responses-labels",
         path: "responses.labels.csv",
         format: "csv",
         mediatype: "text/csv",
+        encoding: "utf-8",
       },
       {
         name: "codebook",

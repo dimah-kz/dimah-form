@@ -194,8 +194,127 @@ describe("createCsvEncoder", () => {
   });
 });
 
+describe("toCsv scores and reserved field ids", () => {
+  it("writes score missing beside raw, band, and complete", async () => {
+    const definition = normalizeFormSnapshot({
+      id: "quiz",
+      title: "Quiz",
+      fields: [{ id: "q1", type: "text" }],
+    });
+    const record = await projectResponse(
+      {
+        id: "r1",
+        formId: "quiz",
+        status: "submitted",
+        definition,
+        answers: { q1: "2" },
+        respondentId: null,
+        submittedAt: "2026-01-01T00:00:00.000Z",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+      {
+        scores: {
+          complete: false,
+          variables: {
+            gad7: { raw: 2, missing: 1, complete: false, band: "Mild" },
+          },
+        },
+      },
+    );
+    const codebook = buildCodebook([
+      {
+        snapshotKey: record.snapshotKey,
+        definition,
+        seenAt: record.createdAt,
+      },
+    ]);
+    codebook.scores = {
+      variables: [{ id: "gad7", inSnapshots: [record.snapshotKey] }],
+    };
+    const csv = toCsv([record], codebook);
+    expect(csv.split("\r\n")[0]).toContain(
+      "score.gad7.raw,score.gad7.band,score.gad7.complete,score.gad7.missing",
+    );
+    expect(csv).toContain("2,Mild,false,1");
+  });
+
+  it("prefixes a field id that collides with an identity column", async () => {
+    const definition = normalizeFormSnapshot({
+      id: "contact",
+      title: "Contact",
+      fields: [
+        { id: "name", type: "text" },
+        { id: "status", type: "text" },
+      ],
+    });
+    const record = await projectResponse({
+      id: "r1",
+      formId: "contact",
+      status: "submitted",
+      definition,
+      answers: { name: "Ada", status: "active" },
+      respondentId: null,
+      submittedAt: "2026-01-01T00:00:00.000Z",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+    const codebook = buildCodebook([
+      {
+        snapshotKey: record.snapshotKey,
+        definition,
+        seenAt: record.createdAt,
+      },
+    ]);
+    const csv = toCsv([record], codebook);
+    const [header, row] = csv.trimEnd().split("\r\n");
+    expect(header).toBe(
+      "id,formId,status,submittedAt,createdAt,updatedAt,snapshotKey,name,field.status",
+    );
+    expect(row).toContain("submitted");
+    expect(row).toContain("Ada");
+    expect(row?.endsWith(",active")).toBe(true);
+    const allowed = toCsv([record], codebook, { fields: ["status"] });
+    const allowedHeader = allowed.split("\r\n")[0];
+    expect(allowedHeader).toContain("field.status");
+    expect(allowedHeader).not.toContain(",name");
+  });
+
+  it("throws when a reserved field id and field.<id> would share a column", async () => {
+    const definition = normalizeFormSnapshot({
+      id: "contact",
+      title: "Contact",
+      fields: [
+        { id: "status", type: "text" },
+        { id: "field.status", type: "text" },
+      ],
+    });
+    const record = await projectResponse({
+      id: "r1",
+      formId: "contact",
+      status: "submitted",
+      definition,
+      answers: { status: "a", "field.status": "b" },
+      respondentId: null,
+      submittedAt: null,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+    const codebook = buildCodebook([
+      {
+        snapshotKey: record.snapshotKey,
+        definition,
+        seenAt: record.createdAt,
+      },
+    ]);
+    expect(() => toCsv([record], codebook)).toThrow(
+      'Dataset CSV column "field.status" is ambiguous',
+    );
+  });
+});
+
 describe("toDataPackage", () => {
-  it("returns the frictionless-style file map", async () => {
+  it("returns a data package with the table schema on the codes CSV", async () => {
     const { record, codebook } = await sample();
     const files = toDataPackage([record], codebook);
     expect(Object.keys(files)).toEqual([
@@ -206,13 +325,26 @@ describe("toDataPackage", () => {
       "responses.labels.csv",
     ]);
     const manifest = JSON.parse(files["datapackage.json"]) as {
-      resources: { path: string }[];
+      profile: string;
+      resources: {
+        path: string;
+        schema?: { missingValues?: string[] };
+      }[];
     };
+    expect(manifest.profile).toBe("data-package");
     expect(manifest.resources.map((resource) => resource.path)).toEqual([
       "responses.jsonl",
       "responses.csv",
       "responses.labels.csv",
       "codebook.json",
     ]);
+    const csv = manifest.resources.find(
+      (resource) => resource.path === "responses.csv",
+    );
+    const jsonl = manifest.resources.find(
+      (resource) => resource.path === "responses.jsonl",
+    );
+    expect(csv?.schema?.missingValues).toEqual([""]);
+    expect(jsonl?.schema).toBeUndefined();
   });
 });

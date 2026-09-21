@@ -103,8 +103,27 @@ describe("createDatasetReader", () => {
     await expect(reader.readCodebook()).resolves.toEqual({
       codebook: emptyCodebook(),
       total: 4,
+      truncated: false,
     });
     expect(pageCalls).toBe(0);
+  });
+
+  it("passes truncated through from the codebook function", async () => {
+    const reader = createDatasetReader({
+      page: async () => {
+        throw new Error("page should not run");
+      },
+      codebook: async () => ({
+        codebook: emptyCodebook(),
+        total: 20,
+        truncated: true,
+      }),
+    });
+    await expect(reader.readCodebook()).resolves.toEqual({
+      codebook: emptyCodebook(),
+      total: 20,
+      truncated: true,
+    });
   });
 
   it("honors AbortSignal", async () => {

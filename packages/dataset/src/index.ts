@@ -18,7 +18,10 @@ export {
   type Codebook,
   type CodebookField,
   type CodebookFieldConstraints,
+  type CodebookFieldHistory,
+  type CodebookFieldScoring,
   type CodebookOption,
+  type CodebookScoreFormula,
   type CodebookScores,
   type CodebookSnapshot,
   type DatasetAttachment,
@@ -45,6 +48,7 @@ export {
 export {
   DATASET_IDENTITY_COLUMNS,
   createCsvEncoder,
+  csvFieldColumn,
   datasetCsvColumns,
   toCsv,
   toCsvLabels,

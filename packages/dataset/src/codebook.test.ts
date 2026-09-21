@@ -10,7 +10,7 @@ const older = "2026-01-01T00:00:00.000Z";
 const newer = "2026-06-01T00:00:00.000Z";
 
 describe("buildCodebook", () => {
-  it("records labelConflicts and keeps the newest label", async () => {
+  it("keeps the newest label and records the earlier view in history", async () => {
     const first = normalizeFormSnapshot({
       id: "contact",
       title: "Contact",
@@ -28,15 +28,15 @@ describe("buildCodebook", () => {
       { snapshotKey: secondKey, definition: second, seenAt: newer },
     ]);
     expect(codebook.fields[0]?.label).toBe("Full name");
-    expect(codebook.fields[0]?.labelConflicts).toEqual([
-      { snapshotKey: firstKey, label: "Name" },
+    expect(codebook.fields[0]?.history).toEqual([
+      { snapshotKey: firstKey, type: "text", label: "Name" },
     ]);
     expect(codebook.snapshots.map((snapshot) => snapshot.key).sort()).toEqual(
       [firstKey, secondKey].sort(),
     );
   });
 
-  it("records typeConflicts when the same id changes type", async () => {
+  it("records the earlier type in history when the same id changes type", async () => {
     const text = normalizeFormSnapshot({
       id: "contact",
       title: "Contact",
@@ -60,7 +60,8 @@ describe("buildCodebook", () => {
       },
     ]);
     expect(codebook.fields[0]?.type).toBe("number");
-    expect(codebook.fields[0]?.typeConflicts?.[0]?.type).toBe("text");
+    expect(codebook.fields[0]?.history?.[0]?.type).toBe("text");
+    expect(codebook.fields[0]?.history?.[0]?.label).toBe("Age");
   });
 
   it("sorts field ids instead of first-seen order", async () => {
@@ -113,7 +114,105 @@ describe("buildCodebook", () => {
       label: "GAD-7",
       max: 21,
     });
+    expect(codebook.scores?.variables[0]?.missing).toBeUndefined();
     expect(codebook.scores?.bands?.[0]?.label).toBe("Minimal");
+  });
+
+  it("copies scoring maps, formulas, and an earlier points view", async () => {
+    const olderDefinition = normalizeFormSnapshot({
+      id: "quiz",
+      title: "Quiz",
+      meta: {
+        scoring: {
+          variables: [{ id: "gad7", max: 3, missing: "incomplete" }],
+          bands: [{ variable: "gad7", from: 0, to: 3, label: "Low" }],
+          formulas: [{ id: "total", op: "sum", vars: ["gad7"] }],
+        },
+      },
+      fields: [
+        {
+          id: "q1",
+          type: "select",
+          label: "Old",
+          meta: { scoring: { variable: "gad7" } },
+          options: [
+            { value: "0", label: "Zero", meta: { scoring: { points: 0 } } },
+          ],
+        },
+      ],
+    });
+    const newerDefinition = normalizeFormSnapshot({
+      id: "quiz",
+      title: "Quiz",
+      meta: {
+        scoring: {
+          variables: [{ id: "gad7", max: 21, missing: "zero" }],
+          bands: [{ variable: "gad7", from: 0, to: 9, label: "Low" }],
+          formulas: [
+            { id: "total", label: "Total", op: "sum", vars: ["gad7"] },
+          ],
+        },
+      },
+      fields: [
+        {
+          id: "q1",
+          type: "select",
+          label: "New",
+          meta: { scoring: { variable: "gad7", reverse: true } },
+          options: [
+            { value: "0", label: "Zero", meta: { scoring: { points: 1 } } },
+          ],
+        },
+      ],
+    });
+    const olderKey = await snapshotKey(olderDefinition);
+    const newerKey = await snapshotKey(newerDefinition);
+    const codebook = buildCodebook([
+      {
+        snapshotKey: olderKey,
+        definition: olderDefinition,
+        seenAt: older,
+      },
+      {
+        snapshotKey: newerKey,
+        definition: newerDefinition,
+        seenAt: newer,
+      },
+    ]);
+    expect(codebook.fields[0]).toMatchObject({
+      label: "New",
+      scoring: { variable: "gad7", reverse: true },
+      options: [{ value: "0", label: "Zero", points: 1 }],
+    });
+    expect(codebook.fields[0]?.history).toEqual([
+      {
+        snapshotKey: olderKey,
+        type: "select",
+        label: "Old",
+        scoring: { variable: "gad7" },
+        options: [{ value: "0", label: "Zero", points: 0 }],
+      },
+    ]);
+    expect(codebook.scores?.variables[0]).toMatchObject({
+      max: 21,
+      missing: "zero",
+    });
+    expect(codebook.scores?.variables[0]?.history).toEqual([
+      { snapshotKey: olderKey, max: 3, missing: "incomplete" },
+    ]);
+    expect(codebook.scores?.bands?.[0]).toMatchObject({ to: 9 });
+    expect(codebook.scores?.bands?.[0]?.history).toEqual([
+      { snapshotKey: olderKey, from: 0, to: 3 },
+    ]);
+    expect(codebook.scores?.formulas?.[0]).toMatchObject({
+      id: "total",
+      label: "Total",
+      op: "sum",
+      vars: ["gad7"],
+    });
+    expect(codebook.scores?.formulas?.[0]?.history).toEqual([
+      { snapshotKey: olderKey, op: "sum", vars: ["gad7"] },
+    ]);
   });
 
   it("records required, showWhen, and number constraints", async () => {
@@ -182,6 +281,65 @@ describe("mergeCodebooks", () => {
       "Full name",
     );
   });
+
+  it("keeps an older constraint view when page codebooks are merged", async () => {
+    const first = normalizeFormSnapshot({
+      id: "intake",
+      title: "Intake",
+      fields: [
+        {
+          id: "age",
+          type: "number",
+          label: "Age",
+          min: 0,
+          max: 99,
+          integer: true,
+        },
+      ],
+    });
+    const second = normalizeFormSnapshot({
+      id: "intake",
+      title: "Intake",
+      fields: [
+        {
+          id: "age",
+          type: "number",
+          label: "Age",
+          min: 18,
+          max: 120,
+          integer: true,
+        },
+      ],
+    });
+    const olderPage = buildCodebook([
+      {
+        snapshotKey: await snapshotKey(first),
+        definition: first,
+        seenAt: older,
+      },
+    ]);
+    const newerPage = buildCodebook([
+      {
+        snapshotKey: await snapshotKey(second),
+        definition: second,
+        seenAt: newer,
+      },
+    ]);
+    const merged = mergeCodebooks(olderPage, newerPage);
+    expect(merged.fields[0]?.constraints).toEqual({
+      min: 18,
+      max: 120,
+      integer: true,
+    });
+    expect(merged.fields[0]?.history?.[0]?.constraints).toEqual({
+      min: 0,
+      max: 99,
+      integer: true,
+    });
+    expect(merged.fields[0]?.history?.[0]?.snapshotKey).toBe(
+      await snapshotKey(first),
+    );
+  });
 });
 
 describe("liveCodebook", () => {
@@ -196,7 +354,9 @@ describe("liveCodebook", () => {
     });
     const live = await liveCodebook(definition);
     expect(live.fields.map((field) => field.id)).toEqual(["z", "a"]);
-    expect(live.snapshots).toHaveLength(1);
-    expect(live.fields[0]?.labelConflicts).toBeUndefined();
+    expect(live.snapshots).toEqual([
+      { key: await snapshotKey(definition), n: 0 },
+    ]);
+    expect(live.fields[0]?.history).toBeUndefined();
   });
 });

@@ -24,6 +24,8 @@ export const datasetPageQuerySchema = z.strictObject({
 export const datasetCodebookQuerySchema = z.strictObject({
   ...responseListFilterFields,
   formId: formIdSchema,
+  /** Lowers the plugin walk cap. Cannot raise it. */
+  maxRows: z.coerce.number().pipe(z.int().min(1)).optional(),
 });
 
 export const liveCodebookQuerySchema = z.strictObject({
@@ -85,12 +87,38 @@ export const datasetRecordSchema = z.object({
 
 export type DatasetRecord = z.output<typeof datasetRecordSchema>;
 
+export const codebookScoringMissingSchema = z.enum([
+  "zero",
+  "omit",
+  "incomplete",
+]);
+
+export type CodebookScoringMissing = z.output<
+  typeof codebookScoringMissingSchema
+>;
+
+export const codebookScoringAddSchema = z.object({
+  variable: fieldIdSchema,
+  points: z.number(),
+});
+
+export type CodebookScoringAdd = z.output<typeof codebookScoringAddSchema>;
+
 export const codebookOptionSchema = z.object({
   value: nonEmpty,
   label: z.string(),
+  points: z.number().optional(),
+  add: z.array(codebookScoringAddSchema).optional(),
 });
 
 export type CodebookOption = z.output<typeof codebookOptionSchema>;
+
+export const codebookFieldScoringSchema = z.object({
+  variable: fieldIdSchema,
+  reverse: z.boolean().optional(),
+});
+
+export type CodebookFieldScoring = z.output<typeof codebookFieldScoringSchema>;
 
 export const codebookSnapshotSchema = z.object({
   key: nonEmpty,
@@ -100,23 +128,6 @@ export const codebookSnapshotSchema = z.object({
 });
 
 export type CodebookSnapshot = z.output<typeof codebookSnapshotSchema>;
-
-export const codebookLabelConflictSchema = z.object({
-  snapshotKey: nonEmpty,
-  label: z.string(),
-  options: z.array(codebookOptionSchema).optional(),
-});
-
-export type CodebookLabelConflict = z.output<
-  typeof codebookLabelConflictSchema
->;
-
-export const codebookTypeConflictSchema = z.object({
-  snapshotKey: nonEmpty,
-  type: nonEmpty,
-});
-
-export type CodebookTypeConflict = z.output<typeof codebookTypeConflictSchema>;
 
 export const codebookFieldConstraintsSchema = z.object({
   min: z.number().optional(),
@@ -130,8 +141,8 @@ export type CodebookFieldConstraints = z.output<
   typeof codebookFieldConstraintsSchema
 >;
 
-export const codebookFieldSchema = z.object({
-  id: fieldIdSchema,
+/** Field properties that can differ across snapshots. No id, no history. */
+export const codebookFieldViewSchema = z.object({
   type: nonEmpty,
   label: z.string(),
   required: z.boolean().optional(),
@@ -139,23 +150,64 @@ export const codebookFieldSchema = z.object({
   showWhen: z.unknown().optional(),
   constraints: codebookFieldConstraintsSchema.optional(),
   options: z.array(codebookOptionSchema).optional(),
+  scoring: codebookFieldScoringSchema.optional(),
+});
+
+export type CodebookFieldView = z.output<typeof codebookFieldViewSchema>;
+
+export const codebookFieldHistorySchema = codebookFieldViewSchema.extend({
+  snapshotKey: nonEmpty,
+});
+
+export type CodebookFieldHistory = z.output<typeof codebookFieldHistorySchema>;
+
+export const codebookFieldSchema = codebookFieldViewSchema.extend({
+  id: fieldIdSchema,
   inSnapshots: z.array(nonEmpty),
-  labelConflicts: z.array(codebookLabelConflictSchema).optional(),
-  typeConflicts: z.array(codebookTypeConflictSchema).optional(),
+  history: z.array(codebookFieldHistorySchema).optional(),
 });
 
 export type CodebookField = z.output<typeof codebookFieldSchema>;
 
-export const codebookScoreVariableSchema = z.object({
-  id: fieldIdSchema,
+export const codebookScoreVariableViewSchema = z.object({
   label: z.string().optional(),
   min: z.number().optional(),
   max: z.number().optional(),
-  inSnapshots: z.array(nonEmpty),
+  missing: codebookScoringMissingSchema.optional(),
 });
+
+export type CodebookScoreVariableView = z.output<
+  typeof codebookScoreVariableViewSchema
+>;
+
+export const codebookScoreVariableHistorySchema =
+  codebookScoreVariableViewSchema.extend({
+    snapshotKey: nonEmpty,
+  });
+
+export type CodebookScoreVariableHistory = z.output<
+  typeof codebookScoreVariableHistorySchema
+>;
+
+export const codebookScoreVariableSchema =
+  codebookScoreVariableViewSchema.extend({
+    id: fieldIdSchema,
+    inSnapshots: z.array(nonEmpty),
+    history: z.array(codebookScoreVariableHistorySchema).optional(),
+  });
 
 export type CodebookScoreVariable = z.output<
   typeof codebookScoreVariableSchema
+>;
+
+export const codebookScoreBandHistorySchema = z.object({
+  snapshotKey: nonEmpty,
+  from: z.number().optional(),
+  to: z.number().optional(),
+});
+
+export type CodebookScoreBandHistory = z.output<
+  typeof codebookScoreBandHistorySchema
 >;
 
 export const codebookScoreBandSchema = z.object({
@@ -164,13 +216,44 @@ export const codebookScoreBandSchema = z.object({
   to: z.number().optional(),
   label: z.string(),
   inSnapshots: z.array(nonEmpty),
+  history: z.array(codebookScoreBandHistorySchema).optional(),
 });
 
 export type CodebookScoreBand = z.output<typeof codebookScoreBandSchema>;
 
+export const codebookScoreFormulaViewSchema = z.object({
+  label: z.string().optional(),
+  op: z.literal("sum"),
+  vars: z.array(fieldIdSchema).min(1),
+});
+
+export type CodebookScoreFormulaView = z.output<
+  typeof codebookScoreFormulaViewSchema
+>;
+
+export const codebookScoreFormulaHistorySchema =
+  codebookScoreFormulaViewSchema.extend({
+    snapshotKey: nonEmpty,
+  });
+
+export type CodebookScoreFormulaHistory = z.output<
+  typeof codebookScoreFormulaHistorySchema
+>;
+
+export const codebookScoreFormulaSchema = codebookScoreFormulaViewSchema.extend(
+  {
+    id: fieldIdSchema,
+    inSnapshots: z.array(nonEmpty),
+    history: z.array(codebookScoreFormulaHistorySchema).optional(),
+  },
+);
+
+export type CodebookScoreFormula = z.output<typeof codebookScoreFormulaSchema>;
+
 export const codebookScoresSchema = z.object({
   variables: z.array(codebookScoreVariableSchema),
   bands: z.array(codebookScoreBandSchema).optional(),
+  formulas: z.array(codebookScoreFormulaSchema).optional(),
 });
 
 export type CodebookScores = z.output<typeof codebookScoresSchema>;

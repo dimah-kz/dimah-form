@@ -30,7 +30,7 @@ export const form = dimahForm({
   plugins: [
     datasetPlugin({
       onProject: async ({ record }) => {
-        await warehouse.insert(record);
+        await warehouse.upsert(record.id, record);
       },
     }),
   ],
@@ -58,11 +58,11 @@ Guard operations are `getDatasetPage`, `getDatasetCodebook`, and `getLiveCodeboo
 
 ## Two codebooks
 
-| Endpoint                  | What it describes                                                                                                                               |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `getLiveCodebook`         | The **live** questionnaire. Field order is the live document. Do not join this to old answers.                                                  |
-| `getDatasetCodebook`      | Historical union of snapshots in the filtered dataset. Labels follow `lastSeenAt`; earlier wording lives in `labelConflicts` / `typeConflicts`. |
-| `getDatasetPage` codebook | **This page only.** Merge with `createDatasetReader` / `mergeCodebooks` if you page on the client.                                              |
+| Endpoint                  | What it describes                                                                                                                                                                             |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getLiveCodebook`         | The **live** questionnaire. Field order is the live document. `snapshots[0].n` is 0 and there is no seen-at. `snapshots[0].key` is the live instrument hash. Do not join this to old answers. |
+| `getDatasetCodebook`      | Historical union of snapshots in the filtered dataset. Canonical fields follow `lastSeenAt`. An earlier snapshot that differs is one `history` entry (the full view, including scoring).      |
+| `getDatasetPage` codebook | **This page only.** Merge with `createDatasetReader` / `mergeCodebooks` if you page on the client. `mergeCodebooks` keeps `history`.                                                          |
 
 `formatted` on each field is English [`formatAnswer`](/docs/field-types) (protocol). Select labels in the codebook and in `responses.labels.csv` keep the author's copy (any language). Pass `booleanLabels` on encode if Yes/No must not be English.
 
@@ -74,7 +74,9 @@ Every JSON object carries `spec: "dimah.dataset/v1"`.
 
 **Record** — one response, no raw `definition`. Identity: `id`, `formId`, `status`, `submittedAt`, `createdAt`, `updatedAt`, `snapshotKey`. HTTP includes `respondentId` (nullable); package encode omits it unless you pass `includeRespondentId: true`. `fields` is dense: every snapshot field, unanswered as `value: null`. Object answers drop `bytes` / `data` / `content` / `buffer`; remaining file metadata is `attachment` (`id` / `url` / `name` / `contentType` / `size`). Optional `scores` matches `scoreResponse`.
 
-**Codebook** — built from **snapshots in the dataset**. Newest `lastSeenAt` wins for label / type / `required` / `description` / `showWhen` / numeric constraints. Do not merge those into the live label.
+**Codebook** — built from **snapshots in the dataset**. Newest `lastSeenAt` wins for the canonical field (label, type, `required`, `description`, `showWhen`, constraints, options, scoring). Each older snapshot whose view differs gets one `history` object with that full view and its `snapshotKey` — not one row per response. Join `record.snapshotKey` to canonical `inSnapshots` or to `history`.
+
+Scoring is copied from `meta.scoring` without importing `@dimah-form/scoring`. A field may carry `scoring.variable` and `scoring.reverse`. Options carry `points` or `add`, never both; an invalid mix is omitted. `scores.variables[]` includes `missing` (`zero` / `omit` / `incomplete`) when the form sets it. Omitted means the scoring default, which is `incomplete`. `scores.formulas[]` is `{ id, op: "sum", vars }` plus optional `label`. Variables, bands (`from` / `to`), and formulas get `history` when their definition differs. Do not merge the canonical label into the live form.
 
 `snapshotKey` is SHA-256 hex of canonical JSON (sorted keys) of the instrument: `title`, `description`, `fields`, `meta`. Form `id` / `slug` / `status` / timestamps are omitted so a touch-save does not fragment the codebook.
 
@@ -85,7 +87,7 @@ Every JSON object carries `spec: "dimah.dataset/v1"`.
 Reuse core list limits (default 50, max 100). The plugin always passes `limit + 1` into the store. Default `status=submitted`. Same filters as `listResponses`: `respondentId`, inclusive `submittedFrom` / `submittedTo`, exclusive `updatedAfter`. Each page includes `total` for the filter (not the page size).
 
 - `GET /dataset/responses` (`getDatasetPage`) — `formId` required. Returns `{ spec, records, codebook, limit, offset, nextOffset, total }`.
-- `GET /dataset/codebook/history` (`getDatasetCodebook`) — historical codebook for the same filter. Walks pages on the server (default cap 10_000; `truncated` when more rows remain).
+- `GET /dataset/codebook/history` (`getDatasetCodebook`) — historical codebook for the same filter. Walks pages on the server (default cap 10_000). Query `maxRows` can lower that cap, not raise it. `truncated` is true when more rows remain.
 - `GET /dataset/codebook` (`getLiveCodebook`) — codebook of the live form.
 
 Filename, zip, and timeout stay out of the plugin.
@@ -103,7 +105,7 @@ const history = await form.api.getDatasetCodebook({
 
 ## Full file in the app
 
-Walk pages with `createDatasetReader`. CSV columns need a **complete** codebook first (`getDatasetCodebook` or `reader.readCodebook()`), then `createCsvEncoder` / `toJsonlLine` per record. `readAll()` buffers the file — fine for small N.
+Walk pages with `createDatasetReader`. CSV columns need a **complete** codebook first (`getDatasetCodebook` or `reader.readCodebook()`). If `truncated` is true, do not encode a full CSV — raise `datasetPlugin({ maxRows })` or persist with `onProject`. `readCodebook()` returns `{ codebook, total, truncated }`. `readAll()` buffers every page and has no `truncated` flag — fine for small N. JSONL does not need the historical codebook.
 
 ```ts
 import { createCsvEncoder, createDatasetReader } from "@dimah-form/dataset";
@@ -154,9 +156,11 @@ const csv = toCsv(records, codebook, {
 const files = toDataPackage(records, codebook);
 ```
 
-`toDataPackage` returns a filename → contents map (`datapackage.json`, `codebook.json`, `responses.jsonl`, `responses.csv`, `responses.labels.csv`). It is not a zip. UTF-8 BOM is allowed only on `responses.labels.csv`. CSV is RFC 4180; `multiSelect` values join with `;`. Object answers stringify as JSON in the codes CSV. Column order: identity (including `updatedAt`), then codebook field ids (historical codebooks sort ids), then `score.<id>.raw` / `.band` / `.complete`.
+`toDataPackage` returns a filename → contents map (`datapackage.json`, `codebook.json`, `responses.jsonl`, `responses.csv`, `responses.labels.csv`). It is not a zip. `datapackage.json` uses Frictionless `profile: "data-package"`. The table schema (`missingValues: [""]`, header, `\r\n`) is on `responses.csv` only — JSONL is nested records, and `responses.labels.csv` is display text (UTF-8 BOM only there). CSV is RFC 4180; `multiSelect` values join with `;`. Object answers stringify as JSON in the codes CSV. Column order: identity (including `updatedAt`), then field columns (historical codebooks sort ids), then `score.<id>.raw` / `.band` / `.complete` / `.missing`. `.missing` is the unanswered item count.
 
-Pass a live codebook if you want live form order. Encode `fields` is an allowlist of field ids; `omit` drops identity or field columns.
+A field id equal to an identity column, or starting with `score.`, is written as `field.<id>`. If a field is also literally named `field.<id>`, encoding throws. The `fields` allowlist is still field ids. `omit` drops output column names.
+
+Pass a live codebook if you want live form order.
 
 ---
 
@@ -167,12 +171,12 @@ Same idea as scoring `onScore`. Persist the projected record in **your** table. 
 ```ts
 datasetPlugin({
   onProject: async ({ record }) => {
-    await warehouse.insert(record);
+    await warehouse.upsert(record.id, record);
   },
 });
 ```
 
-`onProject` runs from `afterSubmit` (after persist). Use the response snapshot. Do not flatten against the live questionnaire. Throwing fails the submit HTTP response after the row is already stored.
+`onProject` runs from `afterSubmit` (after persist). Upsert by `record.id`: `reopenResponse` then submit runs the hook again. Use the response snapshot. Do not flatten against the live questionnaire. Throwing fails the submit HTTP response after the row is already stored.
 
 ---
 

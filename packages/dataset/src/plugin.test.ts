@@ -351,6 +351,27 @@ describe("datasetPlugin", () => {
     ).toBe(true);
   });
 
+  it("lets the query lower the codebook cap but not raise it", async () => {
+    const form = dimahForm({
+      database: memoryAdapter(),
+      plugins: [datasetPlugin({ maxRows: 2 })],
+      forms: { plain },
+    });
+    await submitPlain(form, { name: "Ada" });
+    await submitPlain(form, { name: "Bob" });
+    await submitPlain(form, { name: "Cyd" });
+    const lowered = await form.api.getDatasetCodebook({
+      query: { formId: "plain", maxRows: 1 },
+    });
+    expect(lowered.total).toBe(3);
+    expect(lowered.truncated).toBe(true);
+    const raised = await form.api.getDatasetCodebook({
+      query: { formId: "plain", maxRows: 10 },
+    });
+    expect(raised.total).toBe(3);
+    expect(raised.truncated).toBe(true);
+  });
+
   it("caps the historical codebook walk at plugin maxRows", async () => {
     const form = dimahForm({
       database: memoryAdapter(),
@@ -398,8 +419,9 @@ describe("datasetClientPlugin", () => {
     await client.getDatasetPage({ formId: "plain" });
     expect(calls[0]).toContain("/dataset/responses");
     expect(calls[0]).toContain("formId=plain");
-    await client.getDatasetCodebook({ formId: "plain" });
+    await client.getDatasetCodebook({ formId: "plain", maxRows: 20 });
     expect(calls[1]).toContain("/dataset/codebook/history");
+    expect(calls[1]).toContain("maxRows=20");
     expectTypeOf(client.getDatasetPage).toBeFunction();
     expectTypeOf(client.getDatasetCodebook).toBeFunction();
     expectTypeOf(client.getLiveCodebook).toBeFunction();

@@ -45,20 +45,6 @@ export async function GET(
   const { formId } = await context.params;
   const format = parseFormat(new URL(request.url).searchParams.get("format"));
   try {
-    if (format === "codebook") {
-      const history = await form.api.getDatasetCodebook({
-        query: { formId },
-      });
-      return new Response(`${JSON.stringify(history.codebook, null, 2)}\n`, {
-        headers: {
-          "content-type": "application/json; charset=utf-8",
-          "content-disposition": `attachment; filename="${formId}-codebook.json"`,
-        },
-      });
-    }
-    const history = await form.api.getDatasetCodebook({
-      query: { formId },
-    });
     const reader = createDatasetReader({
       page: ({ limit, offset }) =>
         form.api.getDatasetPage({
@@ -66,7 +52,31 @@ export async function GET(
         }),
       signal: request.signal,
     });
-    if (format === "csv" || format === "labels") {
+    if (format === "csv" || format === "labels" || format === "codebook") {
+      const history = await form.api.getDatasetCodebook({
+        query: { formId },
+      });
+      if (history.truncated) {
+        return new Response(
+          JSON.stringify({
+            code: "DATASET_TRUNCATED",
+            message:
+              "Historical codebook walk was truncated. Raise datasetPlugin({ maxRows }) or persist rows with onProject.",
+          }),
+          {
+            status: 409,
+            headers: { "content-type": "application/json; charset=utf-8" },
+          },
+        );
+      }
+      if (format === "codebook") {
+        return new Response(`${JSON.stringify(history.codebook, null, 2)}\n`, {
+          headers: {
+            "content-type": "application/json; charset=utf-8",
+            "content-disposition": `attachment; filename="${formId}-codebook.json"`,
+          },
+        });
+      }
       const mode = format === "labels" ? "labels" : "codes";
       const encoder = createCsvEncoder(history.codebook);
       const filename =

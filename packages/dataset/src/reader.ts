@@ -31,7 +31,7 @@ export type CreateDatasetReaderOptions = {
   /**
    * Historical codebook for the same filter (`getDatasetCodebook`).
    * When set, {@link createDatasetReader}'s `readCodebook` does not walk
-   * record pages.
+   * record pages. `truncated` from this function is returned as-is.
    */
   codebook?: DatasetCodebookFn;
   signal?: AbortSignal;
@@ -74,11 +74,16 @@ export function createDatasetReader(options: CreateDatasetReaderOptions) {
   async function readCodebook(): Promise<{
     codebook: Codebook;
     total: number;
+    truncated: boolean;
   }> {
     if (options.codebook) {
       options.signal?.throwIfAborted();
       const history = await options.codebook();
-      return { codebook: history.codebook, total: history.total };
+      return {
+        codebook: history.codebook,
+        total: history.total,
+        truncated: history.truncated === true,
+      };
     }
     let codebook = emptyCodebook();
     let total = 0;
@@ -86,7 +91,7 @@ export function createDatasetReader(options: CreateDatasetReaderOptions) {
       codebook = mergeCodebooks(codebook, page.codebook);
       total = page.total;
     }
-    return { codebook, total };
+    return { codebook, total, truncated: false };
   }
 
   async function* records(): AsyncGenerator<DatasetRecord> {

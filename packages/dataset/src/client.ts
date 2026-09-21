@@ -19,7 +19,10 @@ export {
   type Codebook,
   type CodebookField,
   type CodebookFieldConstraints,
+  type CodebookFieldHistory,
+  type CodebookFieldScoring,
   type CodebookOption,
+  type CodebookScoreFormula,
   type CodebookScores,
   type CodebookSnapshot,
   type DatasetAttachment,
@@ -45,6 +48,7 @@ export {
 export {
   DATASET_IDENTITY_COLUMNS,
   createCsvEncoder,
+  csvFieldColumn,
   datasetCsvColumns,
   toCsv,
   toCsvLabels,
@@ -82,6 +86,11 @@ export type DatasetPageRequest = DatasetListRequest & {
   offset?: number;
 };
 
+export type DatasetCodebookRequest = DatasetListRequest & {
+  /** Lowers the server walk cap. Cannot raise it. */
+  maxRows?: number;
+};
+
 export type LiveCodebookRequest = {
   formId: string;
   headers?: HeadersInit;
@@ -116,10 +125,13 @@ export function datasetClientPlugin() {
           },
           ...(payload.headers ? { headers: payload.headers } : {}),
         }),
-      getDatasetCodebook: (payload: DatasetListRequest) =>
+      getDatasetCodebook: (payload: DatasetCodebookRequest) =>
         $fetch<DatasetCodebookResult>(DATASET_ROUTES.getDatasetCodebook.path, {
           method: "GET",
-          query: listQuery(payload),
+          query: {
+            ...listQuery(payload),
+            ...(payload.maxRows != null ? { maxRows: payload.maxRows } : {}),
+          },
           ...(payload.headers ? { headers: payload.headers } : {}),
         }),
       getLiveCodebook: (payload: LiveCodebookRequest) =>

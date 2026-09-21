@@ -1,6 +1,6 @@
 ---
 packages:
-  group:dimah-form: major
+  group:dimah-form: minor
 ---
 
 ### Insights field stats, crosstab, and capped walks
