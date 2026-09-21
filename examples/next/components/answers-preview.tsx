@@ -9,64 +9,59 @@ import {
   type ResponseStatus,
 } from "@dimah-form/react";
 
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { StatusBadge } from "@/components/status-badge";
 import { formatAnswer } from "@/lib/field-display";
-
-export function StatusBadge({ status }: { status: ResponseStatus | string }) {
-  const variant =
-    status === "submitted"
-      ? "default"
-      : status === "abandoned"
-        ? "destructive"
-        : "secondary";
-  return <Badge variant={variant}>{status}</Badge>;
-}
+import { cn } from "@/lib/utils";
 
 export function AnswersPreview({
   form,
   answers,
   status,
+  className,
 }: {
   form: FormSnapshot;
   answers: FormAnswers;
   status?: ResponseStatus | string;
+  className?: string;
 }) {
   const payload = stripHiddenAnswers(form, answers);
+  const fields = visibleFields(form, answers);
 
   return (
-    <Card size="sm">
-      <CardHeader>
-        <CardTitle>Answers</CardTitle>
-        <CardDescription>Payload sent on save and submit</CardDescription>
-        {status ? (
-          <CardAction>
-            <StatusBadge status={status} />
-          </CardAction>
-        ) : null}
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+    <aside className={cn("flex flex-col gap-4", className)}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <p className="text-sm font-medium">Answers</p>
+          <p className="text-sm text-muted-foreground">
+            Hidden fields are stripped before save and submit.
+          </p>
+        </div>
+        {status ? <StatusBadge status={status} /> : null}
+      </div>
+      {fields.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nothing answered yet.</p>
+      ) : (
         <dl className="flex flex-col gap-3">
-          {visibleFields(form, answers).map((field) => (
+          {fields.map((field) => (
             <div key={field.id} className="flex flex-col gap-0.5">
-              <dt className="text-muted-foreground">{fieldLabel(field)}</dt>
-              <dd>{formatAnswer(field, payload[field.id])}</dd>
+              <dt className="text-sm text-muted-foreground">
+                {fieldLabel(field)}
+              </dt>
+              <dd className="text-sm wrap-anywhere">
+                {formatAnswer(field, payload[field.id])}
+              </dd>
             </div>
           ))}
         </dl>
-        <Separator />
-        <pre className="overflow-x-auto font-mono text-xs text-muted-foreground">
+      )}
+      <details className="group">
+        <summary className="cursor-pointer text-sm text-muted-foreground transition-colors hover:text-foreground">
+          Payload
+        </summary>
+        <pre className="mt-3 overflow-x-auto font-mono text-xs text-muted-foreground">
           {JSON.stringify(payload, null, 2)}
         </pre>
-      </CardContent>
-    </Card>
+      </details>
+    </aside>
   );
 }

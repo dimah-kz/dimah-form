@@ -55,8 +55,8 @@ export function StarRating({
               aria-label={`${score} star${score === 1 ? "" : "s"}`}
               disabled={disabled}
               className={cn(
-                "inline-flex size-11 items-center justify-center rounded-md transition-transform",
-                "hover:scale-110 focus-visible:ring-3 focus-visible:ring-ring/50",
+                "inline-flex size-9 items-center justify-center rounded-md transition-transform",
+                "hover:scale-105 focus-visible:ring-3 focus-visible:ring-ring/50",
                 "disabled:pointer-events-none disabled:opacity-50",
               )}
               onMouseEnter={() => {
@@ -68,10 +68,10 @@ export function StarRating({
                 aria-hidden
                 strokeWidth={1.4}
                 className={cn(
-                  "size-9 transition-[color,fill,filter] duration-150",
+                  "size-7 transition-[color,fill] duration-150",
                   filled
-                    ? "fill-amber-400 text-amber-400 drop-shadow-[0_1px_6px_rgba(251,191,36,0.45)]"
-                    : "fill-transparent text-muted-foreground/50",
+                    ? "fill-foreground text-foreground"
+                    : "fill-transparent text-muted-foreground/40",
                 )}
               />
             </button>

@@ -1,8 +1,13 @@
 import { isFormErrorCode } from "@dimah-form/server";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { Questionnaire } from "@/components/questionnaire";
 import { form } from "@/lib/form";
+
+export const metadata: Metadata = {
+  title: "Response",
+};
 
 export default async function ResponsePage({
   params,

@@ -1,21 +1,17 @@
 # Next.js example
 
-Workspace demo of `@dimah-form/ui` on a headless `useFormResponse` session. Custom
-`rating` is a server validator plus a widget — not a library field.
+Workspace demo of `@dimah-form/ui` on a headless `useFormResponse` session. One
+code-authored form: a scored weekly pulse. Custom `rating` is a server validator
+plus a widget — not a library field.
 
 ```
-lib/form.ts              dimahForm() + database + scoring + dataset + insights plugins
-lib/client.ts            createFormClient<Form, typeof plugins>() + scoring, dataset, insights client plugins
-lib/forms/               defineForm (feedback, onboarding, GAD-7)
+lib/form.ts              dimahForm() + database + scoring + dataset + insights
+lib/client.ts            createFormClient<Form, typeof plugins>()
+lib/forms/pulse.ts       defineForm — Likert scoring, showWhen, stepped layout
 lib/field-types.ts       defineFieldType("rating")
-components/providers.tsx theme + FormUiProvider
-components/questionnaire.tsx  FormView + chrome around app layout
-components/scores-preview.tsx live score from snapshot + answers
+components/questionnaire.tsx  FormView chrome around the fill session
 components/fields/       widget for type "rating" (same string as the validator)
 ```
-
-`FormView` is the default template; this app uses `render` so the Card and
-answers preview stay around the library chrome.
 
 Reads go through `form.api` in Server Components (`{ query }` / `{ body }`).
 Writes go through `createFormClient<Form>()` in the browser. Persistence is
@@ -32,9 +28,9 @@ pnpm --filter @dimah-form/example-next dev
 
 Open http://localhost:3000 — header toggle switches light / dark (`next-themes`).
 
-- `/` — catalog. Feedback is a single page; Onboarding is a stepped wizard (`meta.step`); GAD-7 is a scored Likert questionnaire (`@dimah-form/scoring`)
-- `/f/:formId` fills one questionnaire. Built-in types plus `showWhen`; `rating` is the only custom type
-- Save draft patches answers; Submit replaces them. Both send `updatedAt` for optimistic concurrency
-- `/responses` lists stored answers (`include=full`), per-form insights (status, categorical counts, score bands), and dataset downloads (`JSONL` / `CSV` / codebook)
-- `GET /api/forms/:formId/package` is a **consumer** download route. It streams `createDatasetReader` + `createCsvEncoder` / `toJsonlLine`, or returns `getDatasetCodebook`. It is not a library zip.
-- `/r/:id` resumes a draft or shows a submitted / abandoned response. Edit calls `reopenResponse` (same snapshot and answers). GAD-7 shows a live score from the snapshot, not from `answers`
+- `/` — overview of the demo and live insights
+- `/f/pulse` fills the check-in. Step 1 is identity (`showWhen` on Engineer → team). Step 2 is four scored Likert items plus a custom star rating that is stored but **not** scored
+- Save draft patches answers; submit replaces them. Both send `updatedAt` for optimistic concurrency. Autosave is on; abandon and reopen are on the action bar
+- `/responses` lists stored rows with per-response scores, submitted insights (status, categorical counts, score bands), and dataset downloads (`JSONL` / `CSV` / codebook)
+- `GET /api/forms/:formId/package` is a **consumer** download route. It streams `createDatasetReader` + `createCsvEncoder` / `toJsonlLine`, or returns `getDatasetCodebook`. It is not a library zip
+- `/r/:id` resumes a draft or shows a submitted / abandoned response. Edit calls `reopenResponse` (same snapshot and answers). The live score is computed from the snapshot, not from `answers`

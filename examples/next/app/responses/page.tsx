@@ -1,18 +1,37 @@
 import type { InsightsSummary } from "@dimah-form/insights";
+import {
+  hasScoringMeta,
+  scoreResponse,
+  type ScoreResult,
+} from "@dimah-form/scoring";
 import type { ResponseRecord } from "@dimah-form/server";
+import { InboxIcon } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 
-import { AnswersPreview } from "@/components/answers-preview";
+import { StatusBadge } from "@/components/status-badge";
+import {
+  InsightsPanel,
+  StatusCounts,
+  insightsWithoutScoredFields,
+} from "@/components/insights-panel";
 import { buttonVariants } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { form } from "@/lib/form";
+import { formatDateTime, scoreLabel } from "@/lib/format";
+import { PULSE_FORM_ID } from "@/lib/forms";
+import { cn } from "@/lib/utils";
+
+export const metadata: Metadata = {
+  title: "Responses",
+};
 
 function isFull(row: { answers?: unknown }): row is ResponseRecord {
   return "answers" in row;
@@ -25,58 +44,49 @@ function downloadHref(
   return `/api/forms/${encodeURIComponent(formId)}/package?format=${format}`;
 }
 
-function statusLine(summary: InsightsSummary) {
-  return `${summary.byStatus.draft} draft · ${summary.byStatus.submitted} submitted · ${summary.byStatus.abandoned} abandoned · ${summary.completion.complete}/${summary.completion.submitted} complete`;
+function pulseScore(row: ResponseRecord): ScoreResult | null {
+  if (!hasScoringMeta(row.definition)) return null;
+  try {
+    return scoreResponse(row.definition, row.answers);
+  } catch {
+    return null;
+  }
 }
 
-function fieldLines(summary: InsightsSummary) {
-  return summary.fields
-    .filter((field) => (field.values?.length ?? 0) > 0)
-    .slice(0, 4)
-    .map((field) => {
-      const values = (field.values ?? [])
-        .slice(0, 3)
-        .map((item) => `${item.label ?? item.value} ${item.n}`)
-        .join(", ");
-      return `${field.label}: ${values}`;
-    });
+function respondentName(row: ResponseRecord) {
+  const name = row.answers.name;
+  return typeof name === "string" && name.trim() !== "" ? name.trim() : row.id;
 }
 
-function scoreLines(summary: InsightsSummary) {
-  return (summary.scores?.variables ?? []).map((variable) => {
-    const bands = (variable.bands ?? [])
-      .map((band) => `${band.label} ${band.n}`)
-      .join(" · ");
-    const name = variable.label ?? variable.id;
-    return bands ? `${name}: ${bands}` : name;
-  });
-}
+const downloads = [
+  { format: "jsonl" as const, label: "JSONL" },
+  { format: "csv" as const, label: "CSV" },
+  { format: "labels" as const, label: "Labels CSV" },
+  { format: "codebook" as const, label: "Codebook" },
+];
 
 export default async function ResponsesPage() {
   let rows: ResponseRecord[] | undefined;
-  let forms: { id: string; title: string; insights?: InsightsSummary }[] = [];
   let total = 0;
+  let allInsights: InsightsSummary | undefined;
+  let submittedInsights: InsightsSummary | undefined;
+
   try {
-    const [{ responses, total: listedTotal }, listed] = await Promise.all([
-      form.api.listResponses({
-        query: { include: "full", limit: 20 },
-      }),
-      form.api.listForms({}),
-    ]);
+    const [{ responses, total: listedTotal }, snapshot, all, submitted] =
+      await Promise.all([
+        form.api.listResponses({
+          query: { formId: PULSE_FORM_ID, include: "full", limit: 20 },
+        }),
+        form.api.getForm({ query: { formId: PULSE_FORM_ID } }),
+        form.api.getFormInsights({ query: { formId: PULSE_FORM_ID } }),
+        form.api.getFormInsights({
+          query: { formId: PULSE_FORM_ID, status: "submitted" },
+        }),
+      ]);
     rows = responses.filter(isFull);
     total = listedTotal;
-    forms = await Promise.all(
-      listed.forms.map(async (item) => {
-        try {
-          const insights = await form.api.getFormInsights({
-            query: { formId: item.id, status: "submitted" },
-          });
-          return { id: item.id, title: item.title, insights };
-        } catch {
-          return { id: item.id, title: item.title };
-        }
-      }),
-    );
+    allInsights = all;
+    submittedInsights = insightsWithoutScoredFields(submitted, snapshot.fields);
   } catch {
     rows = undefined;
   }
@@ -84,117 +94,109 @@ export default async function ResponsesPage() {
   if (!rows) {
     return (
       <p className="text-sm text-muted-foreground">
-        Could not load responses. Did you run <code>db:push</code>?
+        Could not load responses. Run{" "}
+        <code className="font-mono text-xs">
+          pnpm --filter @dimah-form/example-next db:push
+        </code>
+        .
       </p>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="font-medium">Responses</h1>
-        <p className="text-sm text-muted-foreground">
-          {total} stored response{total === 1 ? "" : "s"} (this page shows up to
-          20). Insights and downloads below are submitted rows only.
+    <div className="flex flex-col gap-12">
+      <div className="flex flex-col gap-3">
+        <h1 className="text-2xl font-medium tracking-tight">Responses</h1>
+        <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+          {total} stored {total === 1 ? "response" : "responses"}. Insights
+          below use submitted rows. Downloads are a consumer route over the
+          dataset plugin — not a library zip.
         </p>
       </div>
-      {forms.length > 0 ? (
-        <ul className="grid gap-4">
-          {forms.map((item) => {
-            const extras = item.insights
-              ? [...fieldLines(item.insights), ...scoreLines(item.insights)]
-              : [];
-            return (
-              <li key={item.id}>
-                <Card size="sm">
-                  <CardHeader>
-                    <CardTitle>{item.title}</CardTitle>
-                    <CardDescription>
-                      {item.insights
-                        ? statusLine(item.insights)
-                        : "Insights unavailable"}
-                    </CardDescription>
-                  </CardHeader>
-                  {extras.length > 0 ? (
-                    <CardContent>
-                      <ul className="grid gap-1 text-sm text-muted-foreground">
-                        {extras.map((line) => (
-                          <li key={line}>{line}</li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  ) : null}
-                  <CardFooter className="flex flex-wrap gap-2">
-                    <Link
-                      href={downloadHref(item.id, "jsonl")}
-                      className={buttonVariants({
-                        size: "sm",
-                        variant: "outline",
-                      })}
-                    >
-                      JSONL
-                    </Link>
-                    <Link
-                      href={downloadHref(item.id, "csv")}
-                      className={buttonVariants({
-                        size: "sm",
-                        variant: "outline",
-                      })}
-                    >
-                      CSV
-                    </Link>
-                    <Link
-                      href={downloadHref(item.id, "labels")}
-                      className={buttonVariants({
-                        size: "sm",
-                        variant: "outline",
-                      })}
-                    >
-                      Labels CSV
-                    </Link>
-                    <Link
-                      href={downloadHref(item.id, "codebook")}
-                      className={buttonVariants({
-                        size: "sm",
-                        variant: "outline",
-                      })}
-                    >
-                      Codebook
-                    </Link>
-                  </CardFooter>
-                </Card>
-              </li>
-            );
-          })}
-        </ul>
+
+      {allInsights ? <StatusCounts summary={allInsights} /> : null}
+
+      {submittedInsights && submittedInsights.completion.submitted > 0 ? (
+        <InsightsPanel summary={submittedInsights} />
       ) : null}
-      {rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No responses yet. Submit a form, then stored answers show up here.
-        </p>
-      ) : (
-        <ul className="grid gap-4">
-          {rows.map((row) => (
-            <li key={row.id} className="flex flex-col gap-2">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="font-mono text-xs text-muted-foreground">
-                  {row.id}
-                </p>
-                <Link
-                  href={`/r/${row.id}`}
-                  className={buttonVariants({ size: "sm", variant: "outline" })}
-                >
-                  Open
-                </Link>
-              </div>
-              <AnswersPreview
-                form={row.definition}
-                answers={row.answers}
-                status={row.status}
-              />
-            </li>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-medium">Dataset</h2>
+        <div className="flex flex-wrap gap-2">
+          {downloads.map((item) => (
+            <Link
+              key={item.format}
+              href={downloadHref(PULSE_FORM_ID, item.format)}
+              className={buttonVariants({ size: "sm", variant: "outline" })}
+            >
+              {item.label}
+            </Link>
           ))}
-        </ul>
+        </div>
+      </section>
+
+      {rows.length === 0 ? (
+        <Empty className="border-border">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <InboxIcon />
+            </EmptyMedia>
+            <EmptyTitle>No responses yet</EmptyTitle>
+            <EmptyDescription>
+              Submit a check-in. Drafts, scores, and exports show up here.
+            </EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Link
+              href={`/f/${PULSE_FORM_ID}`}
+              className={cn(buttonVariants({ size: "sm" }))}
+            >
+              Start check-in
+            </Link>
+          </EmptyContent>
+        </Empty>
+      ) : (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-sm font-medium">Recent</h2>
+          <ul className="flex flex-col">
+            {rows.map((row) => {
+              const scores = pulseScore(row);
+              const pulse = scores?.variables.pulse;
+              const totalLabel = pulse
+                ? scoreLabel(pulse.raw, pulse.max)
+                : null;
+              return (
+                <li
+                  key={row.id}
+                  className="flex flex-wrap items-center justify-between gap-3 border-b py-4 last:border-b-0"
+                >
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate font-medium">
+                        {respondentName(row)}
+                      </p>
+                      <StatusBadge status={row.status} />
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {formatDateTime(row.updatedAt)}
+                      {pulse?.band ? ` · ${pulse.band}` : ""}
+                      {totalLabel ? ` · ${totalLabel}` : ""}
+                    </p>
+                  </div>
+                  <Link
+                    href={`/r/${row.id}`}
+                    className={buttonVariants({
+                      size: "sm",
+                      variant: "outline",
+                    })}
+                  >
+                    Open
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       )}
     </div>
   );

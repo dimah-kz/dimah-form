@@ -1,21 +1,17 @@
 "use client";
 
 import type { FormSnapshot, ResponseRecord } from "@dimah-form/react";
-import { FormRoot, FormView } from "@dimah-form/ui";
+import { FormActions, FormRoot, FormView } from "@dimah-form/ui";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { AnswersPreview } from "@/components/answers-preview";
 import { ScoresPreview } from "@/components/scores-preview";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
 import { respondentId, useFormResponse } from "@/lib/client";
+import { PULSE_FORM_ID } from "@/lib/forms";
 import type { Form } from "@/lib/form";
+import { cn } from "@/lib/utils";
 
 type CatalogKey = keyof Form["$Infer"]["answers"];
 
@@ -32,6 +28,7 @@ export function Questionnaire({
     response,
     respondentId,
     resume: true,
+    autosave: true,
     onSaved: (row) => {
       if (!response) router.replace(`/r/${row.id}`);
     },
@@ -55,36 +52,46 @@ export function Questionnaire({
         saveState,
         actions,
       }) => (
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-          <FormRoot>
-            <Card>
-              <CardHeader>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex flex-col gap-1.5">
-                    <CardTitle>{form.title}</CardTitle>
-                    <CardDescription>
-                      {form.description ??
-                        `${form.slug} · widgets are yours, validation is the snapshot`}
-                    </CardDescription>
-                  </div>
-                  {saveState}
+        <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_16rem]">
+          <FormRoot className="flex flex-col gap-8">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 flex-col gap-2">
+                  <h1 className="text-2xl font-medium tracking-tight text-balance">
+                    {form.title}
+                  </h1>
+                  {form.description ? (
+                    <p className="max-w-prose text-sm leading-relaxed text-pretty text-muted-foreground">
+                      {form.description}
+                    </p>
+                  ) : null}
                 </div>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-6">
-                {status}
-                {progress}
-                {errorSummary}
-                {stepList}
-                {stepHeading}
-                {fields}
-                {error}
-              </CardContent>
-              <CardFooter className="flex flex-col items-stretch gap-3">
-                {actions}
-              </CardFooter>
-            </Card>
+                {saveState}
+              </div>
+              {stepList}
+            </div>
+            {status}
+            {progress}
+            {errorSummary}
+            {stepHeading}
+            {fields}
+            {error}
+            <div className="flex flex-col gap-3">
+              {actions}
+              {session.locked ? (
+                <Link
+                  href={`/f/${PULSE_FORM_ID}`}
+                  className={cn(
+                    buttonVariants({ size: "sm", variant: "ghost" }),
+                    "self-end",
+                  )}
+                >
+                  New check-in
+                </Link>
+              ) : null}
+            </div>
           </FormRoot>
-          <div className="flex flex-col gap-4 lg:sticky lg:top-6">
+          <div className="flex flex-col gap-8 border-t pt-8 lg:sticky lg:top-6 lg:border-s lg:border-t-0 lg:ps-8 lg:pt-0">
             <ScoresPreview form={session.snapshot} answers={session.answers} />
             <AnswersPreview
               form={session.snapshot}
@@ -94,6 +101,7 @@ export function Questionnaire({
           </div>
         </div>
       )}
+      actions={<FormActions abandon />}
     />
   );
 }

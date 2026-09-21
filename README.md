@@ -47,7 +47,7 @@ Apps import from the package they already use: `@dimah-form/server` on the serve
 
 ## Example
 
-`examples/next` is a Next.js App Router demo: code-authored forms (including a scored GAD-7), shadcn Field widgets, live answer preview, and Drizzle RC + SQLite via FumaDB.
+`examples/next` is a Next.js App Router demo: one scored weekly pulse, shadcn Field widgets, a live derived score, and Drizzle RC + SQLite via FumaDB.
 
 ```bash
 pnpm install

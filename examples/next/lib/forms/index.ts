@@ -1,9 +1,7 @@
-import { feedbackForm } from "./feedback";
-import { gad7Form } from "./gad7";
-import { onboardingForm } from "./onboarding";
+import { pulseForm } from "./pulse";
+
+export { PULSE_FORM_ID } from "./pulse";
 
 export const forms = {
-  feedback: feedbackForm,
-  onboarding: onboardingForm,
-  gad7: gad7Form,
+  pulse: pulseForm,
 };

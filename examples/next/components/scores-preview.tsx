@@ -5,27 +5,57 @@ import {
   hasScoringMeta,
   scoreResponse,
   type ScoreResult,
+  type ScoreVariableResult,
 } from "@dimah-form/scoring/client";
 
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { scoreLabel, scoreShare } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 function variableEntries(scores: ScoreResult) {
   return Object.entries(scores.variables);
 }
 
+function ScoreMeter({ variable }: { variable: ScoreVariableResult }) {
+  const max = variable.max;
+  const share = scoreShare(variable.raw, max);
+  const total = scoreLabel(variable.raw, max);
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-end justify-between gap-3">
+        <p className="text-3xl font-medium tracking-tight tabular-nums">
+          {total ?? "—"}
+        </p>
+        {variable.band ? (
+          <Badge variant="secondary">{variable.band}</Badge>
+        ) : null}
+      </div>
+      {max != null && max > 0 ? (
+        <Progress value={Math.round(share * 100)} max={100} className="gap-0" />
+      ) : null}
+      {variable.complete ? null : (
+        <p className="text-sm text-muted-foreground">
+          {variable.missing === 0
+            ? "No visible items to score"
+            : variable.missing === 1
+              ? "1 scored item left"
+              : `${variable.missing} scored items left`}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function ScoresPreview({
   form,
   answers,
+  className,
 }: {
   form: FormSnapshot;
   answers: FormAnswers;
+  className?: string;
 }) {
   if (!hasScoringMeta(form)) return null;
 
@@ -40,43 +70,21 @@ export function ScoresPreview({
   if (entries.length === 0) return null;
 
   return (
-    <Card size="sm">
-      <CardHeader>
-        <CardTitle>Score</CardTitle>
-        <CardDescription>
-          Computed from this response snapshot — not stored in answers
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {entries.map(([id, variable]) => {
-          const name = variable.label ?? id;
-          const total =
-            variable.max != null
-              ? `${variable.raw} / ${variable.max}`
-              : String(variable.raw);
-          return (
-            <div key={id} className="flex flex-col gap-1">
-              <div className="flex items-center justify-between gap-2">
-                <p className="font-medium">{name}</p>
-                {variable.band ? (
-                  <Badge variant="secondary">{variable.band}</Badge>
-                ) : null}
-              </div>
-              {variable.complete ? (
-                <p className="text-2xl font-medium tabular-nums">{total}</p>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  {variable.missing === 0
-                    ? "No visible items to score"
-                    : variable.missing === 1
-                      ? "1 item left to score"
-                      : `${variable.missing} items left to score`}
-                </p>
-              )}
-            </div>
-          );
-        })}
-      </CardContent>
-    </Card>
+    <aside className={cn("flex flex-col gap-4", className)}>
+      <div className="flex flex-col gap-1">
+        <p className="text-sm font-medium">Score</p>
+        <p className="text-sm text-muted-foreground">
+          Derived from the snapshot. Not stored in answers.
+        </p>
+      </div>
+      {entries.map(([id, variable]) => (
+        <div key={id} className="flex flex-col gap-3">
+          <p className="text-sm text-muted-foreground">
+            {variable.label ?? id}
+          </p>
+          <ScoreMeter variable={variable} />
+        </div>
+      ))}
+    </aside>
   );
 }
