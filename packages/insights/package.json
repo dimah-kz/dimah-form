@@ -1,6 +1,6 @@
 {
   "name": "@dimah-form/insights",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Official insights plugin for dimah-form (read-side field and score summaries)",
   "keywords": [
     "form",
