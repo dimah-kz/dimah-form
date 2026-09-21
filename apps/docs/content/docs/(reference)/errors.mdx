@@ -83,6 +83,31 @@ When a `400 VALIDATION_ERROR` occurs during submission, the `issues[]` array con
 
 ---
 
+## Scoring plugin (`SCORING_ERROR_CODES`)
+
+`@dimah-form/scoring` adds mapping codes on `form.$ERROR_CODES`. They appear on `validateDefinition` / `saveForm` issues, and on `scoreResponse` when the snapshot mapping is invalid.
+
+| Issue Code                                | Trigger                                                                 |
+| :---------------------------------------- | :---------------------------------------------------------------------- |
+| **`SCORING_INVALID_META`**                | `meta.scoring` (form, field, or option) failed its schema.              |
+| **`SCORING_FORM_REQUIRED`**               | Field or option scoring without form `meta.scoring`.                    |
+| **`SCORING_UNKNOWN_VARIABLE`**            | Field or `option.add` names an id not in `variables`.                   |
+| **`SCORING_UNUSED_VARIABLE`**             | A declared variable is not mapped by any field or `option.add`.         |
+| **`SCORING_DUPLICATE_VARIABLE`**          | Two `variables` share an id.                                            |
+| **`SCORING_DUPLICATE_FORMULA`**           | A formula id collides with a variable or another formula.               |
+| **`SCORING_UNSUPPORTED_TYPE`**            | Scoring on a type other than select / multiSelect / number / boolean.   |
+| **`SCORING_MISSING_POINTS`**              | Likert option is missing `points`.                                      |
+| **`SCORING_OPTION_ADD_MIX`**              | `field.variable` combined with `option.add`.                            |
+| **`SCORING_OPTION_POINTS_NEED_VARIABLE`** | `option.points` without `field.variable`.                               |
+| **`SCORING_REVERSE_RANGE`**               | Reverse scoring without a point range (`option.points` or `field.max`). |
+| **`SCORING_REVERSE_MULTISELECT`**         | `reverse` set on a `multiSelect`.                                       |
+| **`SCORING_UNKNOWN_BAND_VARIABLE`**       | Band `variable` is not a variable or formula id.                        |
+| **`SCORING_FORMULA_UNKNOWN_VAR`**         | Formula `vars` includes a non-variable id.                              |
+| **`SCORING_FORMULA_DUPLICATE_VAR`**       | Formula `vars` lists the same id twice.                                 |
+| **`SCORING_INVALID_BAND`**                | Band `from` is greater than `to`.                                       |
+
+---
+
 ## Client Error Helpers
 
 `@dimah-form/react` provides helpers to map error codes to user-friendly or localized messages:
@@ -140,6 +165,11 @@ export const CUSTOM_ERROR_CODES = defineErrorCodes({
     title="Auth"
     href="/docs/auth"
     description="Learn how to throw UNAUTHORIZED and FORBIDDEN errors in guards."
+  />
+  <Card
+    title="Scoring"
+    href="/docs/scoring"
+    description="Likert totals, option keying, and scoring issue codes."
   />
   <Card
     title="Protocol"

@@ -130,13 +130,31 @@ function optionPointRange(
   return { min: Math.min(...points), max: Math.max(...points) };
 }
 
+function finiteNumberValue(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+/** Likert reverse range for a `number` field: `field.min ?? 0` and `field.max`. */
+function numberFieldRange(
+  field: FormField,
+): { min: number; max: number } | undefined {
+  const max = finiteNumberValue(field.max);
+  if (max == null) return undefined;
+  const min = finiteNumberValue(field.min) ?? 0;
+  if (min > max) return undefined;
+  return { min, max };
+}
+
 /**
  * Reverse scoring: `min + max - points`. Likert `option.points` only —
  * `option.add` is never reversed.
  *
- * - select / multiSelect: min/max are that field's option `meta.scoring.points`.
- * - number: min is `variable.min ?? 0`, max is `variable.max` (required).
+ * - select: min/max are that field's option `meta.scoring.points`.
+ * - number: min is `field.min ?? 0`, max is `field.max` (required).
  * - boolean: `1 - value` (true → 0, false → 1).
+ * - multiSelect: not supported (`SCORING_REVERSE_MULTISELECT`).
  */
 export function reversePoints(
   points: number,
@@ -225,8 +243,12 @@ function collectSelectOptionIssues(
       );
     }
   }
-  if (fieldMeta?.reverse && optionPointRange(options) == null) {
-    issues.push(scoringIssue(field.id, "SCORING_REVERSE_RANGE"));
+  if (fieldMeta?.reverse) {
+    if (field.type === "multiSelect") {
+      issues.push(scoringIssue(field.id, "SCORING_REVERSE_MULTISELECT"));
+    } else if (optionPointRange(options) == null) {
+      issues.push(scoringIssue(field.id, "SCORING_REVERSE_RANGE"));
+    }
   }
 }
 
@@ -280,7 +302,18 @@ export function collectScoringIssues(
     } else {
       ids.add(formula.id);
     }
+    const seenVars = new Set<string>();
     for (const varId of formula.vars) {
+      if (seenVars.has(varId)) {
+        issues.push(
+          scoringIssue("meta.scoring", "SCORING_FORMULA_DUPLICATE_VAR", {
+            formula: formula.id,
+            variable: varId,
+          }),
+        );
+      } else {
+        seenVars.add(varId);
+      }
       if (!knownVariables.has(varId)) {
         issues.push(
           scoringIssue("meta.scoring", "SCORING_FORMULA_UNKNOWN_VAR", {
@@ -309,6 +342,8 @@ export function collectScoringIssues(
     }
   }
 
+  const referenced = new Set<string>();
+
   for (const field of definition.fields) {
     const fieldTarget = scoringMetaTarget(field.meta);
     const fieldMeta = fieldTarget.present
@@ -322,6 +357,12 @@ export function collectScoringIssues(
     const options = optionList(field);
     const hasOptionScoring = options.some((option) => option.scoringPresent);
     if (!fieldMeta && !hasOptionScoring) continue;
+
+    if (fieldMeta) referenced.add(fieldMeta.variable);
+    for (const option of options) {
+      if (!optionHasAdd(option.scoring)) continue;
+      for (const row of option.scoring.add) referenced.add(row.variable);
+    }
 
     if (fieldMeta && !knownVariables.has(fieldMeta.variable)) {
       issues.push(
@@ -350,13 +391,10 @@ export function collectScoringIssues(
       continue;
     }
 
-    const variable = fieldMeta
-      ? knownVariables.get(fieldMeta.variable)
-      : undefined;
     if (
       field.type === "number" &&
       fieldMeta?.reverse &&
-      (variable?.max == null || !Number.isFinite(variable.max))
+      !numberFieldRange(field)
     ) {
       issues.push(
         scoringIssue(field.id, "SCORING_REVERSE_RANGE", {
@@ -367,6 +405,16 @@ export function collectScoringIssues(
       issues.push(
         scoringIssue(field.id, "SCORING_UNSUPPORTED_TYPE", {
           type: field.type,
+        }),
+      );
+    }
+  }
+
+  for (const id of knownVariables.keys()) {
+    if (!referenced.has(id)) {
+      issues.push(
+        scoringIssue("meta.scoring", "SCORING_UNUSED_VARIABLE", {
+          variable: id,
         }),
       );
     }
@@ -449,12 +497,9 @@ function contributeSelect(
 function contributeMultiSelect(
   field: FormField,
   value: unknown,
-  fieldMeta: ScoringFieldMeta,
 ): number | "missing" {
   if (!Array.isArray(value)) return "missing";
   const options = optionList(field);
-  const range = fieldMeta.reverse ? optionPointRange(options) : undefined;
-  if (fieldMeta.reverse && !range) return "missing";
   let sum = 0;
   for (const selected of value) {
     if (typeof selected !== "string") continue;
@@ -462,24 +507,21 @@ function contributeMultiSelect(
     if (!option || !optionHasPoints(option.scoring)) {
       continue;
     }
-    sum +=
-      fieldMeta.reverse && range
-        ? reversePoints(option.scoring.points, range)
-        : option.scoring.points;
+    sum += option.scoring.points;
   }
   return sum;
 }
 
 function contributeNumber(
+  field: FormField,
   value: unknown,
   fieldMeta: ScoringFieldMeta,
-  variable: ScoringVariable,
 ): number | "missing" {
   if (typeof value !== "number" || !Number.isFinite(value)) return "missing";
   if (!fieldMeta.reverse) return value;
-  const max = variable.max;
-  if (max == null || !Number.isFinite(max)) return "missing";
-  return reversePoints(value, { min: variable.min ?? 0, max });
+  const range = numberFieldRange(field);
+  if (!range) return "missing";
+  return reversePoints(value, range);
 }
 
 function contributeBoolean(
@@ -495,16 +537,15 @@ function contribute(
   field: FormField,
   value: unknown,
   fieldMeta: ScoringFieldMeta,
-  variable: ScoringVariable,
 ): number | "missing" {
   if (isUnanswered(field, value)) return "missing";
   switch (field.type) {
     case "select":
       return contributeSelect(field, value, fieldMeta);
     case "multiSelect":
-      return contributeMultiSelect(field, value, fieldMeta);
+      return contributeMultiSelect(field, value);
     case "number":
-      return contributeNumber(value, fieldMeta, variable);
+      return contributeNumber(field, value, fieldMeta);
     case "boolean":
       return contributeBoolean(value, fieldMeta);
     default:
@@ -589,7 +630,7 @@ function finishVariable(
   missing: number,
 ): { raw: number | null; missing: number } {
   const policy: ScoringMissing = variable.missing ?? DEFAULT_SCORING_MISSING;
-  if (policy === "incomplete" && missing > 0) {
+  if (policy === "incomplete" && (missing > 0 || answered === 0)) {
     return { raw: null, missing };
   }
   if (policy === "omit" && answered === 0) {
@@ -637,7 +678,9 @@ function scoreFormula(
 /**
  * Pure isomorphic score. Uses the definition you pass (typically the
  * response snapshot) and stored/preview answers. Hidden `showWhen` fields
- * do not contribute. Forms without `meta.scoring` return an empty result.
+ * do not contribute. Mapping issues throw `APIError` (`issues` + a scoring
+ * code) — call {@link collectScoringIssues} first if you need a non-throwing
+ * check. Forms without `meta.scoring` return an empty result.
  */
 export function scoreResponse(
   definition: ScoreDefinition,
@@ -652,7 +695,6 @@ export function scoreResponse(
   }
 
   const config: ScoringFormMeta = formMeta.value;
-  const known = variableById(config.variables);
   const totals = new Map<
     string,
     { sum: number; answered: number; missing: number }
@@ -670,9 +712,7 @@ export function scoreResponse(
 
     const value = answers[field.id];
     if (fieldMeta) {
-      const variable = known.get(fieldMeta.variable);
-      if (!variable) continue;
-      const points = contribute(field, value, fieldMeta, variable);
+      const points = contribute(field, value, fieldMeta);
       applyToUnion(
         totals,
         union,

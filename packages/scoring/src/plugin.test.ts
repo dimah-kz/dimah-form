@@ -120,6 +120,29 @@ describe("scoringPlugin", () => {
     ).toThrow(/unknown scoring variable/i);
   });
 
+  it("rejects an unmapped scoring variable at init", () => {
+    expect(() =>
+      dimahForm({
+        database: memoryAdapter(),
+        plugins: [scoringPlugin()],
+        forms: {
+          quiz: defineForm({
+            title: "Quiz",
+            meta: { scoring: { variables: [{ id: "gad7" }, { id: "ghost" }] } },
+            fields: [
+              {
+                id: "q1",
+                type: "select",
+                options: [{ value: "0", meta: { scoring: { points: 0 } } }],
+                meta: { scoring: { variable: "gad7" } },
+              },
+            ],
+          }),
+        },
+      }),
+    ).toThrow(/not mapped/i);
+  });
+
   it("rejects mixing field variable with option add at init", () => {
     expect(() =>
       dimahForm({

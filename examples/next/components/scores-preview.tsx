@@ -66,9 +66,11 @@ export function ScoresPreview({
                 <p className="text-2xl font-medium tabular-nums">{total}</p>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  {variable.missing === 1
-                    ? "1 item left to score"
-                    : `${variable.missing} items left to score`}
+                  {variable.missing === 0
+                    ? "No visible items to score"
+                    : variable.missing === 1
+                      ? "1 item left to score"
+                      : `${variable.missing} items left to score`}
                 </p>
               )}
             </div>

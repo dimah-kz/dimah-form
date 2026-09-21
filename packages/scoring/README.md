@@ -81,7 +81,9 @@ meta: {
 
 Use built-in `select` plus `meta.widget: "radio"` for Likert items. Do not add a `likert` field type.
 
-Optional typed sums (not a formula language). `vars` must be variable ids, not other formulas:
+Every `variables[].id` must appear on a field (`meta.scoring.variable`) or an option (`meta.scoring.add`). Unmapped ids fail `validateDefinition`.
+
+Optional typed sums (not a formula language). `vars` must be unique variable ids, not other formulas:
 
 ```ts
 formulas: [{ id: "total", op: "sum", vars: ["subscaleA", "subscaleB"] }];
@@ -97,15 +99,16 @@ formulas: [{ id: "total", op: "sum", vars: ["subscaleA", "subscaleB"] }];
 | `zero`                 | count as 0 (running Likert total)                           |
 | `omit`                 | drop from the sum; `raw` is `null` only when nothing scored |
 
-Hidden `showWhen` fields do not contribute and do not count as missing. Prefer `incomplete` for clinical totals; set `zero` when a running quiz total is the product.
+Hidden `showWhen` fields do not contribute and do not count as missing. If **every** contributing item for a variable is hidden, `incomplete` (and `omit`) yield `raw: null`; `zero` stays `0`. Prefer `incomplete` for clinical totals; set `zero` when a running quiz total is the product.
 
 ## Reverse scoring
 
 `reversed = min + max - points`.
 
-- **select / multiSelect** — min/max are that field's option `meta.scoring.points` (so a 0–3 item on a 0–21 scale reverses as `3 - points`, not `21 - points`). `option.add` is not reversed.
-- **number** — min is `variable.min ?? 0`; `variable.max` is required when `reverse` is true.
+- **select** — min/max are that field's option `meta.scoring.points` (so a 0–3 item on a 0–21 scale reverses as `3 - points`, not `21 - points`). `option.add` is not reversed.
+- **number** — min is `field.min ?? 0`; `field.max` is required when `reverse` is true (not the variable's scale range).
 - **boolean** — `1 - value`.
+- **multiSelect** — not supported.
 
 ## Output
 

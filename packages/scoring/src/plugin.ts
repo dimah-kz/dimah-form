@@ -13,6 +13,7 @@ import {
   hasScoringMeta,
   scoreResponse,
   scoringIssuesOrUndefined,
+  scoreResultSchema,
   type ScoreDefinition,
   type ScoreResult,
 } from "./score";
@@ -62,6 +63,7 @@ export function scoringPlugin(options: ScoringPluginOptions = {}) {
         {
           method: SCORING_ROUTES.getResponseScores.method,
           query: getResponseQuerySchema,
+          output: scoreResultSchema,
         },
         async (ctx): Promise<ScoreResult> => {
           const row = await ctx.context.config.database.getResponse(

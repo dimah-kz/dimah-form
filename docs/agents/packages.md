@@ -56,7 +56,7 @@ Feature plugins live in their own package and peer-depend on server.
 - Keep ORM off the client entry.
 - Plugin `init` receives `basePath`, `fieldTypes`, sibling `plugins`, and `getPluginContext` — not the internal resolved config. Persistence is `database`, not a plugin. Plugins must not add tables.
 - Throw `errors.*` from `@dimah-form/server` (or `APIError.from`) in plugin endpoints.
-- First-party `@dimah-form/scoring` is a feature plugin (`meta.scoring`). Likert is `field.variable` plus `option.points`; keying is `option.add` (no field variable, never mixed with `points`). Scores are derived from the response snapshot; do not persist them into `answers` or add scoring tables.
+- First-party `@dimah-form/scoring` is a feature plugin (`meta.scoring`). Likert is `field.variable` plus `option.points`; keying is `option.add` (no field variable, never mixed with `points`). Reverse is `select` / `number` / `boolean` only. Every variable must be mapped by a field. Scores are derived from the response snapshot; do not persist them into `answers` or add scoring tables.
 
 ## Strings and errors
 

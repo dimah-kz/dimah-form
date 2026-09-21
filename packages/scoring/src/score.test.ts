@@ -190,18 +190,20 @@ describe("scoreResponse", () => {
     });
   });
 
-  it("reverses number fields with variable min/max", () => {
+  it("reverses number fields with that field's min/max", () => {
     const definition = normalizeFormSnapshot({
       id: "n",
       ...defineForm({
         title: "N",
         meta: {
-          scoring: { variables: [{ id: "hours", min: 0, max: 10 }] },
+          scoring: { variables: [{ id: "hours", min: 0, max: 70 }] },
         },
         fields: [
           {
             id: "hours",
             type: "number",
+            min: 0,
+            max: 10,
             meta: { scoring: { variable: "hours", reverse: true } },
           },
         ],
@@ -290,7 +292,7 @@ describe("scoreResponse", () => {
     });
   });
 
-  it("reverses each selected multiSelect option using option min + max", () => {
+  it("rejects reverse scoring on multiSelect", () => {
     const definition = normalizeFormSnapshot({
       id: "m",
       ...defineForm({
@@ -304,16 +306,14 @@ describe("scoreResponse", () => {
             options: [
               { value: "a", meta: { scoring: { points: 1 } } },
               { value: "b", meta: { scoring: { points: 2 } } },
-              { value: "c", meta: { scoring: { points: 4 } } },
             ],
           },
         ],
       }),
     });
-    // min 1, max 4 → reverse(2) = 3
-    expect(
-      scoreResponse(definition, { picks: ["b"] }).variables.total.raw,
-    ).toBe(3);
+    expect(collectScoringIssues(definition).map((issue) => issue.code)).toEqual(
+      ["SCORING_REVERSE_MULTISELECT"],
+    );
   });
 
   it("uses the snapshot you pass, not a live questionnaire", () => {
@@ -537,7 +537,7 @@ describe("scoreResponse", () => {
     ).toBe(0);
   });
 
-  it("does not count a hidden keying field as missing", () => {
+  it("treats an all-hidden subscale as incomplete, not a complete 0", () => {
     const definition = normalizeFormSnapshot({
       id: "hide",
       ...defineForm({
@@ -569,10 +569,46 @@ describe("scoreResponse", () => {
     });
     expect(scoreResponse(definition, { gate: "hide" }).variables).toMatchObject(
       {
-        x: { raw: 0, missing: 0, complete: true },
-        y: { raw: 0, missing: 0, complete: true },
+        x: { raw: null, missing: 0, complete: false },
+        y: { raw: null, missing: 0, complete: false },
       },
     );
+    const shown = scoreResponse(definition, { gate: "show", q1: "a" });
+    expect(shown.variables).toMatchObject({
+      x: { raw: 2, missing: 0, complete: true },
+      y: { raw: 0, missing: 0, complete: true },
+    });
+  });
+
+  it("keeps an all-hidden subscale at 0 when missing is zero", () => {
+    const definition = normalizeFormSnapshot({
+      id: "hide",
+      ...defineForm({
+        title: "Hide",
+        meta: {
+          scoring: {
+            variables: [{ id: "gad7", missing: "zero" }],
+          },
+        },
+        fields: [
+          {
+            id: "gate",
+            type: "select",
+            options: [{ value: "show" }, { value: "hide" }],
+          },
+          {
+            id: "q1",
+            type: "select",
+            showWhen: { field: "gate", equals: "show" },
+            options: likert,
+            meta: { scoring: { variable: "gad7" } },
+          },
+        ],
+      }),
+    });
+    expect(
+      scoreResponse(definition, { gate: "hide" }).variables.gad7,
+    ).toMatchObject({ raw: 0, missing: 0, complete: true });
   });
 
   it("assigns the first matching band and treats omitted from/to as open ends", () => {
@@ -714,7 +750,14 @@ describe("collectScoringIssues", () => {
             formulas: [{ id: "gad7", op: "sum", vars: ["gad7"] }],
           },
         },
-        fields: [{ id: "n", type: "text" }],
+        fields: [
+          {
+            id: "q1",
+            type: "select",
+            options: likert,
+            meta: { scoring: { variable: "gad7" } },
+          },
+        ],
       }),
     });
     const codes = collectScoringIssues(definition).map((issue) => issue.code);
@@ -743,6 +786,12 @@ describe("collectScoringIssues", () => {
             options: likert,
             meta: { scoring: { variable: "a" } },
           },
+          {
+            id: "q2",
+            type: "select",
+            options: likert,
+            meta: { scoring: { variable: "b" } },
+          },
         ],
       }),
     });
@@ -760,7 +809,7 @@ describe("collectScoringIssues", () => {
         title: "Bad",
         meta: {
           scoring: {
-            variables: [{ id: "hours" }, { id: "ok" }],
+            variables: [{ id: "hours" }],
             bands: [
               { variable: "hours", from: 4, to: 1, label: "Backwards" },
               { variable: "missing", from: 0, label: "Ghost" },
@@ -780,6 +829,59 @@ describe("collectScoringIssues", () => {
     expect(codes).toContain("SCORING_INVALID_BAND");
     expect(codes).toContain("SCORING_UNKNOWN_BAND_VARIABLE");
     expect(codes).toContain("SCORING_REVERSE_RANGE");
+  });
+
+  it("rejects formula vars listed more than once", () => {
+    const definition = normalizeFormSnapshot({
+      id: "f",
+      ...defineForm({
+        title: "F",
+        meta: {
+          scoring: {
+            variables: [{ id: "a" }],
+            formulas: [{ id: "total", op: "sum", vars: ["a", "a"] }],
+          },
+        },
+        fields: [
+          {
+            id: "q1",
+            type: "select",
+            options: likert,
+            meta: { scoring: { variable: "a" } },
+          },
+        ],
+      }),
+    });
+    const issues = collectScoringIssues(definition);
+    expect(issues.map((issue) => issue.code)).toContain(
+      "SCORING_FORMULA_DUPLICATE_VAR",
+    );
+    expect(issues.some((issue) => issue.params?.variable === "a")).toBe(true);
+  });
+
+  it("rejects unused variables that no field maps", () => {
+    const definition = normalizeFormSnapshot({
+      id: "unused",
+      ...defineForm({
+        title: "Unused",
+        meta: {
+          scoring: { variables: [{ id: "gad7" }, { id: "ghost" }] },
+        },
+        fields: [
+          {
+            id: "q1",
+            type: "select",
+            options: [{ value: "0", meta: { scoring: { points: 0 } } }],
+            meta: { scoring: { variable: "gad7" } },
+          },
+        ],
+      }),
+    });
+    const issues = collectScoringIssues(definition);
+    expect(issues.map((issue) => issue.code)).toEqual([
+      "SCORING_UNUSED_VARIABLE",
+    ]);
+    expect(issues[0]?.params?.variable).toBe("ghost");
   });
 
   it("rejects mixing field variable with option add, and points without a field variable", () => {
@@ -883,5 +985,25 @@ describe("collectScoringIssues", () => {
     expect(collectScoringIssues(both).map((issue) => issue.code)).toContain(
       "SCORING_INVALID_META",
     );
+  });
+
+  it("rejects non-finite option points", () => {
+    const issues = collectScoringIssues({
+      meta: { scoring: { variables: [{ id: "gad7" }] } },
+      fields: [
+        {
+          id: "q1",
+          type: "select",
+          options: [
+            {
+              value: "0",
+              meta: { scoring: { points: Number.POSITIVE_INFINITY } },
+            },
+          ],
+          meta: { scoring: { variable: "gad7" } },
+        },
+      ],
+    });
+    expect(issues.map((issue) => issue.code)).toContain("SCORING_INVALID_META");
   });
 });

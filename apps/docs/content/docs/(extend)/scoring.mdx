@@ -118,7 +118,7 @@ export const gad7 = defineAppForm({
 | `number`      | The numeric value                           | —                                   |
 | `boolean`     | `true` → 1, `false` → 0                     | —                                   |
 
-Hidden `showWhen` fields do not contribute and do not count as missing.
+Hidden `showWhen` fields do not contribute and do not count as missing. If every contributing item for a variable is hidden, see [Missing items](#missing-items).
 
 ### Option keying
 
@@ -157,15 +157,16 @@ Hidden `showWhen` fields do not contribute and do not count as missing.
 
 Selecting `parties` adds 2 to extraversion (introversion gets 0 from this item and still counts as answered). An unanswered visible keying item increments `missing` on every variable any of its options names. An option with no `meta.scoring` contributes nothing.
 
-Unknown `add` variables, mixed `points`/`add`, and `field.variable` plus `option.add` fail `validateDefinition` (`SCORING_UNKNOWN_VARIABLE`, `SCORING_INVALID_META`, `SCORING_OPTION_ADD_MIX`).
+Unknown `add` variables, unused variables, mixed `points`/`add`, and `field.variable` plus `option.add` fail `validateDefinition` (`SCORING_UNKNOWN_VARIABLE`, `SCORING_UNUSED_VARIABLE`, `SCORING_INVALID_META`, `SCORING_OPTION_ADD_MIX`).
 
 ### Reverse scoring
 
 `reversed = min + max - points`.
 
-- **select / multiSelect** — min/max are **that field's** option points (a 0–3 item on a 0–21 scale reverses as `3 − points`). `option.add` is not reversed.
-- **number** — min is `variable.min ?? 0`; `variable.max` is required when `reverse` is true.
+- **select** — min/max are **that field's** option points (a 0–3 item on a 0–21 scale reverses as `3 − points`). `option.add` is not reversed.
+- **number** — min is `field.min ?? 0`; `field.max` is required when `reverse` is true (not `variables[].max`).
 - **boolean** — `1 − value`.
+- **multiSelect** — not supported (`SCORING_REVERSE_MULTISELECT`).
 
 Set `meta.scoring.reverse: true` on the field.
 
@@ -179,13 +180,13 @@ Set `meta.scoring.reverse: true` on the field.
 | **`zero`**                 | Count as 0 (running Likert total)                           |
 | **`omit`**                 | Drop from the sum; `raw` is `null` only when nothing scored |
 
-Prefer the default for clinical totals. Set `zero` when a running quiz score is the product.
+Prefer the default for clinical totals. Set `zero` when a running quiz score is the product. If every contributing item is hidden, `incomplete` and `omit` are `null`; `zero` is `0`.
 
 ### Bands and optional sums
 
 Bands are interpretation, not scoring. `from` / `to` are inclusive; omit either for an open end. The first matching band in document order wins.
 
-Optional typed sums — not a formula language, and never `eval`. `vars` must be variable ids (not other formulas):
+Optional typed sums — not a formula language, and never `eval`. `vars` must be unique variable ids (not other formulas):
 
 ```ts
 formulas: [{ id: "total", op: "sum", vars: ["subscaleA", "subscaleB"] }];
@@ -205,7 +206,7 @@ const fromApi = await form.api.getResponseScores({
 });
 ```
 
-Pass the **snapshot** you are filling or the stored `response.definition`. Live preview during fill is `scoreResponse(session.snapshot, session.answers)` — do not fork `useFormResponse`.
+Pass the **snapshot** you are filling or the stored `response.definition`. Live preview during fill is `scoreResponse(session.snapshot, session.answers)` — do not fork `useFormResponse`. Mapping issues throw (`collectScoringIssues` is the non-throwing check).
 
 ```ts
 {
@@ -226,4 +227,6 @@ Pass the **snapshot** you are filling or the stored `response.definition`. Live 
 
 Guard operation for `GET /scoring/response` is `getResponseScores`. Document validity (unknown variables, missing option points) is checked at `dimahForm()`, `saveForm`, and live form reads via `metaSchema` + `validateDefinition`. Response snapshots are not re-checked on `getResponse`; `scoreResponse` still validates mapping when you compute. Scoring is not answer validation.
 
-Malformed mapping uses stable codes such as `SCORING_UNKNOWN_VARIABLE`, `SCORING_MISSING_POINTS`, and `SCORING_OPTION_ADD_MIX` (`form.$ERROR_CODES`).
+Malformed mapping uses stable codes such as `SCORING_UNKNOWN_VARIABLE`, `SCORING_UNUSED_VARIABLE`, `SCORING_MISSING_POINTS`, `SCORING_REVERSE_MULTISELECT`, and `SCORING_OPTION_ADD_MIX` (`form.$ERROR_CODES`).
+
+Every `variables[].id` must be referenced by `field.meta.scoring.variable` or `option.meta.scoring.add`. An unmapped variable fails `validateDefinition` (`SCORING_UNUSED_VARIABLE`) instead of scoring as a complete `0`.

@@ -12,11 +12,12 @@ export const SCORING_NAMESPACE = "scoring" as const;
 /**
  * How unanswered visible items affect `raw`.
  *
- * - `incomplete` — any missing item yields `raw: null` (default; safer for
- *   clinical totals).
- * - `zero` — missing items add 0 (typical Likert running total).
+ * - `incomplete` — any missing visible item, or no visible contributing
+ *   item at all, yields `raw: null` (default; safer for clinical totals).
+ * - `zero` — missing items add 0 (typical Likert running total). All-hidden
+ *   subscales stay `0`.
  * - `omit` — drop missing items from the sum; `raw` is null only when
- *   nothing scored.
+ *   nothing scored (including all-hidden).
  */
 export const scoringMissingSchema = z.enum(["zero", "omit", "incomplete"]);
 
@@ -26,12 +27,22 @@ export type ScoringMissing = z.output<typeof scoringMissingSchema>;
 export const DEFAULT_SCORING_MISSING =
   "incomplete" as const satisfies ScoringMissing;
 
+const finiteNumber = z.number().check((ctx) => {
+  if (!Number.isFinite(ctx.value)) {
+    ctx.issues.push({
+      code: "custom",
+      message: "must be finite",
+      input: ctx.value,
+    });
+  }
+});
+
 export const scoringVariableSchema = z
   .object({
     id: fieldIdSchema,
     label: z.string().optional(),
-    min: z.number().optional(),
-    max: z.number().optional(),
+    min: finiteNumber.optional(),
+    max: finiteNumber.optional(),
     missing: scoringMissingSchema.optional(),
   })
   .check((ctx) => {
@@ -49,8 +60,8 @@ export type ScoringVariable = z.output<typeof scoringVariableSchema>;
 
 export const scoringBandSchema = z.object({
   variable: fieldIdSchema,
-  from: z.number().optional(),
-  to: z.number().optional(),
+  from: finiteNumber.optional(),
+  to: finiteNumber.optional(),
   label: z.string().trim().min(1),
 });
 
@@ -83,7 +94,7 @@ export type ScoringFieldMeta = z.output<typeof scoringFieldMetaSchema>;
 
 export const scoringAddSchema = z.object({
   variable: fieldIdSchema,
-  points: z.number(),
+  points: finiteNumber,
 });
 
 export type ScoringAdd = z.output<typeof scoringAddSchema>;
@@ -94,7 +105,7 @@ export type ScoringAdd = z.output<typeof scoringAddSchema>;
  */
 export const scoringOptionMetaSchema = z
   .object({
-    points: z.number().optional(),
+    points: finiteNumber.optional(),
     add: z.array(scoringAddSchema).min(1).optional(),
   })
   .check((ctx) => {
