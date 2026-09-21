@@ -1,6 +1,6 @@
 {
   "name": "@dimah-form/server",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Questionnaire server — dimahForm() with HTTP handler and direct api",
   "keywords": [
     "form",

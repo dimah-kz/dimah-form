@@ -1,6 +1,6 @@
 {
   "name": "@dimah-form/scoring",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Official scoring plugin for dimah-form (Likert and option keying)",
   "keywords": [
     "form",

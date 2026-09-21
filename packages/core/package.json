@@ -1,6 +1,6 @@
 {
   "name": "@dimah-form/core",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Typed questionnaire protocol and fetch client shared by @dimah-form/server and @dimah-form/react",
   "keywords": [
     "form",
