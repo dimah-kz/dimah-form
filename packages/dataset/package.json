@@ -45,6 +45,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@dimah-form/scoring": "workspace:*",
+    "canonicalize": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
@@ -64,13 +66,9 @@
   },
   "peerDependencies": {
     "@dimah-form/core": "workspace:^",
-    "@dimah-form/scoring": "workspace:^",
     "@dimah-form/server": "workspace:^"
   },
   "peerDependenciesMeta": {
-    "@dimah-form/scoring": {
-      "optional": true
-    },
     "@dimah-form/server": {
       "optional": true
     }

@@ -29,14 +29,20 @@ export type DimahFormGuard = (context: {
   getForm: (idOrSlug: string) => MaybePromise<FormSnapshot | undefined>;
 }) => MaybePromise<void>;
 
-type ResponseHookContext = {
+type PluginContextLookup = <T = unknown>(id: string) => T | undefined;
+
+export type ResponseHookContext = {
   request: Request;
   response: ResponseRecord;
+  /** Context returned from a plugin `init`. */
+  getPluginContext: PluginContextLookup;
 };
 
-type FormHookContext = {
+export type FormHookContext = {
   request: Request;
   form: FormSnapshot;
+  /** Context returned from a plugin `init`. */
+  getPluginContext: PluginContextLookup;
 };
 
 export type DimahFormHooks = {

@@ -1,8 +1,14 @@
 import { defineClientPlugin } from "@dimah-form/core";
+import type * as z from "zod";
 
 import { INSIGHTS_ID } from "./errors";
 import { INSIGHTS_ROUTES } from "./routes";
-import type { InsightsCrosstab, InsightsSummary } from "./spec";
+import type {
+  insightsCrosstabQuerySchema,
+  insightsSummaryQuerySchema,
+  InsightsCrosstab,
+  InsightsSummary,
+} from "./spec";
 
 export {
   insightsCrosstabQuerySchema,
@@ -23,42 +29,21 @@ export { createInsightsCrosstabAccumulator } from "./crosstab";
 export { INSIGHTS_ID } from "./errors";
 export { INSIGHTS_ROUTES } from "./routes";
 
-type InsightsFilterRequest = {
-  formId: string;
-  status?: "draft" | "submitted" | "abandoned";
-  respondentId?: string;
-  submittedFrom?: string;
-  submittedTo?: string;
-  updatedAfter?: string;
-  whereField?: string;
-  whereValue?: string;
-  maxRows?: number;
-  headers?: HeadersInit;
-};
+type ClientRequest<T> = T & { headers?: HeadersInit };
 
-export type FormInsightsRequest = InsightsFilterRequest & {
-  bucket?: "day";
-};
+export type FormInsightsRequest = ClientRequest<
+  z.output<typeof insightsSummaryQuerySchema>
+>;
 
-export type FormCrosstabRequest = InsightsFilterRequest & {
-  row: string;
-  col: string;
-};
+export type FormCrosstabRequest = ClientRequest<
+  z.output<typeof insightsCrosstabQuerySchema>
+>;
 
-function filterQuery(payload: InsightsFilterRequest) {
-  return {
-    formId: payload.formId,
-    ...(payload.status ? { status: payload.status } : {}),
-    ...(payload.respondentId ? { respondentId: payload.respondentId } : {}),
-    ...(payload.submittedFrom ? { submittedFrom: payload.submittedFrom } : {}),
-    ...(payload.submittedTo ? { submittedTo: payload.submittedTo } : {}),
-    ...(payload.updatedAfter ? { updatedAfter: payload.updatedAfter } : {}),
-    ...(payload.whereField ? { whereField: payload.whereField } : {}),
-    ...(payload.whereValue !== undefined
-      ? { whereValue: payload.whereValue }
-      : {}),
-    ...(payload.maxRows != null ? { maxRows: payload.maxRows } : {}),
-  };
+function withoutHeaders<T extends { headers?: HeadersInit }>(payload: T) {
+  const { headers: _headers, ...query } = payload;
+  return Object.fromEntries(
+    Object.entries(query).filter(([, value]) => value !== undefined),
+  );
 }
 
 /**
@@ -71,20 +56,13 @@ export function insightsClientPlugin() {
       getFormInsights: (payload: FormInsightsRequest) =>
         $fetch<InsightsSummary>(INSIGHTS_ROUTES.getFormInsights.path, {
           method: "GET",
-          query: {
-            ...filterQuery(payload),
-            ...(payload.bucket ? { bucket: payload.bucket } : {}),
-          },
+          query: withoutHeaders(payload),
           ...(payload.headers ? { headers: payload.headers } : {}),
         }),
       getFormCrosstab: (payload: FormCrosstabRequest) =>
         $fetch<InsightsCrosstab>(INSIGHTS_ROUTES.getFormCrosstab.path, {
           method: "GET",
-          query: {
-            ...filterQuery(payload),
-            row: payload.row,
-            col: payload.col,
-          },
+          query: withoutHeaders(payload),
           ...(payload.headers ? { headers: payload.headers } : {}),
         }),
     }),

@@ -41,10 +41,21 @@ function maxIso(a?: string, b?: string): string | undefined {
   return a > b ? a : b;
 }
 
-function utcDay(iso: string): string | undefined {
+/** Calendar date `YYYY-MM-DD` in an IANA zone. Invalid instants are skipped. */
+export function calendarDay(iso: string, timeZone: string): string | undefined {
   const time = Date.parse(iso);
   if (Number.isNaN(time)) return undefined;
-  return new Date(time).toISOString().slice(0, 10);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(time));
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+  if (!year || !month || !day) return undefined;
+  return `${year}-${month}-${day}`;
 }
 
 type ValueAcc = { label?: string; n: number };
@@ -114,6 +125,11 @@ export type InsightsAccumulatorOptions = {
   liveFields?: readonly FormField[];
   /** Live `meta` for scoring variable / band order. */
   liveMeta?: unknown;
+  /**
+   * IANA zone for `series` day buckets.
+   * @default "UTC"
+   */
+  timeZone?: string;
 };
 
 /**
@@ -141,6 +157,7 @@ export function createInsightsAccumulator(
   const scoringCatalog = emptyScoringCatalog();
   const liveScoring = scoringCatalogFromMeta(options.liveMeta);
   if (liveScoring) mergeScoringCatalog(scoringCatalog, liveScoring);
+  const timeZone = options.timeZone ?? "UTC";
   const byDay = options.series ? new Map<string, number>() : undefined;
 
   function fieldAcc(field: FormField): FieldAcc {
@@ -173,7 +190,7 @@ export function createInsightsAccumulator(
         submittedAtMin = minIso(submittedAtMin, row.submittedAt);
         submittedAtMax = maxIso(submittedAtMax, row.submittedAt);
         if (byDay) {
-          const day = utcDay(row.submittedAt);
+          const day = calendarDay(row.submittedAt, timeZone);
           if (day) byDay.set(day, (byDay.get(day) ?? 0) + 1);
         }
       }
@@ -347,7 +364,13 @@ export function createInsightsAccumulator(
         fields: fieldRows,
         ...(variables.length > 0 ? { scores: { variables } } : {}),
         ...(seriesPoints
-          ? { series: { bucket: "day" as const, points: seriesPoints } }
+          ? {
+              series: {
+                bucket: "day" as const,
+                timeZone,
+                points: seriesPoints,
+              },
+            }
           : {}),
       };
     },

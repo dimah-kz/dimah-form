@@ -1,5 +1,5 @@
 import { packageConfig } from "@workspace/tsup-config";
 
 export default packageConfig({
-  entry: ["src/index.ts", "src/client.ts"],
+  entry: ["src/index.ts", "src/client.ts", "src/document.ts"],
 });

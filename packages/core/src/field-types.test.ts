@@ -4,6 +4,7 @@ import {
   createFieldTypeRegistry,
   dateFieldType,
   emailFieldType,
+  fileFieldType,
   numberFieldType,
   textFieldType,
 } from "./field-types";
@@ -23,6 +24,7 @@ describe("createFieldTypeRegistry", () => {
     expect(registry.get("date")).toBe(dateFieldType);
     expect(registry.has("select")).toBe(true);
     expect(registry.has("multiSelect")).toBe(true);
+    expect(registry.get("file")).toBe(fileFieldType);
   });
 
   it("registers extra types", () => {
@@ -138,5 +140,20 @@ describe("createFieldTypeRegistry", () => {
         }),
       ),
     ).toBe("Must be on or before 2026-01-31");
+  });
+
+  it("validates file metadata and rejects inline bytes", () => {
+    expect(
+      fileFieldType.validate({ id: "abc", name: "a.png", size: 12 }),
+    ).toBeUndefined();
+    expect(message(fileFieldType.validate({ bytes: [1] }))).toBe(
+      "File answers cannot include inline bytes",
+    );
+    expect(message(fileFieldType.validate({}))).toBe("Expected file metadata");
+    expect(message(fileFieldType.validate("a.png"))).toBe(
+      "Expected file metadata",
+    );
+    expect(fileFieldType.isEmpty?.({})).toBe(true);
+    expect(fileFieldType.isEmpty?.({ name: "a.png" })).toBe(false);
   });
 });

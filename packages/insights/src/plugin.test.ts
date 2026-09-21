@@ -333,19 +333,68 @@ describe("insightsPlugin", () => {
     ).toMatchObject({ min: 5, max: 5, mean: 5 });
   });
 
-  it("rejects a non-categorical crosstab field", async () => {
+  it("skips a text crosstab axis instead of rejecting the live type", async () => {
     const form = dimahForm({
       database: memoryAdapter(),
       plugins: [insightsPlugin()],
       forms: { plain },
     });
-    await expect(
-      form.api.getFormCrosstab({
-        query: { formId: "plain", row: "name", col: "city" },
-      }),
-    ).rejects.toSatisfy((error: unknown) =>
-      isFormErrorCode(error, "VALIDATION_ERROR"),
-    );
+    await submitPlain(form, { name: "Ada", city: "tehran" });
+    const table = await form.api.getFormCrosstab({
+      query: { formId: "plain", row: "name", col: "city" },
+    });
+    expect(table.n).toBe(0);
+    expect(table.cells).toEqual([]);
+  });
+
+  it("keeps snapshot categories after the live field becomes text", async () => {
+    const form = dimahForm({
+      database: memoryAdapter(),
+      plugins: [insightsPlugin()],
+    });
+    await form.api.saveForm({
+      body: {
+        id: "shifted",
+        title: "Shifted",
+        fields: [
+          {
+            id: "city",
+            type: "select",
+            options: [{ value: "tehran", label: "Tehran" }],
+          },
+          { id: "remote", type: "boolean" },
+        ],
+      },
+    });
+    const started = await form.api.startResponse({
+      body: { formId: "shifted" },
+    });
+    await form.api.submitResponse({
+      body: {
+        responseId: started.id,
+        answers: { city: "tehran", remote: true },
+      },
+    });
+    await form.api.saveForm({
+      body: {
+        id: "shifted",
+        title: "Shifted",
+        fields: [
+          { id: "city", type: "text" },
+          { id: "remote", type: "boolean" },
+        ],
+      },
+    });
+    const table = await form.api.getFormCrosstab({
+      query: {
+        formId: "shifted",
+        status: "submitted",
+        row: "city",
+        col: "remote",
+      },
+    });
+    expect(table.n).toBe(1);
+    expect(table.cells).toEqual([{ row: "tehran", col: "true", n: 1 }]);
   });
 
   it("throws UNKNOWN_FORM for a missing formId", async () => {

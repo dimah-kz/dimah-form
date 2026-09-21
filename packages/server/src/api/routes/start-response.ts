@@ -9,6 +9,7 @@ import { createFormEndpoint } from "@/api/create-form-endpoint";
 import { errors } from "@/errors";
 import { requireActiveForm, resolveLiveForm } from "@/forms";
 import { commitLifecycle, persistedResponse } from "@/helpers/lifecycle";
+import { responseHookContext } from "@/plugin/context";
 
 const { method, path } = FORM_API_OPERATIONS.startResponse;
 
@@ -49,18 +50,26 @@ export const startResponse = createFormEndpoint(
     const database = ctx.context.config.database;
 
     if (ctx.body.resume) {
-      await hooks.onStart?.({ request, response: row });
+      await hooks.onStart?.(
+        responseHookContext(ctx.context.config, request, row),
+      );
       const result = await database.getOrCreateDraft(row);
       if (result.created) {
-        await hooks.afterStart?.({ request, response: result.row });
+        await hooks.afterStart?.(
+          responseHookContext(ctx.context.config, request, result.row),
+        );
       }
       return persistedResponse((id) => database.getResponse(id), result.row);
     }
 
     await commitLifecycle(
-      () => hooks.onStart?.({ request, response: row }),
+      () =>
+        hooks.onStart?.(responseHookContext(ctx.context.config, request, row)),
       () => database.createResponse(row),
-      () => hooks.afterStart?.({ request, response: row }),
+      () =>
+        hooks.afterStart?.(
+          responseHookContext(ctx.context.config, request, row),
+        ),
     );
     return persistedResponse((id) => database.getResponse(id), row);
   },

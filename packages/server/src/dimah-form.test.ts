@@ -82,11 +82,11 @@ describe("dimahForm instance", () => {
         forms: {
           intake: defineForm({
             title: "Intake",
-            fields: [{ id: "file", type: "file", required: true }],
+            fields: [{ id: "upload", type: "upload", required: true }],
           }),
         },
       }),
-    ).toThrow(/Unknown field type "file"/);
+    ).toThrow(/Unknown field type "upload"/);
   });
 
   it("throws when a field type is registered twice", () => {

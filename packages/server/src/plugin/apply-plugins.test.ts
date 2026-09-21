@@ -81,6 +81,7 @@ describe("applyPlugins", () => {
     await applied.hooks.onStart?.({
       request: new Request("http://localhost"),
       response: {} as never,
+      getPluginContext: () => undefined,
     });
     expect(order).toEqual(["a", "b"]);
   });
@@ -113,6 +114,7 @@ describe("applyPlugins", () => {
     await applied.hooks.onStart?.({
       request: new Request("http://localhost"),
       response: {} as never,
+      getPluginContext: () => undefined,
     });
     expect(order).toEqual(["a", "b"]);
   });

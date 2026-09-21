@@ -61,7 +61,14 @@ export type NamespacedMeta<
 };
 
 export type BuiltinFieldTypeName =
-  "text" | "number" | "boolean" | "select" | "multiSelect" | "email" | "date";
+  | "text"
+  | "number"
+  | "boolean"
+  | "select"
+  | "multiSelect"
+  | "email"
+  | "date"
+  | "file";
 
 type AuthorOption<TOptionMeta> = {
   value: string;

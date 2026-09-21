@@ -4,6 +4,11 @@ import {
   type FormField,
   type FormSnapshot,
 } from "@dimah-form/core";
+import {
+  parseScoringOptionMeta,
+  readScoringFieldMeta,
+  readScoringFormMeta,
+} from "@dimah-form/scoring/document";
 
 import { canonicalJson, snapshotKey, type SnapshotKeyCache } from "./hash";
 import {
@@ -14,7 +19,6 @@ import {
   type CodebookField,
   type CodebookFieldConstraints,
   type CodebookFieldHistory,
-  type CodebookFieldScoring,
   type CodebookFieldView,
   type CodebookOption,
   type CodebookScoreBand,
@@ -25,8 +29,6 @@ import {
   type CodebookScoreVariable,
   type CodebookScoreVariableHistory,
   type CodebookScoreVariableView,
-  type CodebookScoringAdd,
-  type CodebookScoringMissing,
   type CodebookSnapshot,
 } from "./spec";
 
@@ -58,173 +60,10 @@ type ScoreFormulaVariant = CodebookScoreFormulaView & {
   id: string;
 };
 
-const SCORING_MISSING = new Set<CodebookScoringMissing>([
-  "zero",
-  "omit",
-  "incomplete",
-]);
-
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return;
-  return value as Record<string, unknown>;
-}
-
 function asFinite(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value)
     ? value
     : undefined;
-}
-
-function scoringMissing(value: unknown): CodebookScoringMissing | undefined {
-  return typeof value === "string" &&
-    SCORING_MISSING.has(value as CodebookScoringMissing)
-    ? (value as CodebookScoringMissing)
-    : undefined;
-}
-
-function scoringAdd(value: unknown): CodebookScoringAdd[] | undefined {
-  if (!Array.isArray(value) || value.length === 0) return;
-  const add: CodebookScoringAdd[] = [];
-  const seen = new Set<string>();
-  for (const row of value) {
-    const record = asRecord(row);
-    if (
-      !record ||
-      typeof record.variable !== "string" ||
-      record.variable.length === 0
-    ) {
-      return;
-    }
-    const points = asFinite(record.points);
-    if (points === undefined || seen.has(record.variable)) return;
-    seen.add(record.variable);
-    add.push({ variable: record.variable, points });
-  }
-  return add;
-}
-
-/** Likert `points` or keying `add`. Both or neither → omit (invalid). */
-function optionScoring(
-  meta: unknown,
-): Pick<CodebookOption, "points" | "add"> | undefined {
-  const scoring = asRecord(asRecord(meta)?.scoring);
-  if (!scoring) return;
-  const points = asFinite(scoring.points);
-  const add = scoringAdd(scoring.add);
-  if ((points !== undefined) === (add !== undefined)) return;
-  if (points !== undefined) return { points };
-  if (add) return { add };
-  return;
-}
-
-function fieldScoring(meta: unknown): CodebookFieldScoring | undefined {
-  const scoring = asRecord(asRecord(meta)?.scoring);
-  if (
-    !scoring ||
-    typeof scoring.variable !== "string" ||
-    scoring.variable.length === 0
-  ) {
-    return;
-  }
-  return {
-    variable: scoring.variable,
-    ...(scoring.reverse === true ? { reverse: true } : {}),
-  };
-}
-
-function formulaOf(
-  row: unknown,
-): Omit<ScoreFormulaVariant, "snapshotKey"> | undefined {
-  const record = asRecord(row);
-  if (!record || typeof record.id !== "string" || record.id.length === 0) {
-    return;
-  }
-  if (
-    record.op !== "sum" ||
-    !Array.isArray(record.vars) ||
-    record.vars.length === 0
-  ) {
-    return;
-  }
-  const vars: string[] = [];
-  const seen = new Set<string>();
-  for (const item of record.vars) {
-    if (typeof item !== "string" || item.length === 0 || seen.has(item)) {
-      return;
-    }
-    seen.add(item);
-    vars.push(item);
-  }
-  return {
-    id: record.id,
-    op: "sum",
-    vars,
-    ...(typeof record.label === "string" ? { label: record.label } : {}),
-  };
-}
-
-function scoringDocs(meta: unknown):
-  | {
-      variables: Omit<ScoreVariableVariant, "snapshotKey">[];
-      bands: Omit<ScoreBandVariant, "snapshotKey">[];
-      formulas: Omit<ScoreFormulaVariant, "snapshotKey">[];
-    }
-  | undefined {
-  const scoring = asRecord(asRecord(meta)?.scoring);
-  if (!scoring) return;
-  const variables: Omit<ScoreVariableVariant, "snapshotKey">[] = [];
-  if (Array.isArray(scoring.variables)) {
-    for (const row of scoring.variables) {
-      const record = asRecord(row);
-      if (!record || typeof record.id !== "string" || record.id.length === 0) {
-        continue;
-      }
-      const missing = scoringMissing(record.missing);
-      const min = asFinite(record.min);
-      const max = asFinite(record.max);
-      variables.push({
-        id: record.id,
-        ...(typeof record.label === "string" ? { label: record.label } : {}),
-        ...(min !== undefined ? { min } : {}),
-        ...(max !== undefined ? { max } : {}),
-        ...(missing !== undefined ? { missing } : {}),
-      });
-    }
-  }
-  const bands: Omit<ScoreBandVariant, "snapshotKey">[] = [];
-  if (Array.isArray(scoring.bands)) {
-    for (const row of scoring.bands) {
-      const record = asRecord(row);
-      if (
-        !record ||
-        typeof record.variable !== "string" ||
-        record.variable.length === 0 ||
-        typeof record.label !== "string" ||
-        record.label.trim().length === 0
-      ) {
-        continue;
-      }
-      const from = asFinite(record.from);
-      const to = asFinite(record.to);
-      bands.push({
-        variable: record.variable,
-        label: record.label,
-        ...(from !== undefined ? { from } : {}),
-        ...(to !== undefined ? { to } : {}),
-      });
-    }
-  }
-  const formulas: Omit<ScoreFormulaVariant, "snapshotKey">[] = [];
-  if (Array.isArray(scoring.formulas)) {
-    for (const row of scoring.formulas) {
-      const formula = formulaOf(row);
-      if (formula) formulas.push(formula);
-    }
-  }
-  if (variables.length === 0 && bands.length === 0 && formulas.length === 0) {
-    return;
-  }
-  return { variables, bands, formulas };
 }
 
 function fieldConstraints(
@@ -265,7 +104,7 @@ function fieldConstraints(
 
 function codebookOptions(field: FormField): CodebookOption[] | undefined {
   const options = fieldOptions(field).map((option) => {
-    const scoring = optionScoring(option.meta);
+    const scoring = parseScoringOptionMeta(option.meta);
     return {
       value: option.value,
       label: option.label,
@@ -714,7 +553,7 @@ function ingestSource(
     const list = fieldVariants.get(field.id) ?? [];
     const constraints = fieldConstraints(field);
     const options = codebookOptions(field);
-    const scoring = fieldScoring(field.meta);
+    const scoring = readScoringFieldMeta(field.meta);
     list.push({
       snapshotKey: source.snapshotKey,
       type: field.type,
@@ -728,7 +567,7 @@ function ingestSource(
     });
     fieldVariants.set(field.id, list);
   }
-  const docs = scoringDocs(source.definition.meta);
+  const docs = readScoringFormMeta(source.definition.meta);
   if (!docs) return;
   for (const variable of docs.variables) {
     scoreVariables.push({ ...variable, snapshotKey: source.snapshotKey });

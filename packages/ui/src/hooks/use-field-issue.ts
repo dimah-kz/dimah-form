@@ -52,6 +52,8 @@ export function useFieldIssue(
       return t("Expected an email", { note: "field issue" });
     case FIELD_ISSUE_CODES.EXPECTED_DATE.code:
       return t("Expected a date", { note: "field issue" });
+    case FIELD_ISSUE_CODES.EXPECTED_FILE.code:
+      return t("Expected file metadata", { note: "field issue" });
     case FIELD_ISSUE_CODES.TOO_SHORT.code:
       return t("Must be at least {min} characters", {
         note: "field issue",

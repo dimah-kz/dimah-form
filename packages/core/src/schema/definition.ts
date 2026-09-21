@@ -180,6 +180,36 @@ export const emailFieldSchema = z.strictObject({
   type: z.literal("email"),
 });
 
+/**
+ * File answer metadata. Inline bytes stay out of the response document.
+ * At least one of `id`, `url`, or `name` is required.
+ */
+export const fileAnswerSchema = z
+  .strictObject({
+    id: trimmedString.optional(),
+    url: trimmedString.optional(),
+    name: trimmedString.optional(),
+    contentType: trimmedString.optional(),
+    size: z.int().nonnegative().optional(),
+  })
+  .check((ctx) => {
+    const { id, url, name } = ctx.value;
+    if (id === undefined && url === undefined && name === undefined) {
+      ctx.issues.push({
+        code: "custom",
+        message: "File metadata needs id, url, or name",
+        input: ctx.value,
+      });
+    }
+  });
+
+export type FileAnswer = z.output<typeof fileAnswerSchema>;
+
+export const fileFieldSchema = z.strictObject({
+  ...fieldDocument,
+  type: z.literal("file"),
+});
+
 export const dateFieldSchema = z
   .strictObject({
     ...fieldDocument,
@@ -207,6 +237,7 @@ export const fieldSchema = z.discriminatedUnion("type", [
   multiSelectFieldSchema,
   emailFieldSchema,
   dateFieldSchema,
+  fileFieldSchema,
 ]);
 
 const builtinFieldByType = {
@@ -217,6 +248,7 @@ const builtinFieldByType = {
   multiSelect: multiSelectFieldSchema,
   email: emailFieldSchema,
   date: dateFieldSchema,
+  file: fileFieldSchema,
 } as const;
 
 /**

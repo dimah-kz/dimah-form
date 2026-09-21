@@ -1,7 +1,7 @@
 import { isAnswerEmpty, isFieldVisible } from "./answers";
 import type { FieldTypeDefinition } from "./define";
 import { isAPIError } from "./error";
-import { resolveFieldTypeRegistry } from "./field-types";
+import { formatFileAnswer, resolveFieldTypeRegistry } from "./field-types";
 import type { FormField, DocumentMeta } from "./schema/definition";
 import type { FormAnswers } from "./schema/protocol";
 import type { ValidationIssue } from "./schema/error";
@@ -196,6 +196,7 @@ export function formatAnswer(
     if (value === false) return "No";
     return "";
   }
+  if (field.type === "file") return formatFileAnswer(value);
   const options = fieldOptions(field);
   if (field.type === "select" && typeof value === "string") {
     return options.find((option) => option.value === value)?.label ?? value;

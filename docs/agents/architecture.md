@@ -12,9 +12,9 @@ Backend-first questionnaire engine. Consumers own auth and the database adapter.
 @dimah-form/db         @dimah-form/scoring
 (peer: server)         (peer: server / core)
                        @dimah-form/dataset
-                       (peer: server / core / scoring)
+                       (depends on scoring; peer: server / core)
                        @dimah-form/insights
-                       (peer: server / core / scoring)
+                       (depends on scoring; peer: server / core)
 ```
 
 `apps/docs` and `examples/*` consume workspace packages (not published). Registry item manifests: `packages/ui/scripts/` (see [registry.md](./registry.md)).
@@ -46,7 +46,7 @@ Shared protocol changes start in `core`, then wire `server` and `react`. Do not 
 - `database` is required (`memoryAdapter()` or `db()` from `@dimah-form/db`). Plugins merge once in `dimahForm()` and do not replace persistence. `listResponses({ include: "summary" })` omits `definition` / `answers` at the adapter.
 - Filling a response is headless: `createFormResponseSession` in core, `useFormResponse` in react. Optional `@dimah-form/ui` wraps `FormFieldBinding` / `FormResponseApi` as `binding` / `form`. It does not call the hook or fork the loop. Consumers may still own widgets. Optional `autosave` debounces `saveDraft` (`state.autosave` is whether it is on). Local edits during an in-flight save are kept (`dirty`). Session request failures expose `error` plus `errorCode` / `errorParams`. `validate(mode, { fields })` can check a wizard step.
 - Field `showWhen` is sibling visibility on that snapshot. Nested rules follow the parent. Leaf rules: `equals` / `notEquals` / `includes` (scalar or non-empty scalar list). Compound: `all` / `any`. Hidden answers are stripped before validate / persist.
-- Domain hooks: `on*` after validation before persist; `after*` after persist. Auth stays in `guard`. Guard may load rows via `getResponse` / `getForm` (store, no HTTP re-entry).
+- Domain hooks: `on*` after validation before persist; `after*` after persist. Every hook receives `getPluginContext` for values returned from plugin `init`. Auth stays in `guard`. Guard may load rows via `getResponse` / `getForm` (store, no HTTP re-entry).
 - Code-authored `forms` feed `$Infer`. `getForm` / `startResponse` read config first, then the live questionnaire row. `saveForm` writes that row and cannot overwrite a code-authored id.
 - Browser `$Infer` is `createFormClient<typeof form>({ fieldTypes })` (type-only). Apps import from `server` or `react`; `core` is protocol/plugin internals and shared field-type modules. Plugin endpoint names need `createFormClient<Form, typeof plugins>({ plugins })` once the server generic is set — they are not inferred from the server plugin.
 - Each response stores the definition it was started with. Submit validates that snapshot. Starting a response does not rewrite the live questionnaire row.

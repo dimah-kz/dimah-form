@@ -7,6 +7,7 @@ import {
 import { createFormEndpoint } from "@/api/create-form-endpoint";
 import { errors } from "@/errors";
 import { commitLifecycle, writeResponse } from "@/helpers/lifecycle";
+import { responseHookContext } from "@/plugin/context";
 import { requireDraft } from "@/validate";
 
 const { method, path } = FORM_API_OPERATIONS.abandonResponse;
@@ -29,13 +30,14 @@ export const abandonResponse = createFormEndpoint(
     };
     const request = ctx.context.request;
     const hooks = ctx.context.config.hooks;
+    const hook = () => responseHookContext(ctx.context.config, request, row);
     return commitLifecycle(
-      () => hooks.onAbandon?.({ request, response: row }),
+      () => hooks.onAbandon?.(hook()),
       () =>
         writeResponse(ctx.context.config.database, row, {
           expectedUpdatedAt: ctx.body.updatedAt,
         }),
-      () => hooks.afterAbandon?.({ request, response: row }),
+      () => hooks.afterAbandon?.(hook()),
     );
   },
 );

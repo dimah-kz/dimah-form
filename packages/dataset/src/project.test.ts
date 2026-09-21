@@ -178,5 +178,22 @@ describe("projectResponse", () => {
       id: "abc",
       name: "a.png",
     });
+    expect(projected.fields[0]?.formatted).toBe("a.png");
+  });
+
+  it("does not treat object answers on other types as attachments", async () => {
+    const definition = normalizeFormSnapshot({
+      id: "notes",
+      title: "Notes",
+      fields: [{ id: "note", type: "text" }],
+    });
+    const projected = await projectResponse(
+      record({
+        definition,
+        answers: { note: { name: "x", bytes: [1] } },
+      }),
+    );
+    expect(projected.fields[0]?.attachment).toBeUndefined();
+    expect(projected.fields[0]?.value).toEqual({ name: "x", bytes: [1] });
   });
 });

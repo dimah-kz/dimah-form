@@ -7,10 +7,11 @@ import { canonicalJson, snapshotKey } from "./hash";
 const fields = [{ id: "name", type: "text" as const, label: "Name" }];
 
 describe("canonicalJson", () => {
-  it("sorts object keys recursively", () => {
+  it("matches RFC 8785 key order and drops undefined members", () => {
     expect(canonicalJson({ b: 1, a: { d: 2, c: 3 } })).toBe(
-      canonicalJson({ a: { c: 3, d: 2 }, b: 1 }),
+      '{"a":{"c":3,"d":2},"b":1}',
     );
+    expect(canonicalJson({ b: undefined, a: 1 })).toBe('{"a":1}');
   });
 });
 

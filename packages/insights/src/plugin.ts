@@ -1,33 +1,34 @@
-import {
-  FIELD_ISSUE_CODES,
-  type FieldTypeDefinition,
-  type FormField,
-} from "@dimah-form/core";
+import type { FieldTypeDefinition, FormField } from "@dimah-form/core";
+import { tryScoreResponse } from "@dimah-form/scoring/document";
 import {
   createFormEndpoint,
   DEFAULT_WALK_MAX_ROWS,
   definePlugin,
-  errors,
+  getPluginContext,
   resolveLiveForm,
   walkFullResponses,
   type ListResponsesStoreQuery,
 } from "@dimah-form/server";
 
-import { isCategoricalField } from "./categorical";
 import { createInsightsCrosstabAccumulator } from "./crosstab";
 import { INSIGHTS_ID } from "./errors";
 import { INSIGHTS_ROUTES } from "./routes";
-import { tryScoreResponse } from "./scoring";
 import {
   insightsCrosstabQuerySchema,
   insightsCrosstabSchema,
   insightsSummaryQuerySchema,
   insightsSummarySchema,
+  isIanaTimeZone,
   type InsightsCrosstab,
   type InsightsSummary,
 } from "./spec";
 import { createInsightsAccumulator } from "./summary";
 import { rowMatchesWhere } from "./where";
+
+type InsightsPluginContext = {
+  fieldTypes: ReadonlyMap<string, FieldTypeDefinition>;
+  timeZone: string;
+};
 
 export type InsightsPluginOptions = {
   /**
@@ -36,6 +37,11 @@ export type InsightsPluginOptions = {
    * @default 10_000
    */
   maxRows?: number;
+  /**
+   * IANA zone for `bucket=day`. Query `timeZone` overrides this.
+   * @default "UTC"
+   */
+  timeZone?: string;
 };
 
 function storeFilter(
@@ -62,23 +68,20 @@ function walkCap(pluginCap: number, queryMaxRows?: number): number {
   return Math.min(queryMaxRows ?? pluginCap, pluginCap);
 }
 
+/**
+ * Live field for catalog order. A missing or non-categorical live field
+ * does not reject the query — each snapshot decides whether the axis counts.
+ */
 function crosstabAxis(
   form: { fields: readonly FormField[] },
   fieldId: string,
-  queryField: "row" | "col",
 ): FormField {
-  const field = form.fields.find((item) => item.id === fieldId);
-  if (!field) return { id: fieldId, type: "select" };
-  if (!isCategoricalField(field)) {
-    throw errors.validationError([
-      {
-        field: queryField,
-        message: `Crosstab ${queryField} field must be categorical`,
-        code: FIELD_ISSUE_CODES.INVALID.code,
-      },
-    ]);
-  }
-  return field;
+  return (
+    form.fields.find((item) => item.id === fieldId) ?? {
+      id: fieldId,
+      type: "text",
+    }
+  );
 }
 
 /**
@@ -87,13 +90,20 @@ function crosstabAxis(
  */
 export function insightsPlugin(options: InsightsPluginOptions = {}) {
   const maxRowsCap = options.maxRows ?? DEFAULT_WALK_MAX_ROWS;
-  const state: { fieldTypes?: ReadonlyMap<string, FieldTypeDefinition> } = {};
+  const timeZone = options.timeZone ?? "UTC";
+  if (!isIanaTimeZone(timeZone)) {
+    throw new Error(`Invalid IANA time zone "${timeZone}".`);
+  }
 
   return definePlugin({
     id: INSIGHTS_ID,
     init(ctx) {
-      state.fieldTypes = ctx.fieldTypes;
-      return { context: { fieldTypes: ctx.fieldTypes } };
+      return {
+        context: {
+          fieldTypes: ctx.fieldTypes,
+          timeZone,
+        } satisfies InsightsPluginContext,
+      };
     },
     endpoints: {
       getFormInsights: createFormEndpoint(
@@ -106,12 +116,17 @@ export function insightsPlugin(options: InsightsPluginOptions = {}) {
         async (ctx): Promise<InsightsSummary> => {
           const config = ctx.context.config;
           const form = await resolveLiveForm(config, ctx.query.formId);
+          const plugin = getPluginContext<InsightsPluginContext>(
+            config,
+            INSIGHTS_ID,
+          );
           const filter = storeFilter(form.id, ctx.query);
           const acc = createInsightsAccumulator(form.id, {
-            fieldTypes: state.fieldTypes ?? config.fieldTypes,
+            fieldTypes: plugin?.fieldTypes ?? config.fieldTypes,
             series: ctx.query.bucket === "day",
             liveFields: form.fields,
             liveMeta: form.meta,
+            timeZone: ctx.query.timeZone ?? plugin?.timeZone ?? "UTC",
           });
           const whereField = ctx.query.whereField;
           const whereValue = ctx.query.whereValue;
@@ -129,10 +144,7 @@ export function insightsPlugin(options: InsightsPluginOptions = {}) {
                 ) {
                   return;
                 }
-                const scores = await tryScoreResponse(
-                  row.definition,
-                  row.answers,
-                );
+                const scores = tryScoreResponse(row.definition, row.answers);
                 acc.add(row, scores);
               },
             },
@@ -154,8 +166,8 @@ export function insightsPlugin(options: InsightsPluginOptions = {}) {
         async (ctx): Promise<InsightsCrosstab> => {
           const config = ctx.context.config;
           const form = await resolveLiveForm(config, ctx.query.formId);
-          const rowField = crosstabAxis(form, ctx.query.row, "row");
-          const colField = crosstabAxis(form, ctx.query.col, "col");
+          const rowField = crosstabAxis(form, ctx.query.row);
+          const colField = crosstabAxis(form, ctx.query.col);
           const filter = storeFilter(form.id, ctx.query);
           const acc = createInsightsCrosstabAccumulator(
             form.id,

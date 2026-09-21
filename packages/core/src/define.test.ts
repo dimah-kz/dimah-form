@@ -41,9 +41,9 @@ describe("defineForm", () => {
   it("allows unknown field types in the document", () => {
     const form = defineForm({
       title: "Intake",
-      fields: [{ id: "file", type: "file", required: true }],
+      fields: [{ id: "upload", type: "upload", required: true }],
     });
-    expect(form.fields[0]?.type).toBe("file");
+    expect(form.fields[0]?.type).toBe("upload");
   });
 });
 

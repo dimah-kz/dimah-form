@@ -29,9 +29,11 @@ import type {
   DimahFormHooks,
   DimahFormMetaSchema,
   DimahFormPlugin,
+  FormHookContext,
   PluginInitContext,
   PluginInitResult,
   ResolvedDimahFormConfig,
+  ResponseHookContext,
 } from "./types";
 
 export type {
@@ -40,8 +42,10 @@ export type {
   DimahFormHooks,
   DimahFormMetaSchema,
   DimahFormPlugin,
+  FormHookContext,
   PluginInitContext,
   PluginInitResult,
+  ResponseHookContext,
 };
 
 export type DimahFormConfig<

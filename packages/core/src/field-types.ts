@@ -10,10 +10,13 @@ import {
   booleanFieldSchema,
   dateFieldSchema,
   emailFieldSchema,
+  fileAnswerSchema,
+  fileFieldSchema,
   multiSelectFieldSchema,
   numberFieldSchema,
   selectFieldSchema,
   textFieldSchema,
+  type FileAnswer,
 } from "./schema/definition";
 
 /** HTML `type="date"` / ISO calendar date (`YYYY-MM-DD`). */
@@ -223,6 +226,52 @@ export const dateFieldType = defineFieldType({
   $Infer: "" as string,
 });
 
+const BINARY_FILE_KEYS = new Set(["bytes", "data", "content", "buffer"]);
+
+/** Display string for a file answer: name, then url, then id. */
+export function formatFileAnswer(value: unknown): string {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return "";
+  const record = value as Record<string, unknown>;
+  for (const key of ["name", "url", "id"] as const) {
+    const item = record[key];
+    if (typeof item === "string" && item.trim() !== "") return item;
+  }
+  return "";
+}
+
+function fileIdentity(value: unknown): boolean {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  for (const key of ["id", "url", "name"]) {
+    const item = record[key];
+    if (typeof item === "string" && item.trim() !== "") return true;
+  }
+  return false;
+}
+
+export const fileFieldType = defineFieldType({
+  type: "file",
+  fieldSchema: fileFieldSchema,
+  isEmpty: (value) => value == null || !fileIdentity(value),
+  validate: (value) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return issue(FIELD_ISSUE_CODES.EXPECTED_FILE);
+    }
+    for (const key of Object.keys(value)) {
+      if (BINARY_FILE_KEYS.has(key)) {
+        return issue(FIELD_ISSUE_CODES.EXPECTED_FILE, {
+          message: "File answers cannot include inline bytes",
+        });
+      }
+    }
+    return fileAnswerSchema.safeParse(value).success
+      ? undefined
+      : issue(FIELD_ISSUE_CODES.EXPECTED_FILE);
+  },
+  format: formatFileAnswer,
+  $Infer: {} as FileAnswer,
+});
+
 export const builtinFieldTypes = [
   textFieldType,
   numberFieldType,
@@ -231,6 +280,7 @@ export const builtinFieldTypes = [
   multiSelectFieldType,
   emailFieldType,
   dateFieldType,
+  fileFieldType,
 ] as const;
 
 /** Answer types keyed by builtin `type` string, from each type's `$Infer`. */

@@ -328,10 +328,21 @@ describe("toDataPackage", () => {
       profile: string;
       resources: {
         path: string;
-        schema?: { missingValues?: string[] };
+        dialect?: { quoteChar?: string; doubleQuote?: boolean };
+        schema?: {
+          missingValues?: string[];
+          primaryKey?: string[];
+          fields?: {
+            name: string;
+            type: string;
+            constraints?: { enum?: string[] };
+          }[];
+        };
       }[];
     };
-    expect(manifest.profile).toBe("data-package");
+    expect(manifest.profile).toBe(
+      "https://specs.frictionlessdata.io/schemas/tabular-data-package.json",
+    );
     expect(manifest.resources.map((resource) => resource.path)).toEqual([
       "responses.jsonl",
       "responses.csv",
@@ -345,6 +356,13 @@ describe("toDataPackage", () => {
       (resource) => resource.path === "responses.jsonl",
     );
     expect(csv?.schema?.missingValues).toEqual([""]);
+    expect(csv?.schema?.primaryKey).toEqual(["id"]);
+    expect(csv?.dialect).toMatchObject({
+      quoteChar: '"',
+      doubleQuote: true,
+    });
+    const name = csv?.schema?.fields?.find((field) => field.name === "name");
+    expect(name?.type).toBe("string");
     expect(jsonl?.schema).toBeUndefined();
   });
 });

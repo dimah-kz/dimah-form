@@ -92,9 +92,9 @@ describe("createDefineForm", () => {
   it("does not replace defineForm for unknown types", () => {
     const form = defineForm({
       title: "Intake",
-      fields: [{ id: "file", type: "file", required: true }],
+      fields: [{ id: "upload", type: "upload", required: true }],
     });
-    expect(form.fields[0]?.type).toBe("file");
+    expect(form.fields[0]?.type).toBe("upload");
   });
 
   it("merges plugin $Meta and fieldTypes onto the authored document", () => {

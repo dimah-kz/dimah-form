@@ -138,7 +138,7 @@ Each item in `fields` requires an `id`, a `type`, and an optional `label`:
 ### Common Field Attributes
 
 - **`id`**: Unique string identifier within the form. Serves as the key in the answers dictionary.
-- **`type`**: Built-in type (`"text"`, `"number"`, `"boolean"`, `"select"`, `"multiSelect"`, `"email"`, `"date"`) or a custom type registered via `defineFieldType`.
+- **`type`**: Built-in type (`"text"`, `"number"`, `"boolean"`, `"select"`, `"multiSelect"`, `"email"`, `"date"`, `"file"`) or a custom type registered via `defineFieldType`.
 - **`label`**: Display label for UI components (retrieved via `fieldLabel(field)`).
 - **`required`**: If `true`, the field must be non-empty when submitting the form (if visible).
 - **`defaultValue`**: Seeded into the answers map upon calling `startResponse`.

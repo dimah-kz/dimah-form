@@ -200,6 +200,24 @@ describe("createInsightsAccumulator", () => {
     acc.add(row({ id: "r3", status: "draft", submittedAt: null, answers: {} }));
     expect(acc.finish().series).toEqual({
       bucket: "day",
+      timeZone: "UTC",
+      points: [
+        { t: "2026-01-15", n: 1 },
+        { t: "2026-01-16", n: 1 },
+      ],
+    });
+  });
+
+  it("buckets days in an IANA time zone", () => {
+    const acc = createInsightsAccumulator("quiz", {
+      series: true,
+      timeZone: "Asia/Tehran",
+    });
+    acc.add(row({ submittedAt: "2026-01-15T20:29:00.000Z" }));
+    acc.add(row({ id: "r2", submittedAt: "2026-01-15T20:30:00.000Z" }));
+    expect(acc.finish().series).toEqual({
+      bucket: "day",
+      timeZone: "Asia/Tehran",
       points: [
         { t: "2026-01-15", n: 1 },
         { t: "2026-01-16", n: 1 },

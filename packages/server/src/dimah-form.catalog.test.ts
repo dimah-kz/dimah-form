@@ -294,7 +294,7 @@ describe("live catalog", () => {
         body: {
           id: "x",
           title: "X",
-          fields: [{ id: "f", type: "file" }],
+          fields: [{ id: "f", type: "upload" }],
         },
       }),
     ).rejects.toSatisfy((error: unknown) =>

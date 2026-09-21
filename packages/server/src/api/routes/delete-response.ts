@@ -6,6 +6,7 @@ import {
 import { createFormEndpoint } from "@/api/create-form-endpoint";
 import { errors } from "@/errors";
 import { commitLifecycle } from "@/helpers/lifecycle";
+import { responseHookContext } from "@/plugin/context";
 
 const { method, path } = FORM_API_OPERATIONS.deleteResponse;
 
@@ -21,10 +22,12 @@ export const deleteResponse = createFormEndpoint(
     }
     const request = ctx.context.request;
     const hooks = ctx.context.config.hooks;
+    const hook = () =>
+      responseHookContext(ctx.context.config, request, existing);
     await commitLifecycle(
-      () => hooks.onDeleteResponse?.({ request, response: existing }),
+      () => hooks.onDeleteResponse?.(hook()),
       () => ctx.context.config.database.deleteResponse(existing.id),
-      () => hooks.afterDeleteResponse?.({ request, response: existing }),
+      () => hooks.afterDeleteResponse?.(hook()),
     );
     return { ok: true, responseId: existing.id };
   },

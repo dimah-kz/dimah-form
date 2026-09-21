@@ -11,6 +11,26 @@ const wherePair = {
   whereValue: z.string().optional(),
 };
 
+/** True when `timeZone` is an IANA name `Intl` accepts. */
+export function isIanaTimeZone(timeZone: string): boolean {
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const ianaTimeZoneSchema = z.string().check((ctx) => {
+  if (!isIanaTimeZone(ctx.value)) {
+    ctx.issues.push({
+      code: "custom",
+      message: "Invalid time zone",
+      input: ctx.value,
+    });
+  }
+});
+
 function whereTogether<T extends { whereField?: string; whereValue?: string }>(
   query: T,
 ): boolean {
@@ -23,6 +43,8 @@ export const insightsSummaryQuerySchema = z
     formId: formIdSchema,
     ...wherePair,
     bucket: z.enum(["day"]).optional(),
+    /** IANA zone for `bucket=day`. Defaults to the plugin option, then UTC. */
+    timeZone: ianaTimeZoneSchema.optional(),
     maxRows: z.coerce.number().pipe(z.int().min(1)).optional(),
   })
   .refine(whereTogether, {
@@ -118,6 +140,7 @@ export const insightsSeriesPointSchema = z.object({
 
 export const insightsSeriesSchema = z.object({
   bucket: z.literal("day"),
+  timeZone: z.string(),
   points: z.array(insightsSeriesPointSchema),
 });
 

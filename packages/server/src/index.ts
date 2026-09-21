@@ -4,6 +4,8 @@ export {
   type DimahFormConfig,
   type DimahFormPlugin,
   type DimahFormHooks,
+  type FormHookContext,
+  type ResponseHookContext,
   type DimahFormMetaSchema,
   type DefinitionValidator,
   type PluginInitContext,

@@ -11,8 +11,8 @@ icon: ChartColumn
 - per-field stats: `n` is **visible** occurrences; `hidden` is skip-logic; `unanswered` is visible and empty
 - value counts + `pct` (0–1) for categorical fields (`select` / `multiSelect` / `boolean`, or any field with `options`). Levels follow the document catalog, including unused `n: 0`, in document order — not by frequency
 - `numeric` min / max / mean / stdev for any finite number answer (`number`, or a custom type such as `rating`); `dates` min / max for `date`
-- optional scoring band / mean / stdev when `@dimah-form/scoring` is installed. Bands follow `meta.scoring` order, including unused `n: 0`
-- optional UTC `bucket=day` series of `submittedAt`
+- scoring band / mean / stdev from `@dimah-form/scoring` (a direct dependency). Bands follow `meta.scoring` order, including unused `n: 0`
+- optional `bucket=day` series of `submittedAt` (`timeZone`, default `UTC`)
 - `GET /insights/crosstab` for two categorical fields. `n` is respondents who contributed a cell, not multiSelect tokens
 
 Derived data only. No tables, no `meta` namespace, no live-form flatten. The live questionnaire only supplies field order and catalog levels that snapshots did not already list. Text / email fields are answered / unanswered only.
@@ -69,7 +69,9 @@ const table = await form.api.getFormCrosstab({
 });
 ```
 
-`summary.byStatus` is the census. `completion` uses visible required fields on **each row’s snapshot**. `fields` follow the live questionnaire order; ids that exist only on older snapshots come after. `scores` is omitted when `@dimah-form/scoring` is missing or the snapshot has no `meta.scoring`. A crosstab axis that is on the live form and not categorical is `VALIDATION_ERROR`. An id that is only on older snapshots still folds (empty when no row has it). `table.n` is the respondent base for the cells.
+`summary.byStatus` is the census. `completion` uses visible required fields on **each row’s snapshot**. `fields` follow the live questionnaire order; ids that exist only on older snapshots come after. `scores` is omitted when the snapshot has no `meta.scoring`, or when that snapshot’s scoring meta fails validation. A crosstab axis counts only on snapshots where that field is categorical. Changing the live field to text does not drop older select rows, and it does not reject the query. An id that is only on older snapshots still folds. `table.n` is the respondent base for the cells.
+
+`bucket=day` groups `submittedAt` in an IANA `timeZone` (query overrides the plugin option; default `UTC`). The series includes that `timeZone`.
 
 `GET /insights/summary` and `GET /insights/crosstab`. Filename, charts, and zip stay in the app. Optional UI belongs in the consumer — `@dimah-form/ui` is the fill renderer, not an admin dashboard.
 

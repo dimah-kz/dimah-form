@@ -1,5 +1,6 @@
 import {
   APIError,
+  isAPIError,
   isFieldVisible,
   type FormAnswers,
   type FormField,
@@ -433,6 +434,29 @@ export function scoringIssuesOrUndefined(
 /** True when the form document owns `meta.scoring` (even if the value is invalid). */
 export function hasScoringMeta(definition: { meta?: unknown }): boolean {
   return scoringMetaTarget(definition.meta).present;
+}
+
+/**
+ * Score a snapshot when `meta.scoring` is present. Mapping issues
+ * (`APIError`) omit the score so a bad historical row can still export.
+ * Any other throw propagates.
+ */
+/**
+ * {@link scoreResponse} when the snapshot can be scored.
+ * No `meta.scoring`, or a scoring {@link APIError} on a historical snapshot,
+ * returns `undefined`. Any other throw propagates.
+ */
+export function tryScoreResponse(
+  definition: ScoreDefinition,
+  answers: FormAnswers,
+): ScoreResult | undefined {
+  if (!hasScoringMeta(definition)) return undefined;
+  try {
+    return scoreResponse(definition, answers);
+  } catch (error) {
+    if (isAPIError(error)) return undefined;
+    throw error;
+  }
 }
 
 function throwScoring(issues: ValidationIssue[]): never {

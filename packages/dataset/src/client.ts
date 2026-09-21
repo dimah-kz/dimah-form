@@ -1,8 +1,16 @@
 import { defineClientPlugin } from "@dimah-form/core";
+import type * as z from "zod";
 
 import { DATASET_ID } from "./errors";
 import { DATASET_ROUTES } from "./routes";
-import type { Codebook, DatasetCodebookResult, DatasetPage } from "./spec";
+import type {
+  datasetCodebookQuerySchema,
+  datasetPageQuerySchema,
+  liveCodebookQuerySchema,
+  Codebook,
+  DatasetCodebookResult,
+  DatasetPage,
+} from "./spec";
 
 export {
   DATASET_SPEC,
@@ -71,40 +79,25 @@ export {
 export { DATASET_ID } from "./errors";
 export { DATASET_ROUTES } from "./routes";
 
-export type DatasetListRequest = {
-  formId: string;
-  status?: "draft" | "submitted" | "abandoned";
-  respondentId?: string;
-  submittedFrom?: string;
-  submittedTo?: string;
-  updatedAfter?: string;
-  headers?: HeadersInit;
-};
+type ClientRequest<T> = T & { headers?: HeadersInit };
 
-export type DatasetPageRequest = DatasetListRequest & {
-  limit?: number;
-  offset?: number;
-};
+export type DatasetPageRequest = ClientRequest<
+  z.output<typeof datasetPageQuerySchema>
+>;
 
-export type DatasetCodebookRequest = DatasetListRequest & {
-  /** Lowers the server walk cap. Cannot raise it. */
-  maxRows?: number;
-};
+export type DatasetCodebookRequest = ClientRequest<
+  z.output<typeof datasetCodebookQuerySchema>
+>;
 
-export type LiveCodebookRequest = {
-  formId: string;
-  headers?: HeadersInit;
-};
+export type LiveCodebookRequest = ClientRequest<
+  z.output<typeof liveCodebookQuerySchema>
+>;
 
-function listQuery(payload: DatasetListRequest) {
-  return {
-    formId: payload.formId,
-    ...(payload.status ? { status: payload.status } : {}),
-    ...(payload.respondentId ? { respondentId: payload.respondentId } : {}),
-    ...(payload.submittedFrom ? { submittedFrom: payload.submittedFrom } : {}),
-    ...(payload.submittedTo ? { submittedTo: payload.submittedTo } : {}),
-    ...(payload.updatedAfter ? { updatedAfter: payload.updatedAfter } : {}),
-  };
+function withoutHeaders<T extends { headers?: HeadersInit }>(payload: T) {
+  const { headers: _headers, ...query } = payload;
+  return Object.fromEntries(
+    Object.entries(query).filter(([, value]) => value !== undefined),
+  );
 }
 
 /**
@@ -118,26 +111,19 @@ export function datasetClientPlugin() {
       getDatasetPage: (payload: DatasetPageRequest) =>
         $fetch<DatasetPage>(DATASET_ROUTES.getDatasetPage.path, {
           method: "GET",
-          query: {
-            ...listQuery(payload),
-            ...(payload.limit !== undefined ? { limit: payload.limit } : {}),
-            ...(payload.offset !== undefined ? { offset: payload.offset } : {}),
-          },
+          query: withoutHeaders(payload),
           ...(payload.headers ? { headers: payload.headers } : {}),
         }),
       getDatasetCodebook: (payload: DatasetCodebookRequest) =>
         $fetch<DatasetCodebookResult>(DATASET_ROUTES.getDatasetCodebook.path, {
           method: "GET",
-          query: {
-            ...listQuery(payload),
-            ...(payload.maxRows != null ? { maxRows: payload.maxRows } : {}),
-          },
+          query: withoutHeaders(payload),
           ...(payload.headers ? { headers: payload.headers } : {}),
         }),
       getLiveCodebook: (payload: LiveCodebookRequest) =>
         $fetch<Codebook>(DATASET_ROUTES.getLiveCodebook.path, {
           method: "GET",
-          query: { formId: payload.formId },
+          query: withoutHeaders(payload),
           ...(payload.headers ? { headers: payload.headers } : {}),
         }),
     }),

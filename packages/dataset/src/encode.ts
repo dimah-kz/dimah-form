@@ -367,23 +367,71 @@ export function toJsonlLine(
   return `${JSON.stringify(next)}\n`;
 }
 
+/** Frictionless Tabular Data Package profile. */
+export const TABULAR_DATA_PACKAGE_PROFILE =
+  "https://specs.frictionlessdata.io/schemas/tabular-data-package.json";
+
+/** Frictionless Tabular Data Resource profile. */
+export const TABULAR_DATA_RESOURCE_PROFILE =
+  "https://specs.frictionlessdata.io/schemas/tabular-data-resource.json";
+
+const CSV_DIALECT = {
+  delimiter: ",",
+  quoteChar: '"',
+  doubleQuote: true,
+  header: true,
+  lineTerminator: "\r\n",
+} as const;
+
+const REQUIRED_IDENTITY = new Set<string>([
+  "id",
+  "formId",
+  "status",
+  "createdAt",
+  "updatedAt",
+  "snapshotKey",
+]);
+
+type TableConstraint = {
+  required?: true;
+  enum?: string[];
+  minimum?: number;
+  maximum?: number;
+  minLength?: number;
+  maxLength?: number;
+};
+
+type TableField = {
+  name: string;
+  type: string;
+  constraints?: TableConstraint;
+};
+
+function withConstraints(
+  name: string,
+  type: string,
+  constraints: TableConstraint,
+): TableField {
+  return Object.keys(constraints).length > 0
+    ? { name, type, constraints }
+    : { name, type };
+}
+
 function tableSchemaFields(
   codebook: Codebook,
   options: EncodeOptions,
   records: readonly DatasetRecord[],
-): { name: string; type: string }[] {
+): TableField[] {
   const columns = datasetCsvColumns(codebook, options, records);
-  const fieldType = new Map(
-    codebook.fields.map((field) => [field.id, field.type]),
-  );
+  const byId = new Map(codebook.fields.map((field) => [field.id, field]));
+  const fieldIds = new Set(byId.keys());
   return columns.map((name) => {
-    if (
-      name === "submittedAt" ||
-      name === "createdAt" ||
-      name === "updatedAt"
-    ) {
-      return { name, type: "datetime" };
+    if (REQUIRED_IDENTITY.has(name)) {
+      const type =
+        name === "createdAt" || name === "updatedAt" ? "datetime" : "string";
+      return withConstraints(name, type, { required: true });
     }
+    if (name === "submittedAt") return { name, type: "datetime" };
     if (name.startsWith("score.") && name.endsWith(".raw")) {
       return { name, type: "number" };
     }
@@ -393,13 +441,32 @@ function tableSchemaFields(
     if (name.startsWith("score.") && name.endsWith(".missing")) {
       return { name, type: "integer" };
     }
-    const type = fieldType.get(
-      fieldIdForColumn(name, new Set(fieldType.keys())) ?? "",
-    );
-    if (type === "number") return { name, type: "number" };
-    if (type === "boolean") return { name, type: "boolean" };
-    if (type === "date") return { name, type: "date" };
-    return { name, type: "string" };
+    const field = byId.get(fieldIdForColumn(name, fieldIds) ?? "");
+    if (!field) return { name, type: "string" };
+    const constraints: TableConstraint = {};
+    if (field.required) constraints.required = true;
+    if (field.type === "select" && field.options && field.options.length > 0) {
+      constraints.enum = field.options.map((option) => option.value);
+    }
+    const limits = field.constraints;
+    if (limits?.min !== undefined) constraints.minimum = limits.min;
+    if (limits?.max !== undefined) constraints.maximum = limits.max;
+    if (limits?.minLength !== undefined)
+      constraints.minLength = limits.minLength;
+    if (limits?.maxLength !== undefined)
+      constraints.maxLength = limits.maxLength;
+    if (field.type === "number") {
+      return withConstraints(
+        name,
+        limits?.integer ? "integer" : "number",
+        constraints,
+      );
+    }
+    if (field.type === "boolean")
+      return withConstraints(name, "boolean", constraints);
+    if (field.type === "date")
+      return withConstraints(name, "date", constraints);
+    return withConstraints(name, "string", constraints);
   });
 }
 
@@ -417,8 +484,9 @@ export function toDataPackage(
   });
   const csv = toCsv(encoded, codebook, options);
   const labels = toCsvLabels(encoded, codebook, options);
+  const fields = tableSchemaFields(codebook, options, encoded);
   const datapackage = {
-    profile: "data-package",
+    profile: TABULAR_DATA_PACKAGE_PROFILE,
     resources: [
       {
         name: "responses",
@@ -429,16 +497,17 @@ export function toDataPackage(
       {
         name: "responses-csv",
         path: "responses.csv",
+        profile: TABULAR_DATA_RESOURCE_PROFILE,
         format: "csv",
         mediatype: "text/csv",
-        dialect: {
-          delimiter: ",",
-          header: true,
-          lineTerminator: "\r\n",
-        },
+        encoding: "utf-8",
+        dialect: CSV_DIALECT,
         schema: {
-          fields: tableSchemaFields(codebook, options, encoded),
+          fields,
           missingValues: [""],
+          ...(fields.some((field) => field.name === "id")
+            ? { primaryKey: ["id"] }
+            : {}),
         },
       },
       {
@@ -447,6 +516,7 @@ export function toDataPackage(
         format: "csv",
         mediatype: "text/csv",
         encoding: "utf-8",
+        dialect: CSV_DIALECT,
       },
       {
         name: "codebook",

@@ -7,6 +7,7 @@ import {
 import { createFormEndpoint } from "@/api/create-form-endpoint";
 import { errors } from "@/errors";
 import { commitLifecycle, writeResponse } from "@/helpers/lifecycle";
+import { responseHookContext } from "@/plugin/context";
 import { requireLocked } from "@/validate";
 
 const { method, path } = FORM_API_OPERATIONS.reopenResponse;
@@ -29,13 +30,14 @@ export const reopenResponse = createFormEndpoint(
     };
     const request = ctx.context.request;
     const hooks = ctx.context.config.hooks;
+    const hook = () => responseHookContext(ctx.context.config, request, row);
     return commitLifecycle(
-      () => hooks.onReopen?.({ request, response: row }),
+      () => hooks.onReopen?.(hook()),
       () =>
         writeResponse(ctx.context.config.database, row, {
           expectedUpdatedAt: ctx.body.updatedAt,
         }),
-      () => hooks.afterReopen?.({ request, response: row }),
+      () => hooks.afterReopen?.(hook()),
     );
   },
 );

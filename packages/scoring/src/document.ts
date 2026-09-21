@@ -1,17 +1,16 @@
-export {
-  scoringPlugin,
-  type OnScoreContext,
-  type ScoringPluginOptions,
-} from "./plugin";
+/**
+ * Isomorphic scoring document. No server plugin, so dataset and insights
+ * can import it from browser bundles.
+ */
 export {
   collectScoringIssues,
   hasScoringMeta,
   reversePoints,
   scoreResponse,
   scoringIssuesOrUndefined,
-  tryScoreResponse,
   scoreResultSchema,
   scoreVariableResultSchema,
+  tryScoreResponse,
   type ScoreDefinition,
   type ScoreResult,
   type ScoreVariableResult,
@@ -33,6 +32,7 @@ export {
   scoringVariableSchema,
   DEFAULT_SCORING_MISSING,
   SCORING_NAMESPACE,
+  type ScoringAdd,
   type ScoringBand,
   type ScoringFieldMeta,
   type ScoringFieldRead,
@@ -40,11 +40,9 @@ export {
   type ScoringFormRead,
   type ScoringFormula,
   type ScoringInnerMeta,
-  type ScoringAdd,
   type ScoringMeta,
   type ScoringMissing,
   type ScoringOptionMeta,
   type ScoringVariable,
 } from "./meta";
 export { SCORING_ERROR_CODES, type ScoringErrorCode } from "./errors";
-export { SCORING_ROUTES } from "./routes";

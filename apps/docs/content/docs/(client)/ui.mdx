@@ -6,7 +6,7 @@ icon: AppWindow
 
 `@dimah-form/ui` is **optional**. `@dimah-form/react` stays headless. The renderer takes a `useFormResponse` return as `form` — it does not call the hook.
 
-Built-in types (`text`, `email`, `date`, `number`, `boolean`, `select`, `multiSelect`) have widgets. Custom `defineFieldType` types register once on `FormUiProvider` with the same `type` string — or a `meta.widget` key to swap one field without replacing the type.
+Built-in types (`text`, `email`, `date`, `number`, `boolean`, `select`, `multiSelect`) have widgets. `file` is metadata the app writes after upload and has no built-in widget — register one on `FormUiProvider` if respondents should see a control. Custom `defineFieldType` types register once on `FormUiProvider` with the same `type` string — or a `meta.widget` key to swap one field without replacing the type.
 
 ---
 

@@ -25,8 +25,6 @@ export type ProjectResponseOptions = {
   snapshotKeyCache?: SnapshotKeyCache;
 };
 
-const BINARY_KEYS = new Set(["bytes", "data", "content", "buffer"]);
-
 function asRecord(value: unknown): Record<string, unknown> | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) return;
   return value as Record<string, unknown>;
@@ -42,31 +40,15 @@ function asFinite(value: unknown): number | undefined {
     : undefined;
 }
 
-function stripBinary(value: unknown): unknown {
-  const record = asRecord(value);
-  if (!record) return value;
-  let changed = false;
-  const next: Record<string, unknown> = {};
-  for (const [key, item] of Object.entries(record)) {
-    if (BINARY_KEYS.has(key)) {
-      changed = true;
-      continue;
-    }
-    next[key] = item;
-  }
-  return changed ? next : value;
-}
-
-function attachmentOf(value: unknown): DatasetAttachment | undefined {
-  const record = asRecord(value);
-  if (!record) return;
+function attachmentOf(
+  record: Record<string, unknown>,
+): DatasetAttachment | undefined {
   const id = asString(record.id);
   const url = asString(record.url);
   const name = asString(record.name) ?? asString(record.filename);
   const contentType = asString(record.contentType) ?? asString(record.mimeType);
   const size = asFinite(record.size);
   if (!id && !url && !name) return;
-  if (!id && !url && size === undefined && contentType === undefined) return;
   return {
     ...(id ? { id } : {}),
     ...(url ? { url } : {}),
@@ -76,20 +58,41 @@ function attachmentOf(value: unknown): DatasetAttachment | undefined {
   };
 }
 
+/** Stored file answers may still carry bytes or legacy key names. */
+function projectFile(value: unknown): {
+  value: DatasetAttachment | null;
+  attachment?: DatasetAttachment;
+} {
+  const record = asRecord(value);
+  if (!record) return { value: null };
+  const attachment = attachmentOf(record);
+  if (!attachment) return { value: null };
+  return { value: attachment, attachment };
+}
+
 function fieldValue(
   field: FormField,
   answers: ResponseRecord["answers"],
   fieldTypes: ProjectFieldTypes | undefined,
 ): DatasetRecord["fields"][number] {
   const raw = Object.hasOwn(answers, field.id) ? answers[field.id] : null;
-  const value = raw == null ? null : stripBinary(raw);
-  const attachment = value == null ? undefined : attachmentOf(value);
+  if (field.type === "file") {
+    const file = raw == null ? undefined : projectFile(raw);
+    const value = file?.value ?? null;
+    return {
+      id: field.id,
+      type: field.type,
+      value,
+      formatted: formatAnswer(field, value, fieldTypes),
+      ...(file?.attachment ? { attachment: file.attachment } : {}),
+    };
+  }
+  const value = raw ?? null;
   return {
     id: field.id,
     type: field.type,
-    value: value ?? null,
+    value,
     formatted: formatAnswer(field, value, fieldTypes),
-    ...(attachment ? { attachment } : {}),
   };
 }
 

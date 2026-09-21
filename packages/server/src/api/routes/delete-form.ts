@@ -4,6 +4,7 @@ import { createFormEndpoint } from "@/api/create-form-endpoint";
 import { errors } from "@/errors";
 import { resolveLiveForm } from "@/forms";
 import { commitLifecycle } from "@/helpers/lifecycle";
+import { formHookContext } from "@/plugin/context";
 
 const { method, path } = FORM_API_OPERATIONS.deleteForm;
 
@@ -26,10 +27,11 @@ export const deleteForm = createFormEndpoint(
     }
     const request = ctx.context.request;
     const hooks = ctx.context.config.hooks;
+    const hook = () => formHookContext(ctx.context.config, request, form);
     await commitLifecycle(
-      () => hooks.onDeleteForm?.({ request, form }),
+      () => hooks.onDeleteForm?.(hook()),
       () => ctx.context.config.database.deleteForm(form.id),
-      () => hooks.afterDeleteForm?.({ request, form }),
+      () => hooks.afterDeleteForm?.(hook()),
     );
     return { ok: true, formId: form.id };
   },

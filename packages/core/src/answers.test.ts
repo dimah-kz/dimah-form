@@ -250,10 +250,10 @@ describe("collectAnswerIssues", () => {
   it("rejects an unregistered field type", () => {
     const form = {
       ...snapshot,
-      fields: [{ id: "file", type: "file", required: true }],
+      fields: [{ id: "upload", type: "upload", required: true }],
     };
-    expect(collectAnswerIssues(form, { file: "x" }, "draft")).toEqual([
-      { field: "file", ...FIELD_ISSUE_CODES.UNKNOWN_FIELD_TYPE },
+    expect(collectAnswerIssues(form, { upload: "x" }, "draft")).toEqual([
+      { field: "upload", ...FIELD_ISSUE_CODES.UNKNOWN_FIELD_TYPE },
     ]);
   });
 

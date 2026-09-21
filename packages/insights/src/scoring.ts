@@ -1,11 +1,18 @@
-import type { FormAnswers, FormSnapshot } from "@dimah-form/core";
+import { readScoringFormMeta } from "@dimah-form/scoring/document";
 
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return;
-  return value as Record<string, unknown>;
-}
+export type InsightsScores = {
+  variables: Record<
+    string,
+    {
+      raw: number | null;
+      band?: string;
+      complete: boolean;
+      label?: string;
+    }
+  >;
+};
 
-/** Duck-typed `meta.scoring` — do not import `@dimah-form/scoring` here. */
+/** Variable and band order from {@link readScoringFormMeta}. */
 export type InsightsScoringCatalog = {
   variableIds: string[];
   variableLabels: Map<string, string>;
@@ -23,40 +30,23 @@ export function emptyScoringCatalog(): InsightsScoringCatalog {
 export function scoringCatalogFromMeta(
   meta: unknown,
 ): InsightsScoringCatalog | undefined {
-  const scoring = asRecord(asRecord(meta)?.scoring);
-  if (!scoring) return undefined;
+  const form = readScoringFormMeta(meta);
+  if (!form) return;
   const variableIds: string[] = [];
   const variableLabels = new Map<string, string>();
-  if (Array.isArray(scoring.variables)) {
-    for (const row of scoring.variables) {
-      const record = asRecord(row);
-      if (!record || typeof record.id !== "string" || record.id.length === 0) {
-        continue;
-      }
-      if (!variableIds.includes(record.id)) variableIds.push(record.id);
-      if (typeof record.label === "string" && !variableLabels.has(record.id)) {
-        variableLabels.set(record.id, record.label);
-      }
+  for (const variable of form.variables) {
+    if (!variableIds.includes(variable.id)) variableIds.push(variable.id);
+    if (variable.label && !variableLabels.has(variable.id)) {
+      variableLabels.set(variable.id, variable.label);
     }
   }
   const bandsByVariable = new Map<string, string[]>();
-  if (Array.isArray(scoring.bands)) {
-    for (const row of scoring.bands) {
-      const record = asRecord(row);
-      if (
-        !record ||
-        typeof record.variable !== "string" ||
-        typeof record.label !== "string" ||
-        record.label.length === 0
-      ) {
-        continue;
-      }
-      const list = bandsByVariable.get(record.variable) ?? [];
-      if (!list.includes(record.label)) list.push(record.label);
-      bandsByVariable.set(record.variable, list);
-    }
+  for (const band of form.bands) {
+    const list = bandsByVariable.get(band.variable) ?? [];
+    if (!list.includes(band.label)) list.push(band.label);
+    bandsByVariable.set(band.variable, list);
   }
-  if (variableIds.length === 0 && bandsByVariable.size === 0) return undefined;
+  if (variableIds.length === 0 && bandsByVariable.size === 0) return;
   return { variableIds, variableLabels, bandsByVariable };
 }
 
@@ -77,52 +67,5 @@ export function mergeScoringCatalog(
       if (!list.includes(label)) list.push(label);
     }
     into.bandsByVariable.set(id, list);
-  }
-}
-
-type ScoreVariable = {
-  raw: number | null;
-  band?: string;
-  complete: boolean;
-  label?: string;
-};
-
-export type InsightsScores = {
-  variables: Record<string, ScoreVariable>;
-};
-
-type ScoringApi = {
-  hasScoringMeta: (definition: { meta?: unknown }) => boolean;
-  scoreResponse: (
-    definition: FormSnapshot,
-    answers: FormAnswers,
-  ) => InsightsScores;
-};
-
-let scoringModule: Promise<ScoringApi | undefined> | undefined;
-
-function loadScoring(): Promise<ScoringApi | undefined> {
-  if (!scoringModule) {
-    scoringModule = import(
-      /* webpackIgnore: true */
-      /* @vite-ignore */
-      "@dimah-form/scoring"
-    )
-      .then((mod) => mod as ScoringApi)
-      .catch(() => undefined);
-  }
-  return scoringModule;
-}
-
-export async function tryScoreResponse(
-  definition: FormSnapshot,
-  answers: FormAnswers,
-): Promise<InsightsScores | undefined> {
-  try {
-    const scoring = await loadScoring();
-    if (!scoring?.hasScoringMeta(definition)) return undefined;
-    return scoring.scoreResponse(definition, answers);
-  } catch {
-    return undefined;
   }
 }

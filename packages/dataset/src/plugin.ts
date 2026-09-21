@@ -4,6 +4,7 @@ import {
   type FieldTypeDefinition,
   type ResponseRecord,
 } from "@dimah-form/core";
+import { tryScoreResponse } from "@dimah-form/scoring/document";
 import {
   createFormEndpoint,
   DEFAULT_WALK_MAX_ROWS,
@@ -19,7 +20,6 @@ import { snapshotKey, type SnapshotKeyCache } from "./hash";
 import { projectResponse } from "./project";
 import { datasetStoreFilter } from "./query";
 import { DATASET_ROUTES } from "./routes";
-import { tryScoreResponse } from "./scoring";
 import {
   DATASET_SPEC,
   codebookSchema,
@@ -78,7 +78,7 @@ async function projectRow(
   cache: SnapshotKeyCache,
 ): Promise<{ record: DatasetRecord; snapshotKey: string }> {
   const key = await snapshotKey(row.definition, cache);
-  const scores = await tryScoreResponse(row.definition, row.answers);
+  const scores = tryScoreResponse(row.definition, row.answers);
   const record = await projectResponse(row, {
     fieldTypes,
     scores,
@@ -122,23 +122,24 @@ async function walkCodebook(
 export function datasetPlugin(options: DatasetPluginOptions = {}) {
   const onProject = options.onProject;
   const maxRowsCap = options.maxRows ?? DEFAULT_WALK_MAX_ROWS;
-  const state: { fieldTypes?: ReadonlyMap<string, FieldTypeDefinition> } = {};
 
   return definePlugin({
     id: DATASET_ID,
     init(ctx) {
-      state.fieldTypes = ctx.fieldTypes;
-      return { context: { fieldTypes: ctx.fieldTypes } };
+      return {
+        context: { fieldTypes: ctx.fieldTypes } satisfies DatasetPluginContext,
+      };
     },
     hooks: onProject
       ? {
-          afterSubmit: async ({ response, request }) => {
-            const scores = await tryScoreResponse(
+          afterSubmit: async ({ response, request, getPluginContext }) => {
+            const scores = tryScoreResponse(
               response.definition,
               response.answers,
             );
             const record = await projectResponse(response, {
-              fieldTypes: state.fieldTypes,
+              fieldTypes:
+                getPluginContext<DatasetPluginContext>(DATASET_ID)?.fieldTypes,
               scores,
               includeRespondentId: true,
             });

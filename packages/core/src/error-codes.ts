@@ -62,6 +62,7 @@ export const FIELD_ISSUE_CODES = defineErrorCodes({
   EXPECTED_STRING_ARRAY: "Expected an array of strings",
   EXPECTED_EMAIL: "Expected an email",
   EXPECTED_DATE: "Expected a date",
+  EXPECTED_FILE: "Expected file metadata",
   TOO_SHORT: "Must be at least the minimum length",
   TOO_LONG: "Must be at most the maximum length",
   TOO_SMALL: "Must be at least the minimum",

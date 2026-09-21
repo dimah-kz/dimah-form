@@ -14,6 +14,7 @@
     "Expected an array of strings(field issue)",
     "Expected an email(field issue)",
     "Expected an integer(field issue)",
+    "Expected file metadata(field issue)",
     "Forbidden(session error)",
     "Form is not active(session error)",
     "Form slug is already in use(session error)",

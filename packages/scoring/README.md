@@ -10,7 +10,7 @@ Not a field type. Scores are not stored in `answers`. Persistence is compute-on-
 pnpm add @dimah-form/scoring
 ```
 
-Peer-depends on `@dimah-form/core`. The server entry also needs `@dimah-form/server`. Browser modules should import from `@dimah-form/scoring/client` so the server package stays off the client bundle.
+Peer-depends on `@dimah-form/core`. The server entry also needs `@dimah-form/server`. Browser modules should import from `@dimah-form/scoring/client` so the server package stays off the client bundle. Other packages import the document readers from `@dimah-form/scoring/document` (`readScoringFormMeta`, `tryScoreResponse`) — that entry does not load the server plugin.
 
 ```ts
 import { scoringPlugin } from "@dimah-form/scoring";

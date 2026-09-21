@@ -178,6 +178,9 @@ describe("formatAnswer", () => {
     expect(formatAnswer({ id: "ok", type: "boolean" }, false)).toBe("No");
     expect(formatAnswer({ id: "ok", type: "boolean" }, "x")).toBe("");
     expect(formatAnswer({ id: "name", type: "text" }, null)).toBe("");
+    expect(
+      formatAnswer({ id: "file", type: "file" }, { name: "a.png", id: "abc" }),
+    ).toBe("a.png");
   });
 
   it("uses defineFieldType.format when fieldTypes are passed", () => {

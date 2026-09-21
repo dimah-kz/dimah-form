@@ -10,7 +10,7 @@ Derived data only. The plugin does not add tables or a `meta` namespace. Records
 pnpm add @dimah-form/dataset
 ```
 
-Peer-depends on `@dimah-form/core`. The server entry also needs `@dimah-form/server`. Scoring columns need `@dimah-form/scoring` (optional peer). Browser modules should import from `@dimah-form/dataset/client` so the server package stays off the client bundle.
+Depends on `@dimah-form/scoring`. Peer-depends on `@dimah-form/core`. The server entry also needs `@dimah-form/server`. Browser modules should import from `@dimah-form/dataset/client` so the server package stays off the client bundle. Isomorphic code imports `@dimah-form/scoring/document`.
 
 ```ts
 import { datasetPlugin } from "@dimah-form/dataset";
@@ -45,7 +45,7 @@ Guard operations for `GET /dataset/responses`, `GET /dataset/codebook/history`, 
 
 ## Interchange
 
-`spec: "dimah.dataset/v1"` on every JSON object. Canonical file is `responses.jsonl` plus `codebook.json`. `toDataPackage()` returns a filename → contents map (`profile: "data-package"`). The table schema, with `missingValues: [""]`, is on `responses.csv` only.
+`spec: "dimah.dataset/v1"` on every JSON object. `snapshotKey` is SHA-256 of RFC 8785 canonical JSON. Canonical file is `responses.jsonl` plus `codebook.json`. `toDataPackage()` returns a Frictionless tabular data package (`primaryKey`, dialect, and codebook constraints on `responses.csv` only). `attachment` is set only for `type: "file"`.
 
 A field id that is an identity column (`id`, `formId`, `status`, `submittedAt`, `createdAt`, `updatedAt`, `snapshotKey`, `respondentId`) or starts with `score.` is written as `field.<id>`. If that name is also a field id, encoding throws. Score columns are `score.<id>.raw`, `.band`, `.complete`, and `.missing` (unanswered item count). Variable `missing` policy (`zero` / `omit` / `incomplete`) stays on the codebook; when the form omits it, scoring's default is `incomplete`.
 

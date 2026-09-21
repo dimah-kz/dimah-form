@@ -50,7 +50,7 @@ export const formClient = createFormClient<Form, typeof plugins>({
 });
 ```
 
-Import the server factory from `@dimah-form/dataset` and the browser companion from `@dimah-form/dataset/client`. Scoring columns need `@dimah-form/scoring` installed (optional peer) — `getDatasetPage` attaches `scoreResponse` when the snapshot has `meta.scoring` and the package is present. Scores are never written into `answers`.
+Import the server factory from `@dimah-form/dataset` and the browser companion from `@dimah-form/dataset/client`. The package depends on `@dimah-form/scoring`. `getDatasetPage` attaches `scoreResponse` when the snapshot has `meta.scoring`. A scoring validation error on one historical row omits `scores`; any other error propagates. Scores are never written into `answers`.
 
 Guard operations are `getDatasetPage`, `getDatasetCodebook`, and `getLiveCodebook`. Treat them like `listResponses` (admin).
 
@@ -72,13 +72,13 @@ Guard operations are `getDatasetPage`, `getDatasetCodebook`, and `getLiveCodeboo
 
 Every JSON object carries `spec: "dimah.dataset/v1"`.
 
-**Record** — one response, no raw `definition`. Identity: `id`, `formId`, `status`, `submittedAt`, `createdAt`, `updatedAt`, `snapshotKey`. HTTP includes `respondentId` (nullable); package encode omits it unless you pass `includeRespondentId: true`. `fields` is dense: every snapshot field, unanswered as `value: null`. Object answers drop `bytes` / `data` / `content` / `buffer`; remaining file metadata is `attachment` (`id` / `url` / `name` / `contentType` / `size`). Optional `scores` matches `scoreResponse`.
+**Record** — one response, no raw `definition`. Identity: `id`, `formId`, `status`, `submittedAt`, `createdAt`, `updatedAt`, `snapshotKey`. `snapshotKey` is SHA-256 of the instrument under [RFC 8785](https://www.rfc-editor.org/rfc/rfc8785). HTTP includes `respondentId` (nullable); package encode omits it unless you pass `includeRespondentId: true`. `fields` is dense: every snapshot field, unanswered as `value: null`. `attachment` is set only when `type` is `file` (`id` / `url` / `name` / `contentType` / `size`). Inline bytes are not part of the file answer. Optional `scores` matches `scoreResponse`.
 
 **Codebook** — built from **snapshots in the dataset**. Newest `lastSeenAt` wins for the canonical field (label, type, `required`, `description`, `showWhen`, constraints, options, scoring). Each older snapshot whose view differs gets one `history` object with that full view and its `snapshotKey` — not one row per response. Join `record.snapshotKey` to canonical `inSnapshots` or to `history`.
 
-Scoring is copied from `meta.scoring` without importing `@dimah-form/scoring`. A field may carry `scoring.variable` and `scoring.reverse`. Options carry `points` or `add`, never both; an invalid mix is omitted. `scores.variables[]` includes `missing` (`zero` / `omit` / `incomplete`) when the form sets it. Omitted means the scoring default, which is `incomplete`. `scores.formulas[]` is `{ id, op: "sum", vars }` plus optional `label`. Variables, bands (`from` / `to`), and formulas get `history` when their definition differs. Do not merge the canonical label into the live form.
+Scoring on the codebook comes from `readScoringFormMeta` / `readScoringFieldMeta` in `@dimah-form/scoring/document`. A bad variable, band, or formula row is skipped. A field may carry `scoring.variable` and `scoring.reverse`. Options carry `points` or `add`, never both; an invalid mix is omitted. `scores.variables[]` includes `missing` (`zero` / `omit` / `incomplete`) when the form sets it. Omitted means the scoring default, which is `incomplete`. `scores.formulas[]` is `{ id, op: "sum", vars }` plus optional `label`. Variables, bands (`from` / `to`), and formulas get `history` when their definition differs. Do not merge the canonical label into the live form.
 
-`snapshotKey` is SHA-256 hex of canonical JSON (sorted keys) of the instrument: `title`, `description`, `fields`, `meta`. Form `id` / `slug` / `status` / timestamps are omitted so a touch-save does not fragment the codebook.
+`snapshotKey` hashes RFC 8785 canonical JSON of `title`, `description`, `fields`, and `meta`. Form `id` / `slug` / `status` / timestamps are omitted so a touch-save does not fragment the codebook.
 
 ---
 
@@ -156,7 +156,7 @@ const csv = toCsv(records, codebook, {
 const files = toDataPackage(records, codebook);
 ```
 
-`toDataPackage` returns a filename → contents map (`datapackage.json`, `codebook.json`, `responses.jsonl`, `responses.csv`, `responses.labels.csv`). It is not a zip. `datapackage.json` uses Frictionless `profile: "data-package"`. The table schema (`missingValues: [""]`, header, `\r\n`) is on `responses.csv` only — JSONL is nested records, and `responses.labels.csv` is display text (UTF-8 BOM only there). CSV is RFC 4180; `multiSelect` values join with `;`. Object answers stringify as JSON in the codes CSV. Column order: identity (including `updatedAt`), then field columns (historical codebooks sort ids), then `score.<id>.raw` / `.band` / `.complete` / `.missing`. `.missing` is the unanswered item count.
+`toDataPackage` returns a filename → contents map (`datapackage.json`, `codebook.json`, `responses.jsonl`, `responses.csv`, `responses.labels.csv`). It is not a zip. `datapackage.json` uses the Frictionless tabular data package profile. The table schema on `responses.csv` includes `missingValues: [""]`, `primaryKey: ["id"]`, dialect (`quoteChar`, `doubleQuote`, `\r\n`), and codebook constraints (`enum` on select, `minimum` / `maximum`, `required`). JSONL stays nested records. `responses.labels.csv` is display text (UTF-8 BOM only there) and has the same dialect, not a schema. CSV is RFC 4180; `multiSelect` values join with `;`. Object answers stringify as JSON in the codes CSV. Column order: identity (including `updatedAt`), then field columns (historical codebooks sort ids), then `score.<id>.raw` / `.band` / `.complete` / `.missing`. `.missing` is the unanswered item count.
 
 A field id equal to an identity column, or starting with `score.`, is written as `field.<id>`. If a field is also literally named `field.<id>`, encoding throws. The `fields` allowlist is still field ids. `omit` drops output column names.
 

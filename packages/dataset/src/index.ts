@@ -38,7 +38,7 @@ export {
   type SnapshotKeyCache,
 } from "./hash";
 export { projectResponse, type ProjectResponseOptions } from "./project";
-export { tryScoreResponse } from "./scoring";
+export { tryScoreResponse } from "@dimah-form/scoring/document";
 export {
   buildCodebook,
   liveCodebook,

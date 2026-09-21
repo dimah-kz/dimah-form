@@ -1,24 +1,19 @@
 import type { FormSnapshot } from "@dimah-form/core";
+import canonicalize from "canonicalize";
 
 /** SHA-256 hex of the questionnaire instrument — not timestamps or slug. */
 export type SnapshotKeyCache = Map<string, Promise<string>>;
 
-function sortedValue(value: unknown): unknown {
-  if (value === null || typeof value !== "object") return value;
-  if (Array.isArray(value)) return value.map(sortedValue);
-  const record = value as Record<string, unknown>;
-  const out: Record<string, unknown> = {};
-  for (const key of Object.keys(record).sort()) {
-    const next = record[key];
-    if (next === undefined) continue;
-    out[key] = sortedValue(next);
-  }
-  return out;
-}
-
-/** Canonical JSON with recursively sorted object keys. */
+/**
+ * RFC 8785 (JSON Canonicalization Scheme). Object key order does not change
+ * the bytes. `undefined` object members are omitted.
+ */
 export function canonicalJson(value: unknown): string {
-  return JSON.stringify(sortedValue(value));
+  const json = canonicalize(value);
+  if (typeof json !== "string") {
+    throw new TypeError("dimah-form dataset cannot canonicalize this value.");
+  }
+  return json;
 }
 
 /**

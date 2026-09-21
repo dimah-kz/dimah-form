@@ -8,6 +8,7 @@ import { createFormEndpoint } from "@/api/create-form-endpoint";
 import { errors } from "@/errors";
 import { assertSlugAvailable, parseLiveSnapshot } from "@/forms";
 import { commitLifecycle, writeForm } from "@/helpers/lifecycle";
+import { formHookContext } from "@/plugin/context";
 
 const { method, path } = FORM_API_OPERATIONS.saveForm;
 
@@ -34,13 +35,14 @@ export const saveForm = createFormEndpoint(
     };
     const request = ctx.context.request;
     const hooks = ctx.context.config.hooks;
+    const hook = () => formHookContext(ctx.context.config, request, form);
     return commitLifecycle(
-      () => hooks.onSaveForm?.({ request, form }),
+      () => hooks.onSaveForm?.(hook()),
       () =>
         writeForm(ctx.context.config.database, form, {
           expectedUpdatedAt: existing ? parsed.updatedAt : undefined,
         }),
-      () => hooks.afterSaveForm?.({ request, form }),
+      () => hooks.afterSaveForm?.(hook()),
     );
   },
 );

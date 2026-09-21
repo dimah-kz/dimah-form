@@ -4,21 +4,22 @@ description: Built-in types, validation constraints, showWhen operators, and $In
 icon: ListTree
 ---
 
-Seven built-in types in `@dimah-form/core`. Each one has a definition schema, a server validator, and an `$Infer` mapping.
+Eight built-in types in `@dimah-form/core`. Each one has a definition schema, a server validator, and an `$Infer` mapping.
 
 ---
 
 ## Built-In Field Types Catalog
 
-| Type              | Answer Type | Schema Constraints                                                             | Description                                                                                                                                                               |
-| :---------------- | :---------- | :----------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **`text`**        | `string`    | `minLength?: number`<br />`maxLength?: number`<br />`pattern?: string` (regex) | Single-line or multi-line text input. Validates length and regex pattern.                                                                                                 |
-| **`number`**      | `number`    | `min?: number`<br />`max?: number`<br />`integer?: boolean`                    | Numeric input. Validates minimum, maximum, and integer constraints.                                                                                                       |
-| **`boolean`**     | `boolean`   | `unsetOnOff?: boolean`                                                         | Checkbox or toggle. Values are `true` or `false`. `unsetOnOff` makes unchecked write `null` (consent); default unchecked writes `false` so required yes/no can submit No. |
-| **`select`**      | `string`    | `options: SelectOption[]`                                                      | Single-choice dropdown or radio group. Answer must match an option `value`.                                                                                               |
-| **`multiSelect`** | `string[]`  | `options: SelectOption[]`                                                      | Multi-choice checkbox group or tag selector. Answer must be an array of valid option values without duplicates.                                                           |
-| **`email`**       | `string`    | —                                                                              | Email address input. Validates standard RFC 5322 email formatting.                                                                                                        |
-| **`date`**        | `string`    | `min?: string` (YYYY-MM-DD)<br />`max?: string` (YYYY-MM-DD)                   | Calendar date in `YYYY-MM-DD` ISO format. Validates date boundaries.                                                                                                      |
+| Type              | Answer Type  | Schema Constraints                                                             | Description                                                                                                                                                                             |
+| :---------------- | :----------- | :----------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`text`**        | `string`     | `minLength?: number`<br />`maxLength?: number`<br />`pattern?: string` (regex) | Single-line or multi-line text input. Validates length and regex pattern.                                                                                                               |
+| **`number`**      | `number`     | `min?: number`<br />`max?: number`<br />`integer?: boolean`                    | Numeric input. Validates minimum, maximum, and integer constraints.                                                                                                                     |
+| **`boolean`**     | `boolean`    | `unsetOnOff?: boolean`                                                         | Checkbox or toggle. Values are `true` or `false`. `unsetOnOff` makes unchecked write `null` (consent); default unchecked writes `false` so required yes/no can submit No.               |
+| **`select`**      | `string`     | `options: SelectOption[]`                                                      | Single-choice dropdown or radio group. Answer must match an option `value`.                                                                                                             |
+| **`multiSelect`** | `string[]`   | `options: SelectOption[]`                                                      | Multi-choice checkbox group or tag selector. Answer must be an array of valid option values without duplicates.                                                                         |
+| **`email`**       | `string`     | —                                                                              | Email address input. Validates standard RFC 5322 email formatting.                                                                                                                      |
+| **`date`**        | `string`     | `min?: string` (YYYY-MM-DD)<br />`max?: string` (YYYY-MM-DD)                   | Calendar date in `YYYY-MM-DD` ISO format. Validates date boundaries.                                                                                                                    |
+| **`file`**        | `FileAnswer` | —                                                                              | Upload metadata: `id?`, `url?`, `name?`, `contentType?`, `size?`. At least one of `id`, `url`, or `name`. No inline bytes. No built-in widget — the app writes the answer after upload. |
 
 ---
 

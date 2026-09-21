@@ -208,3 +208,126 @@ export function optionHasAdd(
 ): scoring is { add: ScoringAdd[] } {
   return scoring != null && "add" in scoring;
 }
+
+/** Form document recovered from a snapshot. Invalid rows are skipped. */
+export type ScoringFormRead = {
+  variables: ScoringVariable[];
+  bands: ScoringBand[];
+  formulas: ScoringFormula[];
+};
+
+/** Field `meta.scoring` with a usable variable. Invalid `reverse` is ignored. */
+export type ScoringFieldRead = {
+  variable: string;
+  reverse?: true;
+};
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return;
+  return value as Record<string, unknown>;
+}
+
+function asFinite(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+function readRows<T>(
+  value: unknown,
+  read: (row: unknown) => T | undefined,
+): T[] {
+  if (!Array.isArray(value)) return [];
+  const rows: T[] = [];
+  for (const row of value) {
+    const parsed = read(row);
+    if (parsed) rows.push(parsed);
+  }
+  return rows;
+}
+
+function readVariable(row: unknown): ScoringVariable | undefined {
+  const record = asRecord(row);
+  if (!record) return;
+  const missing = scoringMissingSchema.safeParse(record.missing);
+  const min = asFinite(record.min);
+  const max = asFinite(record.max);
+  const candidate = {
+    id: record.id,
+    ...(typeof record.label === "string" ? { label: record.label } : {}),
+    ...(min !== undefined ? { min } : {}),
+    ...(max !== undefined ? { max } : {}),
+    ...(missing.success ? { missing: missing.data } : {}),
+  };
+  const parsed = scoringVariableSchema.safeParse(candidate);
+  if (parsed.success) return parsed.data;
+  if (min === undefined && max === undefined) return;
+  const { min: _min, max: _max, ...rest } = candidate;
+  const retry = scoringVariableSchema.safeParse(rest);
+  return retry.success ? retry.data : undefined;
+}
+
+function readBand(row: unknown): ScoringBand | undefined {
+  const record = asRecord(row);
+  if (!record) return;
+  const from = asFinite(record.from);
+  const to = asFinite(record.to);
+  const parsed = scoringBandSchema.safeParse({
+    variable: record.variable,
+    label: record.label,
+    ...(from !== undefined ? { from } : {}),
+    ...(to !== undefined ? { to } : {}),
+  });
+  return parsed.success ? parsed.data : undefined;
+}
+
+function readFormula(row: unknown): ScoringFormula | undefined {
+  const parsed = scoringFormulaSchema.safeParse(row);
+  if (!parsed.success) return;
+  const seen = new Set<string>();
+  for (const id of parsed.data.vars) {
+    if (seen.has(id)) return;
+    seen.add(id);
+  }
+  return parsed.data;
+}
+
+/**
+ * Tolerant read of form `meta.scoring` for historical snapshots.
+ * Each variable, band, and formula is checked with the scoring schemas.
+ * A bad row is skipped. Absent or empty documents return `undefined`.
+ */
+export function readScoringFormMeta(
+  meta: unknown,
+): ScoringFormRead | undefined {
+  const target = scoringMetaTarget(meta);
+  if (!target.present) return;
+  const scoring = asRecord(target.value);
+  if (!scoring) return;
+  const variables = readRows(scoring.variables, readVariable);
+  const bands = readRows(scoring.bands, readBand);
+  const formulas = readRows(scoring.formulas, readFormula);
+  if (variables.length === 0 && bands.length === 0 && formulas.length === 0) {
+    return;
+  }
+  return { variables, bands, formulas };
+}
+
+/**
+ * Tolerant read of field `meta.scoring`. A non-boolean `reverse` does not
+ * drop the variable. Strict checks stay on {@link parseScoringFieldMeta}.
+ */
+export function readScoringFieldMeta(
+  meta: unknown,
+): ScoringFieldRead | undefined {
+  const target = scoringMetaTarget(meta);
+  if (!target.present) return;
+  const scoring = asRecord(target.value);
+  if (!scoring) return;
+  const variable = fieldIdSchema.safeParse(scoring.variable);
+  if (!variable.success) return;
+  return {
+    variable: variable.data,
+    ...(scoring.reverse === true ? { reverse: true } : {}),
+  };
+}

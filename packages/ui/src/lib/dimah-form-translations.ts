@@ -13,6 +13,7 @@ export type Translations = {
   "Expected an array of strings(field issue)": string;
   "Expected an email(field issue)": string;
   "Expected an integer(field issue)": string;
+  "Expected file metadata(field issue)": string;
   "Forbidden(session error)": string;
   "Form is not active(session error)": string;
   "Form slug is already in use(session error)": string;

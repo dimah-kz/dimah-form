@@ -231,11 +231,11 @@ describe("formDefinitionSchema", () => {
     expect(
       formDefinitionSchema.parse({
         title: "X",
-        fields: [{ id: "n", type: "file", pattern: ".+" }],
+        fields: [{ id: "n", type: "upload", pattern: ".+" }],
       }),
     ).toMatchObject({
       title: "X",
-      fields: [{ id: "n", type: "file", pattern: ".+" }],
+      fields: [{ id: "n", type: "upload", pattern: ".+" }],
     });
   });
 
@@ -411,11 +411,11 @@ describe("formSnapshotSchema", () => {
       formSnapshotSchema.parse({
         id: "intake",
         title: "Intake",
-        fields: [{ id: "file", type: "file", required: true }],
+        fields: [{ id: "file", type: "upload", required: true }],
       }),
     ).toMatchObject({
       id: "intake",
-      fields: [{ id: "file", type: "file", required: true }],
+      fields: [{ id: "file", type: "upload", required: true }],
     });
   });
 
