@@ -115,6 +115,39 @@ describe("buildCodebook", () => {
     });
     expect(codebook.scores?.bands?.[0]?.label).toBe("Minimal");
   });
+
+  it("records required, showWhen, and number constraints", async () => {
+    const definition = normalizeFormSnapshot({
+      id: "intake",
+      title: "Intake",
+      fields: [
+        {
+          id: "age",
+          type: "number",
+          required: true,
+          description: "Years",
+          min: 0,
+          max: 120,
+          integer: true,
+          showWhen: { field: "ok", equals: true },
+        },
+        { id: "ok", type: "boolean" },
+      ],
+    });
+    const codebook = buildCodebook([
+      {
+        snapshotKey: await snapshotKey(definition),
+        definition,
+        seenAt: newer,
+      },
+    ]);
+    expect(codebook.fields.find((field) => field.id === "age")).toMatchObject({
+      required: true,
+      description: "Years",
+      constraints: { min: 0, max: 120, integer: true },
+      showWhen: { field: "ok", equals: true },
+    });
+  });
 });
 
 describe("mergeCodebooks", () => {

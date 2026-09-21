@@ -96,9 +96,14 @@ function listResponseWhere<T>(
   query: ListResponsesStoreQuery,
   b: {
     (
-      col: "questionnaireId" | "respondentId" | "status",
-      op: "=",
-      value: string,
+      col:
+        | "questionnaireId"
+        | "respondentId"
+        | "status"
+        | "submittedAt"
+        | "updatedAt",
+      op: "=" | ">=" | "<=" | ">",
+      value: string | Date,
     ): T;
     and: (...parts: T[]) => T;
   },
@@ -109,9 +114,29 @@ function listResponseWhere<T>(
     parts.push(b("respondentId", "=", query.respondentId));
   }
   if (query.status) parts.push(b("status", "=", query.status));
+  if (query.submittedFrom) {
+    parts.push(b("submittedAt", ">=", new Date(query.submittedFrom)));
+  }
+  if (query.submittedTo) {
+    parts.push(b("submittedAt", "<=", new Date(query.submittedTo)));
+  }
+  if (query.updatedAfter) {
+    parts.push(b("updatedAt", ">", new Date(query.updatedAfter)));
+  }
   const first = parts[0];
   if (first !== undefined && parts.length === 1) return first;
   return b.and(...parts);
+}
+
+function hasListResponseFilters(query?: ListResponsesStoreQuery) {
+  return Boolean(
+    query?.formId ||
+    query?.status ||
+    query?.respondentId ||
+    query?.submittedFrom ||
+    query?.submittedTo ||
+    query?.updatedAfter,
+  );
 }
 
 /** Persist questionnaires and responses. Start never overwrites a live form. */
@@ -257,9 +282,7 @@ export function createDbResponseStore(db: DimahFormDbClient): ResponseStore {
     },
     async listResponses(query) {
       const include = query?.include === "summary" ? "summary" : "full";
-      const hasFilters = Boolean(
-        query?.formId || query?.status || query?.respondentId,
-      );
+      const hasFilters = hasListResponseFilters(query);
       if (include === "summary") {
         const rows = await orm.findMany("response", {
           select: [...RESPONSE_SUMMARY_COLUMNS],
@@ -281,6 +304,15 @@ export function createDbResponseStore(db: DimahFormDbClient): ResponseStore {
         offset: query?.offset,
       });
       return rows.map((row) => toResponseRecord(row));
+    },
+    async countResponses(query) {
+      const hasFilters = hasListResponseFilters(query);
+      const rows = await orm.findMany("response", {
+        select: ["id"],
+        where:
+          hasFilters && query ? (b) => listResponseWhere(query, b) : undefined,
+      });
+      return rows.length;
     },
     async findLatestDraft(query) {
       const rows = await orm.findMany("response", {

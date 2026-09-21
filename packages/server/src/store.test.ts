@@ -163,6 +163,49 @@ describe("memoryAdapter", () => {
     ).toEqual(["r1"]);
   });
 
+  it("filters by submittedAt bounds and counts matches", async () => {
+    const store = memoryAdapter();
+    await store.createResponse({
+      ...row,
+      id: "early",
+      status: "submitted",
+      submittedAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+    await store.createResponse({
+      ...row,
+      id: "mid",
+      status: "submitted",
+      submittedAt: "2026-01-15T00:00:00.000Z",
+      updatedAt: "2026-01-16T00:00:00.000Z",
+    });
+    await store.createResponse({
+      ...row,
+      id: "draft",
+      submittedAt: null,
+    });
+    expect(
+      (
+        await store.listResponses({
+          submittedFrom: "2026-01-10T00:00:00.000Z",
+          submittedTo: "2026-01-20T00:00:00.000Z",
+        })
+      ).map((item) => item.id),
+    ).toEqual(["mid"]);
+    expect(
+      await store.countResponses({
+        submittedFrom: "2026-01-10T00:00:00.000Z",
+        submittedTo: "2026-01-20T00:00:00.000Z",
+      }),
+    ).toBe(1);
+    expect(
+      (
+        await store.listResponses({ updatedAfter: "2026-01-15T00:00:00.000Z" })
+      ).map((item) => item.id),
+    ).toEqual(["mid"]);
+    expect(await store.countResponses()).toBe(3);
+  });
+
   it("CAS rejects a stale save token", async () => {
     const store = memoryAdapter();
     await store.createResponse(row);

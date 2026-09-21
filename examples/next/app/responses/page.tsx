@@ -1,30 +1,82 @@
+import type { InsightsSummary } from "@dimah-form/insights";
 import type { ResponseRecord } from "@dimah-form/server";
 import Link from "next/link";
 
 import { AnswersPreview } from "@/components/answers-preview";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { form } from "@/lib/form";
 
 function isFull(row: { answers?: unknown }): row is ResponseRecord {
   return "answers" in row;
 }
 
-function downloadHref(formId: string, format: "jsonl" | "csv" | "labels") {
+function downloadHref(
+  formId: string,
+  format: "jsonl" | "csv" | "labels" | "codebook",
+) {
   return `/api/forms/${encodeURIComponent(formId)}/package?format=${format}`;
+}
+
+function statusLine(summary: InsightsSummary) {
+  return `${summary.byStatus.draft} draft · ${summary.byStatus.submitted} submitted · ${summary.byStatus.abandoned} abandoned · ${summary.completion.complete}/${summary.completion.submitted} complete`;
+}
+
+function fieldLines(summary: InsightsSummary) {
+  return summary.fields
+    .filter((field) => (field.values?.length ?? 0) > 0)
+    .slice(0, 4)
+    .map((field) => {
+      const values = (field.values ?? [])
+        .slice(0, 3)
+        .map((item) => `${item.label ?? item.value} ${item.n}`)
+        .join(", ");
+      return `${field.label}: ${values}`;
+    });
+}
+
+function scoreLines(summary: InsightsSummary) {
+  return (summary.scores?.variables ?? []).map((variable) => {
+    const bands = (variable.bands ?? [])
+      .map((band) => `${band.label} ${band.n}`)
+      .join(" · ");
+    const name = variable.label ?? variable.id;
+    return bands ? `${name}: ${bands}` : name;
+  });
 }
 
 export default async function ResponsesPage() {
   let rows: ResponseRecord[] | undefined;
-  let forms: { id: string; title: string }[] = [];
+  let forms: { id: string; title: string; insights?: InsightsSummary }[] = [];
+  let total = 0;
   try {
-    const [{ responses }, listed] = await Promise.all([
+    const [{ responses, total: listedTotal }, listed] = await Promise.all([
       form.api.listResponses({
         query: { include: "full", limit: 20 },
       }),
       form.api.listForms({}),
     ]);
     rows = responses.filter(isFull);
-    forms = listed.forms.map((item) => ({ id: item.id, title: item.title }));
+    total = listedTotal;
+    forms = await Promise.all(
+      listed.forms.map(async (item) => {
+        try {
+          const insights = await form.api.getFormInsights({
+            query: { formId: item.id, status: "submitted" },
+          });
+          return { id: item.id, title: item.title, insights };
+        } catch {
+          return { id: item.id, title: item.title };
+        }
+      }),
+    );
   } catch {
     rows = undefined;
   }
@@ -42,41 +94,78 @@ export default async function ResponsesPage() {
       <div>
         <h1 className="font-medium">Responses</h1>
         <p className="text-sm text-muted-foreground">
-          Full records, including the definition snapshot and answers. Downloads
-          are JSONL (canonical) or CSV from the dataset reader — submitted
-          responses only.
+          {total} stored response{total === 1 ? "" : "s"} (this page shows up to
+          20). Insights and downloads below are submitted rows only.
         </p>
       </div>
       {forms.length > 0 ? (
-        <ul className="grid gap-2 text-sm">
-          {forms.map((item) => (
-            <li
-              key={item.id}
-              className="flex flex-wrap items-center justify-between gap-2"
-            >
-              <span>{item.title}</span>
-              <span className="flex flex-wrap gap-2">
-                <Link
-                  href={downloadHref(item.id, "jsonl")}
-                  className={buttonVariants({ size: "sm", variant: "outline" })}
-                >
-                  JSONL
-                </Link>
-                <Link
-                  href={downloadHref(item.id, "csv")}
-                  className={buttonVariants({ size: "sm", variant: "outline" })}
-                >
-                  CSV
-                </Link>
-                <Link
-                  href={downloadHref(item.id, "labels")}
-                  className={buttonVariants({ size: "sm", variant: "outline" })}
-                >
-                  Labels CSV
-                </Link>
-              </span>
-            </li>
-          ))}
+        <ul className="grid gap-4">
+          {forms.map((item) => {
+            const extras = item.insights
+              ? [...fieldLines(item.insights), ...scoreLines(item.insights)]
+              : [];
+            return (
+              <li key={item.id}>
+                <Card size="sm">
+                  <CardHeader>
+                    <CardTitle>{item.title}</CardTitle>
+                    <CardDescription>
+                      {item.insights
+                        ? statusLine(item.insights)
+                        : "Insights unavailable"}
+                    </CardDescription>
+                  </CardHeader>
+                  {extras.length > 0 ? (
+                    <CardContent>
+                      <ul className="grid gap-1 text-sm text-muted-foreground">
+                        {extras.map((line) => (
+                          <li key={line}>{line}</li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  ) : null}
+                  <CardFooter className="flex flex-wrap gap-2">
+                    <Link
+                      href={downloadHref(item.id, "jsonl")}
+                      className={buttonVariants({
+                        size: "sm",
+                        variant: "outline",
+                      })}
+                    >
+                      JSONL
+                    </Link>
+                    <Link
+                      href={downloadHref(item.id, "csv")}
+                      className={buttonVariants({
+                        size: "sm",
+                        variant: "outline",
+                      })}
+                    >
+                      CSV
+                    </Link>
+                    <Link
+                      href={downloadHref(item.id, "labels")}
+                      className={buttonVariants({
+                        size: "sm",
+                        variant: "outline",
+                      })}
+                    >
+                      Labels CSV
+                    </Link>
+                    <Link
+                      href={downloadHref(item.id, "codebook")}
+                      className={buttonVariants({
+                        size: "sm",
+                        variant: "outline",
+                      })}
+                    >
+                      Codebook
+                    </Link>
+                  </CardFooter>
+                </Card>
+              </li>
+            );
+          })}
         </ul>
       ) : null}
       {rows.length === 0 ? (

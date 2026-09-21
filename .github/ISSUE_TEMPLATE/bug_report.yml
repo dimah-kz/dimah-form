@@ -23,6 +23,7 @@ body:
         - "@dimah-form/ui"
         - "@dimah-form/scoring"
         - "@dimah-form/dataset"
+        - "@dimah-form/insights"
         - examples
         - other
     validations:

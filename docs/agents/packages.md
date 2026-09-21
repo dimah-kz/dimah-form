@@ -32,7 +32,7 @@ First-class `database` on `dimahForm()`. Official adapters: `memoryAdapter()` in
 
 Copy-paste Drizzle / Prisma / SQL schemas live in `packages/db/src/schema/examples` (published, not imported at runtime). FumaDB `generate` does not emit secondary indexes — keep those in the examples. Docs `_includes/db/` must match those tables and index names.
 
-`deleteForm` refuses code-authored ids and forms that still have responses (archive via `status` instead). `listResponses` defaults to summaries at the HTTP layer; pass `include: "summary"` on the store to skip `definition` / `answers`. `include=full` returns stored answers.
+`deleteForm` refuses code-authored ids and forms that still have responses (archive via `status` instead). `listResponses` defaults to summaries at the HTTP layer; pass `include: "summary"` on the store to skip `definition` / `answers`. `include=full` returns stored answers. Optional `submittedFrom` / `submittedTo` (inclusive) and `updatedAfter` (exclusive) filter on the store. `countResponses` returns the matching row count (`limit` / `offset` / `include` ignored). List HTTP includes `total`.
 
 `getForm` / `startResponse` resolve code-authored `forms` first (id then slug), then `database.getForm`. `saveForm` upserts the live questionnaire with optional `expectedUpdatedAt` (`STALE_UPDATE` / `StoreConflictError`). Starting a response inserts the parent questionnaire row if it is missing and never overwrites the live definition. `saveResponse` / `saveForm` take optional `{ expectedUpdatedAt }` so adapters can CAS. Resume uses `findLatestDraft` (newest by `updatedAt`) and `getOrCreateDraft` (oldest-by-`createdAt` race winner; loser deletes duplicate drafts).
 
@@ -57,7 +57,8 @@ Feature plugins live in their own package and peer-depend on server.
 - Plugin `init` receives `basePath`, `fieldTypes`, sibling `plugins`, and `getPluginContext` — not the internal resolved config. Persistence is `database`, not a plugin. Plugins must not add tables.
 - Throw `errors.*` from `@dimah-form/server` (or `APIError.from`) in plugin endpoints.
 - First-party `@dimah-form/scoring` is a feature plugin (`meta.scoring`). Likert is `field.variable` plus `option.points`; keying is `option.add` (no field variable, never mixed with `points`). Reverse is `select` / `number` / `boolean` only. Every variable must be mapped by a field. Scores are derived from the response snapshot; do not persist them into `answers` or add scoring tables.
-- First-party `@dimah-form/dataset` is a read-side plugin (no `meta` namespace, no tables). Canonical interchange is JSONL + codebook from **response snapshots**. HTTP is paged (`getDatasetPage`); full-file zip stays in the consumer app. Do not flatten against the live questionnaire. `getLiveCodebook` is the live form only.
+- First-party `@dimah-form/dataset` is a read-side plugin (no `meta` namespace, no tables). Canonical interchange is JSONL + codebook from **response snapshots**. HTTP is paged (`getDatasetPage`); `getDatasetCodebook` is the historical union for the same filter; `getLiveCodebook` is the live form only. Full-file zip stays in the consumer app. Do not flatten against the live questionnaire. Optional `onProject` persists the projected record in the consumer warehouse.
+- First-party `@dimah-form/insights` is a read-side plugin (no `meta` namespace, no tables). Compute-on-read status / completion / categorical counts from **response snapshots**. Score bands need the optional scoring peer. Do not persist summaries or add charts in this package.
 
 ## Strings and errors
 

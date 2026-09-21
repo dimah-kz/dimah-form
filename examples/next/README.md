@@ -4,8 +4,8 @@ Workspace demo of `@dimah-form/ui` on a headless `useFormResponse` session. Cust
 `rating` is a server validator plus a widget — not a library field.
 
 ```
-lib/form.ts              dimahForm() + database + scoringPlugin + datasetPlugin
-lib/client.ts            createFormClient<Form, typeof plugins>() + scoring + dataset client plugins
+lib/form.ts              dimahForm() + database + scoring + dataset + insights plugins
+lib/client.ts            createFormClient<Form, typeof plugins>() + scoring, dataset, insights client plugins
 lib/forms/               defineForm (feedback, onboarding, GAD-7)
 lib/field-types.ts       defineFieldType("rating")
 components/providers.tsx theme + FormUiProvider
@@ -35,6 +35,6 @@ Open http://localhost:3000 — header toggle switches light / dark (`next-themes
 - `/` — catalog. Feedback is a single page; Onboarding is a stepped wizard (`meta.step`); GAD-7 is a scored Likert questionnaire (`@dimah-form/scoring`)
 - `/f/:formId` fills one questionnaire. Built-in types plus `showWhen`; `rating` is the only custom type
 - Save draft patches answers; Submit replaces them. Both send `updatedAt` for optimistic concurrency
-- `/responses` lists stored answers (`include=full`) and dataset downloads (`JSONL` / `CSV`) per form
-- `GET /api/forms/:formId/package` is a **consumer** download route (`createDatasetReader` + `toJsonl` / `toCsv`). It is not a library zip.
+- `/responses` lists stored answers (`include=full`), per-form insights (status, categorical counts, score bands), and dataset downloads (`JSONL` / `CSV` / codebook)
+- `GET /api/forms/:formId/package` is a **consumer** download route. It streams `createDatasetReader` + `createCsvEncoder` / `toJsonlLine`, or returns `getDatasetCodebook`. It is not a library zip.
 - `/r/:id` resumes a draft or shows a submitted / abandoned response. Edit calls `reopenResponse` (same snapshot and answers). GAD-7 shows a live score from the snapshot, not from `answers`

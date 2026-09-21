@@ -1,7 +1,14 @@
-export { datasetPlugin } from "./plugin";
+export {
+  datasetPlugin,
+  type DatasetPluginOptions,
+  type OnProjectContext,
+} from "./plugin";
 export {
   DATASET_SPEC,
   codebookSchema,
+  datasetAttachmentSchema,
+  datasetCodebookQuerySchema,
+  datasetCodebookResultSchema,
   datasetPageQuerySchema,
   datasetPageSchema,
   datasetRecordSchema,
@@ -10,9 +17,12 @@ export {
   sortDatasetIds,
   type Codebook,
   type CodebookField,
+  type CodebookFieldConstraints,
   type CodebookOption,
   type CodebookScores,
   type CodebookSnapshot,
+  type DatasetAttachment,
+  type DatasetCodebookResult,
   type DatasetFieldValue,
   type DatasetPage,
   type DatasetRecord,
@@ -25,6 +35,7 @@ export {
   type SnapshotKeyCache,
 } from "./hash";
 export { projectResponse, type ProjectResponseOptions } from "./project";
+export { tryScoreResponse } from "./scoring";
 export {
   buildCodebook,
   liveCodebook,
@@ -33,17 +44,22 @@ export {
 } from "./codebook";
 export {
   DATASET_IDENTITY_COLUMNS,
+  createCsvEncoder,
   datasetCsvColumns,
   toCsv,
   toCsvLabels,
   toDataPackage,
   toJsonl,
+  toJsonlLine,
+  type CsvEncoder,
+  type CsvMode,
   type DataPackageFiles,
   type EncodeOptions,
 } from "./encode";
 export {
   createDatasetReader,
   type CreateDatasetReaderOptions,
+  type DatasetCodebookFn,
   type DatasetPageFn,
   type DatasetPageQuery,
   type DatasetReaderResult,

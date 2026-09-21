@@ -62,7 +62,9 @@ export const form = dimahForm({
       "deleteForm",
       "listResponses",
       "getDatasetPage",
+      "getDatasetCodebook",
       "getLiveCodebook",
+      "getFormInsights",
     ];
     if (adminOperations.includes(operation)) {
       if (!session || session.user.role !== "admin") {

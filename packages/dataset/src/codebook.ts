@@ -12,6 +12,7 @@ import {
   sortDatasetIds,
   type Codebook,
   type CodebookField,
+  type CodebookFieldConstraints,
   type CodebookLabelConflict,
   type CodebookOption,
   type CodebookScoreBand,
@@ -30,6 +31,10 @@ type FieldVariant = {
   snapshotKey: string;
   type: string;
   label: string;
+  required?: boolean;
+  description?: string;
+  showWhen?: unknown;
+  constraints?: CodebookFieldConstraints;
   options?: CodebookOption[];
 };
 
@@ -110,6 +115,42 @@ function scoringDocs(meta: unknown):
   return {
     variables: variables as ScoreVariableVariant[],
     bands: bands as ScoreBandVariant[],
+  };
+}
+
+function fieldConstraints(
+  field: FormField,
+): CodebookFieldConstraints | undefined {
+  const min = asFinite(field.min);
+  const max = asFinite(field.max);
+  const minLength =
+    typeof field.minLength === "number" &&
+    Number.isInteger(field.minLength) &&
+    field.minLength >= 0
+      ? field.minLength
+      : undefined;
+  const maxLength =
+    typeof field.maxLength === "number" &&
+    Number.isInteger(field.maxLength) &&
+    field.maxLength >= 0
+      ? field.maxLength
+      : undefined;
+  const integer = field.integer === true || undefined;
+  if (
+    min === undefined &&
+    max === undefined &&
+    minLength === undefined &&
+    maxLength === undefined &&
+    integer === undefined
+  ) {
+    return undefined;
+  }
+  return {
+    ...(min !== undefined ? { min } : {}),
+    ...(max !== undefined ? { max } : {}),
+    ...(minLength !== undefined ? { minLength } : {}),
+    ...(maxLength !== undefined ? { maxLength } : {}),
+    ...(integer ? { integer: true } : {}),
   };
 }
 
@@ -220,6 +261,10 @@ function finalizeField(
     id,
     type: newest.type,
     label: newest.label,
+    ...(newest.required === true ? { required: true } : {}),
+    ...(newest.description ? { description: newest.description } : {}),
+    ...(newest.showWhen !== undefined ? { showWhen: newest.showWhen } : {}),
+    ...(newest.constraints ? { constraints: newest.constraints } : {}),
     ...(newest.options ? { options: newest.options } : {}),
     inSnapshots,
     ...(labelConflicts.length > 0 ? { labelConflicts } : {}),
@@ -308,6 +353,10 @@ function variantsFromField(
       snapshotKey: newestKey ?? field.id,
       type: field.type,
       label: field.label,
+      required: field.required,
+      description: field.description,
+      showWhen: field.showWhen,
+      constraints: field.constraints,
       options: field.options,
     },
   ];
@@ -433,10 +482,15 @@ function ingestSource(
   bumpSnapshot(snapshots, source.snapshotKey, source.seenAt);
   for (const field of source.definition.fields) {
     const list = fieldVariants.get(field.id) ?? [];
+    const constraints = fieldConstraints(field);
     list.push({
       snapshotKey: source.snapshotKey,
       type: field.type,
       label: fieldLabel(field),
+      ...(field.required === true ? { required: true } : {}),
+      ...(field.description ? { description: field.description } : {}),
+      ...(field.showWhen !== undefined ? { showWhen: field.showWhen } : {}),
+      ...(constraints ? { constraints } : {}),
       options: codebookOptions(field),
     });
     fieldVariants.set(field.id, list);

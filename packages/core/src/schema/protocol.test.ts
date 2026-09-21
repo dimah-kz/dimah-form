@@ -6,6 +6,7 @@ import {
   getFormQuerySchema,
   listFormsQuerySchema,
   listResponsesQuerySchema,
+  matchesResponseListFilter,
   normalizeListPage,
   pageFromOverfetch,
   paginateItems,
@@ -89,6 +90,25 @@ describe("protocol payloads", () => {
     ).toEqual({ formId: "onboarding", respondentId: "user-1" });
   });
 
+  it("accepts submittedAt and updatedAt bounds on listResponses", () => {
+    expect(
+      listResponsesQuerySchema.parse({
+        formId: "onboarding",
+        submittedFrom: "2026-01-01T00:00:00.000Z",
+        submittedTo: "2026-01-31T23:59:59.000Z",
+        updatedAfter: "2026-01-15T00:00:00.000Z",
+      }),
+    ).toEqual({
+      formId: "onboarding",
+      submittedFrom: "2026-01-01T00:00:00.000Z",
+      submittedTo: "2026-01-31T23:59:59.000Z",
+      updatedAfter: "2026-01-15T00:00:00.000Z",
+    });
+    expect(
+      listResponsesQuerySchema.validate({ submittedFrom: "not-a-date" }),
+    ).toBe(false);
+  });
+
   it("accepts listForms status and listResponses include", () => {
     expect(
       listFormsQuerySchema.parse({ status: "archived", limit: "10" }),
@@ -161,5 +181,48 @@ describe("list pagination", () => {
       createdAt: "t",
       updatedAt: "t",
     });
+  });
+});
+
+describe("matchesResponseListFilter", () => {
+  const row = {
+    formId: "onboarding",
+    respondentId: "user-1" as string | null,
+    status: "submitted" as const,
+    submittedAt: "2026-01-15T00:00:00.000Z" as string | null,
+    updatedAt: "2026-01-16T00:00:00.000Z",
+  };
+
+  it("applies inclusive submit bounds and exclusive updatedAfter", () => {
+    expect(
+      matchesResponseListFilter(row, {
+        submittedFrom: "2026-01-15T00:00:00.000Z",
+        submittedTo: "2026-01-15T00:00:00.000Z",
+      }),
+    ).toBe(true);
+    expect(
+      matchesResponseListFilter(row, {
+        submittedFrom: "2026-01-16T00:00:00.000Z",
+      }),
+    ).toBe(false);
+    expect(
+      matchesResponseListFilter(row, {
+        updatedAfter: "2026-01-16T00:00:00.000Z",
+      }),
+    ).toBe(false);
+    expect(
+      matchesResponseListFilter(row, {
+        updatedAfter: "2026-01-15T00:00:00.000Z",
+      }),
+    ).toBe(true);
+  });
+
+  it("drops rows without submittedAt when submit bounds are set", () => {
+    expect(
+      matchesResponseListFilter(
+        { ...row, submittedAt: null },
+        { submittedFrom: "2026-01-01T00:00:00.000Z" },
+      ),
+    ).toBe(false);
   });
 });

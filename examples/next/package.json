@@ -17,6 +17,7 @@
     "@dimah-form/core": "workspace:*",
     "@dimah-form/dataset": "workspace:*",
     "@dimah-form/db": "workspace:*",
+    "@dimah-form/insights": "workspace:*",
     "@dimah-form/react": "workspace:*",
     "@dimah-form/scoring": "workspace:*",
     "@dimah-form/server": "workspace:*",

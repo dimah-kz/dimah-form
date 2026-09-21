@@ -1,9 +1,10 @@
 import {
+  matchesResponseListFilter,
   toResponseSummary,
   type FormSnapshot,
   type FormStatus,
+  type ResponseListFilter,
   type ResponseRecord,
-  type ResponseStatus,
   type ResponseSummary,
 } from "@dimah-form/core";
 
@@ -13,10 +14,7 @@ export type ListFormsStoreQuery = {
   offset?: number;
 };
 
-export type ListResponsesStoreQuery = {
-  formId?: string;
-  respondentId?: string;
-  status?: ResponseStatus;
+export type ListResponsesStoreQuery = ResponseListFilter & {
   /** Default `"full"`. `"summary"` omits `definition` / `answers`. */
   include?: "summary" | "full";
   limit?: number;
@@ -79,6 +77,11 @@ export type ResponseStore = {
   ) =>
     | (ResponseRecord | ResponseSummary)[]
     | Promise<(ResponseRecord | ResponseSummary)[]>;
+  /**
+   * Count of rows matching {@link ListResponsesStoreQuery} filters
+   * (`limit` / `offset` / `include` are ignored).
+   */
+  countResponses: (query?: ListResponsesStoreQuery) => number | Promise<number>;
   /**
    * Newest draft for this form + respondent (`updatedAt` descending).
    * Used by `startResponse({ resume: true })` before inserting.
@@ -169,14 +172,7 @@ export function memoryAdapter(): ResponseStore {
     return sortByUpdatedAtDesc(
       rows
         .values()
-        .filter((row) => {
-          if (query?.formId && row.formId !== query.formId) return false;
-          if (query?.respondentId && row.respondentId !== query.respondentId) {
-            return false;
-          }
-          if (query?.status && row.status !== query.status) return false;
-          return true;
-        })
+        .filter((row) => matchesResponseListFilter(row, query))
         .toArray(),
     );
   }
@@ -246,6 +242,9 @@ export function memoryAdapter(): ResponseStore {
         return page.map(toResponseSummary);
       }
       return page;
+    },
+    countResponses(query) {
+      return matchingResponses(query).length;
     },
     findLatestDraft(query) {
       const open = matchingResponses({

@@ -19,7 +19,7 @@ pnpm + Turbo. From the root: `pnpm lint`, `pnpm check-types`, `pnpm test`.
 - A response stores a **definition snapshot** plus answers. Submit validates against that snapshot, not the live questionnaire. Do not add a version table unless the product explicitly needs one.
 - Custom field types are server validators (`defineFieldType`) that feed `$Infer`. Optional UI widgets register on `FieldWidgetRegistry` by the same `type` string. Do not put widgets in `react`.
 - API errors: stable `code` + English `message`. UI localizes from `code` + `params`, not from `message`.
-- Deps: `core` ← `server` | `react` ← `ui`; `db` → `server` (peer); `scoring` → `server` (peer); `dataset` → `server` (peer).
+- Deps: `core` ← `server` | `react` ← `ui`; `db` → `server` (peer); `scoring` → `server` (peer); `dataset` → `server` (peer); `insights` → `server` (peer).
 - Do not hand-edit `packages/ui/registry.json` or `packages/ui/src/components/ui/`.
 - Published `@dimah-form/*` behavior, API, or build output change → changelog under `.tegami/` ([release.md](docs/agents/release.md)). Do not edit `.tegami/publish-lock.yaml` or package `CHANGELOG.md` files.
 - Pre-v1: breaking changes are allowed. Do not keep old architecture for compatibility ([architecture.md](docs/agents/architecture.md)).

@@ -158,6 +158,9 @@ export type FormClientApi = {
       respondentId?: string;
       status?: ResponseStatus;
       include?: "summary" | "full";
+      submittedFrom?: string;
+      submittedTo?: string;
+      updatedAfter?: string;
       limit?: number;
       offset?: number;
     } & ClientHeaders,
@@ -366,6 +369,9 @@ export function createFormClient<
           respondentId: payload.respondentId,
           status: payload.status,
           include: payload.include,
+          submittedFrom: payload.submittedFrom,
+          submittedTo: payload.submittedTo,
+          updatedAfter: payload.updatedAfter,
           limit: payload.limit,
           offset: payload.offset,
         },

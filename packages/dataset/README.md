@@ -22,7 +22,13 @@ import {
 
 export const form = dimahForm({
   database,
-  plugins: [datasetPlugin()],
+  plugins: [
+    datasetPlugin({
+      onProject: async ({ record }) => {
+        await warehouse.insert(record);
+      },
+    }),
+  ],
 });
 
 const clientPlugins = [datasetClientPlugin()] as const;
@@ -31,9 +37,9 @@ export const formClient = createFormClient<Form, typeof clientPlugins>({
 });
 ```
 
-Guard operations for `GET /dataset/responses` and `GET /dataset/codebook` are `getDatasetPage` and `getLiveCodebook`. Treat them like `listResponses` (admin).
+Guard operations for `GET /dataset/responses`, `GET /dataset/codebook/history`, and `GET /dataset/codebook` are `getDatasetPage`, `getDatasetCodebook`, and `getLiveCodebook`. Treat them like `listResponses` (admin).
 
-`getLiveCodebook` is the **live** form. Historical labels come from `getDatasetPage` / `createDatasetReader`.
+`getLiveCodebook` is the **live** form. Historical labels come from `getDatasetCodebook` / `createDatasetReader`. Page codebooks are that page only.
 
 ## Interchange
 

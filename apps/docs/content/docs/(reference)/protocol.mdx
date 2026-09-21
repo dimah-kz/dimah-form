@@ -21,16 +21,16 @@ Route paths, payloads, and response shapes live in `@dimah-form/core`. Default b
 
 ## Response Lifecycle Endpoints
 
-| Method | Path                | Client Method                                                         | `form.api` Method           | Description                                                 |
-| :----- | :------------------ | :-------------------------------------------------------------------- | :-------------------------- | :---------------------------------------------------------- |
-| `POST` | `/response/start`   | `startResponse({ formId, respondentId?, resume? })`                   | `startResponse({ body })`   | Start fill session and freeze definition snapshot.          |
-| `GET`  | `/response`         | `getResponse({ responseId })`                                         | `getResponse({ query })`    | Retrieve a full response record by ID.                      |
-| `GET`  | `/responses`        | `listResponses({ formId?, respondentId?, status?, limit?, offset? })` | `listResponses({ query })`  | List response summaries (or full rows with `include=full`). |
-| `POST` | `/response/draft`   | `saveDraft({ responseId, answers, updatedAt? })`                      | `saveDraft({ body })`       | Save partial answers patch on active draft.                 |
-| `POST` | `/response/submit`  | `submitResponse({ responseId, answers?, updatedAt? })`                | `submitResponse({ body })`  | Validate answers vs snapshot and finalize submission.       |
-| `POST` | `/response/abandon` | `abandonResponse({ responseId, updatedAt? })`                         | `abandonResponse({ body })` | Lock draft response as abandoned.                           |
-| `POST` | `/response/reopen`  | `reopenResponse({ responseId, updatedAt? })`                          | `reopenResponse({ body })`  | Unlock submitted/abandoned response back to draft.          |
-| `POST` | `/response/delete`  | `deleteResponse({ responseId })`                                      | `deleteResponse({ body })`  | Delete a response record.                                   |
+| Method | Path                | Client Method                                                                                                      | `form.api` Method           | Description                                                                                |
+| :----- | :------------------ | :----------------------------------------------------------------------------------------------------------------- | :-------------------------- | :----------------------------------------------------------------------------------------- |
+| `POST` | `/response/start`   | `startResponse({ formId, respondentId?, resume? })`                                                                | `startResponse({ body })`   | Start fill session and freeze definition snapshot.                                         |
+| `GET`  | `/response`         | `getResponse({ responseId })`                                                                                      | `getResponse({ query })`    | Retrieve a full response record by ID.                                                     |
+| `GET`  | `/responses`        | `listResponses({ formId?, respondentId?, status?, submittedFrom?, submittedTo?, updatedAfter?, limit?, offset? })` | `listResponses({ query })`  | List response summaries (or full rows with `include=full`). `total` is the matching count. |
+| `POST` | `/response/draft`   | `saveDraft({ responseId, answers, updatedAt? })`                                                                   | `saveDraft({ body })`       | Save partial answers patch on active draft.                                                |
+| `POST` | `/response/submit`  | `submitResponse({ responseId, answers?, updatedAt? })`                                                             | `submitResponse({ body })`  | Validate answers vs snapshot and finalize submission.                                      |
+| `POST` | `/response/abandon` | `abandonResponse({ responseId, updatedAt? })`                                                                      | `abandonResponse({ body })` | Lock draft response as abandoned.                                                          |
+| `POST` | `/response/reopen`  | `reopenResponse({ responseId, updatedAt? })`                                                                       | `reopenResponse({ body })`  | Unlock submitted/abandoned response back to draft.                                         |
+| `POST` | `/response/delete`  | `deleteResponse({ responseId })`                                                                                   | `deleteResponse({ body })`  | Delete a response record.                                                                  |
 
 ---
 

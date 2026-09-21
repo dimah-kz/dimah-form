@@ -13,26 +13,38 @@ export type DatasetPageQuery = {
 
 export type DatasetPageFn = (query: DatasetPageQuery) => Promise<DatasetPage>;
 
+export type DatasetCodebookFn = () => Promise<{
+  codebook: Codebook;
+  total: number;
+}>;
+
 export type DatasetReaderResult = {
   spec: typeof DATASET_SPEC;
   records: DatasetRecord[];
   codebook: Codebook;
+  total: number;
 };
 
 export type CreateDatasetReaderOptions = {
   page: DatasetPageFn;
+  /**
+   * Historical codebook for the same filter (`getDatasetCodebook`).
+   * When set, {@link createDatasetReader}'s `readCodebook` does not walk
+   * record pages.
+   */
+  codebook?: DatasetCodebookFn;
   signal?: AbortSignal;
   limit?: number;
 };
 
 /**
- * Walk paged `getDatasetPage` results and merge page codebooks into one
- * historical codebook. Same helper for server jobs and download routes.
+ * Walk paged `getDatasetPage` results. `records()` yields page-by-page
+ * (does not buffer the whole dataset). CSV columns need a complete
+ * codebook first — call `getDatasetCodebook` or `readCodebook()`, then
+ * encode with `createCsvEncoder`.
  */
 export function createDatasetReader(options: CreateDatasetReaderOptions) {
-  async function readAll(): Promise<DatasetReaderResult> {
-    const records: DatasetRecord[] = [];
-    let codebook = emptyCodebook();
+  async function* pages(): AsyncGenerator<DatasetPage> {
     let offset = 0;
     for (;;) {
       options.signal?.throwIfAborted();
@@ -40,18 +52,47 @@ export function createDatasetReader(options: CreateDatasetReaderOptions) {
         ...(options.limit !== undefined ? { limit: options.limit } : {}),
         offset,
       });
-      records.push(...page.records);
-      codebook = mergeCodebooks(codebook, page.codebook);
+      yield page;
       if (page.nextOffset == null) break;
       offset = page.nextOffset;
     }
-    return { spec: DATASET_SPEC, records, codebook };
+  }
+
+  async function readAll(): Promise<DatasetReaderResult> {
+    const records: DatasetRecord[] = [];
+    let codebook = emptyCodebook();
+    let total = 0;
+    for await (const page of pages()) {
+      records.push(...page.records);
+      codebook = mergeCodebooks(codebook, page.codebook);
+      total = page.total;
+    }
+    return { spec: DATASET_SPEC, records, codebook, total };
+  }
+
+  async function readCodebook(): Promise<{
+    codebook: Codebook;
+    total: number;
+  }> {
+    if (options.codebook) {
+      options.signal?.throwIfAborted();
+      const history = await options.codebook();
+      return { codebook: history.codebook, total: history.total };
+    }
+    let codebook = emptyCodebook();
+    let total = 0;
+    for await (const page of pages()) {
+      codebook = mergeCodebooks(codebook, page.codebook);
+      total = page.total;
+    }
+    return { codebook, total };
   }
 
   async function* records(): AsyncGenerator<DatasetRecord> {
-    const { records: all } = await readAll();
-    for (const record of all) yield record;
+    for await (const page of pages()) {
+      for (const record of page.records) yield record;
+    }
   }
 
-  return { readAll, records };
+  return { readAll, readCodebook, records, pages };
 }

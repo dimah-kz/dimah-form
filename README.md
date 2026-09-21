@@ -30,15 +30,16 @@ pnpm add @dimah-form/ui # optional shadcn renderer
 
 ## Packages
 
-| Package               | Role                                                               |
-| --------------------- | ------------------------------------------------------------------ |
-| `@dimah-form/core`    | Protocol, error catalog, typed fetch client                        |
-| `@dimah-form/server`  | `dimahForm()` — HTTP `handler` + `api`                             |
-| `@dimah-form/db`      | Optional. FumaDB adapter for production SQL                        |
-| `@dimah-form/react`   | Thin React client (`createFormClient` / hooks)                     |
-| `@dimah-form/ui`      | Optional. shadcn renderer on top of `react`                        |
-| `@dimah-form/scoring` | Optional. Scoring plugin (`meta.scoring` — Likert + option keying) |
-| `@dimah-form/dataset` | Optional. Dataset plugin (JSONL + codebook interchange)            |
+| Package                | Role                                                               |
+| ---------------------- | ------------------------------------------------------------------ |
+| `@dimah-form/core`     | Protocol, error catalog, typed fetch client                        |
+| `@dimah-form/server`   | `dimahForm()` — HTTP `handler` + `api`                             |
+| `@dimah-form/db`       | Optional. FumaDB adapter for production SQL                        |
+| `@dimah-form/react`    | Thin React client (`createFormClient` / hooks)                     |
+| `@dimah-form/ui`       | Optional. shadcn renderer on top of `react`                        |
+| `@dimah-form/scoring`  | Optional. Scoring plugin (`meta.scoring` — Likert + option keying) |
+| `@dimah-form/dataset`  | Optional. Dataset plugin (JSONL + codebook interchange)            |
+| `@dimah-form/insights` | Optional. Insights plugin (read-side snapshot summaries)           |
 
 `@dimah-form/react` does not ship widgets. Use `@dimah-form/ui` (npm or the shadcn registry) or bind `FormFieldBinding` yourself.
 

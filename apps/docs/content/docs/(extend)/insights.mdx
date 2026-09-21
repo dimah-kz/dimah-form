@@ -1,0 +1,68 @@
+---
+title: Insights
+description: Read-side counts from response snapshots — status, completion, categorical values, score bands.
+icon: ChartColumn
+---
+
+`@dimah-form/insights` is the first-party **summary** plugin for admin reporting. It walks stored responses (same 100-row pages as list) and folds **snapshot** answers into:
+
+- totals by `draft` / `submitted` / `abandoned`
+- visible-required completion among submitted rows
+- value counts for `select` / `multiSelect` / `boolean`
+- optional scoring band / mean when `@dimah-form/scoring` is installed
+
+Derived data only. No tables, no `meta` namespace, no live-form flatten. Text fields are counted as answered / unanswered only — they are not histogrammed.
+
+This is not a warehouse. For large N persist rows with [`datasetPlugin({ onProject })`](/docs/dataset) and aggregate in your database.
+
+---
+
+## Install
+
+```bash
+pnpm add @dimah-form/insights
+```
+
+```ts title="lib/form.ts"
+import { insightsPlugin } from "@dimah-form/insights";
+import { dimahForm } from "@dimah-form/server";
+
+export const form = dimahForm({
+  database,
+  forms,
+  plugins: [insightsPlugin()],
+});
+```
+
+```ts title="lib/client.ts"
+"use client";
+
+import { insightsClientPlugin } from "@dimah-form/insights/client";
+import { createFormClient } from "@dimah-form/react";
+import type { Form } from "@/lib/form";
+
+const plugins = [insightsClientPlugin()] as const;
+export const formClient = createFormClient<Form, typeof plugins>({
+  plugins,
+});
+```
+
+Guard `getFormInsights` like `listResponses` (admin).
+
+There is no default `status` filter (unlike dataset, which defaults to submitted). Pass `status`, `respondentId`, `submittedFrom` / `submittedTo`, and `updatedAfter` to match `listResponses`.
+
+```ts
+const summary = await form.api.getFormInsights({
+  query: { formId: "gad7", status: "submitted" },
+});
+```
+
+`summary.byStatus` is the census. `completion` uses visible required fields on **each row’s snapshot**. Categorical `fields[].values` are `select` / `multiSelect` / `boolean` only. `scores` is omitted when `@dimah-form/scoring` is missing or the snapshot has no `meta.scoring`.
+
+`GET /insights/summary`. Filename, charts, and zip stay in the app. Optional UI belongs in the consumer — `@dimah-form/ui` is the fill renderer, not an admin dashboard.
+
+---
+
+## Out of this package
+
+Weighted samples, cross-tabs, time-series buckets, LLM summaries, and persisting the summary. Export files are [`@dimah-form/dataset`](/docs/dataset).

@@ -1,10 +1,11 @@
 import * as z from "zod";
 
 import {
-  LIST_MAX_LIMIT,
   fieldIdSchema,
   formIdSchema,
+  listPageQueryFields,
   responseIdSchema,
+  responseListFilterFields,
   responseStatusSchema,
 } from "@dimah-form/core";
 
@@ -14,26 +15,37 @@ export const DATASET_SPEC = "dimah.dataset/v1" as const;
 
 export const datasetSpecSchema = z.literal(DATASET_SPEC);
 
-const listPageQueryFields = {
-  limit: z.coerce.number().pipe(z.int().min(1).max(LIST_MAX_LIMIT)).optional(),
-  offset: z.coerce.number().pipe(z.int().nonnegative()).optional(),
-};
-
 export const datasetPageQuerySchema = z.strictObject({
+  ...responseListFilterFields,
   formId: formIdSchema,
-  status: responseStatusSchema.optional(),
   ...listPageQueryFields,
+});
+
+export const datasetCodebookQuerySchema = z.strictObject({
+  ...responseListFilterFields,
+  formId: formIdSchema,
 });
 
 export const liveCodebookQuerySchema = z.strictObject({
   formId: formIdSchema,
 });
 
+export const datasetAttachmentSchema = z.object({
+  id: z.string().optional(),
+  url: z.string().optional(),
+  name: z.string().optional(),
+  contentType: z.string().optional(),
+  size: z.number().optional(),
+});
+
+export type DatasetAttachment = z.output<typeof datasetAttachmentSchema>;
+
 export const datasetFieldValueSchema = z.object({
   id: fieldIdSchema,
   type: nonEmpty,
   value: z.unknown(),
   formatted: z.string(),
+  attachment: datasetAttachmentSchema.optional(),
 });
 
 export type DatasetFieldValue = z.output<typeof datasetFieldValueSchema>;
@@ -64,6 +76,7 @@ export const datasetRecordSchema = z.object({
   status: responseStatusSchema,
   submittedAt: z.string().nullable(),
   createdAt: z.string(),
+  updatedAt: z.string(),
   snapshotKey: nonEmpty,
   respondentId: z.string().nullable().optional(),
   fields: z.array(datasetFieldValueSchema),
@@ -105,10 +118,26 @@ export const codebookTypeConflictSchema = z.object({
 
 export type CodebookTypeConflict = z.output<typeof codebookTypeConflictSchema>;
 
+export const codebookFieldConstraintsSchema = z.object({
+  min: z.number().optional(),
+  max: z.number().optional(),
+  minLength: z.int().nonnegative().optional(),
+  maxLength: z.int().nonnegative().optional(),
+  integer: z.boolean().optional(),
+});
+
+export type CodebookFieldConstraints = z.output<
+  typeof codebookFieldConstraintsSchema
+>;
+
 export const codebookFieldSchema = z.object({
   id: fieldIdSchema,
   type: nonEmpty,
   label: z.string(),
+  required: z.boolean().optional(),
+  description: z.string().optional(),
+  showWhen: z.unknown().optional(),
+  constraints: codebookFieldConstraintsSchema.optional(),
   options: z.array(codebookOptionSchema).optional(),
   inSnapshots: z.array(nonEmpty),
   labelConflicts: z.array(codebookLabelConflictSchema).optional(),
@@ -162,9 +191,20 @@ export const datasetPageSchema = z.object({
   limit: z.int(),
   offset: z.int(),
   nextOffset: z.int().nullable(),
+  total: z.int().nonnegative(),
 });
 
 export type DatasetPage = z.output<typeof datasetPageSchema>;
+
+export const datasetCodebookResultSchema = z.object({
+  spec: datasetSpecSchema,
+  codebook: codebookSchema,
+  total: z.int().nonnegative(),
+});
+
+export type DatasetCodebookResult = z.output<
+  typeof datasetCodebookResultSchema
+>;
 
 export function sortDatasetIds(ids: readonly string[]): string[] {
   return [...ids].sort((a, b) => a.localeCompare(b, "en", { numeric: true }));

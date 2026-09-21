@@ -10,12 +10,21 @@ export const DATASET_IDENTITY_COLUMNS = [
   "status",
   "submittedAt",
   "createdAt",
+  "updatedAt",
   "snapshotKey",
 ] as const;
+
+export type CsvMode = "codes" | "labels";
 
 export type EncodeOptions = {
   /** Package encode default off. */
   includeRespondentId?: boolean;
+  /** Allowlist of field ids. Omitted → every codebook field. */
+  fields?: readonly string[];
+  /** Drop these column names (identity, field ids, or `score.*`). */
+  omit?: readonly string[];
+  /** Labels CSV only — protocol `formatted` stays English Yes/No. */
+  booleanLabels?: { true?: string; false?: string };
 };
 
 export type DataPackageFiles = {
@@ -24,6 +33,12 @@ export type DataPackageFiles = {
   "responses.jsonl": string;
   "responses.csv": string;
   "responses.labels.csv": string;
+};
+
+export type CsvEncoder = {
+  columns: string[];
+  header: (mode?: CsvMode) => string;
+  row: (record: DatasetRecord, mode?: CsvMode) => string;
 };
 
 function withoutRespondentId(record: DatasetRecord): DatasetRecord {
@@ -69,6 +84,24 @@ function scoreColumns(variableIds: readonly string[]): string[] {
   return columns;
 }
 
+function applyColumnFilters(
+  columns: readonly string[],
+  options: EncodeOptions,
+  fieldIds: ReadonlySet<string>,
+): string[] {
+  const allow =
+    options.fields && options.fields.length > 0
+      ? new Set(options.fields)
+      : undefined;
+  const omit = options.omit ? new Set(options.omit) : undefined;
+  return columns.filter((column) => {
+    if (omit?.has(column)) return false;
+    if (!allow) return true;
+    if (!fieldIds.has(column)) return true;
+    return allow.has(column);
+  });
+}
+
 export function datasetCsvColumns(
   codebook: Codebook,
   options: EncodeOptions = {},
@@ -83,11 +116,12 @@ export function datasetCsvColumns(
             records.flatMap((record) => record.fields.map((field) => field.id)),
           ),
         ]);
-  return [
+  const columns = [
     ...identityColumns(includeRespondentId),
     ...fieldIds,
     ...scoreColumns(scoreColumnIds(codebook, records)),
   ];
+  return applyColumnFilters(columns, options, new Set(fieldIds));
 }
 
 function rfc4180(value: string): string {
@@ -118,8 +152,14 @@ function csvCodeValue(value: unknown, type: string): string {
 function csvLabelValue(
   field: { id: string; type: string; formatted: string; value: unknown },
   options: readonly { value: string; label: string }[],
+  booleanLabels?: EncodeOptions["booleanLabels"],
 ): string {
   if (field.value == null) return "";
+  if (field.type === "boolean") {
+    if (field.value === true) return booleanLabels?.true ?? field.formatted;
+    if (field.value === false) return booleanLabels?.false ?? field.formatted;
+    return "";
+  }
   if (field.type === "multiSelect" && Array.isArray(field.value)) {
     return field.value
       .filter((item): item is string => typeof item === "string")
@@ -160,46 +200,73 @@ function optionLookup(
   );
 }
 
-function csvRows(
-  records: readonly DatasetRecord[],
-  codebook: Codebook,
+function csvRow(
+  record: DatasetRecord,
   columns: readonly string[],
-  mode: "codes" | "labels",
-): string[] {
-  const optionsByField = optionLookup(codebook);
+  optionsByField: Map<string, { value: string; label: string }[]>,
+  mode: CsvMode,
+  booleanLabels: EncodeOptions["booleanLabels"],
+): string {
   const identity = new Set<string>([
     ...DATASET_IDENTITY_COLUMNS,
     "respondentId",
   ]);
-  const lines = [columns.map(rfc4180).join(",")];
-  for (const record of records) {
-    const byId = new Map(record.fields.map((field) => [field.id, field]));
-    const cells = columns.map((column) => {
-      if (identity.has(column)) return rfc4180(identityCell(record, column));
-      if (column.startsWith("score."))
-        return rfc4180(scoreCell(record, column));
-      const field = byId.get(column);
-      if (!field) return "";
-      const text =
-        mode === "labels"
-          ? csvLabelValue(field, optionsByField.get(column) ?? [])
-          : csvCodeValue(field.value, field.type);
-      return rfc4180(text);
-    });
-    lines.push(cells.join(","));
-  }
-  return lines;
+  const byId = new Map(record.fields.map((field) => [field.id, field]));
+  const cells = columns.map((column) => {
+    if (identity.has(column)) return rfc4180(identityCell(record, column));
+    if (column.startsWith("score.")) return rfc4180(scoreCell(record, column));
+    const field = byId.get(column);
+    if (!field) return "";
+    const text =
+      mode === "labels"
+        ? csvLabelValue(field, optionsByField.get(column) ?? [], booleanLabels)
+        : csvCodeValue(field.value, field.type);
+    return rfc4180(text);
+  });
+  return cells.join(",");
+}
+
+/**
+ * Streaming CSV. Build the codebook first (`getDatasetCodebook` /
+ * `readCodebook`) so columns are stable, then write one row per record.
+ */
+export function createCsvEncoder(
+  codebook: Codebook,
+  options: EncodeOptions = {},
+  records: readonly DatasetRecord[] = [],
+): CsvEncoder {
+  const includeRespondentId = options.includeRespondentId === true;
+  const encoded = encodeRecords(records, includeRespondentId);
+  const columns = datasetCsvColumns(codebook, options, encoded);
+  const optionsByField = optionLookup(codebook);
+  return {
+    columns,
+    header(mode: CsvMode = "codes") {
+      const line = columns.map(rfc4180).join(",") + CSV_EOL;
+      return mode === "labels" ? CSV_BOM + line : line;
+    },
+    row(record, mode = "codes") {
+      const next = includeRespondentId ? record : withoutRespondentId(record);
+      return (
+        csvRow(next, columns, optionsByField, mode, options.booleanLabels) +
+        CSV_EOL
+      );
+    },
+  };
 }
 
 function csvBody(
   records: readonly DatasetRecord[],
   codebook: Codebook,
   options: EncodeOptions,
-  mode: "codes" | "labels",
+  mode: CsvMode,
 ): string {
   const encoded = encodeRecords(records, options.includeRespondentId === true);
-  const columns = datasetCsvColumns(codebook, options, encoded);
-  return csvRows(encoded, codebook, columns, mode).join(CSV_EOL) + CSV_EOL;
+  const encoder = createCsvEncoder(codebook, options, encoded);
+  return (
+    encoder.header(mode) +
+    encoded.map((record) => encoder.row(record, mode)).join("")
+  );
 }
 
 /** RFC 4180 CSV of stored codes. multiSelect values joined with `;`. */
@@ -217,7 +284,7 @@ export function toCsvLabels(
   codebook: Codebook,
   options: EncodeOptions = {},
 ): string {
-  return CSV_BOM + csvBody(records, codebook, options, "labels");
+  return csvBody(records, codebook, options, "labels");
 }
 
 /** Canonical interchange: one {@link DatasetRecord} JSON object per line. */
@@ -230,6 +297,17 @@ export function toJsonl(
   return encoded.map((record) => JSON.stringify(record)).join("\n") + "\n";
 }
 
+/** One JSONL line, including the trailing newline. */
+export function toJsonlLine(
+  record: DatasetRecord,
+  options: EncodeOptions = {},
+): string {
+  const encoded = encodeRecords([record], options.includeRespondentId === true);
+  const next = encoded[0];
+  if (!next) return "";
+  return `${JSON.stringify(next)}\n`;
+}
+
 function tableSchemaFields(
   codebook: Codebook,
   options: EncodeOptions,
@@ -240,7 +318,11 @@ function tableSchemaFields(
     codebook.fields.map((field) => [field.id, field.type]),
   );
   return columns.map((name) => {
-    if (name === "submittedAt" || name === "createdAt") {
+    if (
+      name === "submittedAt" ||
+      name === "createdAt" ||
+      name === "updatedAt"
+    ) {
       return { name, type: "datetime" };
     }
     if (name.endsWith(".raw")) return { name, type: "number" };

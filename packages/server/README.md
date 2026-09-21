@@ -49,7 +49,7 @@ Code-authored `forms` are optional. Dynamic questionnaires use `saveForm` / `get
 
 ## Plugins
 
-Feature plugins are factories that return `definePlugin({ ... })`. They add endpoints, hooks, field types, error codes, `metaSchema`, `validateAnswers`, and `validateDefinition` — not persistence. Official Likert scoring is `@dimah-form/scoring`. Official JSONL + codebook interchange is `@dimah-form/dataset`.
+Feature plugins are factories that return `definePlugin({ ... })`. They add endpoints, hooks, field types, error codes, `metaSchema`, `validateAnswers`, and `validateDefinition` — not persistence. Official Likert scoring is `@dimah-form/scoring`. Official JSONL + codebook interchange is `@dimah-form/dataset`. Official snapshot summaries are `@dimah-form/insights`.
 
 ```ts
 import {

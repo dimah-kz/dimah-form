@@ -6,7 +6,12 @@ import {
 } from "@dimah-form/core";
 
 import { snapshotKey, type SnapshotKeyCache } from "./hash";
-import { DATASET_SPEC, type DatasetRecord, type DatasetScores } from "./spec";
+import {
+  DATASET_SPEC,
+  type DatasetAttachment,
+  type DatasetRecord,
+  type DatasetScores,
+} from "./spec";
 
 export type ProjectFieldTypes =
   ReadonlyMap<string, FieldTypeDefinition> | readonly FieldTypeDefinition[];
@@ -20,17 +25,71 @@ export type ProjectResponseOptions = {
   snapshotKeyCache?: SnapshotKeyCache;
 };
 
+const BINARY_KEYS = new Set(["bytes", "data", "content", "buffer"]);
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return;
+  return value as Record<string, unknown>;
+}
+
+function asString(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function asFinite(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+function stripBinary(value: unknown): unknown {
+  const record = asRecord(value);
+  if (!record) return value;
+  let changed = false;
+  const next: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(record)) {
+    if (BINARY_KEYS.has(key)) {
+      changed = true;
+      continue;
+    }
+    next[key] = item;
+  }
+  return changed ? next : value;
+}
+
+function attachmentOf(value: unknown): DatasetAttachment | undefined {
+  const record = asRecord(value);
+  if (!record) return;
+  const id = asString(record.id);
+  const url = asString(record.url);
+  const name = asString(record.name) ?? asString(record.filename);
+  const contentType = asString(record.contentType) ?? asString(record.mimeType);
+  const size = asFinite(record.size);
+  if (!id && !url && !name) return;
+  if (!id && !url && size === undefined && contentType === undefined) return;
+  return {
+    ...(id ? { id } : {}),
+    ...(url ? { url } : {}),
+    ...(name ? { name } : {}),
+    ...(contentType ? { contentType } : {}),
+    ...(size !== undefined ? { size } : {}),
+  };
+}
+
 function fieldValue(
   field: FormField,
   answers: ResponseRecord["answers"],
   fieldTypes: ProjectFieldTypes | undefined,
 ): DatasetRecord["fields"][number] {
-  const value = Object.hasOwn(answers, field.id) ? answers[field.id] : null;
+  const raw = Object.hasOwn(answers, field.id) ? answers[field.id] : null;
+  const value = raw == null ? null : stripBinary(raw);
+  const attachment = value == null ? undefined : attachmentOf(value);
   return {
     id: field.id,
     type: field.type,
     value: value ?? null,
     formatted: formatAnswer(field, value, fieldTypes),
+    ...(attachment ? { attachment } : {}),
   };
 }
 
@@ -53,6 +112,7 @@ export async function projectResponse(
     status: row.status,
     submittedAt: row.submittedAt,
     createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
     snapshotKey: key,
     fields: row.definition.fields.map((field) =>
       fieldValue(field, row.answers, options.fieldTypes),

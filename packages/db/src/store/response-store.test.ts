@@ -7,13 +7,13 @@ import type { QuestionnaireRow, ResponseRow } from "./map-row";
 type ListWhereClause = {
   col: string;
   op: string;
-  value: string;
+  value: string | Date;
 };
 
 type ListWhereBuilder = ((
   col: string,
   op: string,
-  value: string,
+  value: string | Date,
 ) => ListWhereClause) & {
   and: (...parts: ListWhereClause[]) => { and: ListWhereClause[] };
 };
@@ -224,6 +224,49 @@ describe("createDbResponseStore", () => {
       op: "=",
       value: "onboarding",
     });
+  });
+
+  it("adds submittedAt and updatedAt comparisons", async () => {
+    const { store, findMany } = createOrm();
+    await store.listResponses({
+      formId: "onboarding",
+      submittedFrom: "2026-01-01T00:00:00.000Z",
+      submittedTo: "2026-01-31T00:00:00.000Z",
+      updatedAfter: "2026-01-15T00:00:00.000Z",
+    });
+    expect(listWhereFromCall(findMany)).toEqual({
+      and: [
+        { col: "questionnaireId", op: "=", value: "onboarding" },
+        {
+          col: "submittedAt",
+          op: ">=",
+          value: new Date("2026-01-01T00:00:00.000Z"),
+        },
+        {
+          col: "submittedAt",
+          op: "<=",
+          value: new Date("2026-01-31T00:00:00.000Z"),
+        },
+        {
+          col: "updatedAt",
+          op: ">",
+          value: new Date("2026-01-15T00:00:00.000Z"),
+        },
+      ],
+    });
+  });
+
+  it("counts matching response ids without a page window", async () => {
+    const { store, findMany } = createOrm({
+      responses: [row(), row({ id: "resp-2" })],
+    });
+    await expect(store.countResponses({ formId: "onboarding" })).resolves.toBe(
+      2,
+    );
+    expect(findMany).toHaveBeenCalledWith(
+      "response",
+      expect.objectContaining({ select: ["id"] }),
+    );
   });
 
   it("deletes a response and a form", async () => {

@@ -72,6 +72,7 @@ describe("datasetPlugin", () => {
     expect(first.limit).toBe(2);
     expect(first.offset).toBe(0);
     expect(first.nextOffset).toBe(2);
+    expect(first.total).toBe(3);
     expect(first.codebook.fields.map((field) => field.id)).toEqual([
       "city",
       "name",
@@ -101,6 +102,43 @@ describe("datasetPlugin", () => {
     });
     expect(drafts.records).toHaveLength(1);
     expect(drafts.records[0]?.status).toBe("draft");
+  });
+
+  it("filters by respondentId and submittedAt bounds", async () => {
+    const form = dimahForm({
+      database: memoryAdapter(),
+      plugins: [datasetPlugin()],
+      forms: { plain },
+    });
+    const owned = await form.api.startResponse({
+      body: { formId: "plain", respondentId: "user-1" },
+    });
+    await form.api.submitResponse({
+      body: { responseId: owned.id, answers: { name: "Ada" } },
+    });
+    const other = await form.api.startResponse({
+      body: { formId: "plain", respondentId: "user-2" },
+    });
+    await form.api.submitResponse({
+      body: { responseId: other.id, answers: { name: "Bob" } },
+    });
+    const mine = await form.api.getDatasetPage({
+      query: { formId: "plain", respondentId: "user-1" },
+    });
+    expect(mine.total).toBe(1);
+    expect(mine.records[0]?.respondentId).toBe("user-1");
+    const none = await form.api.getDatasetPage({
+      query: {
+        formId: "plain",
+        submittedFrom: "2099-01-01T00:00:00.000Z",
+      },
+    });
+    expect(none.total).toBe(0);
+    expect(none.records).toHaveLength(0);
+    const history = await form.api.getDatasetCodebook({
+      query: { formId: "plain", respondentId: "user-1" },
+    });
+    expect(history.total).toBe(1);
   });
 
   it("projects the stored snapshot after the live form changes", async () => {
@@ -200,7 +238,7 @@ describe("datasetPlugin", () => {
     );
   });
 
-  it("uses getDatasetPage and getLiveCodebook as guard operations", async () => {
+  it("uses getDatasetPage, getDatasetCodebook, and getLiveCodebook as guard operations", async () => {
     const operations: string[] = [];
     const form = dimahForm({
       database: memoryAdapter(),
@@ -211,8 +249,10 @@ describe("datasetPlugin", () => {
       },
     });
     await form.api.getDatasetPage({ query: { formId: "plain" } });
+    await form.api.getDatasetCodebook({ query: { formId: "plain" } });
     await form.api.getLiveCodebook({ query: { formId: "plain" } });
     expect(operations).toContain("getDatasetPage");
+    expect(operations).toContain("getDatasetCodebook");
     expect(operations).toContain("getLiveCodebook");
   });
 
@@ -280,10 +320,38 @@ describe("datasetPlugin", () => {
       ]),
     );
   });
+
+  it("walks a historical codebook and calls onProject after submit", async () => {
+    const projected: string[] = [];
+    const form = dimahForm({
+      database: memoryAdapter(),
+      plugins: [
+        datasetPlugin({
+          onProject: ({ record }) => {
+            projected.push(record.id);
+          },
+        }),
+      ],
+      forms: { plain },
+    });
+    const submitted = await submitPlain(form, { name: "Ada" });
+    expect(projected).toEqual([submitted.id]);
+    const codebook = await form.api.getDatasetCodebook({
+      query: { formId: "plain" },
+    });
+    expect(codebook.total).toBe(1);
+    expect(codebook.codebook.fields.map((field) => field.id).sort()).toEqual([
+      "city",
+      "name",
+    ]);
+    expect(
+      codebook.codebook.fields.find((field) => field.id === "name")?.required,
+    ).toBe(true);
+  });
 });
 
 describe("datasetClientPlugin", () => {
-  it("exposes getDatasetPage and getLiveCodebook", async () => {
+  it("exposes getDatasetPage, getDatasetCodebook, and getLiveCodebook", async () => {
     const plugin = datasetClientPlugin();
     const calls: string[] = [];
     const client = createFormClient({
@@ -304,6 +372,7 @@ describe("datasetClientPlugin", () => {
             limit: 50,
             offset: 0,
             nextOffset: null,
+            total: 0,
           }),
           { headers: { "content-type": "application/json" } },
         );
@@ -312,7 +381,10 @@ describe("datasetClientPlugin", () => {
     await client.getDatasetPage({ formId: "plain" });
     expect(calls[0]).toContain("/dataset/responses");
     expect(calls[0]).toContain("formId=plain");
+    await client.getDatasetCodebook({ formId: "plain" });
+    expect(calls[1]).toContain("/dataset/codebook/history");
     expectTypeOf(client.getDatasetPage).toBeFunction();
+    expectTypeOf(client.getDatasetCodebook).toBeFunction();
     expectTypeOf(client.getLiveCodebook).toBeFunction();
   });
 

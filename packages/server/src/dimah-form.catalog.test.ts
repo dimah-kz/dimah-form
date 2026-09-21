@@ -547,6 +547,7 @@ describe("slug and list", () => {
     });
     expect(responses.responses).toHaveLength(1);
     expect(responses.nextOffset).toBe(1);
+    expect(responses.total).toBe(2);
   });
 
   it("skips invalid stored forms when listing", async () => {

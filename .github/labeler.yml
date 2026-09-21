@@ -28,6 +28,10 @@ pkg:dataset:
   - changed-files:
       - any-glob-to-any-file: packages/dataset/**
 
+pkg:insights:
+  - changed-files:
+      - any-glob-to-any-file: packages/insights/**
+
 documentation:
   - changed-files:
       - any-glob-to-any-file:

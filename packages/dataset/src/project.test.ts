@@ -48,6 +48,7 @@ describe("projectResponse", () => {
     );
     expect(projected.spec).toBe(DATASET_SPEC);
     expect(projected.respondentId).toBeUndefined();
+    expect(projected.updatedAt).toBe("2026-01-02T00:00:00.000Z");
     expect(projected.fields).toEqual([
       { id: "name", type: "text", value: "Ada", formatted: "Ada" },
       { id: "ok", type: "boolean", value: null, formatted: "" },
@@ -156,5 +157,26 @@ describe("projectResponse", () => {
     expect(projected.fields.map((field) => field.id)).toEqual(["name"]);
     expect(projected.fields[0]?.formatted).toBe("Ada");
     expect(live.fields.map((field) => field.id)).toEqual(["name", "email"]);
+  });
+
+  it("strips binary payload keys and records attachment metadata", async () => {
+    const definition = normalizeFormSnapshot({
+      id: "files",
+      title: "Files",
+      fields: [{ id: "file", type: "file" }],
+    });
+    const projected = await projectResponse(
+      record({
+        definition,
+        answers: {
+          file: { id: "abc", name: "a.png", bytes: new Uint8Array([1]) },
+        },
+      }),
+    );
+    expect(projected.fields[0]?.value).toEqual({ id: "abc", name: "a.png" });
+    expect(projected.fields[0]?.attachment).toEqual({
+      id: "abc",
+      name: "a.png",
+    });
   });
 });

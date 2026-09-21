@@ -142,6 +142,7 @@ describe("createFormClient protocol", () => {
         limit: 50,
         offset: 0,
         nextOffset: null,
+        total: 0,
       }),
     );
     const api = createFormClient({ basePath: "/api/form", fetch });
@@ -150,6 +151,30 @@ describe("createFormClient protocol", () => {
       respondentId: "user-1",
     });
     expect(calls[0]?.url).toContain("respondentId=user-1");
+  });
+
+  it("sends submittedAt bounds on listResponses", async () => {
+    const { fetch, calls } = captureFetch(() =>
+      jsonResponse({
+        responses: [],
+        limit: 50,
+        offset: 0,
+        nextOffset: null,
+        total: 0,
+      }),
+    );
+    const api = createFormClient({ fetch });
+    await api.listResponses({
+      formId: "onboarding",
+      submittedFrom: "2026-01-01T00:00:00.000Z",
+      updatedAfter: "2026-01-02T00:00:00.000Z",
+    });
+    expect(calls[0]?.url).toContain(
+      "submittedFrom=2026-01-01T00%3A00%3A00.000Z",
+    );
+    expect(calls[0]?.url).toContain(
+      "updatedAfter=2026-01-02T00%3A00%3A00.000Z",
+    );
   });
 
   it("forwards per-call headers", async () => {

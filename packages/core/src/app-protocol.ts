@@ -86,7 +86,9 @@ export type {
   FormStatus,
   SelectOption,
   ResponseList,
+  ResponseListFilter,
   ResponseRecord,
   ResponseStatus,
   ResponseSummary,
 } from "./schema";
+export { matchesResponseListFilter } from "./schema";

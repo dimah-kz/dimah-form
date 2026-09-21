@@ -3,7 +3,13 @@ import { describe, expect, it } from "vitest";
 import { normalizeFormSnapshot } from "@dimah-form/core";
 
 import { buildCodebook } from "./codebook";
-import { toCsv, toCsvLabels, toDataPackage, toJsonl } from "./encode";
+import {
+  createCsvEncoder,
+  toCsv,
+  toCsvLabels,
+  toDataPackage,
+  toJsonl,
+} from "./encode";
 import { snapshotKey } from "./hash";
 import { projectResponse } from "./project";
 import { DATASET_SPEC, type DatasetRecord } from "./spec";
@@ -93,7 +99,7 @@ describe("toCsv", () => {
     const csv = toCsv([record], codebook);
     expect(csv).toContain("a;b");
     expect(csv.split("\r\n")[0]).toBe(
-      "id,formId,status,submittedAt,createdAt,snapshotKey,name,tags",
+      "id,formId,status,submittedAt,createdAt,updatedAt,snapshotKey,name,tags",
     );
   });
 
@@ -134,6 +140,57 @@ describe("toCsvLabels", () => {
     expect(csv.startsWith("\uFEFF")).toBe(true);
     expect(csv).toContain("Alpha;Beta");
     expect(toCsv([record], codebook).startsWith("\uFEFF")).toBe(false);
+  });
+
+  it("allowlists fields, omits identity columns, and remaps boolean labels", async () => {
+    const definition = normalizeFormSnapshot({
+      id: "quiz",
+      title: "Quiz",
+      fields: [
+        { id: "name", type: "text" },
+        { id: "ok", type: "boolean" },
+      ],
+    });
+    const record = await projectResponse({
+      id: "r1",
+      formId: "quiz",
+      status: "submitted",
+      definition,
+      answers: { name: "Ada", ok: true },
+      respondentId: null,
+      submittedAt: "2026-01-01T00:00:00.000Z",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+    const codebook = buildCodebook([
+      {
+        snapshotKey: record.snapshotKey,
+        definition,
+        seenAt: record.createdAt,
+      },
+    ]);
+    const csv = toCsvLabels([record], codebook, {
+      fields: ["ok"],
+      omit: ["snapshotKey"],
+      booleanLabels: { true: "بله", false: "خیر" },
+    });
+    const header = csv.replace(/^\uFEFF/, "").split("\r\n")[0];
+    expect(header).toBe("id,formId,status,submittedAt,createdAt,updatedAt,ok");
+    expect(csv).toContain("بله");
+    expect(csv).not.toContain("Ada");
+  });
+});
+
+describe("createCsvEncoder", () => {
+  it("streams the same codes CSV as toCsv", async () => {
+    const { record, codebook } = await sample();
+    const encoder = createCsvEncoder(codebook);
+    expect(encoder.header() + encoder.row(record)).toBe(
+      toCsv([record], codebook),
+    );
+    expect(encoder.header("labels") + encoder.row(record, "labels")).toBe(
+      toCsvLabels([record], codebook),
+    );
   });
 });
 

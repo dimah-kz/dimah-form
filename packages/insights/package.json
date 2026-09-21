@@ -1,0 +1,80 @@
+{
+  "name": "@dimah-form/insights",
+  "version": "0.4.0",
+  "description": "Official insights plugin for dimah-form (read-side field and score summaries)",
+  "keywords": [
+    "form",
+    "questionnaire",
+    "survey",
+    "insights",
+    "analytics",
+    "reporting",
+    "typescript"
+  ],
+  "homepage": "https://form.dimah.dev/docs/insights",
+  "bugs": {
+    "url": "https://github.com/dimah-kz/dimah-form/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dimah-kz/dimah-form.git",
+    "directory": "packages/insights"
+  },
+  "license": "MIT",
+  "author": "dimah",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "default": "./dist/client.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup --config tsup.config.ts && tsc --emitDeclarationOnly -p tsconfig.build.json && tsc-alias",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint --max-warnings 0 --cache",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@dimah-form/core": "workspace:*",
+    "@dimah-form/scoring": "workspace:*",
+    "@dimah-form/server": "workspace:*",
+    "@types/node": "catalog:",
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/tsup-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "@workspace/vitest-config": "workspace:*",
+    "eslint": "catalog:",
+    "tsc-alias": "catalog:",
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@dimah-form/core": "workspace:^",
+    "@dimah-form/scoring": "workspace:^",
+    "@dimah-form/server": "workspace:^"
+  },
+  "peerDependenciesMeta": {
+    "@dimah-form/scoring": {
+      "optional": true
+    },
+    "@dimah-form/server": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

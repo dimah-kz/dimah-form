@@ -52,3 +52,7 @@
 - name: pkg:dataset
   color: "bfd4f2"
   description: "@dimah-form/dataset"
+
+- name: pkg:insights
+  color: "c5e0b4"
+  description: "@dimah-form/insights"

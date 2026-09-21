@@ -120,12 +120,25 @@ interface ResponseStore {
     options?: { expectedUpdatedAt?: string },
   ): MaybePromise<void>;
   deleteResponse(id: string): MaybePromise<void>;
-  listResponses(query?: ListResponsesQuery): MaybePromise<{
-    responses: (ResponseRecord | ResponseSummary)[];
-    limit: number;
-    offset: number;
-    nextOffset: number | null;
-  }>;
+  listResponses(query?: {
+    formId?: string;
+    respondentId?: string;
+    status?: ResponseStatus;
+    include?: "summary" | "full";
+    submittedFrom?: string;
+    submittedTo?: string;
+    updatedAfter?: string;
+    limit?: number;
+    offset?: number;
+  }): MaybePromise<(ResponseRecord | ResponseSummary)[]>;
+  countResponses(query?: {
+    formId?: string;
+    respondentId?: string;
+    status?: ResponseStatus;
+    submittedFrom?: string;
+    submittedTo?: string;
+    updatedAfter?: string;
+  }): MaybePromise<number>;
 
   // Draft Helpers
   findLatestDraft(query: {

@@ -12,9 +12,43 @@ export const LIST_MAX_LIMIT = 100;
 
 export const answersSchema = z.record(z.string(), z.unknown());
 
-const listPageQueryFields = {
+export const responseStatusSchema = z.enum(["draft", "submitted", "abandoned"]);
+
+export const listPageQueryFields = {
   limit: z.coerce.number().pipe(z.int().min(1).max(LIST_MAX_LIMIT)).optional(),
   offset: z.coerce.number().pipe(z.int().nonnegative()).optional(),
+};
+
+/** Query datetime (ISO-8601). Invalid strings fail validation. */
+export const isoDateTimeQuerySchema = z
+  .string()
+  .trim()
+  .min(1)
+  .refine((value) => !Number.isNaN(Date.parse(value)), {
+    error: "Invalid datetime",
+  });
+
+export const responseListFilterFields = {
+  formId: formIdSchema.optional(),
+  respondentId: trimmedString.optional(),
+  status: responseStatusSchema.optional(),
+  /** Inclusive lower bound on `submittedAt`. Rows with no submit time are excluded. */
+  submittedFrom: isoDateTimeQuerySchema.optional(),
+  /** Inclusive upper bound on `submittedAt`. Rows with no submit time are excluded. */
+  submittedTo: isoDateTimeQuerySchema.optional(),
+  /** Exclusive lower bound on `updatedAt` (warehouse incremental sync). */
+  updatedAfter: isoDateTimeQuerySchema.optional(),
+};
+
+export type ResponseStatus = z.output<typeof responseStatusSchema>;
+
+export type ResponseListFilter = {
+  formId?: string;
+  respondentId?: string;
+  status?: ResponseStatus;
+  submittedFrom?: string;
+  submittedTo?: string;
+  updatedAfter?: string;
 };
 
 export const getFormQuerySchema = z.strictObject({
@@ -47,9 +81,7 @@ export const listFormsQuerySchema = z.strictObject({
 });
 
 export const listResponsesQuerySchema = z.strictObject({
-  formId: formIdSchema.optional(),
-  respondentId: trimmedString.optional(),
-  status: z.enum(["draft", "submitted", "abandoned"]).optional(),
+  ...responseListFilterFields,
   include: z.enum(["summary", "full"]).optional(),
   ...listPageQueryFields,
 });
@@ -81,8 +113,6 @@ export const deleteResponseBodySchema = z.strictObject({
   responseId: responseIdSchema,
 });
 
-export const responseStatusSchema = z.enum(["draft", "submitted", "abandoned"]);
-
 export const responseRecordSchema = z.strictObject({
   id: responseIdSchema,
   formId: formIdSchema,
@@ -112,10 +142,10 @@ export const responseListSchema = z.strictObject({
   limit: z.int(),
   offset: z.int(),
   nextOffset: z.int().nullable(),
+  total: z.int().nonnegative(),
 });
 
 export type FormAnswers = z.output<typeof answersSchema>;
-export type ResponseStatus = z.output<typeof responseStatusSchema>;
 export type ResponseRecord = Omit<
   z.output<typeof responseRecordSchema>,
   "definition"
@@ -137,7 +167,53 @@ export type ResponseList = {
   limit: number;
   offset: number;
   nextOffset: number | null;
+  total: number;
 };
+
+function parsedTime(value: string | null | undefined): number | undefined {
+  if (value == null || value.length === 0) return undefined;
+  const time = Date.parse(value);
+  return Number.isNaN(time) ? undefined : time;
+}
+
+/**
+ * Store / in-memory predicate for {@link ResponseListFilter}.
+ * `submittedFrom` / `submittedTo` are inclusive and drop rows with no
+ * `submittedAt`. `updatedAfter` is exclusive.
+ */
+export function matchesResponseListFilter(
+  row: {
+    formId: string;
+    respondentId: string | null;
+    status: ResponseStatus;
+    submittedAt: string | null;
+    updatedAt: string;
+  },
+  query?: ResponseListFilter,
+): boolean {
+  if (!query) return true;
+  if (query.formId && row.formId !== query.formId) return false;
+  if (query.respondentId && row.respondentId !== query.respondentId) {
+    return false;
+  }
+  if (query.status && row.status !== query.status) return false;
+  if (query.submittedFrom !== undefined || query.submittedTo !== undefined) {
+    const submitted = parsedTime(row.submittedAt);
+    if (submitted === undefined) return false;
+    const from = parsedTime(query.submittedFrom);
+    if (from !== undefined && submitted < from) return false;
+    const to = parsedTime(query.submittedTo);
+    if (to !== undefined && submitted > to) return false;
+  }
+  if (query.updatedAfter !== undefined) {
+    const updated = parsedTime(row.updatedAt);
+    const after = parsedTime(query.updatedAfter);
+    if (updated === undefined || after === undefined || updated <= after) {
+      return false;
+    }
+  }
+  return true;
+}
 
 export type ListPageQuery = {
   limit?: number;

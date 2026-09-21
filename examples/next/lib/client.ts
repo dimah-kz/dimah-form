@@ -1,13 +1,18 @@
 "use client";
 
 import { datasetClientPlugin } from "@dimah-form/dataset/client";
+import { insightsClientPlugin } from "@dimah-form/insights/client";
 import { createFormClient } from "@dimah-form/react";
 import { scoringClientPlugin } from "@dimah-form/scoring/client";
 
 import type { Form } from "./form";
 import { fieldTypes } from "./field-types";
 
-const clientPlugins = [scoringClientPlugin(), datasetClientPlugin()] as const;
+const clientPlugins = [
+  scoringClientPlugin(),
+  datasetClientPlugin(),
+  insightsClientPlugin(),
+] as const;
 
 export const formClient = createFormClient<Form, typeof clientPlugins>({
   fieldTypes,
