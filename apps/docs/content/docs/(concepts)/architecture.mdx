@@ -82,7 +82,7 @@ Each package has one job and a one-way dependency graph:
 | **`@dimah-form/db`**       | Server              | Optional. Production SQL adapter using FumaDB for Drizzle, Prisma, and Kysely.                                                                                                                   | `DimahFormDB`, `db()`                                                        |
 | **`@dimah-form/scoring`**  | Server / isomorphic | Official scoring plugin. `meta.scoring` on the snapshot; Likert points or option `add` keying; compute-on-read totals and bands. Peer of `server`.                                               | `scoringPlugin()`, `scoreResponse()`, `scoringClientPlugin()`                |
 | **`@dimah-form/dataset`**  | Server / isomorphic | Official dataset plugin. Versioned JSONL + codebook from response snapshots; paged HTTP; CSV convenience. Compute-on-read; no tables. Peer of `server`.                                          | `datasetPlugin()`, `projectResponse()`, `createDatasetReader()`              |
-| **`@dimah-form/insights`** | Server / isomorphic | Official insights plugin. Status / completion / field stats from response snapshots; optional day series and crosstab. Compute-on-read; no tables. Peer of `server`.                              | `insightsPlugin()`, `createInsightsAccumulator()`, `insightsClientPlugin()`  |
+| **`@dimah-form/insights`** | Server / isomorphic | Official insights plugin. Status / completion / field stats from response snapshots; optional day series and crosstab. Compute-on-read; no tables. Peer of `server`.                             | `insightsPlugin()`, `createInsightsAccumulator()`, `insightsClientPlugin()`  |
 
 ---
 

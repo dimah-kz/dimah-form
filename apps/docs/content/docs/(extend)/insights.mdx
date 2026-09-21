@@ -9,13 +9,13 @@ icon: ChartColumn
 - totals by `draft` / `submitted` / `abandoned`
 - visible-required completion among submitted rows (`completion.rate` is `complete / submitted`, or `null`)
 - per-field stats: `n` is **visible** occurrences; `hidden` is skip-logic; `unanswered` is visible and empty
-- value counts + `pct` (0–1) for categorical fields (`select` / `multiSelect` / `boolean`, or any field with `options`)
-- `numeric` min / max / mean / stdev for `number`; `dates` min / max for `date`
-- optional scoring band / mean / stdev when `@dimah-form/scoring` is installed
+- value counts + `pct` (0–1) for categorical fields (`select` / `multiSelect` / `boolean`, or any field with `options`). Levels follow the document catalog, including unused `n: 0`, in document order — not by frequency
+- `numeric` min / max / mean / stdev for any finite number answer (`number`, or a custom type such as `rating`); `dates` min / max for `date`
+- optional scoring band / mean / stdev when `@dimah-form/scoring` is installed. Bands follow `meta.scoring` order, including unused `n: 0`
 - optional UTC `bucket=day` series of `submittedAt`
-- `GET /insights/crosstab` for two categorical fields
+- `GET /insights/crosstab` for two categorical fields. `n` is respondents who contributed a cell, not multiSelect tokens
 
-Derived data only. No tables, no `meta` namespace, no live-form flatten. Text / email fields are answered / unanswered only.
+Derived data only. No tables, no `meta` namespace, no live-form flatten. The live questionnaire only supplies field order and catalog levels that snapshots did not already list. Text / email fields are answered / unanswered only.
 
 This is not a warehouse. For large N persist rows with [`datasetPlugin({ onProject })`](/docs/dataset) and aggregate in your database. When the walk hits the cap, `truncated` is true — lower `maxRows` on the query, or raise the plugin cap and project instead.
 
@@ -53,7 +53,7 @@ export const formClient = createFormClient<Form, typeof plugins>({
 
 Guard `getFormInsights` and `getFormCrosstab` like `listResponses` (admin).
 
-There is no default `status` filter (unlike dataset, which defaults to submitted). Pass `status`, `respondentId`, `submittedFrom` / `submittedTo`, and `updatedAfter` to match `listResponses`. Segment in the fold with `whereField` + `whereValue` (unknown field → empty counts, not 404). `multiSelect` `%` is of **answered respondents** (can sum above 1).
+There is no default `status` filter (unlike dataset, which defaults to submitted). Pass `status`, `respondentId`, `submittedFrom` / `submittedTo`, and `updatedAfter` to match `listResponses`. Segment in the fold with `whereField` + `whereValue` (unknown field → empty counts, not 404). A finite number matches the decimal string of the stored value (`5` matches `"5"`). `multiSelect` `%` is of **answered respondents** (can sum above 1). Categorical `%` and score bands include every catalog level, so a scale stays in document order when a level has `n: 0`.
 
 ```ts
 const summary = await form.api.getFormInsights({
@@ -69,7 +69,7 @@ const table = await form.api.getFormCrosstab({
 });
 ```
 
-`summary.byStatus` is the census. `completion` uses visible required fields on **each row’s snapshot**. `scores` is omitted when `@dimah-form/scoring` is missing or the snapshot has no `meta.scoring`. Crosstab fields must be categorical on the live form (`VALIDATION_ERROR` otherwise).
+`summary.byStatus` is the census. `completion` uses visible required fields on **each row’s snapshot**. `fields` follow the live questionnaire order; ids that exist only on older snapshots come after. `scores` is omitted when `@dimah-form/scoring` is missing or the snapshot has no `meta.scoring`. A crosstab axis that is on the live form and not categorical is `VALIDATION_ERROR`. An id that is only on older snapshots still folds (empty when no row has it). `table.n` is the respondent base for the cells.
 
 `GET /insights/summary` and `GET /insights/crosstab`. Filename, charts, and zip stay in the app. Optional UI belongs in the consumer — `@dimah-form/ui` is the fill renderer, not an admin dashboard.
 

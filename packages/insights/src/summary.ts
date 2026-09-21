@@ -9,14 +9,24 @@ import {
   type ResponseRecord,
 } from "@dimah-form/core";
 
-import { categoricalTokens, isCategoricalField } from "./categorical";
+import {
+  catalogValues,
+  categoricalTokens,
+  compareByOrder,
+  isCategoricalField,
+} from "./categorical";
 import {
   addNumeric,
   createNumericAcc,
   numericSnapshot,
   type NumericAcc,
 } from "./numeric";
-import type { InsightsScores } from "./scoring";
+import {
+  emptyScoringCatalog,
+  mergeScoringCatalog,
+  scoringCatalogFromMeta,
+  type InsightsScores,
+} from "./scoring";
 import type { InsightsField, InsightsSummary } from "./spec";
 
 function minIso(a?: string, b?: string): string | undefined {
@@ -48,6 +58,7 @@ type FieldAcc = {
   unanswered: number;
   answered: number;
   values: Map<string, ValueAcc>;
+  valueOrder: string[];
   numeric: NumericAcc;
   dateMin?: string;
   dateMax?: string;
@@ -62,6 +73,18 @@ type ScoreAcc = {
   bands: Map<string, number>;
 };
 
+function seedValues(acc: FieldAcc, field: FormField): void {
+  if (!isCategoricalField(field)) return;
+  for (const token of catalogValues(field)) {
+    if (acc.values.has(token.value)) continue;
+    acc.values.set(token.value, {
+      n: 0,
+      ...(token.label ? { label: token.label } : {}),
+    });
+    acc.valueOrder.push(token.value);
+  }
+}
+
 function bumpValue(
   acc: FieldAcc,
   value: string,
@@ -70,27 +93,44 @@ function bumpValue(
   const existing = acc.values.get(value);
   if (existing) {
     existing.n += 1;
-    if (label) existing.label = label;
+    if (label && existing.label == null) existing.label = label;
     return;
   }
   acc.values.set(value, { n: 1, ...(label ? { label } : {}) });
+  acc.valueOrder.push(value);
+}
+
+function extraByN(
+  counts: Map<string, number>,
+): (a: string, b: string) => number {
+  return (a, b) =>
+    (counts.get(b) ?? 0) - (counts.get(a) ?? 0) || a.localeCompare(b, "en");
 }
 
 export type InsightsAccumulatorOptions = {
   fieldTypes?: FieldTypeRegistryInput;
   series?: boolean;
+  /** Live questionnaire: field order and unused catalog levels. Not a flatten. */
+  liveFields?: readonly FormField[];
+  /** Live `meta` for scoring variable / band order. */
+  liveMeta?: unknown;
 };
 
 /**
  * Fold full response rows into a form summary. Counts follow each row's
  * **definition snapshot**, not the live questionnaire. Field `n` is visible
- * occurrences; hidden skip-logic fields increment `hidden`.
+ * occurrences; hidden skip-logic fields increment `hidden`. Categorical
+ * `values` follow the document catalog (unused levels stay at `n: 0`).
  */
 export function createInsightsAccumulator(
   formId: string,
   options: InsightsAccumulatorOptions = {},
 ) {
   const registry = resolveFieldTypeRegistry(options.fieldTypes);
+  const liveById = new Map(
+    (options.liveFields ?? []).map((field) => [field.id, field]),
+  );
+  const liveFieldIds = (options.liveFields ?? []).map((field) => field.id);
   const byStatus = { draft: 0, submitted: 0, abandoned: 0 };
   let submittedAtMin: string | undefined;
   let submittedAtMax: string | undefined;
@@ -98,24 +138,32 @@ export function createInsightsAccumulator(
   let completionComplete = 0;
   const fields = new Map<string, FieldAcc>();
   const scores = new Map<string, ScoreAcc>();
+  const scoringCatalog = emptyScoringCatalog();
+  const liveScoring = scoringCatalogFromMeta(options.liveMeta);
+  if (liveScoring) mergeScoringCatalog(scoringCatalog, liveScoring);
   const byDay = options.series ? new Map<string, number>() : undefined;
 
   function fieldAcc(field: FormField): FieldAcc {
-    const existing = fields.get(field.id);
-    if (existing) return existing;
-    const next: FieldAcc = {
-      id: field.id,
-      type: field.type,
-      label: fieldLabel(field),
-      n: 0,
-      hidden: 0,
-      unanswered: 0,
-      answered: 0,
-      values: new Map(),
-      numeric: createNumericAcc(),
-    };
-    fields.set(field.id, next);
-    return next;
+    let existing = fields.get(field.id);
+    if (!existing) {
+      existing = {
+        id: field.id,
+        type: field.type,
+        label: fieldLabel(field),
+        n: 0,
+        hidden: 0,
+        unanswered: 0,
+        answered: 0,
+        values: new Map(),
+        valueOrder: [],
+        numeric: createNumericAcc(),
+      };
+      fields.set(field.id, existing);
+    }
+    seedValues(existing, field);
+    const live = liveById.get(field.id);
+    if (live) seedValues(existing, live);
+    return existing;
   }
 
   return {
@@ -155,11 +203,7 @@ export function createInsightsAccumulator(
             bumpValue(acc, token.value, token.label);
           }
         }
-        if (
-          field.type === "number" &&
-          typeof value === "number" &&
-          Number.isFinite(value)
-        ) {
+        if (typeof value === "number" && Number.isFinite(value)) {
           addNumeric(acc.numeric, value);
         }
         if (field.type === "date" && typeof value === "string") {
@@ -167,6 +211,8 @@ export function createInsightsAccumulator(
           acc.dateMax = maxIso(acc.dateMax, value);
         }
       }
+      const snapshotScoring = scoringCatalogFromMeta(row.definition.meta);
+      if (snapshotScoring) mergeScoringCatalog(scoringCatalog, snapshotScoring);
       if (!score) return;
       for (const [id, variable] of Object.entries(score.variables)) {
         let acc = scores.get(id);
@@ -182,7 +228,7 @@ export function createInsightsAccumulator(
           scores.set(id, acc);
         }
         acc.n += 1;
-        if (variable.label) acc.label = variable.label;
+        if (variable.label && acc.label == null) acc.label = variable.label;
         if (variable.complete) acc.complete += 1;
         if (variable.raw != null) addNumeric(acc.numeric, variable.raw);
         if (variable.band) {
@@ -191,8 +237,12 @@ export function createInsightsAccumulator(
       }
     },
     finish(): Omit<InsightsSummary, "scanned" | "truncated"> {
+      const seenFieldIds = [...fields.keys()];
       const fieldRows: InsightsField[] = [...fields.values()]
         .map((field) => {
+          const nByValue = new Map(
+            [...field.values.entries()].map(([value, item]) => [value, item.n]),
+          );
           const values = [...field.values.entries()]
             .map(([value, item]) => ({
               value,
@@ -200,7 +250,14 @@ export function createInsightsAccumulator(
               pct: field.answered > 0 ? item.n / field.answered : 0,
               ...(item.label ? { label: item.label } : {}),
             }))
-            .sort((a, b) => b.n - a.n || a.value.localeCompare(b.value, "en"));
+            .sort((a, b) =>
+              compareByOrder(
+                field.valueOrder,
+                a.value,
+                b.value,
+                extraByN(nByValue),
+              ),
+            );
           const numeric = numericSnapshot(field.numeric);
           return {
             id: field.id,
@@ -216,20 +273,41 @@ export function createInsightsAccumulator(
               : {}),
           };
         })
-        .sort((a, b) => a.id.localeCompare(b.id, "en", { numeric: true }));
+        .sort((a, b) =>
+          compareByOrder(liveFieldIds, a.id, b.id, (left, right) =>
+            compareByOrder(seenFieldIds, left, right),
+          ),
+        );
+      const seenScoreIds = [...scores.keys()];
       const variables = [...scores.values()]
         .map((variable) => {
-          const bands = [...variable.bands.entries()]
-            .map(([label, n]) => ({
-              label,
-              n,
-              pct: variable.n > 0 ? n / variable.n : 0,
-            }))
-            .sort((a, b) => b.n - a.n || a.label.localeCompare(b.label, "en"));
+          const catalogBands =
+            scoringCatalog.bandsByVariable.get(variable.id) ?? [];
+          const labels = new Set([...catalogBands, ...variable.bands.keys()]);
+          const bands = [...labels]
+            .map((label) => {
+              const n = variable.bands.get(label) ?? 0;
+              return {
+                label,
+                n,
+                pct: variable.n > 0 ? n / variable.n : 0,
+              };
+            })
+            .sort((a, b) =>
+              compareByOrder(
+                catalogBands,
+                a.label,
+                b.label,
+                extraByN(variable.bands),
+              ),
+            );
           const numeric = numericSnapshot(variable.numeric);
+          const catalogLabel = scoringCatalog.variableLabels.get(variable.id);
           return {
             id: variable.id,
-            ...(variable.label ? { label: variable.label } : {}),
+            ...(variable.label || catalogLabel
+              ? { label: variable.label ?? catalogLabel }
+              : {}),
             n: variable.n,
             complete: variable.complete,
             ...(numeric ? { min: numeric.min, max: numeric.max } : {}),
@@ -238,7 +316,14 @@ export function createInsightsAccumulator(
             ...(bands.length > 0 ? { bands } : {}),
           };
         })
-        .sort((a, b) => a.id.localeCompare(b.id, "en", { numeric: true }));
+        .sort((a, b) =>
+          compareByOrder(
+            scoringCatalog.variableIds,
+            a.id,
+            b.id,
+            (left, right) => compareByOrder(seenScoreIds, left, right),
+          ),
+        );
       const seriesPoints = byDay
         ? [...byDay.entries()]
             .map(([t, n]) => ({ t, n }))

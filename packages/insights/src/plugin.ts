@@ -62,13 +62,14 @@ function walkCap(pluginCap: number, queryMaxRows?: number): number {
   return Math.min(queryMaxRows ?? pluginCap, pluginCap);
 }
 
-function requireCategorical(
+function crosstabAxis(
   form: { fields: readonly FormField[] },
   fieldId: string,
   queryField: "row" | "col",
-) {
+): FormField {
   const field = form.fields.find((item) => item.id === fieldId);
-  if (!field || !isCategoricalField(field)) {
+  if (!field) return { id: fieldId, type: "select" };
+  if (!isCategoricalField(field)) {
     throw errors.validationError([
       {
         field: queryField,
@@ -109,6 +110,8 @@ export function insightsPlugin(options: InsightsPluginOptions = {}) {
           const acc = createInsightsAccumulator(form.id, {
             fieldTypes: state.fieldTypes ?? config.fieldTypes,
             series: ctx.query.bucket === "day",
+            liveFields: form.fields,
+            liveMeta: form.meta,
           });
           const whereField = ctx.query.whereField;
           const whereValue = ctx.query.whereValue;
@@ -151,8 +154,8 @@ export function insightsPlugin(options: InsightsPluginOptions = {}) {
         async (ctx): Promise<InsightsCrosstab> => {
           const config = ctx.context.config;
           const form = await resolveLiveForm(config, ctx.query.formId);
-          const rowField = requireCategorical(form, ctx.query.row, "row");
-          const colField = requireCategorical(form, ctx.query.col, "col");
+          const rowField = crosstabAxis(form, ctx.query.row, "row");
+          const colField = crosstabAxis(form, ctx.query.col, "col");
           const filter = storeFilter(form.id, ctx.query);
           const acc = createInsightsCrosstabAccumulator(
             form.id,

@@ -19,5 +19,8 @@ export function rowMatchesWhere(
   if (Array.isArray(value)) {
     return value.includes(expected);
   }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value) === expected;
+  }
   return value === expected;
 }

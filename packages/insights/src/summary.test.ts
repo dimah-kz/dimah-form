@@ -78,9 +78,14 @@ describe("createInsightsAccumulator", () => {
     expect(color?.hidden).toBe(0);
     expect(color?.n).toBe(3);
     expect(color?.unanswered).toBe(1);
+    expect(summary.fields.map((field) => field.id)).toEqual([
+      "color",
+      "ok",
+      "note",
+    ]);
     expect(color?.values).toEqual([
-      { value: "b", label: "Blue", n: 1, pct: 0.5 },
       { value: "r", label: "Red", n: 1, pct: 0.5 },
+      { value: "b", label: "Blue", n: 1, pct: 0.5 },
     ]);
     const note = summary.fields.find((field) => field.id === "note");
     expect(note?.values).toBeUndefined();
@@ -234,6 +239,106 @@ describe("createInsightsAccumulator", () => {
       { label: "Mild", n: 1, pct: 0.5 },
       { label: "Moderate", n: 1, pct: 0.5 },
     ]);
+  });
+
+  it("keeps unused options and bands in document order", () => {
+    const scored = normalizeFormSnapshot({
+      id: "quiz",
+      title: "Quiz",
+      meta: {
+        scoring: {
+          variables: [
+            { id: "pulse", label: "Pulse" },
+            { id: "gad7", label: "GAD-7" },
+          ],
+          bands: [
+            { variable: "gad7", label: "Mild" },
+            { variable: "gad7", label: "Moderate" },
+            { variable: "gad7", label: "Severe" },
+          ],
+        },
+      },
+      fields: [
+        {
+          id: "color",
+          type: "select",
+          options: [
+            { value: "r", label: "Red" },
+            { value: "b", label: "Blue" },
+          ],
+        },
+      ],
+    });
+    const acc = createInsightsAccumulator("quiz");
+    acc.add(row({ definition: scored, answers: { color: "r" } }), {
+      variables: {
+        gad7: { raw: 12, complete: true, band: "Moderate" },
+        pulse: { raw: 1, complete: true },
+      },
+    });
+    const summary = acc.finish();
+    expect(
+      summary.fields.find((field) => field.id === "color")?.values,
+    ).toEqual([
+      { value: "r", label: "Red", n: 1, pct: 1 },
+      { value: "b", label: "Blue", n: 0, pct: 0 },
+    ]);
+    expect(summary.scores?.variables.map((variable) => variable.id)).toEqual([
+      "pulse",
+      "gad7",
+    ]);
+    expect(summary.scores?.variables[1]?.bands).toEqual([
+      { label: "Mild", n: 0, pct: 0 },
+      { label: "Moderate", n: 1, pct: 1 },
+      { label: "Severe", n: 0, pct: 0 },
+    ]);
+  });
+
+  it("orders seen fields by the live document and does not invent fields", () => {
+    const acc = createInsightsAccumulator("quiz", {
+      liveFields: [
+        { id: "note", type: "text", label: "Note" },
+        {
+          id: "color",
+          type: "select",
+          label: "Color",
+          options: [
+            { value: "r", label: "Red" },
+            { value: "b", label: "Blue" },
+            { value: "g", label: "Green" },
+          ],
+        },
+        { id: "email", type: "email", label: "Email" },
+      ],
+    });
+    acc.add(row());
+    const summary = acc.finish();
+    expect(summary.fields.map((field) => field.id)).toEqual([
+      "note",
+      "color",
+      "ok",
+    ]);
+    expect(
+      summary.fields.find((field) => field.id === "color")?.values,
+    ).toEqual([
+      { value: "r", label: "Red", n: 1, pct: 1 },
+      { value: "b", label: "Blue", n: 0, pct: 0 },
+      { value: "g", label: "Green", n: 0, pct: 0 },
+    ]);
+  });
+
+  it("folds finite numbers on custom field types without value buckets", () => {
+    const rated = normalizeFormSnapshot({
+      id: "quiz",
+      title: "Quiz",
+      fields: [{ id: "stars", type: "rating" }],
+    });
+    const acc = createInsightsAccumulator("quiz");
+    acc.add(row({ definition: rated, answers: { stars: 4 } }));
+    acc.add(row({ id: "r2", definition: rated, answers: { stars: 2 } }));
+    const stars = acc.finish().fields.find((field) => field.id === "stars");
+    expect(stars?.values).toBeUndefined();
+    expect(stars?.numeric).toMatchObject({ min: 2, max: 4, mean: 3 });
   });
 });
 

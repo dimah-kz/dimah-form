@@ -93,8 +93,16 @@ describe("insightsPlugin", () => {
       complete: 2,
       rate: 1,
     });
+    expect(summary.fields.map((field) => field.id)).toEqual([
+      "name",
+      "city",
+      "remote",
+    ]);
     expect(summary.fields.find((field) => field.id === "city")?.values).toEqual(
-      [{ value: "tehran", label: "Tehran", n: 2, pct: 1 }],
+      [
+        { value: "tehran", label: "Tehran", n: 2, pct: 1 },
+        { value: "isfahan", label: "Isfahan", n: 0, pct: 0 },
+      ],
     );
   });
 
@@ -137,7 +145,10 @@ describe("insightsPlugin", () => {
     expect(summary.scanned).toBe(2);
     expect(
       summary.fields.find((field) => field.id === "remote")?.values,
-    ).toEqual([{ value: "true", label: "Yes", n: 1, pct: 1 }]);
+    ).toEqual([
+      { value: "true", label: "Yes", n: 1, pct: 1 },
+      { value: "false", label: "No", n: 0, pct: 0 },
+    ]);
   });
 
   it("returns a UTC day series when bucket=day", async () => {
@@ -213,21 +224,113 @@ describe("insightsPlugin", () => {
         col: "remote",
       },
     });
+    expect(table.n).toBe(3);
     expect(table.row.id).toBe("city");
     expect(table.col.id).toBe("remote");
-    expect(table.cells).toEqual(
-      expect.arrayContaining([
-        { row: "tehran", col: "true", n: 1 },
-        { row: "tehran", col: "false", n: 1 },
-        { row: "isfahan", col: "true", n: 1 },
-      ]),
-    );
-    expect(table.rowTotals).toEqual(
-      expect.arrayContaining([
-        { value: "tehran", label: "Tehran", n: 2 },
-        { value: "isfahan", label: "Isfahan", n: 1 },
-      ]),
-    );
+    expect(table.cells).toEqual([
+      { row: "tehran", col: "true", n: 1 },
+      { row: "tehran", col: "false", n: 1 },
+      { row: "isfahan", col: "true", n: 1 },
+    ]);
+    expect(table.rowTotals).toEqual([
+      { value: "tehran", label: "Tehran", n: 2 },
+      { value: "isfahan", label: "Isfahan", n: 1 },
+    ]);
+    expect(table.colTotals).toEqual([
+      { value: "true", label: "Yes", n: 2 },
+      { value: "false", label: "No", n: 1 },
+    ]);
+  });
+
+  it("folds a crosstab axis that exists only on snapshots", async () => {
+    const form = dimahForm({
+      database: memoryAdapter(),
+      plugins: [insightsPlugin()],
+    });
+    await form.api.saveForm({
+      body: {
+        id: "shifted",
+        title: "Shifted",
+        fields: [
+          {
+            id: "city",
+            type: "select",
+            label: "City",
+            options: [
+              { value: "tehran", label: "Tehran" },
+              { value: "isfahan", label: "Isfahan" },
+            ],
+          },
+          { id: "remote", type: "boolean", label: "Remote" },
+        ],
+      },
+    });
+    const started = await form.api.startResponse({
+      body: { formId: "shifted" },
+    });
+    await form.api.submitResponse({
+      body: {
+        responseId: started.id,
+        answers: { city: "tehran", remote: true },
+      },
+    });
+    await form.api.saveForm({
+      body: {
+        id: "shifted",
+        title: "Shifted",
+        fields: [{ id: "remote", type: "boolean", label: "Remote" }],
+      },
+    });
+    const table = await form.api.getFormCrosstab({
+      query: {
+        formId: "shifted",
+        status: "submitted",
+        row: "city",
+        col: "remote",
+      },
+    });
+    expect(table.n).toBe(1);
+    expect(table.rowTotals).toEqual([
+      { value: "tehran", label: "Tehran", n: 1 },
+      { value: "isfahan", label: "Isfahan", n: 0 },
+    ]);
+    expect(table.cells).toEqual([{ row: "tehran", col: "true", n: 1 }]);
+  });
+
+  it("matches numeric whereValue against the stored number", async () => {
+    const ages = defineForm({
+      title: "Ages",
+      fields: [
+        { id: "age", type: "number" },
+        { id: "note", type: "text" },
+      ],
+    });
+    const form = dimahForm({
+      database: memoryAdapter(),
+      plugins: [insightsPlugin()],
+      forms: { ages },
+    });
+    const first = await form.api.startResponse({ body: { formId: "ages" } });
+    await form.api.submitResponse({
+      body: { responseId: first.id, answers: { age: 5, note: "a" } },
+    });
+    const second = await form.api.startResponse({ body: { formId: "ages" } });
+    await form.api.submitResponse({
+      body: { responseId: second.id, answers: { age: 6, note: "b" } },
+    });
+    const summary = await form.api.getFormInsights({
+      query: {
+        formId: "ages",
+        status: "submitted",
+        whereField: "age",
+        whereValue: "5",
+      },
+    });
+    expect(summary.total).toBe(1);
+    expect(summary.scanned).toBe(2);
+    expect(
+      summary.fields.find((field) => field.id === "age")?.numeric,
+    ).toMatchObject({ min: 5, max: 5, mean: 5 });
   });
 
   it("rejects a non-categorical crosstab field", async () => {
@@ -302,6 +405,7 @@ describe("insightsClientPlugin", () => {
             truncated: false,
             row: { id: "city", label: "city" },
             col: { id: "remote", label: "remote" },
+            n: 0,
             cells: [],
             rowTotals: [],
             colTotals: [],

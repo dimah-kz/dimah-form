@@ -172,6 +172,8 @@ export const insightsCrosstabSchema = z.object({
   formId: formIdSchema,
   row: insightsCrosstabAxisSchema,
   col: insightsCrosstabAxisSchema,
+  /** Respondents who contributed at least one cell (not multiSelect tokens). */
+  n: z.int().nonnegative(),
   cells: z.array(insightsCrosstabCellSchema),
   rowTotals: z.array(insightsCrosstabTotalSchema),
   colTotals: z.array(insightsCrosstabTotalSchema),
