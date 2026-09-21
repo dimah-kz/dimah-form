@@ -1,6 +1,6 @@
 ---
 packages:
-  group:dimah-form: major
+  group:dimah-form: minor
 ---
 
 ### Align dataset, insights, and file answers with one scoring document
