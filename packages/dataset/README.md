@@ -39,7 +39,7 @@ export const formClient = createFormClient<Form, typeof clientPlugins>({
 
 Guard operations for `GET /dataset/responses`, `GET /dataset/codebook/history`, and `GET /dataset/codebook` are `getDatasetPage`, `getDatasetCodebook`, and `getLiveCodebook`. Treat them like `listResponses` (admin).
 
-`getLiveCodebook` is the **live** form. Historical labels come from `getDatasetCodebook` / `createDatasetReader`. Page codebooks are that page only.
+`getLiveCodebook` is the **live** form. Historical labels come from `getDatasetCodebook` / `createDatasetReader`. Page codebooks are that page only. Historical codebook walks are capped (default 10_000); the result includes `truncated`.
 
 ## Interchange
 

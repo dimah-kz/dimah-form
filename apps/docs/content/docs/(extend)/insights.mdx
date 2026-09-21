@@ -1,19 +1,23 @@
 ---
 title: Insights
-description: Read-side counts from response snapshots — status, completion, categorical values, score bands.
+description: Read-side counts from response snapshots — status, completion, field stats, score bands, optional day series and crosstab.
 icon: ChartColumn
 ---
 
-`@dimah-form/insights` is the first-party **summary** plugin for admin reporting. It walks stored responses (same 100-row pages as list) and folds **snapshot** answers into:
+`@dimah-form/insights` is the first-party **summary** plugin for admin reporting. It walks stored responses (same 100-row pages as list, capped at 10_000 by default) and folds **snapshot** answers into:
 
 - totals by `draft` / `submitted` / `abandoned`
-- visible-required completion among submitted rows
-- value counts for `select` / `multiSelect` / `boolean`
-- optional scoring band / mean when `@dimah-form/scoring` is installed
+- visible-required completion among submitted rows (`completion.rate` is `complete / submitted`, or `null`)
+- per-field stats: `n` is **visible** occurrences; `hidden` is skip-logic; `unanswered` is visible and empty
+- value counts + `pct` (0–1) for categorical fields (`select` / `multiSelect` / `boolean`, or any field with `options`)
+- `numeric` min / max / mean / stdev for `number`; `dates` min / max for `date`
+- optional scoring band / mean / stdev when `@dimah-form/scoring` is installed
+- optional UTC `bucket=day` series of `submittedAt`
+- `GET /insights/crosstab` for two categorical fields
 
-Derived data only. No tables, no `meta` namespace, no live-form flatten. Text fields are counted as answered / unanswered only — they are not histogrammed.
+Derived data only. No tables, no `meta` namespace, no live-form flatten. Text / email fields are answered / unanswered only.
 
-This is not a warehouse. For large N persist rows with [`datasetPlugin({ onProject })`](/docs/dataset) and aggregate in your database.
+This is not a warehouse. For large N persist rows with [`datasetPlugin({ onProject })`](/docs/dataset) and aggregate in your database. When the walk hits the cap, `truncated` is true — lower `maxRows` on the query, or raise the plugin cap and project instead.
 
 ---
 
@@ -47,22 +51,30 @@ export const formClient = createFormClient<Form, typeof plugins>({
 });
 ```
 
-Guard `getFormInsights` like `listResponses` (admin).
+Guard `getFormInsights` and `getFormCrosstab` like `listResponses` (admin).
 
-There is no default `status` filter (unlike dataset, which defaults to submitted). Pass `status`, `respondentId`, `submittedFrom` / `submittedTo`, and `updatedAfter` to match `listResponses`.
+There is no default `status` filter (unlike dataset, which defaults to submitted). Pass `status`, `respondentId`, `submittedFrom` / `submittedTo`, and `updatedAfter` to match `listResponses`. Segment in the fold with `whereField` + `whereValue` (unknown field → empty counts, not 404). `multiSelect` `%` is of **answered respondents** (can sum above 1).
 
 ```ts
 const summary = await form.api.getFormInsights({
   query: { formId: "gad7", status: "submitted" },
 });
+
+const byDay = await form.api.getFormInsights({
+  query: { formId: "gad7", status: "submitted", bucket: "day" },
+});
+
+const table = await form.api.getFormCrosstab({
+  query: { formId: "gad7", row: "city", col: "remote", status: "submitted" },
+});
 ```
 
-`summary.byStatus` is the census. `completion` uses visible required fields on **each row’s snapshot**. Categorical `fields[].values` are `select` / `multiSelect` / `boolean` only. `scores` is omitted when `@dimah-form/scoring` is missing or the snapshot has no `meta.scoring`.
+`summary.byStatus` is the census. `completion` uses visible required fields on **each row’s snapshot**. `scores` is omitted when `@dimah-form/scoring` is missing or the snapshot has no `meta.scoring`. Crosstab fields must be categorical on the live form (`VALIDATION_ERROR` otherwise).
 
-`GET /insights/summary`. Filename, charts, and zip stay in the app. Optional UI belongs in the consumer — `@dimah-form/ui` is the fill renderer, not an admin dashboard.
+`GET /insights/summary` and `GET /insights/crosstab`. Filename, charts, and zip stay in the app. Optional UI belongs in the consumer — `@dimah-form/ui` is the fill renderer, not an admin dashboard.
 
 ---
 
 ## Out of this package
 
-Weighted samples, cross-tabs, time-series buckets, LLM summaries, and persisting the summary. Export files are [`@dimah-form/dataset`](/docs/dataset).
+Weighted samples, LLM summaries, persisting the summary, and charts. Export files are [`@dimah-form/dataset`](/docs/dataset).

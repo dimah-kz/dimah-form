@@ -45,8 +45,19 @@ const plain = defineForm({
         { value: "isfahan", label: "Isfahan" },
       ],
     },
+    { id: "remote", type: "boolean" },
   ],
 });
+
+async function submitPlain(
+  form: ReturnType<typeof dimahForm>,
+  answers: Record<string, unknown>,
+) {
+  const started = await form.api.startResponse({ body: { formId: "plain" } });
+  return form.api.submitResponse({
+    body: { responseId: started.id, answers },
+  });
+}
 
 describe("insightsPlugin", () => {
   it("summarizes submitted categorical answers from snapshots", async () => {
@@ -55,30 +66,35 @@ describe("insightsPlugin", () => {
       plugins: [insightsPlugin()],
       forms: { plain },
     });
-    const first = await form.api.startResponse({ body: { formId: "plain" } });
-    await form.api.submitResponse({
-      body: { responseId: first.id, answers: { name: "Ada", city: "tehran" } },
+    await submitPlain(form, {
+      name: "Ada",
+      city: "tehran",
+      remote: true,
     });
-    const second = await form.api.startResponse({ body: { formId: "plain" } });
-    await form.api.submitResponse({
-      body: {
-        responseId: second.id,
-        answers: { name: "Bob", city: "tehran" },
-      },
+    await submitPlain(form, {
+      name: "Bob",
+      city: "tehran",
+      remote: false,
     });
     await form.api.startResponse({ body: { formId: "plain" } });
     const summary = await form.api.getFormInsights({
       query: { formId: "plain" },
     });
     expect(summary.total).toBe(3);
+    expect(summary.scanned).toBe(3);
+    expect(summary.truncated).toBe(false);
     expect(summary.byStatus).toEqual({
       draft: 1,
       submitted: 2,
       abandoned: 0,
     });
-    expect(summary.completion).toEqual({ submitted: 2, complete: 2 });
+    expect(summary.completion).toEqual({
+      submitted: 2,
+      complete: 2,
+      rate: 1,
+    });
     expect(summary.fields.find((field) => field.id === "city")?.values).toEqual(
-      [{ value: "tehran", label: "Tehran", n: 2 }],
+      [{ value: "tehran", label: "Tehran", n: 2, pct: 1 }],
     );
   });
 
@@ -88,10 +104,7 @@ describe("insightsPlugin", () => {
       plugins: [insightsPlugin()],
       forms: { plain },
     });
-    const first = await form.api.startResponse({ body: { formId: "plain" } });
-    await form.api.submitResponse({
-      body: { responseId: first.id, answers: { name: "Ada", city: "tehran" } },
-    });
+    await submitPlain(form, { name: "Ada", city: "tehran" });
     await form.api.startResponse({ body: { formId: "plain" } });
     const summary = await form.api.getFormInsights({
       query: { formId: "plain", status: "submitted" },
@@ -102,6 +115,60 @@ describe("insightsPlugin", () => {
       submitted: 1,
       abandoned: 0,
     });
+  });
+
+  it("segments by whereField / whereValue", async () => {
+    const form = dimahForm({
+      database: memoryAdapter(),
+      plugins: [insightsPlugin()],
+      forms: { plain },
+    });
+    await submitPlain(form, { name: "Ada", city: "tehran", remote: true });
+    await submitPlain(form, { name: "Bob", city: "isfahan", remote: false });
+    const summary = await form.api.getFormInsights({
+      query: {
+        formId: "plain",
+        status: "submitted",
+        whereField: "city",
+        whereValue: "tehran",
+      },
+    });
+    expect(summary.total).toBe(1);
+    expect(summary.scanned).toBe(2);
+    expect(
+      summary.fields.find((field) => field.id === "remote")?.values,
+    ).toEqual([{ value: "true", label: "Yes", n: 1, pct: 1 }]);
+  });
+
+  it("returns a UTC day series when bucket=day", async () => {
+    const form = dimahForm({
+      database: memoryAdapter(),
+      plugins: [insightsPlugin()],
+      forms: { plain },
+    });
+    await submitPlain(form, { name: "Ada", city: "tehran" });
+    const summary = await form.api.getFormInsights({
+      query: { formId: "plain", status: "submitted", bucket: "day" },
+    });
+    expect(summary.series?.bucket).toBe("day");
+    expect(summary.series?.points.length).toBe(1);
+    expect(summary.series?.points[0]?.n).toBe(1);
+  });
+
+  it("caps the walk at plugin maxRows", async () => {
+    const form = dimahForm({
+      database: memoryAdapter(),
+      plugins: [insightsPlugin({ maxRows: 1 })],
+      forms: { plain },
+    });
+    await submitPlain(form, { name: "Ada", city: "tehran" });
+    await submitPlain(form, { name: "Bob", city: "isfahan" });
+    const summary = await form.api.getFormInsights({
+      query: { formId: "plain", status: "submitted" },
+    });
+    expect(summary.scanned).toBe(1);
+    expect(summary.truncated).toBe(true);
+    expect(summary.total).toBe(1);
   });
 
   it("attaches score bands when scoring is installed", async () => {
@@ -122,10 +189,60 @@ describe("insightsPlugin", () => {
       n: 1,
       complete: 1,
       mean: 2,
+      stdev: 0,
     });
     expect(summary.scores?.variables[0]?.bands).toEqual([
-      { label: "Low", n: 1 },
+      { label: "Low", n: 1, pct: 1 },
     ]);
+  });
+
+  it("builds a crosstab of two categorical fields", async () => {
+    const form = dimahForm({
+      database: memoryAdapter(),
+      plugins: [insightsPlugin()],
+      forms: { plain },
+    });
+    await submitPlain(form, { name: "Ada", city: "tehran", remote: true });
+    await submitPlain(form, { name: "Bob", city: "tehran", remote: false });
+    await submitPlain(form, { name: "Cyd", city: "isfahan", remote: true });
+    const table = await form.api.getFormCrosstab({
+      query: {
+        formId: "plain",
+        status: "submitted",
+        row: "city",
+        col: "remote",
+      },
+    });
+    expect(table.row.id).toBe("city");
+    expect(table.col.id).toBe("remote");
+    expect(table.cells).toEqual(
+      expect.arrayContaining([
+        { row: "tehran", col: "true", n: 1 },
+        { row: "tehran", col: "false", n: 1 },
+        { row: "isfahan", col: "true", n: 1 },
+      ]),
+    );
+    expect(table.rowTotals).toEqual(
+      expect.arrayContaining([
+        { value: "tehran", label: "Tehran", n: 2 },
+        { value: "isfahan", label: "Isfahan", n: 1 },
+      ]),
+    );
+  });
+
+  it("rejects a non-categorical crosstab field", async () => {
+    const form = dimahForm({
+      database: memoryAdapter(),
+      plugins: [insightsPlugin()],
+      forms: { plain },
+    });
+    await expect(
+      form.api.getFormCrosstab({
+        query: { formId: "plain", row: "name", col: "city" },
+      }),
+    ).rejects.toSatisfy((error: unknown) =>
+      isFormErrorCode(error, "VALIDATION_ERROR"),
+    );
   });
 
   it("throws UNKNOWN_FORM for a missing formId", async () => {
@@ -141,7 +258,7 @@ describe("insightsPlugin", () => {
     );
   });
 
-  it("uses getFormInsights as the guard operation", async () => {
+  it("uses getFormInsights and getFormCrosstab as guard operations", async () => {
     const operations: string[] = [];
     const form = dimahForm({
       database: memoryAdapter(),
@@ -152,12 +269,16 @@ describe("insightsPlugin", () => {
       },
     });
     await form.api.getFormInsights({ query: { formId: "plain" } });
+    await form.api.getFormCrosstab({
+      query: { formId: "plain", row: "city", col: "remote" },
+    });
     expect(operations).toContain("getFormInsights");
+    expect(operations).toContain("getFormCrosstab");
   });
 });
 
 describe("insightsClientPlugin", () => {
-  it("calls GET /insights/summary", async () => {
+  it("calls GET /insights/summary and GET /insights/crosstab", async () => {
     const plugin = insightsClientPlugin();
     const calls: string[] = [];
     const client = createFormClient({
@@ -175,8 +296,15 @@ describe("insightsClientPlugin", () => {
             formId: "plain",
             total: 0,
             byStatus: { draft: 0, submitted: 0, abandoned: 0 },
-            completion: { submitted: 0, complete: 0 },
+            completion: { submitted: 0, complete: 0, rate: null },
             fields: [],
+            scanned: 0,
+            truncated: false,
+            row: { id: "city", label: "city" },
+            col: { id: "remote", label: "remote" },
+            cells: [],
+            rowTotals: [],
+            colTotals: [],
           }),
           { headers: { "content-type": "application/json" } },
         );
@@ -184,7 +312,14 @@ describe("insightsClientPlugin", () => {
     });
     await client.getFormInsights({ formId: "plain" });
     expect(calls[0]).toContain("/insights/summary");
+    await client.getFormCrosstab({
+      formId: "plain",
+      row: "city",
+      col: "remote",
+    });
+    expect(calls[1]).toContain("/insights/crosstab");
     expectTypeOf(client.getFormInsights).toBeFunction();
+    expectTypeOf(client.getFormCrosstab).toBeFunction();
   });
 
   it("does not import @dimah-form/server from isomorphic modules", async () => {
@@ -199,6 +334,10 @@ describe("insightsClientPlugin", () => {
       "scoring.ts",
       "errors.ts",
       "routes.ts",
+      "categorical.ts",
+      "numeric.ts",
+      "where.ts",
+      "crosstab.ts",
     ];
     for (const file of files) {
       const source = await readFile(join(dir, file), "utf8");

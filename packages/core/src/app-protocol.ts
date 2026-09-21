@@ -19,6 +19,7 @@ export {
   applyAnswerPatch,
   chainAnswersValidators,
   collectAnswerIssues,
+  isAnswerEmpty,
   isFieldVisible,
   parseAnswers,
   seedDefaultAnswers,

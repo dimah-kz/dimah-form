@@ -1,28 +1,19 @@
 import {
-  formDefinitionSchema,
-  LIST_MAX_LIMIT,
-  normalizeFormSnapshot,
   normalizeListPage,
   pageFromOverfetch,
   type FieldTypeDefinition,
-  type FormSnapshot,
   type ResponseRecord,
 } from "@dimah-form/core";
 import {
   createFormEndpoint,
+  DEFAULT_WALK_MAX_ROWS,
   definePlugin,
-  errors,
   getPluginContext,
-  type ListResponsesStoreQuery,
-  type ResponseStore,
+  resolveLiveForm,
+  walkFullResponses,
 } from "@dimah-form/server";
 
-import {
-  buildCodebook,
-  emptyCodebook,
-  liveCodebook,
-  mergeCodebooks,
-} from "./codebook";
+import { buildCodebook, liveCodebook, type CodebookSource } from "./codebook";
 import { DATASET_ID } from "./errors";
 import { snapshotKey, type SnapshotKeyCache } from "./hash";
 import { projectResponse } from "./project";
@@ -60,43 +51,15 @@ export type DatasetPluginOptions = {
    * response after persist.
    */
   onProject?: (context: OnProjectContext) => void | Promise<void>;
+  /**
+   * Cap for the historical codebook walk. Query cannot raise this.
+   * @default 10_000
+   */
+  maxRows?: number;
 };
 
 function isFullRecord(row: { definition?: unknown }): row is ResponseRecord {
   return "definition" in row && row.definition != null;
-}
-
-function catalogSnapshot(
-  forms: Record<string, unknown>,
-  formId: string,
-): FormSnapshot | undefined {
-  if (Object.hasOwn(forms, formId)) {
-    const parsed = formDefinitionSchema.safeParse(forms[formId]);
-    if (parsed.success) {
-      return normalizeFormSnapshot({ id: formId, ...parsed.data });
-    }
-  }
-  for (const [id, definition] of Object.entries(forms)) {
-    const parsed = formDefinitionSchema.safeParse(definition);
-    if (!parsed.success) continue;
-    const snapshot = normalizeFormSnapshot({ id, ...parsed.data });
-    if (snapshot.slug === formId) return snapshot;
-  }
-  return undefined;
-}
-
-async function requireForm(
-  forms: Record<string, unknown>,
-  getForm: (
-    idOrSlug: string,
-  ) => FormSnapshot | undefined | Promise<FormSnapshot | undefined>,
-  formId: string,
-): Promise<FormSnapshot> {
-  const fromCatalog = catalogSnapshot(forms, formId);
-  if (fromCatalog) return fromCatalog;
-  const stored = await getForm(formId);
-  if (stored) return stored;
-  throw errors.unknownForm(formId);
 }
 
 function fieldTypesOf(config: {
@@ -123,46 +86,38 @@ async function projectRow(
 }
 
 async function walkCodebook(
-  filter: ListResponsesStoreQuery,
-  listResponses: ResponseStore["listResponses"],
+  filter: Parameters<typeof walkFullResponses>[1],
+  listResponses: Parameters<typeof walkFullResponses>[0],
   signal: AbortSignal,
-): Promise<Codebook> {
+  maxRows: number,
+): Promise<{ codebook: Codebook; truncated: boolean }> {
   const cache: SnapshotKeyCache = new Map();
-  let codebook = emptyCodebook();
-  let offset = 0;
-  const limit = LIST_MAX_LIMIT;
-  for (;;) {
-    signal.throwIfAborted();
-    const rows = await listResponses({
-      ...filter,
-      include: "full",
-      limit: limit + 1,
-      offset,
-    });
-    const page = pageFromOverfetch(rows, limit, offset);
-    const sources = [];
-    for (const row of page.items) {
-      if (!isFullRecord(row)) continue;
+  const sources: CodebookSource[] = [];
+  const walk = await walkFullResponses(listResponses, filter, {
+    signal,
+    maxRows,
+    visit: async (row) => {
       const key = await snapshotKey(row.definition, cache);
       sources.push({
         snapshotKey: key,
         definition: row.definition,
         seenAt: row.submittedAt ?? row.createdAt,
       });
-    }
-    codebook = mergeCodebooks(codebook, buildCodebook(sources));
-    if (page.nextOffset == null) break;
-    offset = page.nextOffset;
-  }
-  return codebook;
+    },
+  });
+  return {
+    codebook: buildCodebook(sources),
+    truncated: walk.truncated,
+  };
 }
 
 /**
  * Official dataset plugin. Compute-on-read JSONL + codebook pages.
- * Does not add tables or a `meta` namespace. Full-file zip stays in the app.
+ * Does not add a `meta` namespace. Full-file zip stays in the app.
  */
 export function datasetPlugin(options: DatasetPluginOptions = {}) {
   const onProject = options.onProject;
+  const maxRowsCap = options.maxRows ?? DEFAULT_WALK_MAX_ROWS;
   const state: { fieldTypes?: ReadonlyMap<string, FieldTypeDefinition> } = {};
 
   return definePlugin({
@@ -197,11 +152,7 @@ export function datasetPlugin(options: DatasetPluginOptions = {}) {
         },
         async (ctx): Promise<DatasetPage> => {
           const config = ctx.context.config;
-          const form = await requireForm(
-            config.forms,
-            (id) => config.database.getForm(id),
-            ctx.query.formId,
-          );
+          const form = await resolveLiveForm(config, ctx.query.formId);
           const { limit, offset } = normalizeListPage(ctx.query);
           const filter = datasetStoreFilter({
             ...ctx.query,
@@ -251,24 +202,26 @@ export function datasetPlugin(options: DatasetPluginOptions = {}) {
         },
         async (ctx): Promise<DatasetCodebookResult> => {
           const config = ctx.context.config;
-          const form = await requireForm(
-            config.forms,
-            (id) => config.database.getForm(id),
-            ctx.query.formId,
-          );
+          const form = await resolveLiveForm(config, ctx.query.formId);
           const filter = datasetStoreFilter({
             ...ctx.query,
             formId: form.id,
           });
-          const [total, codebook] = await Promise.all([
+          const [total, history] = await Promise.all([
             config.database.countResponses(filter),
             walkCodebook(
               filter,
               (query) => config.database.listResponses(query),
               ctx.context.request.signal,
+              maxRowsCap,
             ),
           ]);
-          return { spec: DATASET_SPEC, codebook, total };
+          return {
+            spec: DATASET_SPEC,
+            codebook: history.codebook,
+            total,
+            truncated: history.truncated,
+          };
         },
       ),
       getLiveCodebook: createFormEndpoint(
@@ -280,11 +233,7 @@ export function datasetPlugin(options: DatasetPluginOptions = {}) {
         },
         async (ctx) => {
           const config = ctx.context.config;
-          const form = await requireForm(
-            config.forms,
-            (id) => config.database.getForm(id),
-            ctx.query.formId,
-          );
+          const form = await resolveLiveForm(config, ctx.query.formId);
           return liveCodebook(form);
         },
       ),

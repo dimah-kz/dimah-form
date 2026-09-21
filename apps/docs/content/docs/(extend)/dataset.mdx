@@ -85,7 +85,7 @@ Every JSON object carries `spec: "dimah.dataset/v1"`.
 Reuse core list limits (default 50, max 100). The plugin always passes `limit + 1` into the store. Default `status=submitted`. Same filters as `listResponses`: `respondentId`, inclusive `submittedFrom` / `submittedTo`, exclusive `updatedAfter`. Each page includes `total` for the filter (not the page size).
 
 - `GET /dataset/responses` (`getDatasetPage`) — `formId` required. Returns `{ spec, records, codebook, limit, offset, nextOffset, total }`.
-- `GET /dataset/codebook/history` (`getDatasetCodebook`) — historical codebook for the same filter. Walks pages on the server.
+- `GET /dataset/codebook/history` (`getDatasetCodebook`) — historical codebook for the same filter. Walks pages on the server (default cap 10_000; `truncated` when more rows remain).
 - `GET /dataset/codebook` (`getLiveCodebook`) — codebook of the live form.
 
 Filename, zip, and timeout stay out of the plugin.

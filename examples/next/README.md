@@ -31,6 +31,6 @@ Open http://localhost:3000 — header toggle switches light / dark (`next-themes
 - `/` — overview of the demo and live insights
 - `/f/pulse` fills the check-in. Step 1 is identity (`showWhen` on Engineer → team). Step 2 is four scored Likert items plus a custom star rating that is stored but **not** scored
 - Save draft patches answers; submit replaces them. Both send `updatedAt` for optimistic concurrency. Autosave is on; abandon and reopen are on the action bar
-- `/responses` lists stored rows with per-response scores, submitted insights (status, categorical counts, score bands), and dataset downloads (`JSONL` / `CSV` / codebook)
+- `/responses` lists stored rows with per-response scores, submitted insights (status, completion rate, field counts, score bands), and dataset downloads (`JSONL` / `CSV` / codebook)
 - `GET /api/forms/:formId/package` is a **consumer** download route. It streams `createDatasetReader` + `createCsvEncoder` / `toJsonlLine`, or returns `getDatasetCodebook`. It is not a library zip
 - `/r/:id` resumes a draft or shows a submitted / abandoned response. Edit calls `reopenResponse` (same snapshot and answers). The live score is computed from the snapshot, not from `answers`

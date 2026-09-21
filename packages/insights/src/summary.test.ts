@@ -27,13 +27,14 @@ function row(
     status: "draft" | "submitted" | "abandoned";
     answers: Record<string, unknown>;
     submittedAt: string | null;
+    definition: typeof definition;
   }> = {},
 ) {
   return {
     id: overrides.id ?? "r1",
     formId: "quiz",
     status: overrides.status ?? "submitted",
-    definition,
+    definition: overrides.definition ?? definition,
     answers: overrides.answers ?? { color: "r", ok: true, note: "hi" },
     respondentId: null,
     submittedAt:
@@ -64,20 +65,141 @@ describe("createInsightsAccumulator", () => {
       submitted: 2,
       abandoned: 0,
     });
-    expect(summary.completion).toEqual({ submitted: 2, complete: 2 });
+    expect(summary.completion).toEqual({
+      submitted: 2,
+      complete: 2,
+      rate: 1,
+    });
     expect(summary.submittedAt).toEqual({
       min: "2026-01-15T00:00:00.000Z",
       max: "2026-02-01T00:00:00.000Z",
     });
     const color = summary.fields.find((field) => field.id === "color");
-    expect(color?.values).toEqual([
-      { value: "b", label: "Blue", n: 1 },
-      { value: "r", label: "Red", n: 1 },
-    ]);
+    expect(color?.hidden).toBe(0);
+    expect(color?.n).toBe(3);
     expect(color?.unanswered).toBe(1);
+    expect(color?.values).toEqual([
+      { value: "b", label: "Blue", n: 1, pct: 0.5 },
+      { value: "r", label: "Red", n: 1, pct: 0.5 },
+    ]);
     const note = summary.fields.find((field) => field.id === "note");
     expect(note?.values).toBeUndefined();
     expect(note?.unanswered).toBe(2);
+  });
+
+  it("does not count hidden showWhen fields as unanswered", () => {
+    const skip = normalizeFormSnapshot({
+      id: "quiz",
+      title: "Quiz",
+      fields: [
+        { id: "employed", type: "boolean", required: true },
+        {
+          id: "company",
+          type: "text",
+          showWhen: { field: "employed", equals: true },
+        },
+      ],
+    });
+    const acc = createInsightsAccumulator("quiz");
+    acc.add(
+      row({
+        definition: skip,
+        answers: { employed: false },
+      }),
+    );
+    acc.add(
+      row({
+        id: "r2",
+        definition: skip,
+        answers: { employed: true },
+      }),
+    );
+    acc.add(
+      row({
+        id: "r3",
+        definition: skip,
+        answers: { employed: true, company: "Acme" },
+      }),
+    );
+    const company = acc.finish().fields.find((field) => field.id === "company");
+    expect(company).toMatchObject({
+      n: 2,
+      hidden: 1,
+      unanswered: 1,
+    });
+  });
+
+  it("folds number min/max/mean/stdev and date range", () => {
+    const numericForm = normalizeFormSnapshot({
+      id: "quiz",
+      title: "Quiz",
+      fields: [
+        { id: "score", type: "number" },
+        { id: "when", type: "date" },
+      ],
+    });
+    const acc = createInsightsAccumulator("quiz");
+    acc.add(
+      row({
+        definition: numericForm,
+        answers: { score: 10, when: "2026-01-01" },
+      }),
+    );
+    acc.add(
+      row({
+        id: "r2",
+        definition: numericForm,
+        answers: { score: 20, when: "2026-03-01" },
+      }),
+    );
+    const summary = acc.finish();
+    const score = summary.fields.find((field) => field.id === "score");
+    expect(score?.numeric).toMatchObject({ min: 10, max: 20, mean: 15 });
+    expect(score?.numeric?.stdev).toBeCloseTo(Math.sqrt(50));
+    const when = summary.fields.find((field) => field.id === "when");
+    expect(when?.dates).toEqual({ min: "2026-01-01", max: "2026-03-01" });
+  });
+
+  it("uses answered respondents as the multiSelect percentage base", () => {
+    const multi = normalizeFormSnapshot({
+      id: "quiz",
+      title: "Quiz",
+      fields: [
+        {
+          id: "skills",
+          type: "multiSelect",
+          options: [
+            { value: "ts", label: "TypeScript" },
+            { value: "go", label: "Go" },
+          ],
+        },
+      ],
+    });
+    const acc = createInsightsAccumulator("quiz");
+    acc.add(row({ definition: multi, answers: { skills: ["ts", "go"] } }));
+    acc.add(row({ id: "r2", definition: multi, answers: { skills: ["ts"] } }));
+    acc.add(row({ id: "r3", definition: multi, answers: {} }));
+    const skills = acc.finish().fields.find((field) => field.id === "skills");
+    expect(skills?.n).toBe(3);
+    expect(skills?.unanswered).toBe(1);
+    expect(skills?.values).toEqual([
+      { value: "ts", label: "TypeScript", n: 2, pct: 1 },
+      { value: "go", label: "Go", n: 1, pct: 0.5 },
+    ]);
+  });
+
+  it("collects UTC day buckets when series is on", () => {
+    const acc = createInsightsAccumulator("quiz", { series: true });
+    acc.add(row({ submittedAt: "2026-01-15T23:00:00.000Z" }));
+    acc.add(row({ id: "r2", submittedAt: "2026-01-16T01:00:00.000Z" }));
+    acc.add(row({ id: "r3", status: "draft", submittedAt: null, answers: {} }));
+    expect(acc.finish().series).toEqual({
+      bucket: "day",
+      points: [
+        { t: "2026-01-15", n: 1 },
+        { t: "2026-01-16", n: 1 },
+      ],
+    });
   });
 
   it("folds score bands without writing them into field counts", () => {
@@ -107,9 +229,10 @@ describe("createInsightsAccumulator", () => {
       max: 12,
       mean: 8,
     });
+    expect(variable?.stdev).toBeCloseTo(Math.sqrt(32));
     expect(variable?.bands).toEqual([
-      { label: "Mild", n: 1 },
-      { label: "Moderate", n: 1 },
+      { label: "Mild", n: 1, pct: 0.5 },
+      { label: "Moderate", n: 1, pct: 0.5 },
     ]);
   });
 });

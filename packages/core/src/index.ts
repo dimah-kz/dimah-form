@@ -60,6 +60,7 @@ export {
   emailFieldType,
   multiSelectFieldType,
   numberFieldType,
+  resolveFieldTypeRegistry,
   selectFieldType,
   textFieldType,
   type BuiltinAnswerMap,

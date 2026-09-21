@@ -1,8 +1,8 @@
 # @dimah-form/insights
 
-Official insights plugin. Read-side counts from **response definition snapshots** — status totals, visible-required completion, categorical value counts, and optional scoring bands. The plugin does not add tables or a `meta` namespace.
+Official insights plugin. Read-side counts from **response definition snapshots** — status totals, visible-required completion, field stats (categorical `%`, number / date, skip-logic `hidden`), optional scoring bands, optional UTC day series, and a two-field crosstab. The plugin does not add tables or a `meta` namespace.
 
-This is not a BI warehouse. HTTP walks stored responses (same 100-row pages as list). Persist aggregates yourself if N is large.
+This is not a BI warehouse. HTTP walks stored responses (same 100-row pages as list, default cap 10_000). Persist aggregates yourself if N is large.
 
 ## Install
 
@@ -22,7 +22,7 @@ export const form = dimahForm({
 });
 ```
 
-Guard `getFormInsights` like `listResponses` (admin).
+Guard `getFormInsights` and `getFormCrosstab` like `listResponses` (admin).
 
 ## License
 

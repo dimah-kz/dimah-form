@@ -1,65 +1,42 @@
 import {
-  formDefinitionSchema,
-  LIST_MAX_LIMIT,
-  normalizeFormSnapshot,
-  pageFromOverfetch,
-  type FormSnapshot,
-  type ResponseRecord,
+  FIELD_ISSUE_CODES,
+  type FieldTypeDefinition,
+  type FormField,
 } from "@dimah-form/core";
 import {
   createFormEndpoint,
+  DEFAULT_WALK_MAX_ROWS,
   definePlugin,
   errors,
+  resolveLiveForm,
+  walkFullResponses,
   type ListResponsesStoreQuery,
-  type ResponseStore,
 } from "@dimah-form/server";
 
+import { isCategoricalField } from "./categorical";
+import { createInsightsCrosstabAccumulator } from "./crosstab";
 import { INSIGHTS_ID } from "./errors";
 import { INSIGHTS_ROUTES } from "./routes";
 import { tryScoreResponse } from "./scoring";
 import {
+  insightsCrosstabQuerySchema,
+  insightsCrosstabSchema,
   insightsSummaryQuerySchema,
   insightsSummarySchema,
+  type InsightsCrosstab,
   type InsightsSummary,
 } from "./spec";
 import { createInsightsAccumulator } from "./summary";
+import { rowMatchesWhere } from "./where";
 
-function isFullRecord(row: { definition?: unknown }): row is ResponseRecord {
-  return "definition" in row && row.definition != null;
-}
-
-function catalogSnapshot(
-  forms: Record<string, unknown>,
-  formId: string,
-): FormSnapshot | undefined {
-  if (Object.hasOwn(forms, formId)) {
-    const parsed = formDefinitionSchema.safeParse(forms[formId]);
-    if (parsed.success) {
-      return normalizeFormSnapshot({ id: formId, ...parsed.data });
-    }
-  }
-  for (const [id, definition] of Object.entries(forms)) {
-    const parsed = formDefinitionSchema.safeParse(definition);
-    if (!parsed.success) continue;
-    const snapshot = normalizeFormSnapshot({ id, ...parsed.data });
-    if (snapshot.slug === formId) return snapshot;
-  }
-  return undefined;
-}
-
-async function requireForm(
-  forms: Record<string, unknown>,
-  getForm: (
-    idOrSlug: string,
-  ) => FormSnapshot | undefined | Promise<FormSnapshot | undefined>,
-  formId: string,
-): Promise<FormSnapshot> {
-  const fromCatalog = catalogSnapshot(forms, formId);
-  if (fromCatalog) return fromCatalog;
-  const stored = await getForm(formId);
-  if (stored) return stored;
-  throw errors.unknownForm(formId);
-}
+export type InsightsPluginOptions = {
+  /**
+   * Cap for summary and crosstab walks. Query `maxRows` may lower this,
+   * not raise it.
+   * @default 10_000
+   */
+  maxRows?: number;
+};
 
 function storeFilter(
   formId: string,
@@ -81,41 +58,42 @@ function storeFilter(
   };
 }
 
-async function walkInsights(
-  filter: ListResponsesStoreQuery,
-  listResponses: ResponseStore["listResponses"],
-  signal: AbortSignal,
-): Promise<InsightsSummary> {
-  const acc = createInsightsAccumulator(filter.formId ?? "");
-  let offset = 0;
-  const limit = LIST_MAX_LIMIT;
-  for (;;) {
-    signal.throwIfAborted();
-    const rows = await listResponses({
-      ...filter,
-      include: "full",
-      limit: limit + 1,
-      offset,
-    });
-    const page = pageFromOverfetch(rows, limit, offset);
-    for (const row of page.items) {
-      if (!isFullRecord(row)) continue;
-      const scores = await tryScoreResponse(row.definition, row.answers);
-      acc.add(row, scores);
-    }
-    if (page.nextOffset == null) break;
-    offset = page.nextOffset;
+function walkCap(pluginCap: number, queryMaxRows?: number): number {
+  return Math.min(queryMaxRows ?? pluginCap, pluginCap);
+}
+
+function requireCategorical(
+  form: { fields: readonly FormField[] },
+  fieldId: string,
+  queryField: "row" | "col",
+) {
+  const field = form.fields.find((item) => item.id === fieldId);
+  if (!field || !isCategoricalField(field)) {
+    throw errors.validationError([
+      {
+        field: queryField,
+        message: `Crosstab ${queryField} field must be categorical`,
+        code: FIELD_ISSUE_CODES.INVALID.code,
+      },
+    ]);
   }
-  return acc.finish();
+  return field;
 }
 
 /**
  * Official insights plugin. Compute-on-read counts from response snapshots.
  * Does not add tables or a `meta` namespace. Large N belongs in a warehouse.
  */
-export function insightsPlugin() {
+export function insightsPlugin(options: InsightsPluginOptions = {}) {
+  const maxRowsCap = options.maxRows ?? DEFAULT_WALK_MAX_ROWS;
+  const state: { fieldTypes?: ReadonlyMap<string, FieldTypeDefinition> } = {};
+
   return definePlugin({
     id: INSIGHTS_ID,
+    init(ctx) {
+      state.fieldTypes = ctx.fieldTypes;
+      return { context: { fieldTypes: ctx.fieldTypes } };
+    },
     endpoints: {
       getFormInsights: createFormEndpoint(
         INSIGHTS_ROUTES.getFormInsights.path,
@@ -126,17 +104,86 @@ export function insightsPlugin() {
         },
         async (ctx): Promise<InsightsSummary> => {
           const config = ctx.context.config;
-          const form = await requireForm(
-            config.forms,
-            (id) => config.database.getForm(id),
-            ctx.query.formId,
-          );
+          const form = await resolveLiveForm(config, ctx.query.formId);
           const filter = storeFilter(form.id, ctx.query);
-          return walkInsights(
-            filter,
+          const acc = createInsightsAccumulator(form.id, {
+            fieldTypes: state.fieldTypes ?? config.fieldTypes,
+            series: ctx.query.bucket === "day",
+          });
+          const whereField = ctx.query.whereField;
+          const whereValue = ctx.query.whereValue;
+          const walk = await walkFullResponses(
             (query) => config.database.listResponses(query),
-            ctx.context.request.signal,
+            filter,
+            {
+              signal: ctx.context.request.signal,
+              maxRows: walkCap(maxRowsCap, ctx.query.maxRows),
+              visit: async (row) => {
+                if (
+                  whereField != null &&
+                  whereValue != null &&
+                  !rowMatchesWhere(row, whereField, whereValue)
+                ) {
+                  return;
+                }
+                const scores = await tryScoreResponse(
+                  row.definition,
+                  row.answers,
+                );
+                acc.add(row, scores);
+              },
+            },
           );
+          return {
+            ...acc.finish(),
+            scanned: walk.scanned,
+            truncated: walk.truncated,
+          };
+        },
+      ),
+      getFormCrosstab: createFormEndpoint(
+        INSIGHTS_ROUTES.getFormCrosstab.path,
+        {
+          method: INSIGHTS_ROUTES.getFormCrosstab.method,
+          query: insightsCrosstabQuerySchema,
+          output: insightsCrosstabSchema,
+        },
+        async (ctx): Promise<InsightsCrosstab> => {
+          const config = ctx.context.config;
+          const form = await resolveLiveForm(config, ctx.query.formId);
+          const rowField = requireCategorical(form, ctx.query.row, "row");
+          const colField = requireCategorical(form, ctx.query.col, "col");
+          const filter = storeFilter(form.id, ctx.query);
+          const acc = createInsightsCrosstabAccumulator(
+            form.id,
+            rowField,
+            colField,
+          );
+          const whereField = ctx.query.whereField;
+          const whereValue = ctx.query.whereValue;
+          const walk = await walkFullResponses(
+            (query) => config.database.listResponses(query),
+            filter,
+            {
+              signal: ctx.context.request.signal,
+              maxRows: walkCap(maxRowsCap, ctx.query.maxRows),
+              visit: (row) => {
+                if (
+                  whereField != null &&
+                  whereValue != null &&
+                  !rowMatchesWhere(row, whereField, whereValue)
+                ) {
+                  return;
+                }
+                acc.add(row);
+              },
+            },
+          );
+          return {
+            ...acc.finish(),
+            scanned: walk.scanned,
+            truncated: walk.truncated,
+          };
         },
       ),
     },

@@ -65,6 +65,7 @@ export const form = dimahForm({
       "getDatasetCodebook",
       "getLiveCodebook",
       "getFormInsights",
+      "getFormCrosstab",
     ];
     if (adminOperations.includes(operation)) {
       if (!session || session.user.role !== "admin") {

@@ -139,6 +139,7 @@ describe("datasetPlugin", () => {
       query: { formId: "plain", respondentId: "user-1" },
     });
     expect(history.total).toBe(1);
+    expect(history.truncated).toBe(false);
   });
 
   it("projects the stored snapshot after the live form changes", async () => {
@@ -340,6 +341,7 @@ describe("datasetPlugin", () => {
       query: { formId: "plain" },
     });
     expect(codebook.total).toBe(1);
+    expect(codebook.truncated).toBe(false);
     expect(codebook.codebook.fields.map((field) => field.id).sort()).toEqual([
       "city",
       "name",
@@ -347,6 +349,21 @@ describe("datasetPlugin", () => {
     expect(
       codebook.codebook.fields.find((field) => field.id === "name")?.required,
     ).toBe(true);
+  });
+
+  it("caps the historical codebook walk at plugin maxRows", async () => {
+    const form = dimahForm({
+      database: memoryAdapter(),
+      plugins: [datasetPlugin({ maxRows: 1 })],
+      forms: { plain },
+    });
+    await submitPlain(form, { name: "Ada" });
+    await submitPlain(form, { name: "Bob" });
+    const codebook = await form.api.getDatasetCodebook({
+      query: { formId: "plain" },
+    });
+    expect(codebook.total).toBe(2);
+    expect(codebook.truncated).toBe(true);
   });
 });
 

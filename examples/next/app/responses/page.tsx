@@ -80,7 +80,7 @@ export default async function ResponsesPage() {
         form.api.getForm({ query: { formId: PULSE_FORM_ID } }),
         form.api.getFormInsights({ query: { formId: PULSE_FORM_ID } }),
         form.api.getFormInsights({
-          query: { formId: PULSE_FORM_ID, status: "submitted" },
+          query: { formId: PULSE_FORM_ID, status: "submitted", bucket: "day" },
         }),
       ]);
     rows = responses.filter(isFull);

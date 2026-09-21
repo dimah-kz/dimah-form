@@ -9,7 +9,18 @@ export {
   type PluginInitContext,
   type PluginInitResult,
 } from "./dimah-form";
-export type { DimahFormGuard, FormOperation } from "./types";
+export type {
+  DimahFormGuard,
+  FormOperation,
+  ResolvedDimahFormConfig,
+} from "./types";
+export { resolveLiveForm } from "./forms";
+export {
+  DEFAULT_WALK_MAX_ROWS,
+  walkFullResponses,
+  type WalkFullResponsesOptions,
+  type WalkFullResponsesResult,
+} from "./helpers/walk-responses";
 export {
   memoryAdapter,
   StoreConflictError,

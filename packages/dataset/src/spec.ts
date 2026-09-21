@@ -200,6 +200,7 @@ export const datasetCodebookResultSchema = z.object({
   spec: datasetSpecSchema,
   codebook: codebookSchema,
   total: z.int().nonnegative(),
+  truncated: z.boolean(),
 });
 
 export type DatasetCodebookResult = z.output<

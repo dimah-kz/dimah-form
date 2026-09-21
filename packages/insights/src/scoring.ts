@@ -19,23 +19,30 @@ type ScoringApi = {
   ) => InsightsScores;
 };
 
-async function loadScoring(): Promise<ScoringApi | undefined> {
-  try {
-    return (await import(
+let scoringModule: Promise<ScoringApi | undefined> | undefined;
+
+function loadScoring(): Promise<ScoringApi | undefined> {
+  if (!scoringModule) {
+    scoringModule = import(
       /* webpackIgnore: true */
       /* @vite-ignore */
       "@dimah-form/scoring"
-    )) as ScoringApi;
-  } catch {
-    return undefined;
+    )
+      .then((mod) => mod as ScoringApi)
+      .catch(() => undefined);
   }
+  return scoringModule;
 }
 
 export async function tryScoreResponse(
   definition: FormSnapshot,
   answers: FormAnswers,
 ): Promise<InsightsScores | undefined> {
-  const scoring = await loadScoring();
-  if (!scoring?.hasScoringMeta(definition)) return undefined;
-  return scoring.scoreResponse(definition, answers);
+  try {
+    const scoring = await loadScoring();
+    if (!scoring?.hasScoringMeta(definition)) return undefined;
+    return scoring.scoreResponse(definition, answers);
+  } catch {
+    return undefined;
+  }
 }

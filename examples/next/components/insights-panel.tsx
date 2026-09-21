@@ -20,21 +20,30 @@ export function insightsWithoutScoredFields(
   };
 }
 
+function pctLabel(pct: number) {
+  return `${Math.round(pct * 100)}%`;
+}
+
 function CountBar({
   label,
   n,
   total,
+  pct,
 }: {
   label: string;
   n: number;
-  total: number;
+  total?: number;
+  pct?: number;
 }) {
-  const share = total > 0 ? n / total : 0;
+  const share = pct ?? (total != null && total > 0 ? n / total : 0);
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-baseline justify-between gap-3 text-sm">
         <span className="min-w-0 truncate">{label}</span>
-        <span className="shrink-0 text-muted-foreground tabular-nums">{n}</span>
+        <span className="shrink-0 text-muted-foreground tabular-nums">
+          {n}
+          {pct != null ? ` · ${pctLabel(pct)}` : ""}
+        </span>
       </div>
       <div className="h-1 overflow-hidden rounded-full bg-muted">
         <div
@@ -52,17 +61,27 @@ export function StatusCounts({ summary }: { summary: InsightsSummary }) {
     { label: "Submitted", n: summary.byStatus.submitted },
     { label: "Abandoned", n: summary.byStatus.abandoned },
   ];
+  const rate =
+    summary.completion.rate == null ? null : pctLabel(summary.completion.rate);
   return (
-    <dl className="grid grid-cols-3 gap-4">
-      {items.map((item) => (
-        <div key={item.label} className="flex flex-col gap-1">
-          <dt className="text-sm text-muted-foreground">{item.label}</dt>
-          <dd className="text-2xl font-medium tracking-tight tabular-nums">
-            {item.n}
-          </dd>
-        </div>
-      ))}
-    </dl>
+    <div className="flex flex-col gap-3">
+      <dl className="grid grid-cols-3 gap-4">
+        {items.map((item) => (
+          <div key={item.label} className="flex flex-col gap-1">
+            <dt className="text-sm text-muted-foreground">{item.label}</dt>
+            <dd className="text-2xl font-medium tracking-tight tabular-nums">
+              {item.n}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      {rate ? (
+        <p className="text-sm text-muted-foreground">
+          {summary.completion.complete}/{summary.completion.submitted} submitted
+          complete ({rate})
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -74,12 +93,31 @@ export function InsightsPanel({
   className?: string;
 }) {
   const fields = summary.fields.filter(
-    (field) => (field.values?.length ?? 0) > 0,
+    (field) =>
+      (field.values?.length ?? 0) > 0 ||
+      field.numeric != null ||
+      field.dates != null,
   );
   const scores = summary.scores?.variables ?? [];
+  const series = summary.series?.points ?? [];
 
   return (
     <div className={cn("flex flex-col gap-8", className)}>
+      {series.length > 0 ? (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-sm font-medium">Submitted by day</h2>
+          <div className="flex flex-col gap-3">
+            {series.map((point) => (
+              <CountBar
+                key={point.t}
+                label={point.t}
+                n={point.n}
+                total={summary.completion.submitted || summary.total}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
       {scores.map((variable) => {
         const bands = variable.bands ?? [];
         const meanLabel = scoreLabel(
@@ -115,7 +153,7 @@ export function InsightsPanel({
                     key={band.label}
                     label={band.label}
                     n={band.n}
-                    total={variable.n}
+                    pct={band.pct}
                   />
                 ))}
               </div>
@@ -123,27 +161,44 @@ export function InsightsPanel({
           </section>
         );
       })}
-      {fields.map((field) => (
-        <section key={field.id} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <h2 className="text-sm font-medium">{field.label}</h2>
-            <p className="text-sm text-muted-foreground">
-              {field.n} answered
-              {field.unanswered > 0 ? ` · ${field.unanswered} skipped` : ""}
-            </p>
-          </div>
-          <div className="flex flex-col gap-3">
-            {(field.values ?? []).map((item) => (
-              <CountBar
-                key={item.value}
-                label={item.label ?? item.value}
-                n={item.n}
-                total={field.n}
-              />
-            ))}
-          </div>
-        </section>
-      ))}
+      {fields.map((field) => {
+        const answered = field.n - field.unanswered;
+        return (
+          <section key={field.id} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-sm font-medium">{field.label}</h2>
+              <p className="text-sm text-muted-foreground">
+                {answered} answered
+                {field.unanswered > 0 ? ` · ${field.unanswered} skipped` : ""}
+                {field.hidden > 0 ? ` · ${field.hidden} hidden` : ""}
+              </p>
+            </div>
+            {field.numeric ? (
+              <p className="text-sm text-muted-foreground tabular-nums">
+                Mean {Number(field.numeric.mean.toFixed(1))} · min{" "}
+                {field.numeric.min} · max {field.numeric.max}
+              </p>
+            ) : null}
+            {field.dates ? (
+              <p className="text-sm text-muted-foreground">
+                {field.dates.min} – {field.dates.max}
+              </p>
+            ) : null}
+            {(field.values?.length ?? 0) > 0 ? (
+              <div className="flex flex-col gap-3">
+                {(field.values ?? []).map((item) => (
+                  <CountBar
+                    key={item.value}
+                    label={item.label ?? item.value}
+                    n={item.n}
+                    pct={item.pct}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </section>
+        );
+      })}
     </div>
   );
 }

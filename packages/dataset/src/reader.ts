@@ -16,6 +16,7 @@ export type DatasetPageFn = (query: DatasetPageQuery) => Promise<DatasetPage>;
 export type DatasetCodebookFn = () => Promise<{
   codebook: Codebook;
   total: number;
+  truncated?: boolean;
 }>;
 
 export type DatasetReaderResult = {
