@@ -1,162 +1,47 @@
 ---
-title: Field Types
-description: Built-in types, validation constraints, showWhen operators, and $Infer mappings.
+title: Field types
+description: Built-in types, constraints, showWhen, and answer inference.
 icon: ListTree
 ---
 
-Eight built-in types in `@dimah-form/core`. Each one has a definition schema, a server validator, and an `$Infer` mapping.
+Eight built-in types. Each one has a definition schema, a validator, and an `$Infer` answer.
 
----
+| Type          | Answer       | Constraints                                                                                   |
+| ------------- | ------------ | --------------------------------------------------------------------------------------------- |
+| `text`        | `string`     | `minLength`, `maxLength`, `pattern` (regex)                                                   |
+| `number`      | `number`     | `min`, `max`, `integer`                                                                       |
+| `boolean`     | `boolean`    | `unsetOnOff` — off writes `null` instead of `false`                                           |
+| `select`      | `string`     | `options`. Answer must be an option `value`                                                   |
+| `multiSelect` | `string[]`   | `options`. No duplicate values                                                                |
+| `email`       | `string`     | Email address                                                                                 |
+| `date`        | `string`     | `YYYY-MM-DD`. Optional `min` / `max` in the same format                                       |
+| `file`        | `FileAnswer` | `{ id?, url?, name?, contentType?, size? }`. At least one of `id`, `url`, or `name`. No bytes |
 
-## Built-In Field Types Catalog
-
-| Type              | Answer Type  | Schema Constraints                                                             | Description                                                                                                                                                                             |
-| :---------------- | :----------- | :----------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`text`**        | `string`     | `minLength?: number`<br />`maxLength?: number`<br />`pattern?: string` (regex) | Single-line or multi-line text input. Validates length and regex pattern.                                                                                                               |
-| **`number`**      | `number`     | `min?: number`<br />`max?: number`<br />`integer?: boolean`                    | Numeric input. Validates minimum, maximum, and integer constraints.                                                                                                                     |
-| **`boolean`**     | `boolean`    | `unsetOnOff?: boolean`                                                         | Checkbox or toggle. Values are `true` or `false`. `unsetOnOff` makes unchecked write `null` (consent); default unchecked writes `false` so required yes/no can submit No.               |
-| **`select`**      | `string`     | `options: SelectOption[]`                                                      | Single-choice dropdown or radio group. Answer must match an option `value`.                                                                                                             |
-| **`multiSelect`** | `string[]`   | `options: SelectOption[]`                                                      | Multi-choice checkbox group or tag selector. Answer must be an array of valid option values without duplicates.                                                                         |
-| **`email`**       | `string`     | —                                                                              | Email address input. Validates standard RFC 5322 email formatting.                                                                                                                      |
-| **`date`**        | `string`     | `min?: string` (YYYY-MM-DD)<br />`max?: string` (YYYY-MM-DD)                   | Calendar date in `YYYY-MM-DD` ISO format. Validates date boundaries.                                                                                                                    |
-| **`file`**        | `FileAnswer` | —                                                                              | Upload metadata: `id?`, `url?`, `name?`, `contentType?`, `size?`. At least one of `id`, `url`, or `name`. No inline bytes. No built-in widget — the app writes the answer after upload. |
-
----
-
-## Select Option Structure
-
-Options passed to `select` or `multiSelect` fields follow this schema:
+`boolean` without `unsetOnOff` stores `false` for off, so a required yes/no can submit No.
+`file` has no built-in widget. Your app writes the metadata after upload.
 
 ```ts
 type SelectOption = {
-  /** The persisted answer value (e.g., "us", "uk", "de") */
   value: string;
-
-  /** Display label for the UI (defaults to value if omitted) */
   label?: string;
-
-  /** Custom metadata for icons, descriptions, or badge tags */
   meta?: Record<string, unknown>;
 };
 ```
 
----
+`fieldOptions` uses `value` when `label` is omitted.
 
-## Conditional Visibility (`showWhen`)
+## showWhen
 
-The `showWhen` property dynamically hides or shows fields based on the respondent's answers.
+Operators: `equals`, `notEquals`, `includes` (`multiSelect`), and groups `all` / `any`.
 
-<Callout type="info">
-  **Automatic Cleanup**: When a field is conditionally hidden, its answer is
-  automatically stripped from the submitted response so outdated answers never
-  persist to your database.
-</Callout>
+A hidden field is omitted from `visibleFields`. Submit strips its answer. Examples: [Forms](/docs/forms#showwhen).
 
-### 1. Leaf Conditions
+## $Infer
 
-#### `equals`
-
-Matches when the target field's answer strictly equals the specified value:
-
-```ts
-{
-  id: "githubHandle",
-  type: "text",
-  label: "GitHub Handle",
-  showWhen: { field: "role", equals: "developer" },
-}
-```
-
-#### `notEquals`
-
-Matches when the target field's answer is not equal to the specified value:
-
-```ts
-{
-  id: "reason",
-  type: "text",
-  label: "Reason for cancellation",
-  showWhen: { field: "plan", notEquals: "free" },
-}
-```
-
-#### `includes`
-
-Matches when a `multiSelect` array answer contains the specified value:
-
-```ts
-{
-  id: "reactExperience",
-  type: "number",
-  label: "Years of React Experience",
-  showWhen: { field: "skills", includes: "react" },
-}
-```
-
-### 2. Compound Conditions (`all` / `any`)
-
-#### `all` (Logical AND)
-
-Matches only when **all** nested conditions evaluate to `true`:
-
-```ts
-showWhen: {
-  all: [
-    { field: "department", equals: "engineering" },
-    { field: "isLead", equals: true },
-  ],
-}
-```
-
-#### `any` (Logical OR)
-
-Matches when **at least one** nested condition evaluates to `true`:
-
-```ts
-showWhen: {
-  any: [
-    { field: "country", equals: "US" },
-    { field: "country", equals: "CA" },
-  ],
-}
-```
-
----
-
-## Type Inference (`$Infer`) Mapping
-
-When defining forms with `defineForm()`, TypeScript derives the answer type automatically:
-
-```ts title="lib/forms/example.ts"
-import { defineForm } from "@dimah-form/server";
-
-export const exampleForm = defineForm({
-  title: "Example",
-  slug: "example",
-  fields: [
-    { id: "name", type: "text", required: true },
-    { id: "age", type: "number" }, // Optional because required is omitted
-    {
-      id: "role",
-      type: "select",
-      required: true,
-      options: [{ value: "admin" }, { value: "user" }],
-    },
-    {
-      id: "tags",
-      type: "multiSelect",
-      options: [{ value: "frontend" }, { value: "backend" }],
-    },
-  ],
-});
-```
-
-The resulting `$Infer` answer type is strictly typed:
+`required: true` makes the key required. Everything else is optional.
 
 ```ts
 type ExampleAnswers = Form["$Infer"]["answers"]["example"];
-
-// Resolves to:
 // {
 //   name: string;
 //   role: "admin" | "user";
@@ -165,24 +50,24 @@ type ExampleAnswers = Form["$Infer"]["answers"]["example"];
 // }
 ```
 
----
+Another type uses [`defineFieldType`](/docs/custom-fields). Its `$Infer` token is the answer type.
 
-## Next Steps
+## Next steps
 
 <Cards>
   <Card
-    title="Custom Fields"
+    title="Forms"
+    href="/docs/forms"
+    description="Where these fields are declared."
+  />
+  <Card
+    title="Custom fields"
     href="/docs/custom-fields"
-    description="Create custom validators and $Infer type mappings with defineFieldType."
+    description="Add a type the catalog does not have."
   />
   <Card
-    title="Widgets"
-    href="/docs/widgets"
-    description="Render UI widgets for all 7 built-in field types."
-  />
-  <Card
-    title="Protocol"
-    href="/docs/protocol"
-    description="Inspect request and response payload schemas."
+    title="Errors"
+    href="/docs/errors"
+    description="REQUIRED, TOO_SHORT, INVALID_OPTION, and the rest."
   />
 </Cards>

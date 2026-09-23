@@ -1,16 +1,13 @@
 ---
-title: Custom Fields
-description: Add a server validator with defineFieldType. The UI widget stays in your app.
+title: Custom fields
+description: Add a validator with defineFieldType. The widget stays in your app.
 icon: ListPlus
 ---
 
-Custom field types are **server validators**, not React components. You define how the answer is checked and typed. You render whatever control you want.
+A custom field type is a validator and an `$Infer` token. It is not a React component.
+You render the control, or register a widget on [`@dimah-form/ui`](/docs/ui).
 
----
-
-## 1. Defining a Custom Field Type
-
-Use `defineFieldType()` from `@dimah-form/core` in a shared module (imported by both `dimahForm` and `createFormClient`). Server-only files may import it from `@dimah-form/server`.
+Put `defineFieldType` in a module both sides import. `@dimah-form/core` is the shared entry. Server-only files may import it from `@dimah-form/server`.
 
 ```ts title="lib/field-types/rating.ts"
 import { defineFieldType } from "@dimah-form/core";
@@ -18,280 +15,165 @@ import * as z from "zod";
 
 export const ratingFieldType = defineFieldType({
   type: "rating",
-
-  // 1. Zod schema for validating the field's configuration in defineForm()
   fieldSchema: z.looseObject({
     type: z.literal("rating"),
     min: z.number().int().min(1).default(1),
     max: z.number().int().max(10).default(5),
   }),
-
-  // 2. Server validator for respondent answer values
+  isEmpty: (value) => value == null,
   validate: (value, field) => {
     if (typeof value !== "number" || !Number.isInteger(value)) {
-      return {
-        message: "Rating must be an integer",
-        code: "EXPECTED_INTEGER",
-      };
+      return { code: "EXPECTED_INTEGER", message: "Rating must be an integer" };
     }
-
     const min = field.min ?? 1;
     const max = field.max ?? 5;
-
     if (value < min) {
       return {
-        message: `Rating must be at least ${min}`,
         code: "TOO_SMALL",
+        message: `Rating must be at least ${min}`,
         params: { min },
       };
     }
-
     if (value > max) {
       return {
-        message: `Rating cannot exceed ${max}`,
         code: "TOO_LARGE",
+        message: `Rating cannot exceed ${max}`,
         params: { max },
       };
     }
-
-    return undefined; // Valid!
   },
-
-  // 3. Helper to determine if the field is empty for `required` checks
-  isEmpty: (value) => value == null,
-
-  // 4. Type token for TypeScript compile-time answer inference
   $Infer: 0 as number,
-
-  // 5. English display string for `formatAnswer` / review
-  format: (value, field) => {
-    if (typeof value !== "number") return "";
-    const max = field.max ?? 5;
-    return `${value}/${max}`;
-  },
+  format: (value, field) =>
+    typeof value === "number" ? `${value}/${field.max ?? 5}` : "",
 });
+
+export const fieldTypes = [ratingFieldType] as const;
 ```
 
-Export your custom field types from a central module:
+## Register
 
-```ts title="lib/field-types/index.ts"
-import { ratingFieldType } from "./rating";
-
-export const customFieldTypes = [ratingFieldType] as const;
-```
-
----
-
-## 2. Registering on Server and Client
-
-Register your custom field types in both `dimahForm()` and `createFormClient()`:
-
-### Server Registration
+Pass the same array to the server and the client. `$Infer` from `createFormClient<Form>()` does not install validators.
 
 ```ts title="lib/form.ts"
-import { dimahForm, memoryAdapter } from "@dimah-form/server";
-import { customFieldTypes } from "@/lib/field-types";
-import { forms } from "@/lib/forms";
-
 export const form = dimahForm({
   database: memoryAdapter(),
-  fieldTypes: customFieldTypes,
+  fieldTypes,
   forms,
 });
-
-export type Form = typeof form;
 ```
-
-### Client Registration
 
 ```ts title="lib/form-client.ts"
 "use client";
 
-import { createFormClient } from "@dimah-form/react";
-import { customFieldTypes } from "@/lib/field-types";
-import type { Form } from "@/lib/form";
-
 export const formClient = createFormClient<Form>({
   basePath: "/api/form",
-  fieldTypes: customFieldTypes,
+  fieldTypes,
 });
-
-export const { useFormResponse } = formClient;
 ```
 
-A plugin package can ship the same definition on both sides:
+A plugin can own the list. The client plugin must repeat it — do not pass `fieldTypes` twice.
 
 ```ts
-import { definePlugin } from "@dimah-form/server";
-import { defineClientPlugin } from "@dimah-form/react";
-import { ratingFieldType } from "./rating";
-
 export const ratingPlugin = definePlugin({
   id: "rating",
-  fieldTypes: [ratingFieldType],
+  fieldTypes,
 });
 
 export const ratingClient = defineClientPlugin({
   id: "rating",
-  fieldTypes: [ratingFieldType],
+  fieldTypes,
 });
 ```
 
-`createFormClient({ plugins: [ratingClient()] })` then installs the local validator without a second `fieldTypes` array. `$Infer` from `createFormClient<Form>()` is still type-only — the client plugin (or `options.fieldTypes`) is required for session checks.
+## Author
 
----
-
-## 3. Using Custom Fields in Forms
-
-`defineForm` stays a loose JSON document at runtime. Bind the catalog to your field types so `min` / `max` (and other `fieldSchema` keys) autocomplete:
+`defineForm` stays loose JSON at runtime. `createDefineForm` only types the document. Still pass `fieldTypes` into `dimahForm()` and `createFormClient()`.
 
 ```ts title="lib/forms/review.ts"
 import { createDefineForm } from "@dimah-form/server";
 import type { FormDefinitionUi } from "@dimah-form/ui/types";
-import { customFieldTypes } from "@/lib/field-types";
+import { fieldTypes } from "@/lib/field-types/rating";
 
-const defineAppForm = createDefineForm({ fieldTypes: customFieldTypes });
+const defineAppForm = createDefineForm({ fieldTypes });
 
 export const reviewForm = defineAppForm({
-  title: "Product Review",
+  title: "Product review",
   slug: "review",
   fields: [
     {
       id: "score",
       type: "rating",
-      label: "Star Rating (1-5)",
+      label: "Stars",
       required: true,
       min: 1,
       max: 5,
     },
-    {
-      id: "comments",
-      type: "text",
-      label: "Review Comments",
-    },
+    { id: "comments", type: "text", label: "Comments" },
   ],
-} satisfies FormDefinitionUi<typeof customFieldTypes>);
+} satisfies FormDefinitionUi<typeof fieldTypes>);
 ```
 
-`createDefineForm({ fieldTypes, plugins })` is type-only — still pass the same array and plugins to `dimahForm()` and `createFormClient()`. It types the field document (`min` / `max` here) and plugin `$Meta`. `satisfies FormDefinitionUi<typeof customFieldTypes, typeof plugins>` is for `@dimah-form/ui` `meta` keys plus plugin namespaces; drop it if you do not use that package. TypeScript infers `Form["$Infer"]["answers"]["review"]["score"]` as `number`.
+Drop `satisfies FormDefinitionUi` when you do not use `@dimah-form/ui`.
+`Form["$Infer"]["answers"]["review"]["score"]` is `number`.
 
----
+## Widget
 
-## 4. Rendering Custom Widgets in React
-
-If you use `@dimah-form/ui`, register the widget once — same `type` string as the validator:
-
-```tsx
-const widgets = { rating: StarRatingField };
-
-<FormUiProvider widgets={widgets}>
-  <FormView form={form} />
-</FormUiProvider>;
-```
-
-The widget is `{ binding, className, mode? }`. Wrap the control in `FormFieldFrame` (`layout="stack"` | `"choice"` | `"group"`) so `FormUiProvider` `components.FieldFrame` applies. The required mark comes from `components.RequiredMark` when set:
+Register under the same `type` string. The widget receives `{ binding, className, mode }`.
 
 ```tsx
 import {
   FormFieldFrame,
+  FormUiProvider,
+  FormView,
   fieldNumber,
   type FieldWidgetProps,
 } from "@dimah-form/ui";
 
-export function StarRatingField({
+function StarRatingField({
   binding,
   className,
   mode,
 }: FieldWidgetProps<number>) {
-  const field = binding.field;
-  if (!field) return null;
+  const max = fieldNumber(binding.field, "max") ?? 5;
   const review = mode === "review";
 
   return (
     <FormFieldFrame binding={binding} className={className}>
       <StarRating
-        id={field.id}
         value={binding.value}
-        max={fieldNumber(field, "max") ?? 5}
+        max={max}
         disabled={binding.disabled || review}
         onChange={(value) => {
-          if (review) return;
-          binding.onChange(value);
+          if (!review) binding.onChange(value);
         }}
       />
     </FormFieldFrame>
   );
 }
+
+<FormUiProvider widgets={{ rating: StarRatingField }}>
+  <FormView form={form} />
+</FormUiProvider>;
 ```
 
-On the headless path, add a branch to your dispatcher:
+On the headless path, branch on `field.type === "rating"` in your dispatcher. See [Widgets](/docs/widgets).
 
-```tsx title="components/form-field-control.tsx"
-import { type FormFieldBinding } from "@dimah-form/react";
-
-export function FormFieldControl(binding: FormFieldBinding) {
-  const { field, value, error, disabled, required, onChange } = binding;
-  if (!field) return null;
-
-  // Custom Rating Widget
-  if (field.type === "rating") {
-    const currentRating = typeof value === "number" ? value : 0;
-    const max = typeof field.max === "number" ? field.max : 5;
-
-    return (
-      <div className="space-y-1.5">
-        <label className="block text-sm font-semibold">
-          {field.label}
-          {required && <span className="ml-1 text-red-500">*</span>}
-        </label>
-        <div className="flex gap-1">
-          {Array.from({ length: max }, (_, i) => i + 1).map((star) => (
-            <button
-              key={star}
-              type="button"
-              disabled={disabled}
-              onClick={() => onChange(star)}
-              className={`text-2xl transition-colors ${
-                star <= currentRating ? "text-yellow-400" : "text-gray-300"
-              }`}
-            >
-              ★
-            </button>
-          ))}
-        </div>
-        {error && <p className="text-xs text-red-500">{error}</p>}
-      </div>
-    );
-  }
-
-  // Other field types...
-  return null;
-}
-```
-
----
-
-## Next Steps
+## Next steps
 
 <Cards>
   <Card
-    title="Field Types"
+    title="Field types"
     href="/docs/field-types"
-    description="Explore all 7 built-in field types and showWhen conditional rules."
-  />
-  <Card
-    title="Widgets"
-    href="/docs/widgets"
-    description="Discover patterns for rendering complex, interactive inputs."
+    description="The built-in validators this extends."
   />
   <Card
     title="Plugins"
     href="/docs/plugins"
-    description="Bundle custom field types and custom endpoints into reusable plugins."
+    description="Bundle the validator with endpoints and hooks."
   />
   <Card
-    title="Scoring"
-    href="/docs/scoring"
-    description="Official scoring plugin — option points, option keying, snapshot totals, and bands."
+    title="UI"
+    href="/docs/ui"
+    description="Widget registry and FormFieldFrame."
   />
 </Cards>

@@ -1,22 +1,21 @@
 ---
 title: Database
-description: Persistence is required. A SQL database is not.
+description: A ResponseStore is required. SQL is optional.
 icon: Database
 ---
 
-`dimahForm({ database })` needs a `ResponseStore`. `@dimah-form/server` has no ORM. `@dimah-form/db` is optional — install it only when drafts must survive a restart.
+`dimahForm({ database })` needs a [`ResponseStore`](/docs/configuration#responsestore).
+`@dimah-form/server` has no ORM. Add `@dimah-form/db` only when rows must survive a restart.
 
-| Adapter           | Package              | When                                             |
-| :---------------- | :------------------- | :----------------------------------------------- |
-| `memoryAdapter()` | `@dimah-form/server` | Tests, local, [Quickstart](/docs/quickstart)     |
-| `db(formDb)`      | `@dimah-form/db`     | Production (FumaDB + Drizzle, Prisma, or Kysely) |
-| Custom            | your code            | Implement [`ResponseStore`](/docs/configuration) |
+| Adapter           | Package              | When                                            |
+| ----------------- | -------------------- | ----------------------------------------------- |
+| `memoryAdapter()` | `@dimah-form/server` | Tests and local demos                           |
+| `db(formDb)`      | `@dimah-form/db`     | SQL through FumaDB (Drizzle, Prisma, or Kysely) |
+| Your store        | Your code            | Implement `ResponseStore` and pass it directly  |
 
----
+## Memory
 
-## 1. In-memory
-
-No extra packages. Data lives in the process and is gone on restart.
+Data lives in the process and is gone on restart.
 
 ```ts title="lib/form.ts"
 import { dimahForm, memoryAdapter } from "@dimah-form/server";
@@ -28,18 +27,11 @@ export const form = dimahForm({
 });
 ```
 
----
+## SQL
 
-## 2. Production
-
-Install `@dimah-form/db` and `fumadb` when you need SQL:
-
-<Tabs items={["pnpm", "npm", "yarn", "bun"]}>
-  <Tab value="pnpm">```bash pnpm add @dimah-form/db fumadb ```</Tab>
-  <Tab value="npm">```bash npm install @dimah-form/db fumadb ```</Tab>
-  <Tab value="yarn">```bash yarn add @dimah-form/db fumadb ```</Tab>
-  <Tab value="bun">```bash bun add @dimah-form/db fumadb ```</Tab>
-</Tabs>
+```npm
+npm i @dimah-form/db fumadb
+```
 
 <Steps>
 
@@ -47,7 +39,7 @@ Install `@dimah-form/db` and `fumadb` when you need SQL:
 
 ### Schema
 
-Copy these tables, or generate with the [CLI](#cli) and re-add the indexes (FumaDB `generate` does not emit them).
+Copy the tables, or generate them with the [CLI](#cli) and re-add the indexes. FumaDB `generate` does not emit indexes.
 
 <Tabs items={["Drizzle", "Prisma", "Kysely"]}>
 
@@ -61,7 +53,7 @@ Copy these tables, or generate with the [CLI](#cli) and re-add the indexes (Fuma
 
 <Tab value="Kysely">
 
-Generate Kysely types with the CLI, then add these indexes:
+Generate Kysely types with the CLI, then add the indexes:
 
 <include>../../_includes/db/indexes-sql.mdx</include>
 
@@ -156,8 +148,6 @@ export type Form = typeof form;
 
 </Steps>
 
----
-
 ## CLI
 
 ```ts title="scripts/db-cli.mts"
@@ -183,30 +173,24 @@ node --import tsx scripts/db-cli.mts generate latest -o ./lib/schema.ts
 | `response_respondent_id_updated_at_idx`    | `respondent_id`, `updated_at`                               |
 | `response_draft_lookup_idx`                | `questionnaire_id`, `respondent_id`, `status`, `updated_at` |
 
----
-
 ## Custom store
 
-Implement [`ResponseStore`](/docs/configuration) and pass it to `dimahForm({ database })` directly. Do not wrap it in `db()`.
+Implement `ResponseStore` and pass it as `database`. Do not wrap it in `db()`.
 
----
+Compare-and-swap writes throw `StoreConflictError` when `expectedUpdatedAt` does not match. Handlers map that to `STALE_UPDATE`.
 
-## Next Steps
+## Next steps
 
 <Cards>
   <Card
     title="Snapshots"
     href="/docs/snapshots"
-    description="How snapshots and CAS updatedAt are stored."
-  />
-  <Card
-    title="Auth"
-    href="/docs/auth"
-    description="Protect records with guard."
+    description="What each response row stores."
   />
   <Card
     title="Configuration"
     href="/docs/configuration"
-    description="The ResponseStore interface."
+    description="The ResponseStore methods."
   />
+  <Card title="Auth" href="/docs/auth" description="Who can read those rows." />
 </Cards>

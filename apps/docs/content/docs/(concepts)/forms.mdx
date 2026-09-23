@@ -1,31 +1,24 @@
 ---
 title: Forms
-description: Author questionnaires with defineForm, field rules, showWhen, and $Infer.
+description: Author questionnaires with defineForm, showWhen, and $Infer.
 icon: FileText
 ---
 
-Forms are TypeScript (`defineForm`) or rows in your database (`saveForm`). Code-authored forms feed `$Infer`. Database forms do not.
-
----
-
-## Authoring Forms in TypeScript
-
-We recommend defining each questionnaire in a dedicated file under `lib/forms/`. If you render with `@dimah-form/ui`, `satisfies FormDefinitionUi` types `meta` against that package — skip it when you do not use `@dimah-form/ui`. Custom `defineFieldType` keys are a separate bind (`createDefineForm`); see [Custom fields](/docs/custom-fields).
+Forms are TypeScript (`defineForm`) or rows you save with `saveForm`.
+Code-authored forms feed `$Infer`. Database forms do not.
 
 ```ts title="lib/forms/onboarding.ts"
 import { defineForm } from "@dimah-form/server";
-import type { FormDefinitionUi } from "@dimah-form/ui/types";
 
 export const onboardingForm = defineForm({
   title: "Employee Onboarding",
   slug: "onboarding",
-  description: "Complete your profile and equipment preferences.",
   status: "active",
   fields: [
     {
       id: "fullName",
       type: "text",
-      label: "Full Name",
+      label: "Full name",
       required: true,
       minLength: 2,
       maxLength: 100,
@@ -37,138 +30,82 @@ export const onboardingForm = defineForm({
       required: true,
       options: [
         { value: "engineering", label: "Engineering" },
-        { value: "design", label: "Product Design" },
-        { value: "marketing", label: "Marketing" },
+        { value: "design", label: "Design" },
       ],
     },
     {
-      id: "githubHandle",
+      id: "github",
       type: "text",
-      label: "GitHub Username",
+      label: "GitHub",
       required: true,
-      showWhen: {
-        field: "department",
-        equals: "engineering",
-      },
-    },
-    {
-      id: "portfolioUrl",
-      type: "text",
-      label: "Portfolio Link",
-      showWhen: {
-        field: "department",
-        equals: "design",
-      },
-    },
-    {
-      id: "newsletter",
-      type: "boolean",
-      label: "Subscribe to company updates",
-      defaultValue: true,
+      showWhen: { field: "department", equals: "engineering" },
     },
   ],
-} satisfies FormDefinitionUi);
+});
 ```
-
-Export your forms from a central index:
-
-```ts title="lib/forms/index.ts"
-import { onboardingForm } from "./onboarding";
-
-export const forms = {
-  onboarding: onboardingForm,
-};
-```
-
-Pass the forms dictionary into `dimahForm()`:
 
 ```ts title="lib/form.ts"
 import { dimahForm, memoryAdapter } from "@dimah-form/server";
-import { forms } from "@/lib/forms";
+import { onboardingForm } from "@/lib/forms/onboarding";
 
 export const form = dimahForm({
   database: memoryAdapter(),
-  forms,
+  forms: { onboarding: onboardingForm },
 });
 
 export type Form = typeof form;
 ```
 
----
+The catalog key and `slug` may differ. `getForm` and `startResponse` accept either `id` or `slug`.
 
-## Form Properties
+If you render with `@dimah-form/ui`, add `satisfies FormDefinitionUi` so `meta` keys type-check. See [UI](/docs/ui). Custom field types use `createDefineForm` — see [Custom fields](/docs/custom-fields).
 
-| Property      | Type                                | Default     | Description                                                                    |
-| :------------ | :---------------------------------- | :---------- | :----------------------------------------------------------------------------- |
-| `title`       | `string`                            | —           | Human-readable title of the questionnaire.                                     |
-| `slug`        | `string`                            | Catalog key | Unique URL-friendly slug. `getForm` and `startResponse` accept `id` or `slug`. |
-| `description` | `string`                            | `undefined` | Optional subtitle or instructions for respondents.                             |
-| `status`      | `"active" \| "draft" \| "archived"` | `"active"`  | Only `"active"` forms can start new response sessions.                         |
-| `fields`      | `FormField[]`                       | `[]`        | Array of field definitions.                                                    |
-| `meta`        | `Record<string, unknown>`           | `{}`        | Custom JSON dictionary for UI layout hints, icons, or category tags.           |
+## Properties
 
----
+| Property      | Default     |                                                                         |
+| ------------- | ----------- | ----------------------------------------------------------------------- |
+| `title`       | —           | Shown to the respondent                                                 |
+| `slug`        | Catalog key | Lookup alias for `id`                                                   |
+| `description` | —           | Optional instructions                                                   |
+| `status`      | `"active"`  | `"draft"` and `"archived"` reject `startResponse` (`409 FORM_INACTIVE`) |
+| `fields`      | `[]`        | Field definitions                                                       |
+| `meta`        | `{}`        | Opaque JSON. UI hints and plugin namespaces live here                   |
 
-## Form Status Lifecycle
-
-- **`active`**: Form is published and accepts new responses via `startResponse`.
-- **`draft`**: Form is still being designed. Starting a response returns `409 FORM_INACTIVE`.
-- **`archived`**: Form is deprecated. Existing submitted responses remain readable, but new responses are blocked.
-
----
-
-## Field Anatomy
-
-Each item in `fields` requires an `id`, a `type`, and an optional `label`:
+## Fields
 
 ```ts
 {
   id: "workEmail",
   type: "email",
-  label: "Work Email Address",
+  label: "Work email",
   required: true,
-  defaultValue: "user@example.com",
-  description: "We will send your onboarding packet here.",
-  meta: {
-    placeholder: "you@company.com",
-  },
+  description: "We send the packet here.",
+  meta: { placeholder: "you@company.com" },
 }
 ```
 
-### Common Field Attributes
+| Property       |                                                |
+| -------------- | ---------------------------------------------- |
+| `id`           | Answer key. Unique in the form                 |
+| `type`         | Built-in type, or a `defineFieldType` key      |
+| `label`        | `fieldLabel(field)` falls back to `id`         |
+| `required`     | Enforced on submit when the field is visible   |
+| `defaultValue` | Seeded by `startResponse`                      |
+| `showWhen`     | Hides the field and drops its answer on submit |
+| `description`  | Helper copy. `@dimah-form/ui` renders it       |
+| `meta`         | Opaque JSON for widgets and plugins            |
 
-- **`id`**: Unique string identifier within the form. Serves as the key in the answers dictionary.
-- **`type`**: Built-in type (`"text"`, `"number"`, `"boolean"`, `"select"`, `"multiSelect"`, `"email"`, `"date"`, `"file"`) or a custom type registered via `defineFieldType`.
-- **`label`**: Display label for UI components (retrieved via `fieldLabel(field)`).
-- **`required`**: If `true`, the field must be non-empty when submitting the form (if visible).
-- **`defaultValue`**: Seeded into the answers map upon calling `startResponse`.
-- **`showWhen`**: Conditional visibility rules.
-- **`description`**: Helper copy under the control in `@dimah-form/ui`.
-- **`meta`**: Opaque JSON for UI. When you use `@dimah-form/ui`, type the document with `satisfies FormDefinitionUi` so `placeholder`, `widget`, `section`, `step`, `width`, … autocomplete (`FormDefinitionUi<typeof fieldTypes>` when the catalog has custom field types). See [UI](/docs/ui). Boolean `unsetOnOff` is a field key, not meta.
+Built-in types and per-type constraints: [Field types](/docs/field-types).
 
----
+## showWhen
 
-## Conditional Visibility (`showWhen`)
-
-Fields can dynamically show or hide based on the current answers. When a field is hidden, it is excluded from `visibleFields` and its answer is stripped before final submission.
-
-### 1. Simple Conditions
+A hidden field leaves `visibleFields`. Submit strips its answer.
 
 ```ts
-// Check exact value match
 showWhen: { field: "role", equals: "manager" }
-
-// Check inequality
 showWhen: { field: "plan", notEquals: "free" }
+showWhen: { field: "stack", includes: "typescript" } // multiSelect
 
-// Check if a multiSelect array contains a specific option
-showWhen: { field: "techStack", includes: "typescript" }
-```
-
-### 2. Compound Conditions (`all` / `any`)
-
-```ts
-// AND condition (all must match)
 showWhen: {
   all: [
     { field: "experience", equals: "senior" },
@@ -176,7 +113,6 @@ showWhen: {
   ],
 }
 
-// OR condition (at least one must match)
 showWhen: {
   any: [
     { field: "department", equals: "engineering" },
@@ -185,64 +121,47 @@ showWhen: {
 }
 ```
 
----
+## Code and database
 
-## Code-Authored vs Database Forms
+|                           | `forms: {}`                     | `saveForm`                             |
+| ------------------------- | ------------------------------- | -------------------------------------- |
+| Types                     | `Form["$Infer"]["answers"]`     | `Record<string, unknown>`              |
+| Storage                   | Git                             | `questionnaire` row                    |
+| `saveForm` / `deleteForm` | Rejected (`CODE_AUTHORED_FORM`) | Allowed when the form has no responses |
 
-| Feature                  | Code-Authored Forms (`forms: {}`)                | Dynamic Database Forms (`saveForm()`)        |
-| :----------------------- | :----------------------------------------------- | :------------------------------------------- |
-| **Declaration**          | TypeScript files via `defineForm`                | Admin UI / CMS via `saveForm` API endpoint   |
-| **Type Inference**       | Full compile-time `$Infer` typing                | `Record<string, unknown>`                    |
-| **Version Control**      | Tracked in Git alongside application code        | Stored in the `questionnaire` database table |
-| **Overwrite Protection** | Protected from accidental API deletion / updates | Can be modified or deleted via API routes    |
-
----
-
-## End-to-End Type Inference (`$Infer`)
-
-When you export `export type Form = typeof form`, dimah-form automatically derives the exact shape of your answers:
+## $Infer
 
 ```ts
-import type { Form } from "@/lib/form";
-
 type OnboardingAnswers = Form["$Infer"]["answers"]["onboarding"];
-
-// TypeScript automatically infers:
-// type OnboardingAnswers = {
+// {
 //   fullName: string;
-//   department: "engineering" | "design" | "marketing";
-//   githubHandle?: string;
-//   portfolioUrl?: string;
-//   newsletter?: boolean;
+//   department: "engineering" | "design";
+//   github?: string;
 // }
 ```
 
-Use this type in your React client:
-
 ```tsx
-const q = useFormResponse<"onboarding">({
-  snapshot: formSnapshot,
-});
+const q = useFormResponse<"onboarding">({ snapshot });
 ```
 
----
+Optional fields are those without `required: true`.
 
-## Next Steps
+## Next steps
 
 <Cards>
   <Card
-    title="React Client"
-    href="/docs/react"
-    description="Learn how useFormResponse handles visible fields and answer bindings."
+    title="Snapshots"
+    href="/docs/snapshots"
+    description="What gets frozen when a response starts."
   />
   <Card
-    title="Widgets"
-    href="/docs/widgets"
-    description="Build reusable UI widgets for text, select, and boolean fields."
-  />
-  <Card
-    title="Field Types Reference"
+    title="Field types"
     href="/docs/field-types"
-    description="Explore built-in field validation constraints and options."
+    description="Built-in validators and answer types."
+  />
+  <Card
+    title="React"
+    href="/docs/react"
+    description="Bind visible fields in the browser."
   />
 </Cards>

@@ -1,35 +1,24 @@
 ---
 title: Insights
-description: Read-side counts from response snapshots — status, completion, field stats, score bands, optional day series and crosstab.
+description: Status, completion, field stats, and score bands from response snapshots.
 icon: ChartColumn
 ---
 
-`@dimah-form/insights` is the first-party **summary** plugin for admin reporting. It walks stored responses (same 100-row pages as list, capped at 10_000 by default) and folds **snapshot** answers into:
+[`@dimah-form/insights`](https://www.npmjs.com/package/@dimah-form/insights) folds stored responses into admin counts.
+It walks the same 100-row pages as list, capped at 10_000 by default. There are no tables and no `meta` namespace.
 
-- totals by `draft` / `submitted` / `abandoned`
-- visible-required completion among submitted rows (`completion.rate` is `complete / submitted`, or `null`)
-- per-field stats: `n` is **visible** occurrences; `hidden` is skip-logic; `unanswered` is visible and empty
-- value counts + `pct` (0–1) for categorical fields (`select` / `multiSelect` / `boolean`, or any field with `options`). Levels follow the document catalog, including unused `n: 0`, in document order — not by frequency
-- `numeric` min / max / mean / stdev for any finite number answer (`number`, or a custom type such as `rating`); `dates` min / max for `date`
-- scoring band / mean / stdev from `@dimah-form/scoring` (a direct dependency). Bands follow `meta.scoring` order, including unused `n: 0`
-- optional `bucket=day` series of `submittedAt` (`timeZone`, default `UTC`)
-- `GET /insights/crosstab` for two categorical fields. `n` is respondents who contributed a cell, not multiSelect tokens
+The live questionnaire only supplies field order and catalog levels that snapshots did not already list. Answers come from each row's snapshot.
 
-Derived data only. No tables, no `meta` namespace, no live-form flatten. The live questionnaire only supplies field order and catalog levels that snapshots did not already list. Text / email fields are answered / unanswered only.
-
-This is not a warehouse. For large N persist rows with [`datasetPlugin({ onProject })`](/docs/dataset) and aggregate in your database. When the walk hits the cap, `truncated` is true — lower `maxRows` on the query, or raise the plugin cap and project instead.
-
----
+This is not a warehouse. For a large N, persist with [`datasetPlugin({ onProject })`](/docs/dataset) and aggregate in your database. When the walk hits the cap, `truncated` is true. Query `maxRows` can lower the cap, not raise it. Raise it with `insightsPlugin({ maxRows })`.
 
 ## Install
 
-```bash
-pnpm add @dimah-form/insights
+```npm
+npm i @dimah-form/insights
 ```
 
 ```ts title="lib/form.ts"
 import { insightsPlugin } from "@dimah-form/insights";
-import { dimahForm } from "@dimah-form/server";
 
 export const form = dimahForm({
   database,
@@ -38,22 +27,22 @@ export const form = dimahForm({
 });
 ```
 
-```ts title="lib/client.ts"
+```ts title="lib/form-client.ts"
 "use client";
 
 import { insightsClientPlugin } from "@dimah-form/insights/client";
-import { createFormClient } from "@dimah-form/react";
-import type { Form } from "@/lib/form";
 
 const plugins = [insightsClientPlugin()] as const;
-export const formClient = createFormClient<Form, typeof plugins>({
-  plugins,
-});
+export const formClient = createFormClient<Form, typeof plugins>({ plugins });
 ```
 
-Guard `getFormInsights` and `getFormCrosstab` like `listResponses` (admin).
+Guard `getFormInsights` and `getFormCrosstab` like `listResponses`.
 
-There is no default `status` filter (unlike dataset, which defaults to submitted). Pass `status`, `respondentId`, `submittedFrom` / `submittedTo`, and `updatedAfter` to match `listResponses`. Segment in the fold with `whereField` + `whereValue` (unknown field → empty counts, not 404). A finite number matches the decimal string of the stored value (`5` matches `"5"`). `multiSelect` `%` is of **answered respondents** (can sum above 1). Categorical `%` and score bands include every catalog level, so a scale stays in document order when a level has `n: 0`.
+## Summary
+
+`GET /insights/summary` (`getFormInsights`).
+
+There is no default `status` filter. Dataset defaults to submitted; this plugin does not. Pass `status`, `respondentId`, `submittedFrom` / `submittedTo`, and `updatedAfter` — the same filters as `listResponses`.
 
 ```ts
 const summary = await form.api.getFormInsights({
@@ -61,22 +50,46 @@ const summary = await form.api.getFormInsights({
 });
 
 const byDay = await form.api.getFormInsights({
-  query: { formId: "gad7", status: "submitted", bucket: "day" },
+  query: {
+    formId: "gad7",
+    status: "submitted",
+    bucket: "day",
+    timeZone: "Asia/Tehran",
+  },
 });
+```
 
+| Field                 |                                                                                                                                                                                                                      |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `byStatus`            | Counts for `draft`, `submitted`, `abandoned`                                                                                                                                                                         |
+| `completion`          | Visible required fields on **each row's snapshot**. `rate` is `complete / submitted`, or `null`                                                                                                                      |
+| `fields`              | Live questionnaire order. Ids that exist only on older snapshots come after                                                                                                                                          |
+| `fields[].n`          | Visible occurrences                                                                                                                                                                                                  |
+| `fields[].hidden`     | Hidden by `showWhen`                                                                                                                                                                                                 |
+| `fields[].unanswered` | Visible and empty                                                                                                                                                                                                    |
+| `values`              | Categorical levels (`select`, `multiSelect`, `boolean`, or any field with `options`). Document order, including `n: 0`. `pct` is 0–1. `multiSelect` percent is of answered respondents and can sum above 1           |
+| `numeric`             | min / max / mean / stdev for a finite number (`number`, or a custom type such as `rating`)                                                                                                                           |
+| `dates`               | min / max for `date`                                                                                                                                                                                                 |
+| `scores`              | Band counts, mean, stdev from `@dimah-form/scoring` (a dependency). Band order follows `meta.scoring`, including `n: 0`. Omitted when the snapshot has no `meta.scoring`, or when that scoring meta fails validation |
+
+`text` and `email` are answered / unanswered only.
+
+`whereField` + `whereValue` segment the fold. An unknown field yields empty counts, not 404. A finite number matches the decimal string of the stored value (`5` matches `"5"`).
+
+`bucket=day` groups `submittedAt` in an IANA `timeZone`. The query overrides the plugin option. Default is `UTC`. The series includes that `timeZone`.
+
+## Crosstab
+
+`GET /insights/crosstab` (`getFormCrosstab`). Two categorical fields. `n` is respondents who contributed a cell, not `multiSelect` tokens. `table.n` is the respondent base for the cells.
+
+```ts
 const table = await form.api.getFormCrosstab({
   query: { formId: "gad7", row: "city", col: "remote", status: "submitted" },
 });
 ```
 
-`summary.byStatus` is the census. `completion` uses visible required fields on **each row’s snapshot**. `fields` follow the live questionnaire order; ids that exist only on older snapshots come after. `scores` is omitted when the snapshot has no `meta.scoring`, or when that snapshot’s scoring meta fails validation. A crosstab axis counts only on snapshots where that field is categorical. Changing the live field to text does not drop older select rows, and it does not reject the query. An id that is only on older snapshots still folds. `table.n` is the respondent base for the cells.
-
-`bucket=day` groups `submittedAt` in an IANA `timeZone` (query overrides the plugin option; default `UTC`). The series includes that `timeZone`.
-
-`GET /insights/summary` and `GET /insights/crosstab`. Filename, charts, and zip stay in the app. Optional UI belongs in the consumer — `@dimah-form/ui` is the fill renderer, not an admin dashboard.
-
----
+An axis counts only on snapshots where that field is categorical. Changing the live field to `text` does not drop older select rows, and it does not reject the query. An id that exists only on older snapshots still folds.
 
 ## Out of this package
 
-Weighted samples, LLM summaries, persisting the summary, and charts. Export files are [`@dimah-form/dataset`](/docs/dataset).
+Weighted samples, charts, saved summaries, and LLM writeups. Files are [Dataset](/docs/dataset). `@dimah-form/ui` renders the fill session, not an admin dashboard.

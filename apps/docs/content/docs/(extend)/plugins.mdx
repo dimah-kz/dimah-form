@@ -1,18 +1,17 @@
 ---
 title: Plugins
-description: Add endpoints, hooks, error codes, field types, meta schemas, and matching client methods.
+description: Add endpoints, hooks, field types, meta checks, and matching client methods.
 icon: Puzzle
 ---
 
-A plugin can add HTTP endpoints, lifecycle hooks, error codes, field types, `meta` validation, answer validators, and matching methods on `createFormClient`.
+A plugin adds HTTP endpoints, lifecycle hooks, error codes, field types, and `meta` validation.
+Persistence stays on `database` — it is not a plugin.
 
----
+Official plugins: [Scoring](/docs/scoring), [Dataset](/docs/dataset), [Insights](/docs/insights).
 
-## 1. Creating a Server Plugin
+## Server
 
-Use `definePlugin()` and `createFormEndpoint()` from `@dimah-form/server` to build a server extension:
-
-```ts title="lib/plugins/analytics-plugin.ts"
+```ts title="lib/plugins/analytics.ts"
 import {
   createFormEndpoint,
   defineErrorCodes,
@@ -21,94 +20,65 @@ import {
 } from "@dimah-form/server";
 import * as z from "zod";
 
-// 1. Declare domain-specific error codes
 export const ANALYTICS_ERROR_CODES = defineErrorCodes({
   STATS_UNAVAILABLE: "Analytics data could not be computed",
 });
 
-// 2. Define the server plugin
 export const analyticsPlugin = () =>
   definePlugin({
     id: "analytics",
     $ERROR_CODES: ANALYTICS_ERROR_CODES,
-
-    // Add custom HTTP endpoints to the dimahForm router
     endpoints: {
       getFormStats: createFormEndpoint(
         "/analytics/stats",
         {
           method: "GET",
-          query: z.object({
-            formId: z.string(),
-          }),
+          query: z.object({ formId: z.string() }),
         },
         async ({ query, context }) => {
           const form = await context.config.database.getForm(query.formId);
           if (!form) throw errors.unknownForm(query.formId);
 
-          const list = await context.config.database.listResponses({
+          const total = await context.config.database.countResponses({
             formId: query.formId,
-            limit: 100,
           });
 
-          const total = list.length;
-          const submitted = list.filter((r) => r.status === "submitted").length;
-
-          return {
-            formId: query.formId,
-            totalResponses: total,
-            completionRate: total > 0 ? (submitted / total) * 100 : 0,
-          };
+          return { formId: query.formId, total };
         },
       ),
     },
-
-    // Optional lifecycle hooks contributed by this plugin
     hooks: {
       afterSubmit: async ({ response }) => {
-        console.log(`[Analytics] Response ${response.id} submitted.`);
+        console.log(`submitted ${response.id}`);
       },
     },
   });
 ```
 
----
-
-## 2. Registering on the Server
-
-Pass the plugin to `dimahForm({ plugins: [...] })`:
-
 ```ts title="lib/form.ts"
-import { dimahForm, memoryAdapter } from "@dimah-form/server";
-import { analyticsPlugin } from "@/lib/plugins/analytics-plugin";
-import { forms } from "@/lib/forms";
-
 export const form = dimahForm({
   database: memoryAdapter(),
   forms,
   plugins: [analyticsPlugin()],
 });
 
-export type Form = typeof form;
-```
-
-You can now call the plugin endpoint directly through `form.api`:
-
-```ts
 const stats = await form.api.getFormStats({
   query: { formId: "feedback" },
 });
 ```
 
----
+`guard` sees the endpoint key as `operation` (`"getFormStats"`). Authorize it like any other admin call. See [Auth](/docs/auth).
 
-## 3. Creating a Companion Client Plugin
+## Client
 
-To expose typed methods on `createFormClient`, create a companion client plugin using `defineClientPlugin()`:
+`defineClientPlugin` adds methods on `createFormClient`. It does not infer them from the server instance.
+Use the same `id`. If the server plugin registers `fieldTypes`, pass that same array here so local validation matches.
 
 ```ts title="lib/plugins/analytics-client.ts"
+"use client";
+
 import { defineClientPlugin } from "@dimah-form/react";
-import { ANALYTICS_ERROR_CODES } from "./analytics-plugin";
+import { ANALYTICS_ERROR_CODES } from "./analytics";
 
 export const analyticsClientPlugin = () =>
   defineClientPlugin({
@@ -116,21 +86,12 @@ export const analyticsClientPlugin = () =>
     $ERROR_CODES: ANALYTICS_ERROR_CODES,
     endpoints: ({ $fetch }) => ({
       getStats: (formId: string) =>
-        $fetch<{
-          formId: string;
-          totalResponses: number;
-          completionRate: number;
-        }>(`/analytics/stats?formId=${encodeURIComponent(formId)}`, {
-          method: "GET",
-        }),
+        $fetch<{ formId: string; total: number }>(
+          `/analytics/stats?formId=${encodeURIComponent(formId)}`,
+        ),
     }),
   });
 ```
-
-Register the client plugin with `createFormClient`. If the server plugin
-registers `fieldTypes`, list the same array on the client plugin so local
-session validation matches. Client plugins may also list `validateAnswers`
-and phantom `$Meta` (same types as the server plugin).
 
 ```ts title="lib/form-client.ts"
 "use client";
@@ -140,122 +101,62 @@ import type { Form } from "@/lib/form";
 import { analyticsClientPlugin } from "@/lib/plugins/analytics-client";
 
 const plugins = [analyticsClientPlugin()] as const;
+
 export const formClient = createFormClient<Form, typeof plugins>({
   basePath: "/api/form",
   plugins,
 });
 
-// Call the plugin method from client components
 const stats = await formClient.getStats("feedback");
 ```
 
----
+The second type argument keeps endpoint names literal.
 
-## 4. Meta, namespaces, and authoring types
+## meta
 
-Plugin rules that belong on the questionnaire (scores, variables, bands)
-live in the opaque `meta` bag — not as extra keys on the form document.
-Own a **namespace** so several plugins can share the same bag next to UI
-keys (`widget`, `step`, …). Pair `metaNamespace` with `metaSchema` and
-phantom `$Meta` (`NamespacedMeta`).
+Plugin data on a questionnaire lives in `meta`, under a unique `metaNamespace` (`meta.scoring`).
+`metaSchema` runs on that nested object only when the key is present, so forms without the plugin still load.
+`validateDefinition` is for cross-field rules (unknown ids, mixed keying). It is synchronous and runs at init, `saveForm`, and live form reads — not on response snapshots.
+`validateAnswers` checks answer payloads, not the document.
 
-The official scoring plugin is [`@dimah-form/scoring`](/docs/scoring)
-(`meta.scoring`). Cross-field mapping checks (unknown variable ids, missing
-option points, mixed Likert / `option.add` keying) belong on plugin
-`validateDefinition`, which is synchronous and runs at init, `saveForm`,
-and live form reads after namespaced `metaSchema`. Response snapshots are
-not re-checked. `validateAnswers` is for answer payloads, not document
-shape.
+`createDefineForm({ plugins })` types plugin `$Meta`. Share that module with the client plugin.
 
-The official dataset plugin is [`@dimah-form/dataset`](/docs/dataset). It
-has no `meta` namespace and no tables. Pages are compute-on-read from
-response snapshots (JSONL + codebook). Do not flatten against the live form.
+`dependsOn` orders `init`, hooks, field types, endpoints, `metaSchema`, and validators. Plugin callbacks run first, then `dimahForm({ validateAnswers })` / `validateDefinition` / `metaSchema`.
 
-```ts
-import { createDefineForm } from "@dimah-form/server";
-import type { FormDefinitionUi } from "@dimah-form/ui/types";
-import { scoringPlugin } from "@dimah-form/scoring";
-import { fieldTypes } from "@/lib/field-types";
+## Options
 
-const plugins = [scoringPlugin()] as const;
-const defineAppForm = createDefineForm({
-  fieldTypes,
-  plugins,
-});
+| Property             |                                                                                                |
+| -------------------- | ---------------------------------------------------------------------------------------------- |
+| `id`                 | Unique id. Client ids cannot be `$fetch`, `baseURL`, `$ERROR_CODES`, `$Infer`, or `fieldTypes` |
+| `$ERROR_CODES`       | `defineErrorCodes()`. Merged onto `form.$ERROR_CODES`. Cannot shadow core or another plugin    |
+| `endpoints`          | `createFormEndpoint` handlers, merged onto `form.api`                                          |
+| `hooks`              | Same `on*` / `after*` keys as the instance                                                     |
+| `fieldTypes`         | Validators. Mirror them on the client plugin                                                   |
+| `metaNamespace`      | Unique `meta` key this plugin owns                                                             |
+| `metaSchema`         | Zod for form, field, and option `meta`                                                         |
+| `validateDefinition` | Whole-document checks after namespaced `metaSchema`                                            |
+| `validateAnswers`    | Extra answer checks after per-field validators                                                 |
+| `$Meta`              | Phantom authoring types for `createDefineForm`                                                 |
+| `init`               | Sync setup. Return `{ context }` and read it later with `getPluginContext(id)`                 |
+| `dependsOn`          | Plugin ids that must load first                                                                |
+| `options`            | Closed-over config for sibling plugins                                                         |
 
-export const quiz = defineAppForm({
-  title: "GAD-7",
-  meta: { scoring: { variables: [{ id: "gad7", max: 21 }] } },
-  fields: [
-    {
-      id: "q1",
-      type: "select",
-      options: [{ value: "0", meta: { scoring: { points: 0 } } }],
-      meta: { scoring: { variable: "gad7" } },
-    },
-  ],
-} satisfies FormDefinitionUi<typeof fieldTypes, typeof plugins>);
-```
-
-`metaNamespace` is unique across plugins. `metaSchema` then validates
-`meta.scoring` (the inner object) **only when that key is present**, so
-forms without the plugin still init. Instance `dimahForm({ metaSchema })`
-still runs on the whole bag afterwards.
-
-`createDefineForm({ plugins })` types the field document and plugin `meta`.
-`satisfies FormDefinitionUi<typeof fieldTypes, typeof plugins>` adds UI
-`meta` keys. Share the `$Meta` module with the client plugin.
-
-`validateAnswers` on a plugin is chained in `dependsOn` order, then the
-instance callback, on both `dimahForm()` and `createFormClient({ plugins })`.
-
----
-
-## Plugin Options Reference
-
-| Property                 | Type                           | Description                                                                                                                                                            |
-| :----------------------- | :----------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`id`**                 | `string`                       | Unique alphanumeric identifier for the plugin.                                                                                                                         |
-| **`$ERROR_CODES`**       | `ErrorCodeCatalog`             | Custom error codes declared via `defineErrorCodes()`.                                                                                                                  |
-| **`endpoints`**          | `Record<string, FormEndpoint>` | Map of custom route handlers.                                                                                                                                          |
-| **`hooks`**              | `DimahFormHooks`               | Pre-write and post-write lifecycle hooks.                                                                                                                              |
-| **`fieldTypes`**         | `FieldTypeDefinition[]`        | Custom field validators (server and matching client plugin).                                                                                                           |
-| **`metaNamespace`**      | `string`                       | Unique `meta` key this plugin owns (`meta.scoring`).                                                                                                                   |
-| **`metaSchema`**         | `FormDefinitionMetaSchema`     | Zod checks for form / field / option `meta`. Namespaced bags run only when the key is present.                                                                         |
-| **`validateDefinition`** | `DefinitionValidator`          | Whole-document checks after namespaced `metaSchema`. Chained, then the instance callback. Synchronous. Init, `saveForm`, and live form reads — not response snapshots. |
-| **`validateAnswers`**    | `AnswersValidator`             | Extra answer checks after per-field validators. Chained, then the instance callback.                                                                                   |
-| **`$Meta`**              | `FormDefinitionMeta`           | Phantom authoring types. Prefer `NamespacedMeta`. Used by `createDefineForm` / `FormDefinitionUi`.                                                                     |
-| **`init`**               | `(ctx) => { context? }`        | Sync setup. Receives `basePath`, `fieldTypes`, `plugins`, `getPluginContext`.                                                                                          |
-| **`dependsOn`**          | `string[]`                     | Array of required plugin IDs that must be loaded before this plugin.                                                                                                   |
-
----
-
-## Next Steps
+## Next steps
 
 <Cards>
   <Card
+    title="Custom fields"
+    href="/docs/custom-fields"
+    description="Ship a validator on the plugin."
+  />
+  <Card
     title="Scoring"
     href="/docs/scoring"
-    description="Official scoring plugin — Likert points, option keying, snapshot totals, bands."
-  />
-  <Card
-    title="Dataset"
-    href="/docs/dataset"
-    description="JSONL + codebook interchange from response snapshots. Paged HTTP, CSV convenience."
-  />
-  <Card
-    title="Auth"
-    href="/docs/auth"
-    description="Learn how guard hooks secure plugin endpoints."
-  />
-  <Card
-    title="Custom Fields"
-    href="/docs/custom-fields"
-    description="Package reusable validators inside plugins."
+    description="The official meta.scoring plugin."
   />
   <Card
     title="Errors"
     href="/docs/errors"
-    description="Understand how custom error codes merge with core error catalogs."
+    description="How plugin codes merge into the catalog."
   />
 </Cards>

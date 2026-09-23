@@ -1,56 +1,64 @@
 ---
 title: UI
-description: Optional shadcn renderer on top of useFormResponse. npm or the registry. Headless react is unchanged.
+description: Optional shadcn renderer on top of useFormResponse.
 icon: AppWindow
 ---
 
-`@dimah-form/ui` is **optional**. `@dimah-form/react` stays headless. The renderer takes a `useFormResponse` return as `form` — it does not call the hook.
+[`@dimah-form/ui`](https://www.npmjs.com/package/@dimah-form/ui) renders a `useFormResponse` result.
+It does not call the hook. `@dimah-form/react` stays headless if you skip this package.
 
-Built-in types (`text`, `email`, `date`, `number`, `boolean`, `select`, `multiSelect`) have widgets. `file` is metadata the app writes after upload and has no built-in widget — register one on `FormUiProvider` if respondents should see a control. Custom `defineFieldType` types register once on `FormUiProvider` with the same `type` string — or a `meta.widget` key to swap one field without replacing the type.
-
----
+Built-in widgets cover `text`, `email`, `date`, `number`, `boolean`, `select`, and `multiSelect`.
+`file` has no widget — register one, or write the answer after your own upload.
+A custom `defineFieldType` registers on `FormUiProvider` under the same `type` string. `meta.widget` swaps one field without replacing the type.
 
 ## Install
 
-npm:
-
-```bash
-pnpm add @dimah-form/ui @dimah-form/react
+```npm
+npm i @dimah-form/ui @dimah-form/react
 ```
 
 ```css
 @import "@dimah-form/ui/styles.css";
 ```
 
-Or copy source into your app with the shadcn CLI (HTTP registry after docs deploy, or GitHub):
+Or copy the source with the shadcn CLI:
 
 ```bash
 pnpm dlx shadcn@latest add https://form.dimah.dev/r/form.json
-pnpm dlx shadcn@latest add dimah-kz/dimah-form/form
 ```
 
----
-
-## Template
+## FormView
 
 ```tsx
 import { FormUiProvider, FormView } from "@dimah-form/ui";
 
-const widgets = { rating: StarRatingField, "text.mask": MaskedTextField };
-const form = useFormResponse({ snapshot });
+const widgets = { rating: StarRatingField };
 
-return (
-  <FormUiProvider translations={fa} widgets={widgets}>
-    <FormView form={form} />
-  </FormUiProvider>
-);
+<FormUiProvider translations={fa} widgets={widgets}>
+  <FormView form={form} />
+</FormUiProvider>;
 ```
 
-`FormView` is the default layout. `layout="auto"` (default) uses a wizard when `meta.step` spans more than one page on the snapshot, and widgets with `mode="review"` when the response is locked. Pass `layout="fill" | "steps" | "review"` — or `form.meta.layout` — to force one. Compact `FormReview` (shadcn `Item` list of formatted answers) is opt-in: `review={<FormReview />}` or `components={{ Review: FormReview }}`.
+`layout="auto"` (the default) uses a wizard when `meta.step` spans more than one page, and `mode="review"` widgets when the response is locked.
+Force one mode with `layout="fill" | "steps" | "review"` or `form.meta.layout`.
 
-Slot props take `false` to hide, a node to replace, or a function to wrap the default (`header={({ default: node }) => <Card>{node}</Card>}`): `header`, `progress`, `status`, `errorSummary`, `error`, `saveState`, `actions`, `stepList`, `stepHeading`, `stepNav`, `review`, `inactive`. The default header includes the save-state badge. Stepped layouts show `FormStepList` and omit the progress bar and step heading unless you pass `stepList={false}` (then you get heading + step progress). Pass `progress={<FormProgress variant="required" />}` to keep a completion bar in a wizard.
+`FormReview` (a compact answer list) is opt-in: `review={<FormReview />}` or `components={{ Review: FormReview }}`.
 
-`render` replaces the whole composition — keep `FormRoot` so Enter / submit still work:
+Failed submit focuses the first invalid control. Enter on a non-last step advances instead of submitting.
+
+### Slots
+
+`header`, `progress`, `status`, `errorSummary`, `error`, `saveState`, `actions`, `stepList`, `stepHeading`, `stepNav`, `review`, `inactive`.
+
+Pass `false` to hide, a node to replace, or a function to wrap the default:
+
+```tsx
+header={({ default: node }) => <Card>{node}</Card>}
+```
+
+The default header includes the save-state badge. A wizard shows `FormStepList` and omits the progress bar and step heading. `stepList={false}` restores the heading and step progress. `progress={<FormProgress variant="required" />}` keeps a completion bar in a wizard.
+
+`render` replaces the composition. Keep `FormRoot` so Enter and submit still run:
 
 ```tsx
 <FormView
@@ -69,19 +77,9 @@ Slot props take `false` to hide, a node to replace, or a function to wrap the de
 />
 ```
 
-Failed submit (and failed Next) focuses the first invalid control. Enter on a non-last step advances instead of submitting.
-
-Required labels render an asterisk. Pass your own mark — or the whole field frame — on the provider:
+Required labels use an asterisk. Replace it — or the whole frame — on the provider:
 
 ```tsx
-function RequiredMark() {
-  return (
-    <span className="ms-1 text-dimah-form-destructive" aria-hidden>
-      required
-    </span>
-  );
-}
-
 <FormUiProvider
   components={{ RequiredMark, FieldFrame: MyFieldFrame }}
   formatIssue={(binding) =>
@@ -89,16 +87,14 @@ function RequiredMark() {
   }
 >
   <FormView form={form} />
-</FormUiProvider>;
+</FormUiProvider>
 ```
 
-Custom widgets should wrap the control in `FormFieldFrame` so `components.FieldFrame` applies.
-
----
+Custom widgets should use `FormFieldFrame` so `components.FieldFrame` applies.
 
 ## Compose
 
-Every chrome piece is a primitive. `FormScope` provides the session so they do not need a `form` prop:
+`FormScope` provides the session. Children do not take a `form` prop:
 
 ```tsx
 <FormScope form={form}>
@@ -111,17 +107,24 @@ Every chrome piece is a primitive. `FormScope` provides the session so they do n
 </FormScope>
 ```
 
-- `FormField` — looks up `meta.widget` (when registered and not a built-in `radio` / `switch` / `chips` variant) then `field.type`. Pass `children` to replace that widget. Widgets receive `mode: "edit" | "review"`.
-- `FormFieldFrame` — label / description / help / issue chrome. `layout="stack"` (default), `"choice"` (checkbox), or `"group"` (fieldset). `data-field-type`, `data-widget`, `data-required`, `data-invalid` are set for CSS hooks.
-- `FormFields` — maps `visibleFields`. `fields` / `filter` restrict the loop; `meta.section` groups into `FormSection` (or `groupBy={false}` to opt out). `meta.width` `"half"` / `"third"` shares a row. `renderField={(binding, { defaultField }) => …}` keeps the loop.
-- `FormProgress` / `FormSaveState` / `FormReview` — shadcn `Progress` (`auto` is wizard page when inside `FormSteps`, otherwise required-field completion), `Badge` for dirty/saving/saved drafts, compact `Item` list (`renderValue` to swap one row). Locked `FormView` review uses `FormFields` / widgets (`mode="review"`) unless you opt into `FormReview`.
-- `FormHeader` — title / description. Omit `saveState` for `FormSaveState` (hidden while locked); `components.Header` / `components.SaveState` swap either piece.
-- `FormErrorSummary` — links to invalid fields after validate/submit.
-- `FormSteps` — groups snapshot `meta.step` (number or string, default `"1"`). Hidden fields drop out of the page; the current page is a **key**, not an index (`step` / `defaultStep` / `onStepChange`). Titles come from `form.meta.steps`. Wrap **around** `FormRoot` so Enter advances. `FormStepFields` + `FormStepHeading` + `FormStepList` (`ToggleGroup`) + `FormStepNav` (Next validates the step; last step renders `children`, usually `FormActions`).
-- `FormActions` — default save / submit / edit sit in a shadcn `ButtonGroup`. `save="auto"` hides Save draft when the session autosaves. `before` / `after` add controls without replacing Submit. `abandon` is opt-in. `saveProps` / `submitProps` merge onto the shadcn buttons (Base UI `render` included). `sticky` pins the bar. `FormRoot` / `FormActions` also take Base UI `render` to replace the host element.
-- Built-in widgets (`TextField`, `BooleanField`, …) are usable on their own: `<EmailField binding={form.field("email")} />`. `ChoiceOption` and `StringField` are exported for custom widgets. Prefix / suffix / character count use shadcn `InputGroup`.
+| Piece              |                                                                                                                                                                                                                                                                                    |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FormField`        | `meta.widget` when it is registered and not a built-in `radio` / `switch` / `chips` variant, otherwise `field.type`. `children` replaces the widget. `mode` is `"edit"` or `"review"`                                                                                              |
+| `FormFieldFrame`   | Label, description, help, issue. `layout` is `"stack"`, `"choice"`, or `"group"`. Sets `data-field-type`, `data-widget`, `data-required`, `data-invalid`                                                                                                                           |
+| `FormFields`       | Maps `visibleFields`. `meta.section` groups into `FormSection` (`groupBy={false}` opts out). `meta.width` `"half"` / `"third"` shares a row                                                                                                                                        |
+| `FormSteps`        | Groups `meta.step` (number or string, default `"1"`). Wrap **around** `FormRoot`. The current page is a key (`step`, `defaultStep`, `onStepChange`). Titles come from `form.meta.steps`. `FormStepNav` validates the step; the last step renders `children`, usually `FormActions` |
+| `FormActions`      | Save, submit, and edit in a `ButtonGroup`. `save="auto"` hides Save when the session autosaves. `abandon` is opt-in. `sticky` pins the bar                                                                                                                                         |
+| `FormProgress`     | Wizard page progress inside `FormSteps`, otherwise required-field completion                                                                                                                                                                                                       |
+| `FormSaveState`    | Badge for dirty / saving / saved. Hidden while locked                                                                                                                                                                                                                              |
+| `FormErrorSummary` | Links to invalid fields after validate or submit                                                                                                                                                                                                                                   |
 
-A widget receives `{ binding, className, mode }` — not a spread `FormFieldBinding`. Presentation stays on `meta`. Type-check the document with `satisfies FormDefinitionUi` so this package's keys autocomplete; pass `FormDefinitionUi<typeof fieldTypes, typeof plugins>` when the catalog has custom field types or plugin `$Meta` (`createDefineForm` types those field keys and plugin meta — it does not replace this `meta` check). Extra `meta` keys are allowed. For `saveForm` rows, pass a Zod object to `dimahForm({ metaSchema })` (plugin `metaSchema` bags merge first).
+Built-in widgets (`TextField`, `BooleanField`, …) work alone: `<EmailField binding={form.field("email")} />`.
+
+A widget receives `{ binding, className, mode }` — not a spread binding.
+
+## Definition meta
+
+Type-check with `satisfies FormDefinitionUi`. Pass `FormDefinitionUi<typeof fieldTypes, typeof plugins>` when you have custom field types or plugin `$Meta`. Extra `meta` keys are allowed.
 
 ```ts
 import { defineForm } from "@dimah-form/server";
@@ -147,46 +150,44 @@ export const onboarding = defineForm({
 } satisfies FormDefinitionUi);
 ```
 
-| Key                         | Effect                                                                                    |
-| --------------------------- | ----------------------------------------------------------------------------------------- |
-| `multiline`                 | `text` → textarea                                                                         |
-| `rows`                      | textarea rows                                                                             |
-| `placeholder`               | input / select placeholder                                                                |
-| `widget`                    | custom registry key, or built-in variant `radio` / `switch` / `chips` (not registry keys) |
-| `section`                   | heading in `FormFields`                                                                   |
-| `step`                      | page in `FormSteps`                                                                       |
-| `width: "half"` / `"third"` | share a row                                                                               |
-| `prefix` / `suffix`         | shadcn `InputGroup` addon on the control                                                  |
-| `help`                      | persistent hint under the control                                                         |
-| `autocomplete`              | native `autoComplete` (`email` defaults to `email`)                                       |
-| `inputMode`                 | native `inputMode`                                                                        |
-| `orientation`               | `FormFieldFrame` orientation                                                              |
-| `option.meta.description`   | helper under a radio / checkbox option                                                    |
-| `form.meta.layout`          | `auto` / `fill` / `steps` / `review`                                                      |
-| `form.meta.steps`           | step key → heading                                                                        |
-| `form.meta.submitLabel`     | submit button copy                                                                        |
-| `unsetOnOff` (boolean)      | field key, not meta: off → `null` (consent)                                               |
+| Key                          | Effect                                                             |
+| ---------------------------- | ------------------------------------------------------------------ |
+| `multiline` / `rows`         | `text` renders a textarea                                          |
+| `placeholder`                | Input or select placeholder                                        |
+| `widget`                     | Registry key, or built-in `radio` / `switch` / `chips`             |
+| `section`                    | Heading inside `FormFields`                                        |
+| `step`                       | Page inside `FormSteps`                                            |
+| `width`                      | `"half"` or `"third"`                                              |
+| `prefix` / `suffix`          | `InputGroup` addon                                                 |
+| `help`                       | Hint under the control                                             |
+| `autocomplete` / `inputMode` | Forwarded to the input. `email` defaults `autoComplete` to `email` |
+| `orientation`                | `FormFieldFrame` orientation                                       |
+| `option.meta.description`    | Helper under a radio or checkbox option                            |
+| `form.meta.layout`           | `auto`, `fill`, `steps`, or `review`                               |
+| `form.meta.steps`            | Step key → heading                                                 |
+| `form.meta.submitLabel`      | Submit button copy                                                 |
+| `unsetOnOff`                 | Boolean **field** key, not meta. Off writes `null`                 |
 
-RTL: logical CSS from day one (`text-start`, `ms-*`, `ps-*`). Colors: `*-dimah-form-*` (defaults to your shadcn theme). Chrome roots expose `data-slot="form-root"` / `form-actions` / … for CSS.
+For `saveForm` rows, pass a Zod object as `dimahForm({ metaSchema })`. Plugin `metaSchema` bags run first.
 
----
+RTL uses logical CSS (`text-start`, `ms-*`, `ps-*`). Colors are `*-dimah-form-*` and follow your shadcn theme. Chrome roots set `data-slot` (`form-root`, `form-actions`, …).
 
-## Next Steps
+## Next steps
 
 <Cards>
   <Card
+    title="React"
+    href="/docs/react"
+    description="The session this package renders."
+  />
+  <Card
+    title="Custom fields"
+    href="/docs/custom-fields"
+    description="Register a widget for defineFieldType."
+  />
+  <Card
     title="Widgets"
     href="/docs/widgets"
-    description="Bind FormFieldBinding yourself when you do not want the optional UI package."
-  />
-  <Card
-    title="React Client"
-    href="/docs/react"
-    description="useFormResponse — the session this package wraps."
-  />
-  <Card
-    title="Custom Fields"
-    href="/docs/custom-fields"
-    description="defineFieldType on the server, then a widget on the registry."
+    description="Skip this package and bind inputs yourself."
   />
 </Cards>

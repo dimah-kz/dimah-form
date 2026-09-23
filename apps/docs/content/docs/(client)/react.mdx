@@ -1,16 +1,11 @@
 ---
-title: React Client
+title: React
 description: useFormResponse — visibility, drafts, validation timing, and submit.
 icon: PenLine
 ---
 
-`@dimah-form/react` is a headless fill-session runtime. It tracks visible fields, local answers, draft autosave, and submit state. It does not ship inputs or CSS.
-
----
-
-## Setting Up the Client
-
-Create a shared client instance configured with your server's base path and type definition:
+[`@dimah-form/react`](https://www.npmjs.com/package/@dimah-form/react) is the headless fill session.
+It tracks visible fields, local answers, autosave, and submit. It does not ship inputs.
 
 ```ts title="lib/form-client.ts"
 "use client";
@@ -22,228 +17,148 @@ export const formClient = createFormClient<Form>({
   basePath: "/api/form",
 });
 
-export const { useFormClient, useFormResponse } = formClient;
+export const { useFormResponse } = formClient;
 ```
 
-Re-exported hooks close over this instance. `formClient.Provider` is only for the unbound `useFormClient` / `useFormResponse` imported from `@dimah-form/react`.
+Prefer the bound hook from your client. The unbound `useFormResponse` import needs `formClient.Provider`.
 
----
+`basePath` must match the server. Cross-origin cookies and auth headers: [Auth](/docs/auth). Full option list: [Configuration](/docs/configuration).
 
-## The `useFormResponse` Hook
-
-The `useFormResponse` hook connects your UI to a questionnaire fill session:
+## Fill session
 
 ```tsx title="components/questionnaire.tsx"
 "use client";
 
 import { emptyToNull, fieldLabel } from "@dimah-form/react";
-import type { FormSnapshot, ResponseRecord } from "@dimah-form/react";
+import type { FormSnapshot } from "@dimah-form/react";
 import { useFormResponse } from "@/lib/form-client";
 
-interface QuestionnaireProps {
-  form: FormSnapshot;
-  response?: ResponseRecord;
-}
-
-export function Questionnaire({ form, response }: QuestionnaireProps) {
+export function Questionnaire({ form }: { form: FormSnapshot }) {
   const q = useFormResponse<"onboarding">({
     snapshot: form,
-    response, // Pass existing row when editing an existing draft
     autosave: { debounceMs: 1000 },
-    validate: "submit", // "submit" (default) or "change"
     onSubmitted: (row) => {
-      console.log("Successfully submitted:", row.id);
+      console.log(row.id);
     },
   });
 
-  if (q.inactive) {
-    return <p>This form is currently unavailable.</p>;
-  }
+  if (q.inactive) return <p>This form is inactive.</p>;
 
   return (
     <form
-      onSubmit={(e) => {
-        e.preventDefault();
+      onSubmit={(event) => {
+        event.preventDefault();
         void q.submit();
       }}
-      className="mx-auto max-w-md space-y-4"
     >
-      <h2 className="text-xl font-bold">{form.title}</h2>
-
-      {/* Render visible fields based on showWhen logic */}
       {q.visibleFields.map((field) => {
         const binding = q.field(field.id);
-
         return (
-          <div key={field.id} className="space-y-1">
-            <label className="block text-sm font-medium">
-              {fieldLabel(field)}
-              {binding.required && <span className="ml-1 text-red-500">*</span>}
-            </label>
+          <label key={field.id}>
+            {fieldLabel(field)}
             <input
-              type="text"
               value={typeof binding.value === "string" ? binding.value : ""}
               disabled={binding.disabled}
-              onChange={(e) => binding.onChange(emptyToNull(e.target.value))}
-              className="w-full rounded border p-2"
+              onChange={(event) =>
+                binding.onChange(emptyToNull(event.target.value))
+              }
             />
-            {binding.error && (
-              <p className="text-xs text-red-500">{binding.error}</p>
-            )}
-          </div>
+            {binding.error ? <span>{binding.error}</span> : null}
+          </label>
         );
       })}
-
-      {q.error && <p className="text-sm text-red-500">{q.error}</p>}
-
-      <div className="flex gap-2">
-        <button
-          type="button"
-          disabled={q.pending !== undefined || q.locked}
-          onClick={() => void q.saveDraft()}
-          className="rounded border px-4 py-2"
-        >
-          {q.pending === "save" ? "Saving..." : "Save Draft"}
-        </button>
-
-        <button
-          type="submit"
-          disabled={q.pending !== undefined || q.locked}
-          className="rounded bg-black px-4 py-2 text-white"
-        >
-          {q.pending === "submit" ? "Submitting..." : "Submit"}
-        </button>
-      </div>
+      <button type="submit" disabled={q.pending !== undefined || q.locked}>
+        Submit
+      </button>
     </form>
   );
 }
 ```
 
----
+Pass `response` when you already loaded a row. The hook does not fetch the snapshot — load it with `form.api.getForm` or `getForm` on the client.
 
-## Session State Reference
+Branch on `field.type` yourself, or render with [`FormView`](/docs/ui).
 
-`useFormResponse` returns a comprehensive state object:
+## State
 
-| Property              | Type                                                                    | Description                                                                         |
-| :-------------------- | :---------------------------------------------------------------------- | :---------------------------------------------------------------------------------- |
-| **`q.visibleFields`** | `FormField[]`                                                           | Fields that satisfy `showWhen` conditions based on current answers.                 |
-| **`q.answers`**       | `TAnswers`                                                              | Current in-memory dictionary of answers.                                            |
-| **`q.status`**        | `"draft" \| "submitted" \| "abandoned"`                                 | Lifecycle status of the current response.                                           |
-| **`q.dirty`**         | `boolean`                                                               | `true` if local answers have unpersisted modifications.                             |
-| **`q.pending`**       | `"save" \| "submit" \| "reopen" \| "abandon" \| "refresh" \| undefined` | Active asynchronous mutation in flight.                                             |
-| **`q.locked`**        | `boolean`                                                               | `true` if `status !== "draft"` (response is frozen from edits).                     |
-| **`q.error`**         | `string \| undefined`                                                   | Top-level error message from the last failed operation.                             |
-| **`q.issues`**        | `Record<string, string>`                                                | Map of field ID to human-readable validation error message.                         |
-| **`q.issueCodes`**    | `Record<string, string>`                                                | Map of field ID to machine-readable issue code (e.g., `"REQUIRED"`, `"TOO_SHORT"`). |
-| **`q.completion`**    | `{ answered, total, percent }`                                          | Progress metrics for visible fields.                                                |
-| **`q.inactive`**      | `boolean`                                                               | `true` if the form status is not `"active"` and no existing response was loaded.    |
+| Property                   |                                                                            |
+| -------------------------- | -------------------------------------------------------------------------- |
+| `visibleFields`            | Fields whose `showWhen` matches current answers                            |
+| `answers`                  | Local answer map                                                           |
+| `status`                   | `"draft"`, `"submitted"`, or `"abandoned"`                                 |
+| `dirty`                    | Local answers differ from the last server row                              |
+| `pending`                  | `"save"`, `"submit"`, `"reopen"`, `"abandon"`, `"refresh"`, or `undefined` |
+| `locked`                   | `status !== "draft"`                                                       |
+| `inactive`                 | No row yet, and the live form is not `"active"`                            |
+| `error` / `errorCode`      | Last failed operation                                                      |
+| `issues` / `issueCodes`    | Field id → message / code (`REQUIRED`, `TOO_SHORT`, …)                     |
+| `completion`               | `{ required, answered, complete }` for visible required fields             |
+| `responseId` / `updatedAt` | Current row. `updatedAt` is the compare-and-swap token                     |
+| `autosave`                 | Debounced save is enabled                                                  |
 
----
+## Actions
 
-## Actions & Methods
+| Call                                         |                                                          |
+| -------------------------------------------- | -------------------------------------------------------- |
+| `field(id)`                                  | Binding for one control. `onChange(null)` clears the key |
+| `setAnswer(id, value)` / `setAnswers(patch)` | Local update. `null` removes a key                       |
+| `saveDraft()`                                | Persist a partial patch                                  |
+| `submit()`                                   | Validate visible fields, then lock as `"submitted"`      |
+| `reopen()` / `abandon()`                     | Unlock a locked row, or close a draft                    |
+| `refresh()`                                  | Replace local state with the server row                  |
+| `validate()`                                 | Run checks without submitting                            |
 
-### `q.field(id)`
+`field(id)` returns `{ id, field, value, error, errorCode, errorParams, invalid, visible, required, disabled, onChange }`.
 
-Returns a typed `FormFieldBinding` helper object for connecting an input control:
+## Options
 
-```ts
-const {
-  id, // Field id
-  field, // The FormField definition object
-  value, // Current answer value (or undefined)
-  error, // Error message string for this field
-  errorCode, // Issue code (e.g. "REQUIRED")
-  errorParams, // Interpolation params for the issue
-  invalid, // boolean
-  visible, // boolean
-  disabled, // boolean (true when locked or pending)
-  required, // boolean
-  onChange, // (value: unknown) => void — pass null to clear
-} = q.field("fullName");
-```
+| Option                                                                 |                                                                                      |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `snapshot`                                                             | Required. Live form or `response.definition`                                         |
+| `response`                                                             | Existing row to edit                                                                 |
+| `respondentId`                                                         | `string` or `() => string`                                                           |
+| `resume`                                                               | Reattach the latest draft for that respondent on first save. Requires `respondentId` |
+| `autosave`                                                             | Off by default. `true` debounces at 600ms, or pass `{ debounceMs }`                  |
+| `validate`                                                             | `"submit"` (default) or `"change"`                                                   |
+| `onStarted` / `onSaved` / `onSubmitted` / `onReopened` / `onAbandoned` | After the matching call succeeds                                                     |
 
-### `q.setAnswer(id, value)`
+`"submit"` checks on submit. After a failed submit, edits clear resolved issues.
+`"change"` also checks on each answer change.
 
-Directly sets an answer value in the local state. Passing `null` removes the answer key.
+## Frequently asked questions
 
-### `q.saveDraft()`
+<Accordions>
 
-Saves the current answers as a draft with optimistic concurrency (`updatedAt`).
+<Accordion title="How do I show a select, checkbox, or number?">
 
-### `q.submit()`
+`q.field(id)` is untyped at the DOM boundary — narrow `value` yourself, or use the helpers on [Widgets](/docs/widgets). `@dimah-form/ui` already maps built-in types.
 
-Validates visible required fields against the snapshot. If valid, persists answers and locks the response to `"submitted"`.
+</Accordion>
 
-### `q.reopen()`
+<Accordion title="How do I localize a field error?">
 
-Unlocks a previously `"submitted"` or `"abandoned"` response back to `"draft"`.
+Read `binding.errorCode` and `binding.errorParams`. English `binding.error` is the fallback. Codes: [Errors](/docs/errors).
 
-### `q.abandon()`
+</Accordion>
 
-Marks the current draft as `"abandoned"`, preventing further edits.
+</Accordions>
 
-### `q.refresh()`
-
-Fetches the latest response record from the server and syncs local state.
-
----
-
-## Advanced Features
-
-### 1. Automatic Draft Autosave
-
-Enable debounced background autosaving so users never lose progress:
-
-```tsx
-const q = useFormResponse({
-  snapshot: form,
-  autosave: { debounceMs: 1500 }, // Debounce timer in milliseconds
-});
-```
-
-### 2. Validation Timing (`validate`)
-
-- **`"submit"` (default)**: Validates required fields only when the user attempts to submit. Once submitted, subsequent edits immediately clear resolved errors.
-- **`"change"`**: Re-validates fields in real-time as the user types.
-
-```tsx
-const q = useFormResponse({
-  snapshot: form,
-  validate: "change",
-});
-```
-
-### 3. Resuming Existing User Drafts
-
-If your users are authenticated, pass `resume: true` with a `respondentId` to automatically reconnect to their existing draft:
-
-```tsx
-const q = useFormResponse({
-  snapshot: form,
-  respondentId: session.user.id,
-  resume: true,
-});
-```
-
----
-
-## Next Steps
+## Next steps
 
 <Cards>
   <Card
+    title="UI"
+    href="/docs/ui"
+    description="Optional shadcn renderer for this session."
+  />
+  <Card
     title="Widgets"
     href="/docs/widgets"
-    description="Build a reusable widget dispatcher with Tailwind CSS and shadcn/ui."
+    description="Bind FormFieldBinding to your own controls."
   />
   <Card
     title="Auth"
     href="/docs/auth"
-    description="Protect endpoints and associate respondentId with server sessions."
-  />
-  <Card
-    title="Errors"
-    href="/docs/errors"
-    description="Handle validation issue codes and internationalize error messages."
+    description="Send cookies and stamp respondentId on the server."
   />
 </Cards>

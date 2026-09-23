@@ -4,182 +4,79 @@ description: Frozen definitions, response status, and compare-and-swap drafts.
 icon: Camera
 ---
 
-One of the foundational invariants of **dimah-form** is **Snapshot Immutability**: when a fill session begins, the system takes an exact deep snapshot of the form schema and stores it directly inside `response.definition`.
+`startResponse` copies the live form into `response.definition`.
+Drafts, `showWhen`, and submit all use that copy. They do not read the live questionnaire.
 
-<Callout type="info">
-  **The Snapshot Invariant**: All draft patching, conditional visibility
-  calculations (`showWhen`), and final submission validations execute against
-  **`response.definition`**, never against the live form schema.
+<Callout>
+  Editing the live form does not change an in-flight draft or a submitted row.
 </Callout>
 
----
+## Status
 
-## Why Snapshots Matter
+| Status      | Meaning                                | Next calls                                        |
+| ----------- | -------------------------------------- | ------------------------------------------------- |
+| `draft`     | Required fields may be empty           | `saveDraft`, `submitResponse`, `abandonResponse`  |
+| `submitted` | Visible required fields passed. Locked | `reopenResponse`, `deleteResponse`, `getResponse` |
+| `abandoned` | Closed without submit. Locked          | `reopenResponse`, `deleteResponse`, `getResponse` |
 
-In real-world applications, form schemas are constantly evolving. An administrator might:
+`saveDraft` or `submitResponse` on a locked row is `409 RESPONSE_NOT_DRAFT`.
+`reopenResponse` on a draft is `409 RESPONSE_NOT_LOCKED`.
 
-- Add a new required field.
-- Remove an existing field.
-- Modify option values in a select dropdown.
-- Change conditional visibility rules.
+## Lifecycle
 
-Without snapshots, an in-progress draft started on Monday would fail validation on Wednesday because the live form schema changed mid-fill.
+| Call              | What it does                                                                                                                                          |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `startResponse`   | Active forms only. Freezes `definition`, seeds `defaultValue`. `{ resume: true, respondentId }` returns the latest draft instead of inserting another |
+| `saveDraft`       | Partial patch. `null` deletes that answer key. Required fields may be empty                                                                           |
+| `submitResponse`  | Strips hidden fields, checks every visible field, sets `submitted` and `submittedAt`                                                                  |
+| `abandonResponse` | Sets `abandoned` and locks edits                                                                                                                      |
+| `reopenResponse`  | `submitted` or `abandoned` → `draft`. Keeps the original snapshot and answers                                                                         |
 
-With dimah-form:
+`resume: true` without `respondentId` is `400 RESUME_REQUIRES_RESPONDENT`.
 
-1. Active responses stay **completely isolated** from live schema edits.
-2. In-flight drafts can always be completed and submitted cleanly.
-3. Historical submitted responses preserve the exact questions and options that the respondent saw when they filled the form.
+## Compare-and-swap
 
----
+`saveDraft` and `submitResponse` send the `updatedAt` from the last read.
 
-## Response Statuses & State Machine
+The store writes only when that token still matches. A mismatch is `409 STALE_UPDATE` — another tab saved first.
+`useFormResponse` refreshes on `STALE_UPDATE`.
 
-A response record transitions through three possible statuses:
+Omit `updatedAt` only when you intend to overwrite.
 
-```mermaid
-stateDiagram-v2
-    [*] --> draft: startResponse()
-    draft --> draft: saveDraft()
-    draft --> submitted: submitResponse()
-    draft --> abandoned: abandonResponse()
-    submitted --> draft: reopenResponse()
-    abandoned --> draft: reopenResponse()
-    submitted --> [*]: deleteResponse()
-    abandoned --> [*]: deleteResponse()
-```
-
-| Status          | Meaning                                                           | Allowed API Actions                               |
-| :-------------- | :---------------------------------------------------------------- | :------------------------------------------------ |
-| **`draft`**     | In-progress fill session. Required fields can be empty.           | `saveDraft`, `submitResponse`, `abandonResponse`  |
-| **`submitted`** | Finalized and locked. All visible required fields were validated. | `reopenResponse`, `deleteResponse`, `getResponse` |
-| **`abandoned`** | Closed by user or admin without submitting. Locked from edits.    | `reopenResponse`, `deleteResponse`, `getResponse` |
-
----
-
-## Lifecycle Methods
-
-<Flow
-  label="Response Lifecycle Stages"
-  steps={[
-    { name: "1. Start", kind: "protocol", note: "Freeze definition snapshot" },
-    {
-      name: "2. Draft",
-      kind: "client",
-      note: "Partial answer patches (null deletes)",
-    },
-    {
-      name: "3. Submit",
-      kind: "server",
-      note: "Validate visible fields vs snapshot",
-    },
-    { name: "4. Reopen", kind: "data", note: "Unlock row back to draft" },
-  ]}
-/>
-
-### 1. `startResponse`
-
-- Resolves the target form by `id` or `slug`.
-- Verifies that the form has `status: "active"`.
-- Freezes the form definition into `response.definition`.
-- Seeds any configured `defaultValue`s into `response.answers`.
-- If called with `{ resume: true, respondentId: "user-123" }`, it checks for an existing unfinished draft and returns it instead of creating a duplicate.
-
-### 2. `saveDraft`
-
-- Accepts partial answer patches.
-- Passing `null` as an answer value deletes that key from `answers`.
-- **Does not require** visible required fields to be filled, enabling incremental progress across multi-page forms.
-- Verifies that the record status is currently `draft`.
-
-### 3. `submitResponse`
-
-- Accepts final answer updates.
-- Evaluates all conditional `showWhen` visibility rules against the current answers.
-- Strips any hidden fields from the persisted answers so stale answers do not pollute your database.
-- Validates that every **visible** field satisfies its validation rules and `required` constraints.
-- Sets `status: "submitted"` and records `submittedAt: new Date().toISOString()`.
-
-### 4. `abandonResponse`
-
-- Sets `status: "abandoned"`.
-- Locks the response row from further draft edits.
-
-### 5. `reopenResponse`
-
-- Moves a `submitted` or `abandoned` response back to `draft`.
-- Preserves the original definition snapshot and answer values, allowing the respondent to edit and re-submit.
-
----
-
-## Optimistic Concurrency Control (CAS)
-
-When multiple tabs are open or when network connections reconnect, concurrent writes can accidentally overwrite newer answers.
-
-dimah-form implements **Compare-And-Swap (CAS)** concurrency control using the `updatedAt` timestamp:
-
-1. When the client loads or saves a draft, it receives the record's current `updatedAt` ISO timestamp.
-2. Subsequent `saveDraft` or `submitResponse` requests include `updatedAt`.
-3. The database adapter compares `expectedUpdatedAt` against the stored row:
-   - If they match, the update commits and a new `updatedAt` timestamp is generated.
-   - If they differ (because another tab or request wrote to the row first), the server rejects the request with a `409 STALE_UPDATE` error.
-4. The `useFormResponse` hook automatically catches `STALE_UPDATE`, refreshes the latest server state, and notifies your UI.
-
----
-
-## The Response Record Schema
-
-Every response record in your database conforms to the following TypeScript structure:
+## Record
 
 ```ts
 type ResponseRecord = {
-  /** Unique response identifier (e.g., CUID or UUID) */
   id: string;
-
-  /** Foreign key to the parent form */
   formId: string;
-
-  /** Current lifecycle status */
   status: "draft" | "submitted" | "abandoned";
-
-  /** Frozen snapshot of the form definition at start time */
   definition: FormSnapshot;
-
-  /** Key-value dictionary of respondent answers */
   answers: Record<string, unknown>;
-
-  /** Optional user or session identifier */
   respondentId: string | null;
-
-  /** Timestamp when the response was finalized */
   submittedAt: string | null;
-
-  /** Record creation timestamp */
   createdAt: string;
-
-  /** Last update timestamp (used for CAS optimistic locking) */
   updatedAt: string;
 };
 ```
 
----
+Set `respondentId` in `onStart`. Do not trust a value sent by the browser. See [Auth](/docs/auth).
 
-## Next Steps
+## Next steps
 
 <Cards>
   <Card
     title="Forms"
     href="/docs/forms"
-    description="Learn how to structure form schemas, fields, and conditional showWhen rules."
+    description="The definition that gets frozen."
   />
   <Card
-    title="React Client"
+    title="React"
     href="/docs/react"
-    description="Wire useFormResponse to your UI components with automatic draft autosaving."
+    description="Autosave and submit against the snapshot."
   />
   <Card
-    title="Database"
-    href="/docs/database"
-    description="Required adapter: memory, optional FumaDB, or a custom store."
+    title="Protocol"
+    href="/docs/protocol"
+    description="Route paths and payloads."
   />
 </Cards>

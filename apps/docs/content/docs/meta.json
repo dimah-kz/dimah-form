@@ -1,16 +1,15 @@
 {
   "title": "dimah-form",
   "pages": [
-    "---Get Started---",
     "index",
     "quickstart",
-    "---Concepts---",
+    "---Forms---",
     "...(concepts)",
     "---Client---",
     "...(client)",
-    "---Backend---",
+    "---Server---",
     "...(server)",
-    "---Extending---",
+    "---Extend---",
     "...(extend)",
     "---Reference---",
     "...(reference)"

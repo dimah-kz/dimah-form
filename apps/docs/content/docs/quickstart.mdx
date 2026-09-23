@@ -1,10 +1,10 @@
 ---
 title: Quickstart
-description: Define a form, mount the handler, and render a fill session in Next.js App Router.
+description: Define a form, mount the handler, and render a fill session in Next.js.
 icon: Rocket
 ---
 
-A fill session in Next.js App Router — drafts, `showWhen`, and snapshot validation.
+A fill session in the Next.js App Router — drafts, `showWhen`, and snapshot validation.
 
 <Steps>
 
@@ -12,20 +12,9 @@ A fill session in Next.js App Router — drafts, `showWhen`, and snapshot valida
 
 ### Install
 
-<Tabs items={["pnpm", "npm", "yarn", "bun"]}>
-  <Tab value="pnpm">
-    ```bash pnpm add @dimah-form/server @dimah-form/react ```
-  </Tab>
-  <Tab value="npm">
-    ```bash npm install @dimah-form/server @dimah-form/react ```
-  </Tab>
-  <Tab value="yarn">
-    ```bash yarn add @dimah-form/server @dimah-form/react ```
-  </Tab>
-  <Tab value="bun">
-    ```bash bun add @dimah-form/server @dimah-form/react ```
-  </Tab>
-</Tabs>
+```npm
+npm i @dimah-form/server @dimah-form/react
+```
 
 </Step>
 
@@ -105,6 +94,8 @@ import { form } from "@/lib/form";
 export const { GET, POST, PUT, PATCH, DELETE } = toNextJsHandler(form);
 ```
 
+Other runtimes: [Server](/docs/server).
+
 </Step>
 
 <Step>
@@ -128,7 +119,7 @@ export const { useFormResponse } = formClient;
 
 <Step>
 
-### Build the fill UI
+### Render the fill UI
 
 ```tsx title="components/questionnaire.tsx"
 "use client";
@@ -148,35 +139,31 @@ export function Questionnaire({ form }: { form: FormSnapshot }) {
 
   return (
     <form
-      onSubmit={(e) => {
-        e.preventDefault();
+      onSubmit={(event) => {
+        event.preventDefault();
         void q.submit();
       }}
-      className="mx-auto max-w-md space-y-4"
     >
-      <h1 className="text-xl font-bold">{form.title}</h1>
-
+      <h1>{form.title}</h1>
       {q.visibleFields.map((field) => {
         const binding = q.field(field.id);
         const value = typeof binding.value === "string" ? binding.value : "";
 
         return (
-          <div key={field.id} className="space-y-1">
-            <label className="block text-sm font-medium">
-              {fieldLabel(field)}
-              {binding.required && <span className="ml-1 text-red-500">*</span>}
-            </label>
+          <label key={field.id}>
+            {fieldLabel(field)}
             {field.type === "select" ? (
               <select
                 value={value}
                 disabled={binding.disabled}
-                onChange={(e) => binding.onChange(emptyToNull(e.target.value))}
-                className="w-full rounded border p-2"
+                onChange={(event) =>
+                  binding.onChange(emptyToNull(event.target.value))
+                }
               >
-                <option value="">Select...</option>
-                {fieldOptions(field).map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
+                <option value="">Select…</option>
+                {fieldOptions(field).map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
                   </option>
                 ))}
               </select>
@@ -184,90 +171,100 @@ export function Questionnaire({ form }: { form: FormSnapshot }) {
               <input
                 value={value}
                 disabled={binding.disabled}
-                onChange={(e) => binding.onChange(emptyToNull(e.target.value))}
-                className="w-full rounded border p-2"
+                onChange={(event) =>
+                  binding.onChange(emptyToNull(event.target.value))
+                }
               />
             )}
-            {binding.error && (
-              <p className="text-xs text-red-500">{binding.error}</p>
-            )}
-          </div>
+            {binding.error ? <span>{binding.error}</span> : null}
+          </label>
         );
       })}
-
-      {q.error && <p className="text-sm text-red-500">{q.error}</p>}
-
-      <div className="flex gap-2">
-        <button
-          type="button"
-          disabled={q.pending !== undefined || q.locked}
-          onClick={() => void q.saveDraft()}
-          className="rounded border px-4 py-2"
-        >
-          {q.pending === "save" ? "Saving..." : "Save draft"}
-        </button>
-        <button
-          type="submit"
-          disabled={q.pending !== undefined || q.locked}
-          className="rounded bg-black px-4 py-2 text-white"
-        >
-          {q.pending === "submit" ? "Submitting..." : "Submit"}
-        </button>
-      </div>
+      <button type="submit" disabled={q.pending !== undefined || q.locked}>
+        {q.pending === "submit" ? "Submitting…" : "Submit"}
+      </button>
     </form>
   );
 }
 ```
 
+For a shadcn layout, use [`FormView`](/docs/ui) instead of this markup.
+
 </Step>
 
 <Step>
 
-### Render on a page
+### Load the snapshot
 
 ```tsx title="app/page.tsx"
 import { Questionnaire } from "@/components/questionnaire";
 import { form } from "@/lib/form";
-import { notFound } from "next/navigation";
 
 export default async function Page() {
   const snapshot = await form.api.getForm({
     query: { formId: "feedback" },
   });
 
-  if (!snapshot) notFound();
-
   return <Questionnaire form={snapshot} />;
 }
 ```
+
+`form.api` runs in process. It does not call your HTTP route. A missing id throws `UNKNOWN_FORM` — it does not return null.
 
 </Step>
 
 </Steps>
 
----
+## Frequently asked questions
 
-## Next Steps
+<Accordions>
 
-<Cards>
-  <Card
-    title="Architecture"
-    href="/docs/architecture"
-    description="Package boundaries, snapshots, and the request pipeline."
-  />
-  <Card
-    title="Forms"
-    href="/docs/forms"
-    description="defineForm, field rules, and showWhen."
-  />
-  <Card
-    title="React Client"
-    href="/docs/react"
-    description="useFormResponse: visibility, drafts, and submit."
-  />
-  <Card
-    title="Database"
-    href="/docs/database"
-    description="Keep memoryAdapter, or add SQL with FumaDB."
-  />
-</Cards>
+<Accordion title="How do I require a signed-in user?">
+
+Throw from `guard`. Stamp the owner in `onStart` so the client cannot pick `respondentId`:
+
+```ts title="lib/form.ts"
+import { APIError, FORM_ERROR_CODES, dimahForm } from "@dimah-form/server";
+
+export const form = dimahForm({
+  // ...
+  guard: async ({ request }) => {
+    const session = await getSession(request);
+    if (!session) {
+      throw APIError.from("UNAUTHORIZED", FORM_ERROR_CODES.UNAUTHORIZED);
+    }
+  },
+  hooks: {
+    onStart: async ({ request, response }) => {
+      const session = await getSession(request);
+      response.respondentId = session.user.id;
+    },
+  },
+});
+```
+
+See [Auth](/docs/auth).
+
+</Accordion>
+
+<Accordion title="How do I keep drafts after a restart?">
+
+Replace `memoryAdapter()` with `db()` from `@dimah-form/db`. See [Database](/docs/database).
+
+</Accordion>
+
+<Accordion title="How do I resume an existing draft?">
+
+Pass the same respondent and `resume: true` on the hook. The server returns the latest draft instead of inserting another row:
+
+```tsx
+const q = useFormResponse<"feedback">({
+  snapshot: form,
+  respondentId: session.user.id,
+  resume: true,
+});
+```
+
+</Accordion>
+
+</Accordions>

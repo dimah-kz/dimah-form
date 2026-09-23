@@ -1,4 +1,4 @@
 {
-  "title": "Extending",
-  "pages": ["custom-fields", "plugins", "scoring", "dataset", "insights"]
+  "title": "Extend",
+  "pages": ["plugins", "custom-fields", "scoring", "dataset", "insights"]
 }

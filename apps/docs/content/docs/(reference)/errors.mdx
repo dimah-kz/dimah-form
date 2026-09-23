@@ -1,116 +1,139 @@
 ---
 title: Errors
-description: Stable error codes, field issues, and helpers for mapping them in the UI.
+description: Stable error codes, field issues, and the errors helper.
 icon: CircleAlert
 ---
 
-Failed requests return JSON with a stable `code`, an English `message`, and optional `issues`.
+Failed requests return JSON `{ message, code?, params?, issues? }` and an HTTP status.
 
----
-
-## Standard Error Response Schema
+Throw with `errors` from `@dimah-form/server`. A plain `Error` has no stable `code`.
 
 ```ts
-type ErrorResponseBody = {
-  /** Human-readable explanation of the error */
-  message: string;
+import {
+  APIError,
+  FORM_ERROR_CODES,
+  errors,
+  isAPIError,
+} from "@dimah-form/server";
 
-  /** Stable machine-readable error code */
-  code?: string;
+throw errors.unknownForm(formId);
+throw errors.unknownResponse(responseId);
+throw errors.staleUpdate();
+throw errors.formInactive(formId);
+throw errors.responseNotDraft(responseId);
+throw errors.responseNotLocked(responseId);
+throw errors.codeAuthoredForm(formId);
+throw errors.formHasResponses(formId);
+throw errors.slugTaken(slug);
+throw errors.unknownFieldType(type);
+throw errors.resumeRequiresRespondent();
+throw errors.validationError();
+throw errors.validationError(issues);
+throw errors.notFound();
+throw errors.internalError();
 
-  /** Optional parameters for message interpolation */
-  params?: Record<string, string | number>;
-
-  /** Field-level validation issues (present on VALIDATION_ERROR) */
-  issues?: Array<{
-    field: string;
-    message: string;
-    code?: string;
-    params?: Record<string, string | number>;
-  }>;
-};
+throw APIError.from("UNAUTHORIZED", FORM_ERROR_CODES.UNAUTHORIZED);
+throw APIError.from("FORBIDDEN", FORM_ERROR_CODES.FORBIDDEN);
 ```
 
----
+```ts
+if (isAPIError(err)) {
+  console.log(err.code, err.message);
+}
+```
 
-## Core Error Codes (`FORM_ERROR_CODES`)
+`isFormErrorCode(err, "STALE_UPDATE")` narrows a catalog code. It is exported from `@dimah-form/server` and `@dimah-form/react`.
 
-| Error Code                       | HTTP Status | Trigger Condition                                                                  |
-| :------------------------------- | :---------- | :--------------------------------------------------------------------------------- |
-| **`NOT_FOUND`**                  | 404         | Requested URL route does not match any registered endpoint.                        |
-| **`UNKNOWN_FORM`**               | 404         | Form ID or slug could not be found in code catalogs or database.                   |
-| **`UNKNOWN_RESPONSE`**           | 404         | Response ID does not exist in the database.                                        |
-| **`UNAUTHORIZED`**               | 401         | Thrown by `guard` when the user is unauthenticated.                                |
-| **`FORBIDDEN`**                  | 403         | Thrown by `guard` when the user lacks permissions or ownership.                    |
-| **`STALE_UPDATE`**               | 409         | `updatedAt` CAS token mismatch (concurrent write collision).                       |
-| **`FORM_INACTIVE`**              | 409         | `startResponse` called on a form with status `"draft"` or `"archived"`.            |
-| **`RESPONSE_NOT_DRAFT`**         | 409         | `saveDraft` or `submitResponse` attempted on a locked response.                    |
-| **`RESPONSE_NOT_LOCKED`**        | 409         | `reopenResponse` attempted on an active draft response.                            |
-| **`CODE_AUTHORED_FORM`**         | 409         | Overwrite (`saveForm`) or delete (`deleteForm`) attempted on a code-authored form. |
-| **`FORM_HAS_RESPONSES`**         | 409         | `deleteForm` attempted on a form that already has recorded responses.              |
-| **`SLUG_TAKEN`**                 | 409         | Form slug collides with an existing form.                                          |
-| **`VALIDATION_ERROR`**           | 400         | Payload or answer validation failure (inspect `issues[]`).                         |
-| **`UNKNOWN_FIELD_TYPE`**         | 400         | Form references a field type not registered in `fieldTypes`.                       |
-| **`RESUME_REQUIRES_RESPONDENT`** | 400         | `startResponse({ resume: true })` called without a `respondentId`.                 |
-| **`INTERNAL_ERROR`**             | 500         | Unhandled server exception.                                                        |
+## Catalog
 
----
+| `code`                       | HTTP | When                                                         |
+| ---------------------------- | ---- | ------------------------------------------------------------ |
+| `NOT_FOUND`                  | 404  | Path matches no route                                        |
+| `UNKNOWN_FORM`               | 404  | Id or slug is not in the catalog or the database             |
+| `UNKNOWN_RESPONSE`           | 404  | Response id is missing                                       |
+| `UNAUTHORIZED`               | 401  | Your `guard` rejected an anonymous caller                    |
+| `FORBIDDEN`                  | 403  | Your `guard` rejected the caller                             |
+| `CONFLICT`                   | 409  | Generic conflict code. Core routes use a specific code below |
+| `STALE_UPDATE`               | 409  | `updatedAt` does not match the stored row                    |
+| `FORM_INACTIVE`              | 409  | `startResponse` on a form that is not `"active"`             |
+| `RESPONSE_NOT_DRAFT`         | 409  | Draft write on a locked row                                  |
+| `RESPONSE_NOT_LOCKED`        | 409  | `reopenResponse` on a draft                                  |
+| `CODE_AUTHORED_FORM`         | 409  | `saveForm` or `deleteForm` on a code form                    |
+| `FORM_HAS_RESPONSES`         | 409  | `deleteForm` while responses exist                           |
+| `SLUG_TAKEN`                 | 409  | Slug already used                                            |
+| `VALIDATION_ERROR`           | 400  | Payload or answers failed. Read `issues`                     |
+| `UNKNOWN_FIELD_TYPE`         | 400  | Field type is not registered                                 |
+| `RESUME_REQUIRES_RESPONDENT` | 400  | `resume: true` without `respondentId`                        |
+| `INTERNAL_ERROR`             | 500  | Unhandled exception                                          |
 
-## Field Issue Codes (`FIELD_ISSUE_CODES`)
+## Field issues
 
-When a `400 VALIDATION_ERROR` occurs during submission, the `issues[]` array contains field-specific issue codes:
+`issues[]` on `VALIDATION_ERROR`. `useFormResponse` copies these onto `issueCodes` / `binding.errorCode`.
 
-| Issue Code                  | Description                                          | Parameters |
-| :-------------------------- | :--------------------------------------------------- | :--------- |
-| **`REQUIRED`**              | Visible required field was left empty on submit.     | —          |
-| **`UNKNOWN_FIELD`**         | Answer key does not exist in the form snapshot.      | —          |
-| **`UNKNOWN_FIELD_TYPE`**    | Field type has no registered validator.              | `{ type }` |
-| **`INVALID`**               | Custom validator rejected the answer.                | —          |
-| **`EXPECTED_STRING`**       | Answer must be a string.                             | —          |
-| **`EXPECTED_NUMBER`**       | Answer must be a finite number.                      | —          |
-| **`EXPECTED_INTEGER`**      | Answer must be an integer.                           | —          |
-| **`EXPECTED_BOOLEAN`**      | Answer must be a boolean (`true` or `false`).        | —          |
-| **`EXPECTED_STRING_ARRAY`** | Answer must be an array of strings.                  | —          |
-| **`EXPECTED_EMAIL`**        | Answer must be a valid email address.                | —          |
-| **`EXPECTED_DATE`**         | Answer must be an ISO calendar date (`YYYY-MM-DD`).  | —          |
-| **`TOO_SHORT`**             | Text length is below `minLength`.                    | `{ min }`  |
-| **`TOO_LONG`**              | Text length exceeds `maxLength`.                     | `{ max }`  |
-| **`TOO_SMALL`**             | Numeric value is below `min`.                        | `{ min }`  |
-| **`TOO_LARGE`**             | Numeric value exceeds `max`.                         | `{ max }`  |
-| **`INVALID_FORMAT`**        | Text does not match the configured `pattern` regex.  | —          |
-| **`INVALID_OPTION`**        | Selected value is not in the allowed `options` list. | —          |
-| **`DUPLICATE_OPTION`**      | `multiSelect` array contains duplicate values.       | —          |
+| `code`                    | When                                            | `params`              |
+| ------------------------- | ----------------------------------------------- | --------------------- |
+| `REQUIRED`                | Visible required field was empty                | —                     |
+| `UNKNOWN_FIELD`           | Answer key is not on the snapshot               | —                     |
+| `UNKNOWN_FIELD_TYPE`      | No validator for `field.type`                   | `{ type }`            |
+| `INVALID`                 | A custom check rejected the value               | —                     |
+| `EXPECTED_STRING`         | Not a string                                    | —                     |
+| `EXPECTED_NUMBER`         | Not a finite number                             | —                     |
+| `EXPECTED_INTEGER`        | `integer: true` and the value is not an integer | —                     |
+| `EXPECTED_BOOLEAN`        | Not a boolean                                   | —                     |
+| `EXPECTED_STRING_ARRAY`   | Not an array of strings                         | —                     |
+| `EXPECTED_EMAIL`          | Not an email                                    | —                     |
+| `EXPECTED_DATE`           | Not `YYYY-MM-DD`                                | —                     |
+| `EXPECTED_FILE`           | Not file metadata                               | —                     |
+| `TOO_SHORT` / `TOO_LONG`  | `minLength` / `maxLength`                       | `{ min }` / `{ max }` |
+| `TOO_SMALL` / `TOO_LARGE` | `min` / `max`                                   | `{ min }` / `{ max }` |
+| `INVALID_FORMAT`          | `pattern` did not match                         | —                     |
+| `INVALID_OPTION`          | Value is not in `options`                       | —                     |
+| `DUPLICATE_OPTION`        | `multiSelect` repeats a value                   | —                     |
 
----
+English `message` is the fallback. Localize from `code` and `params`.
 
-## Scoring plugin (`SCORING_ERROR_CODES`)
+## Scoring
 
-`@dimah-form/scoring` adds mapping codes on `form.$ERROR_CODES`. They appear on `validateDefinition` / `saveForm` issues, and on `scoreResponse` when the snapshot mapping is invalid.
+`@dimah-form/scoring` merges these onto `form.$ERROR_CODES`. They show up from `validateDefinition` / `saveForm`, and from `scoreResponse` when the mapping is invalid.
 
-| Issue Code                                | Trigger                                                                 |
-| :---------------------------------------- | :---------------------------------------------------------------------- |
-| **`SCORING_INVALID_META`**                | `meta.scoring` (form, field, or option) failed its schema.              |
-| **`SCORING_FORM_REQUIRED`**               | Field or option scoring without form `meta.scoring`.                    |
-| **`SCORING_UNKNOWN_VARIABLE`**            | Field or `option.add` names an id not in `variables`.                   |
-| **`SCORING_UNUSED_VARIABLE`**             | A declared variable is not mapped by any field or `option.add`.         |
-| **`SCORING_DUPLICATE_VARIABLE`**          | Two `variables` share an id.                                            |
-| **`SCORING_DUPLICATE_FORMULA`**           | A formula id collides with a variable or another formula.               |
-| **`SCORING_UNSUPPORTED_TYPE`**            | Scoring on a type other than select / multiSelect / number / boolean.   |
-| **`SCORING_MISSING_POINTS`**              | Likert option is missing `points`.                                      |
-| **`SCORING_OPTION_ADD_MIX`**              | `field.variable` combined with `option.add`.                            |
-| **`SCORING_OPTION_POINTS_NEED_VARIABLE`** | `option.points` without `field.variable`.                               |
-| **`SCORING_REVERSE_RANGE`**               | Reverse scoring without a point range (`option.points` or `field.max`). |
-| **`SCORING_REVERSE_MULTISELECT`**         | `reverse` set on a `multiSelect`.                                       |
-| **`SCORING_UNKNOWN_BAND_VARIABLE`**       | Band `variable` is not a variable or formula id.                        |
-| **`SCORING_FORMULA_UNKNOWN_VAR`**         | Formula `vars` includes a non-variable id.                              |
-| **`SCORING_FORMULA_DUPLICATE_VAR`**       | Formula `vars` lists the same id twice.                                 |
-| **`SCORING_INVALID_BAND`**                | Band `from` is greater than `to`.                                       |
+| `code`                                | When                                                                         |
+| ------------------------------------- | ---------------------------------------------------------------------------- |
+| `SCORING_INVALID_META`                | `meta.scoring` failed its schema                                             |
+| `SCORING_FORM_REQUIRED`               | Field or option scoring without form `meta.scoring`                          |
+| `SCORING_UNKNOWN_VARIABLE`            | Field or `option.add` names an id not in `variables`                         |
+| `SCORING_UNUSED_VARIABLE`             | A declared variable is never mapped                                          |
+| `SCORING_DUPLICATE_VARIABLE`          | Two variables share an id                                                    |
+| `SCORING_DUPLICATE_FORMULA`           | Formula id collides with a variable or another formula                       |
+| `SCORING_UNSUPPORTED_TYPE`            | Scoring on a type other than `select`, `multiSelect`, `number`, or `boolean` |
+| `SCORING_MISSING_POINTS`              | Likert option has no `points`                                                |
+| `SCORING_OPTION_ADD_MIX`              | `field.variable` together with `option.add`                                  |
+| `SCORING_OPTION_POINTS_NEED_VARIABLE` | `option.points` without `field.variable`                                     |
+| `SCORING_REVERSE_RANGE`               | `reverse` without a point range                                              |
+| `SCORING_REVERSE_MULTISELECT`         | `reverse` on `multiSelect`                                                   |
+| `SCORING_UNKNOWN_BAND_VARIABLE`       | Band `variable` is not a variable or formula id                              |
+| `SCORING_FORMULA_UNKNOWN_VAR`         | Formula `vars` names a non-variable                                          |
+| `SCORING_FORMULA_DUPLICATE_VAR`       | Formula `vars` repeats an id                                                 |
+| `SCORING_INVALID_BAND`                | Band `from` is greater than `to`                                             |
 
----
+## Plugin codes
 
-## Client Error Helpers
+```ts
+import { defineErrorCodes } from "@dimah-form/server";
 
-`@dimah-form/react` provides helpers to map error codes to user-friendly or localized messages:
+export const BILLING_ERROR_CODES = defineErrorCodes({
+  PAYMENT_REQUIRED: "Payment verification failed",
+});
+```
+
+Attach the same catalog on the server plugin and the client plugin. Codes cannot shadow core or another plugin. See [Plugins](/docs/plugins).
+
+## Frequently asked questions
+
+<Accordions>
+
+<Accordion title="How do I show a message in the fill UI?">
+
+`binding.error` is English. For your own copy, switch on `binding.errorCode`:
 
 ```ts
 import {
@@ -119,66 +142,19 @@ import {
   issuesByField,
 } from "@dimah-form/react";
 
-// Convert APIError issues array into a field-id-to-message map
-const issues = fieldIssueMap(apiError);
-// { fullName: "Full Name is required", email: "Invalid email" }
-
-// Extract formatted top-level error message
+const messages = issuesByField(error); // { fullName: "Full name is required" }
+const issues = fieldIssueMap(error); // { fullName: { field, message, code, params } }
 const message = formErrorMessage(error);
 ```
 
----
+`@dimah-form/ui` uses `formatIssue` on `FormUiProvider` for the same map.
 
-## Server helpers (`errors`)
+</Accordion>
 
-Plugin routes and guards throw mapped `APIError`s from `@dimah-form/server` instead of reconstructing `APIError.from(status, FORM_ERROR_CODES.*)`:
+<Accordion title="Does STALE_UPDATE need a manual retry?">
 
-```ts
-import { errors } from "@dimah-form/server";
+`useFormResponse` refreshes on `STALE_UPDATE`. Handle it yourself when you call `formClient.saveDraft` outside the hook.
 
-throw errors.unknownForm(formId);
-throw errors.unknownResponse(responseId);
-throw errors.staleUpdate();
-```
+</Accordion>
 
----
-
-## Declaring Custom Error Codes with `defineErrorCodes`
-
-When authoring plugins or custom field validators, use `defineErrorCodes()` to declare type-safe custom error catalogs:
-
-```ts
-import { defineErrorCodes } from "@dimah-form/server";
-
-export const CUSTOM_ERROR_CODES = defineErrorCodes({
-  PAYMENT_REQUIRED: "Payment verification failed",
-  SUBSCRIPTION_EXPIRED: "Account subscription is inactive",
-});
-```
-
----
-
-## Next Steps
-
-<Cards>
-  <Card
-    title="Auth"
-    href="/docs/auth"
-    description="Learn how to throw UNAUTHORIZED and FORBIDDEN errors in guards."
-  />
-  <Card
-    title="Scoring"
-    href="/docs/scoring"
-    description="Likert totals, option keying, and scoring issue codes."
-  />
-  <Card
-    title="Protocol"
-    href="/docs/protocol"
-    description="Review all route endpoints and HTTP status codes."
-  />
-  <Card
-    title="React Client"
-    href="/docs/react"
-    description="Inspect how useFormResponse handles field error states."
-  />
-</Cards>
+</Accordions>

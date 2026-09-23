@@ -1,99 +1,118 @@
 ---
 title: Introduction
-description: A headless questionnaire engine. You own the UI. The library owns snapshots, drafts, and submit validation.
+description: Backend-first questionnaires for React — snapshots, drafts, and submit validation. You own the UI.
 icon: House
 ---
 
-**dimah-form** is a backend-first questionnaire engine. It freezes the form definition onto every response, validates answers against that snapshot, and gives React a thin fill-session hook. Rendering is yours — or optional `@dimah-form/ui`.
+dimah-form is a questionnaire engine for React and Node.js.
+It freezes the form onto every response, validates answers against that snapshot, and gives React a headless fill session.
+Rendering is yours, or optional `@dimah-form/ui`.
+
+## Architecture flow
 
 <Flow
-  label="System Data Flow"
+  label="Fill session"
   steps={[
-    {
-      name: "React Client",
-      kind: "client",
-      note: "useFormResponse + your widgets",
-    },
-    {
-      name: "HTTP Handler",
-      kind: "server",
-      note: "dimahForm() + your guard",
-    },
-    { name: "Persistence", kind: "data", note: "Snapshots and responses" },
+    { name: "Browser", kind: "client", note: "useFormResponse" },
+    { name: "Server", kind: "server", note: "guard, then snapshot check" },
+    { name: "Store", kind: "data", note: "definition + answers" },
   ]}
 />
 
----
+A fill starts from the live form, then keeps that definition.
+Later edits do not change in-flight drafts or submitted rows.
 
-## When to use it
-
-Use it when you need typed questionnaires with drafts and server-side validation, and you already have a design system.
-
-Skip it if you want a visual builder or hosted survey SaaS.
-
-The problems it is built around:
-
-1. **Schema drift** — an admin can change a live form while someone is still filling a draft. dimah-form validates against the snapshot taken at start, not the live definition.
-2. **Drafts** — respondents leave, switch devices, or drop packets. Drafts save incrementally, with `updatedAt` compare-and-swap so two tabs do not silently overwrite each other.
-3. **Headless validation** — you render with Tailwind, shadcn/ui, or plain HTML — or `@dimah-form/ui`. The server still checks required visible fields against the frozen snapshot.
+**For coding agents** — [llms.txt](/llms.txt) · [llms-full.txt](/llms-full.txt).
 
 ---
+
+## What you get
+
+- **Snapshots** — submit checks the definition taken at start
+- **Drafts** — partial saves with `updatedAt` compare-and-swap
+- **Headless client** — `useFormResponse` and field bindings
+- **Optional UI** — shadcn renderer on the same session
+- **Server hooks** — auth in `guard`, ownership and side effects in `on*` / `after*`
+- **Optional SQL** — `memoryAdapter()`, or `@dimah-form/db` when rows must survive a restart
+
+It is not a visual builder or a hosted survey product.
 
 ## Packages
 
-```
-@dimah-form/core
-        ↓
-@dimah-form/server  ←  @dimah-form/db (optional)
-        │           ←  @dimah-form/scoring (optional plugin)
-        │           ←  @dimah-form/dataset (optional plugin)
-        │           ←  @dimah-form/insights (optional plugin)
-@dimah-form/react  ←  @dimah-form/ui (optional)
-```
+| Package                | Role                                               |
+| ---------------------- | -------------------------------------------------- |
+| `@dimah-form/server`   | `dimahForm()` — HTTP handler, `form.api`, adapters |
+| `@dimah-form/react`    | `createFormClient()`, `useFormResponse()`          |
+| `@dimah-form/ui`       | Optional shadcn renderer                           |
+| `@dimah-form/db`       | Optional SQL adapter (FumaDB)                      |
+| `@dimah-form/scoring`  | Optional scores from the snapshot (`meta.scoring`) |
+| `@dimah-form/dataset`  | Optional JSONL + codebook export                   |
+| `@dimah-form/insights` | Optional read-side summaries                       |
+| `@dimah-form/core`     | Protocol. Apps import `server` or `react` instead  |
 
-| Package                    | Where                    | What you import it for                                                                                                            |
-| :------------------------- | :----------------------- | :-------------------------------------------------------------------------------------------------------------------------------- |
-| **`@dimah-form/core`**     | Protocol / plugins       | Route schemas and plugin internals. Apps import from `server` / `react` instead. Shared `defineFieldType` modules may use `core`. |
-| **`@dimah-form/server`**   | Node / Edge              | `dimahForm()`, HTTP adapters, `form.api`, `memoryAdapter()`, app protocol helpers.                                                |
-| **`@dimah-form/react`**    | Browser (`"use client"`) | `createFormClient()`, `useFormResponse()`, field helpers.                                                                         |
-| **`@dimah-form/ui`**       | Browser                  | Optional. shadcn renderer (`FormView` / `FormField`). Use `@dimah-form/ui/types` on the server.                                   |
-| **`@dimah-form/db`**       | Server                   | Optional. Production SQL adapter via FumaDB.                                                                                      |
-| **`@dimah-form/scoring`**  | Server / isomorphic      | Optional. Scoring plugin (`meta.scoring` — Likert + option keying). Import `/client` in the browser.                              |
-| **`@dimah-form/dataset`**  | Server / isomorphic      | Optional. Dataset plugin (JSONL + codebook from snapshots). Import `/client` in the browser.                                      |
-| **`@dimah-form/insights`** | Server / isomorphic      | Optional. Insights plugin (status / completion / field stats from snapshots; crosstab). Import `/client` in the browser.          |
+`database` is required. A SQL database is not.
+
+## Frequently asked questions
+
+<Accordions>
+
+<Accordion title="When should I choose dimah-form?">
+
+When the questionnaire is part of your app: typed definitions, drafts, and server-side submit checks, with your own UI or `@dimah-form/ui`.
+
+Skip it for a drag-and-drop builder or a hosted survey.
+
+</Accordion>
+
+<Accordion title="Does dimah-form render inputs?">
+
+`@dimah-form/react` does not. Bind `q.field(id)` yourself, or add [`@dimah-form/ui`](/docs/ui).
+
+</Accordion>
+
+<Accordion title="Where does authentication live?">
+
+In your `guard`. The library does not ship sessions. See [Auth](/docs/auth).
+
+</Accordion>
+
+<Accordion title="Can someone still submit after the form changes?">
+
+Yes. Drafts and submits use `response.definition`, the snapshot stored at start. See [Snapshots](/docs/snapshots).
+
+</Accordion>
+
+</Accordions>
 
 ---
 
-## How to read these docs
-
-Start with the **Quickstart** if you want a working Next.js form. Read **Architecture** and **Snapshots** when you need the model, not just the copy-paste.
+## Explore documentation
 
 <Cards>
   <Card
     title="Quickstart"
     href="/docs/quickstart"
-    description="Install, define a form, mount the handler, and render a fill UI."
-  />
-  <Card
-    title="Architecture"
-    href="/docs/architecture"
-    description="Package boundaries, data flow, and the request pipeline."
+    description="A working fill session in Next.js."
   />
   <Card
     title="Forms"
     href="/docs/forms"
-    description="defineForm, field rules, showWhen, and $Infer."
+    description="defineForm, showWhen, and $Infer."
   />
   <Card
-    title="React Client"
+    title="React"
     href="/docs/react"
-    description="useFormResponse: visibility, drafts, and submit."
+    description="useFormResponse — visibility, drafts, and submit."
+  />
+  <Card
+    title="Server"
+    href="/docs/server"
+    description="dimahForm(), adapters, and form.api."
+  />
+  <Card title="UI" href="/docs/ui" description="Optional shadcn renderer." />
+  <Card
+    title="Database"
+    href="/docs/database"
+    description="memoryAdapter, or SQL with FumaDB."
   />
 </Cards>
-
-After that, pick the layer you are implementing:
-
-- **Client** — [React](/docs/react) and [Widgets](/docs/widgets)
-- **Backend** — [Server](/docs/server), [Database](/docs/database), [Auth](/docs/auth)
-- **Extending** — [Custom Fields](/docs/custom-fields), [Plugins](/docs/plugins), and [Scoring](/docs/scoring)
-- **Reference** — [Configuration](/docs/configuration), [Field Types](/docs/field-types), [Protocol](/docs/protocol), [Errors](/docs/errors)

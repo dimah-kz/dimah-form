@@ -1,43 +1,32 @@
 ---
 title: Server
-description: Create dimahForm(), mount HTTP adapters, and call form.api without a round trip.
+description: dimahForm(), HTTP adapters, and in-process form.api.
 icon: Server
 ---
 
-`@dimah-form/server` is the Node / Edge engine: routing, snapshots, guards, and validation. Mount it on your framework, or call `form.api` in a server component with no extra HTTP hop.
-
----
-
-## Initializing `dimahForm()`
-
-Create a centralized `dimahForm()` instance in your project:
+[`@dimah-form/server`](https://www.npmjs.com/package/@dimah-form/server) routes requests, freezes snapshots, and runs your guard.
+Mount `handler` on a framework, or call `form.api` from a server component with no extra HTTP hop.
 
 ```ts title="lib/form.ts"
 import { dimahForm, memoryAdapter } from "@dimah-form/server";
 import { forms } from "@/lib/forms";
 
 export const form = dimahForm({
-  database: memoryAdapter(), // or db(formDb) from @dimah-form/db
+  database: memoryAdapter(),
   forms,
-  basePath: "/api/form", // Default base path
+  basePath: "/api/form",
 });
 
 export type Form = typeof form;
 ```
 
-`database` is required. A SQL database is not. `memoryAdapter()` is enough to run. For production SQL, see [Database](/docs/database).
+`database` is required. A SQL database is not. Options: [Configuration](/docs/configuration). SQL: [Database](/docs/database).
 
----
+## Mount
 
-## HTTP Framework Adapters
-
-`@dimah-form/server` provides dedicated adapters for all major JavaScript backend frameworks:
-
-<Tabs items={["Next.js", "Hono", "Express", "Fastify", "SvelteKit", "Elysia", "Node.js", "Web Fetch"]}>
+<Tabs items={["Next.js", "Hono", "Express", "Fastify", "SvelteKit", "Elysia", "Node.js", "Fetch"]}>
 
 <Tab value="Next.js">
-
-Mount a catch-all route handler in the Next.js App Router:
 
 ```ts title="app/api/form/[...all]/route.ts"
 import { toNextJsHandler } from "@dimah-form/server/next";
@@ -62,8 +51,6 @@ app.on(
   "/api/form/*",
   toHonoHandler(form),
 );
-
-export default app;
 ```
 
 </Tab>
@@ -77,11 +64,9 @@ import { form } from "./lib/form";
 
 const app = express();
 
-// Mount dimahForm BEFORE express.json() so it can read raw stream payloads
+// Before express.json() — the handler reads the raw body.
 app.all("/api/form/*", toExpressHandler(form));
-
 app.use(express.json());
-app.listen(3000, () => console.log("Server listening on port 3000"));
 ```
 
 </Tab>
@@ -94,9 +79,7 @@ import { toFastifyHandler } from "@dimah-form/server/fastify";
 import { form } from "./lib/form";
 
 const app = Fastify();
-
 app.all("/api/form/*", toFastifyHandler(form));
-
 await app.listen({ port: 3000 });
 ```
 
@@ -140,31 +123,24 @@ import { form } from "./lib/form";
 
 const handler = toNodeHandler(form);
 
-const server = createServer((req, res) => {
-  if (req.url?.startsWith("/api/form")) {
-    return handler(req, res);
-  }
+createServer((req, res) => {
+  if (req.url?.startsWith("/api/form")) return handler(req, res);
   res.statusCode = 404;
   res.end("Not Found");
-});
-
-server.listen(3000);
+}).listen(3000);
 ```
 
 </Tab>
 
-<Tab value="Web Fetch">
-
-Use standard `Request` / `Response` directly (Cloudflare Workers, Deno, Bun):
+<Tab value="Fetch">
 
 ```ts title="src/worker.ts"
 import { form } from "./lib/form";
 
 export default {
   fetch(request: Request) {
-    if (new URL(request.url).pathname.startsWith("/api/form")) {
-      return form.handler(request);
-    }
+    const { pathname } = new URL(request.url);
+    if (pathname.startsWith("/api/form")) return form.handler(request);
     return new Response("Not Found", { status: 404 });
   },
 };
@@ -174,74 +150,55 @@ export default {
 
 </Tabs>
 
----
+## form.api
 
-## Direct Server API (`form.api`)
-
-In addition to serving HTTP requests, `dimahForm()` provides a typed, internal API (`form.api`) that you can call directly in Next.js Server Actions, React Server Components, or backend services without any HTTP network overhead:
+Same operations as the HTTP protocol, called in process. Pass `headers` when `guard` needs the incoming session.
 
 ```tsx title="app/survey/[slug]/page.tsx"
-import { form } from "@/lib/form";
-import { notFound } from "next/navigation";
 import { headers } from "next/headers";
+import { notFound } from "next/navigation";
+import { isFormErrorCode } from "@dimah-form/server";
 import { Questionnaire } from "@/components/questionnaire";
+import { form } from "@/lib/form";
 
-interface PageProps {
+export default async function SurveyPage({
+  params,
+}: {
   params: Promise<{ slug: string }>;
-}
-
-export default async function SurveyPage({ params }: PageProps) {
+}) {
   const { slug } = await params;
 
-  // Direct server call — runs validation and security guards internally
-  const snapshot = await form.api.getForm({
-    query: { formId: slug },
-    headers: await headers(), // Forwards session cookies/headers to guard
-  });
-
-  if (!snapshot) {
-    notFound();
+  try {
+    const snapshot = await form.api.getForm({
+      query: { formId: slug },
+      headers: await headers(),
+    });
+    return <Questionnaire form={snapshot} />;
+  } catch (error) {
+    if (isFormErrorCode(error, "UNKNOWN_FORM")) notFound();
+    throw error;
   }
-
-  return <Questionnaire form={snapshot} />;
 }
 ```
 
-### Available `form.api` Methods
+Paths, bodies, and client method names: [Protocol](/docs/protocol).
 
-| Method                | Payload                                          | Returns          | Description                                         |
-| :-------------------- | :----------------------------------------------- | :--------------- | :-------------------------------------------------- |
-| **`getForm`**         | `{ query: { formId } }`                          | `FormSnapshot`   | Retrieves form definition by ID or slug.            |
-| **`listForms`**       | `{ query?: { status?, limit?, offset? } }`       | `FormList`       | Returns paginated list of forms.                    |
-| **`saveForm`**        | `{ body: FormSnapshot }`                         | `FormSnapshot`   | Upserts dynamic form in database.                   |
-| **`deleteForm`**      | `{ body: { formId } }`                           | `{ ok: true }`   | Deletes a dynamic form (must have no responses).    |
-| **`startResponse`**   | `{ body: { formId, respondentId?, resume? } }`   | `ResponseRecord` | Starts response session and freezes snapshot.       |
-| **`getResponse`**     | `{ query: { responseId } }`                      | `ResponseRecord` | Fetches a response record.                          |
-| **`listResponses`**   | `{ query?: ListResponsesQuery }`                 | `ResponseList`   | Lists response summaries or full records.           |
-| **`saveDraft`**       | `{ body: { responseId, answers, updatedAt? } }`  | `ResponseRecord` | Patches partial answers on an active draft.         |
-| **`submitResponse`**  | `{ body: { responseId, answers?, updatedAt? } }` | `ResponseRecord` | Validates visible answers and finalizes response.   |
-| **`abandonResponse`** | `{ body: { responseId, updatedAt? } }`           | `ResponseRecord` | Marks draft as abandoned.                           |
-| **`reopenResponse`**  | `{ body: { responseId, updatedAt? } }`           | `ResponseRecord` | Unlocks submitted/abandoned response back to draft. |
-| **`deleteResponse`**  | `{ body: { responseId } }`                       | `{ ok: true }`   | Deletes response record.                            |
-
----
-
-## Next Steps
+## Next steps
 
 <Cards>
   <Card
     title="Database"
     href="/docs/database"
-    description="Required adapter: memory, optional FumaDB, or a custom store."
+    description="Swap memoryAdapter for SQL."
   />
   <Card
     title="Auth"
     href="/docs/auth"
-    description="Secure form operations and respondent data with guard hooks."
+    description="guard, respondentId, and lifecycle hooks."
   />
   <Card
     title="Configuration"
     href="/docs/configuration"
-    description="Explore all available dimahForm configuration parameters."
+    description="dimahForm() options and ResponseStore."
   />
 </Cards>

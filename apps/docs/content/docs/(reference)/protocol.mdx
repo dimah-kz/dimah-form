@@ -1,130 +1,73 @@
 ---
 title: Protocol
-description: REST routes, client methods, form.api calls, and request payloads.
+description: HTTP routes, client methods, and form.api calls.
 icon: Waypoints
 ---
 
-Route paths, payloads, and response shapes live in `@dimah-form/core`. Default base path: `/api/form`.
+Paths and payloads live in `@dimah-form/core`. Default prefix: `/api/form`.
 
----
+Client methods are on `createFormClient()`. Server methods are `form.api.*` and take `{ query }` or `{ body }`, plus optional `headers` for `guard`.
 
-## Form Management Endpoints
+List endpoints default to 50 rows and cap at 100.
 
-| Method | Path           | Client Method                             | `form.api` Method      | Description                                      |
-| :----- | :------------- | :---------------------------------------- | :--------------------- | :----------------------------------------------- |
-| `GET`  | `/form`        | `getForm({ formId })`                     | `getForm({ query })`   | Retrieve form definition snapshot by ID or slug. |
-| `POST` | `/form`        | `saveForm(form)`                          | `saveForm({ body })`   | Upsert dynamic form definition in database.      |
-| `POST` | `/form/delete` | `deleteForm({ formId })`                  | `deleteForm({ body })` | Delete form (rejected if responses exist).       |
-| `GET`  | `/forms`       | `listForms({ status?, limit?, offset? })` | `listForms({ query })` | List forms (default limit: 50, max: 100).        |
+## Forms
 
----
+| Method | Path           | Client                                    | `form.api`             |
+| ------ | -------------- | ----------------------------------------- | ---------------------- |
+| `GET`  | `/form`        | `getForm({ formId })`                     | `getForm({ query })`   |
+| `POST` | `/form`        | `saveForm(form)`                          | `saveForm({ body })`   |
+| `POST` | `/form/delete` | `deleteForm({ formId })`                  | `deleteForm({ body })` |
+| `GET`  | `/forms`       | `listForms({ status?, limit?, offset? })` | `listForms({ query })` |
 
-## Response Lifecycle Endpoints
+`formId` is an id or a slug.
+`saveForm` and `deleteForm` reject code-authored forms (`CODE_AUTHORED_FORM`).
+`deleteForm` also rejects a form that still has responses (`FORM_HAS_RESPONSES`).
+`listForms` returns `{ forms, limit, offset, nextOffset }`.
 
-| Method | Path                | Client Method                                                                                                      | `form.api` Method           | Description                                                                                |
-| :----- | :------------------ | :----------------------------------------------------------------------------------------------------------------- | :-------------------------- | :----------------------------------------------------------------------------------------- |
-| `POST` | `/response/start`   | `startResponse({ formId, respondentId?, resume? })`                                                                | `startResponse({ body })`   | Start fill session and freeze definition snapshot.                                         |
-| `GET`  | `/response`         | `getResponse({ responseId })`                                                                                      | `getResponse({ query })`    | Retrieve a full response record by ID.                                                     |
-| `GET`  | `/responses`        | `listResponses({ formId?, respondentId?, status?, submittedFrom?, submittedTo?, updatedAfter?, limit?, offset? })` | `listResponses({ query })`  | List response summaries (or full rows with `include=full`). `total` is the matching count. |
-| `POST` | `/response/draft`   | `saveDraft({ responseId, answers, updatedAt? })`                                                                   | `saveDraft({ body })`       | Save partial answers patch on active draft.                                                |
-| `POST` | `/response/submit`  | `submitResponse({ responseId, answers?, updatedAt? })`                                                             | `submitResponse({ body })`  | Validate answers vs snapshot and finalize submission.                                      |
-| `POST` | `/response/abandon` | `abandonResponse({ responseId, updatedAt? })`                                                                      | `abandonResponse({ body })` | Lock draft response as abandoned.                                                          |
-| `POST` | `/response/reopen`  | `reopenResponse({ responseId, updatedAt? })`                                                                       | `reopenResponse({ body })`  | Unlock submitted/abandoned response back to draft.                                         |
-| `POST` | `/response/delete`  | `deleteResponse({ responseId })`                                                                                   | `deleteResponse({ body })`  | Delete a response record.                                                                  |
+## Responses
 
----
+| Method | Path                | Client                                                                                                                       | `form.api`                  |
+| ------ | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| `POST` | `/response/start`   | `startResponse({ formId, respondentId?, resume? })`                                                                          | `startResponse({ body })`   |
+| `GET`  | `/response`         | `getResponse({ responseId })`                                                                                                | `getResponse({ query })`    |
+| `GET`  | `/responses`        | `listResponses({ formId?, respondentId?, status?, submittedFrom?, submittedTo?, updatedAfter?, include?, limit?, offset? })` | `listResponses({ query })`  |
+| `POST` | `/response/draft`   | `saveDraft({ responseId, answers, updatedAt? })`                                                                             | `saveDraft({ body })`       |
+| `POST` | `/response/submit`  | `submitResponse({ responseId, answers?, updatedAt? })`                                                                       | `submitResponse({ body })`  |
+| `POST` | `/response/abandon` | `abandonResponse({ responseId, updatedAt? })`                                                                                | `abandonResponse({ body })` |
+| `POST` | `/response/reopen`  | `reopenResponse({ responseId, updatedAt? })`                                                                                 | `reopenResponse({ body })`  |
+| `POST` | `/response/delete`  | `deleteResponse({ responseId })`                                                                                             | `deleteResponse({ body })`  |
 
-## Endpoint Details & Payloads
+`listResponses` returns summaries unless `include` is `"full"`. `total` is the matching count, not the page size.
+`submittedFrom` / `submittedTo` are inclusive and skip rows with no `submittedAt`. `updatedAfter` is an exclusive lower bound on `updatedAt`.
 
-### 1. `POST /response/start`
+## Payloads
 
-Starts a new fill session for a questionnaire.
+`startResponse` freezes the definition and seeds `defaultValue`. `resume: true` needs `respondentId` and returns the latest draft when one exists.
 
-- **Request Body**:
-  ```json
-  {
-    "formId": "feedback",
-    "respondentId": "user-123",
-    "resume": true
-  }
-  ```
-- **Response Body (`200 OK`)**:
-  ```json
-  {
-    "id": "resp_01h8x...",
-    "formId": "feedback",
-    "status": "draft",
-    "definition": {
-      "id": "feedback",
-      "slug": "feedback",
-      "title": "Product Feedback",
-      "fields": [...]
-    },
-    "answers": {},
-    "respondentId": "user-123",
-    "submittedAt": null,
-    "createdAt": "2026-09-19T10:00:00.000Z",
-    "updatedAt": "2026-09-19T10:00:00.000Z"
-  }
-  ```
+`saveDraft` and `submitResponse` send a partial `answers` object. `null` deletes that key. Send `updatedAt` from the last read — a mismatch is `409 STALE_UPDATE`.
 
----
+`submitResponse` evaluates `showWhen`, drops hidden answers, then checks every visible field. Success sets `status: "submitted"` and `submittedAt`.
 
-### 2. `POST /response/draft`
+The success body is a [`ResponseRecord`](/docs/snapshots#record), except list routes, which return a page.
 
-Saves a partial patch of answers. Setting a key to `null` deletes that answer.
+Plugin routes are not in this table. Scoring, dataset, and insights document their own paths.
 
-- **Request Body**:
-  ```json
-  {
-    "responseId": "resp_01h8x...",
-    "answers": {
-      "fullName": "Jane Doe",
-      "rating": "great"
-    },
-    "updatedAt": "2026-09-19T10:00:00.000Z"
-  }
-  ```
-- **Response Body (`200 OK`)**: Updated `ResponseRecord`.
-
----
-
-### 3. `POST /response/submit`
-
-Validates all visible required answers against the snapshot schema and locks the response to `"submitted"`.
-
-- **Request Body**:
-  ```json
-  {
-    "responseId": "resp_01h8x...",
-    "answers": {
-      "fullName": "Jane Doe",
-      "rating": "poor",
-      "improvements": "Please improve loading speed."
-    },
-    "updatedAt": "2026-09-19T10:05:00.000Z"
-  }
-  ```
-- **Response Body (`200 OK`)**: Updated `ResponseRecord` with `status: "submitted"`.
-
----
-
-## Next Steps
+## Next steps
 
 <Cards>
   <Card
     title="Errors"
     href="/docs/errors"
-    description="Inspect machine-readable error codes returned on failed requests."
+    description="Status codes on a failed call."
   />
   <Card
     title="Snapshots"
     href="/docs/snapshots"
-    description="Learn how snapshots ensure safe draft lifecycles."
+    description="What start, draft, and submit guarantee."
   />
   <Card
-    title="Configuration"
-    href="/docs/configuration"
-    description="View full client and server options."
+    title="Server"
+    href="/docs/server"
+    description="Call the same methods without HTTP."
   />
 </Cards>
