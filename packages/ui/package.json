@@ -71,7 +71,7 @@
     "@workspace/typescript-config": "workspace:*",
     "@workspace/vitest-config": "workspace:*",
     "class-variance-authority": "^0.7.1",
-    "cn": "^0.3.0",
+    "cn": "^0.4.0",
     "eslint": "catalog:",
     "fuma-translate": "^1.0.2",
     "lucide-react": "^1.47.0",

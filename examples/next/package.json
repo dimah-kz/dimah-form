@@ -25,7 +25,7 @@
     "@fuma-translate/react": "^1.0.2",
     "@libsql/client": "catalog:",
     "class-variance-authority": "^0.7.1",
-    "cn": "^0.3.0",
+    "cn": "^0.4.0",
     "drizzle-orm": "catalog:",
     "fumadb": "catalog:",
     "lucide-react": "^1.47.0",
