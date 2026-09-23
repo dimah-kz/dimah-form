@@ -1,0 +1,97 @@
+---
+title: Insights
+description: Compute status, completion, field, and score summaries from stored responses.
+icon: ChartColumn
+---
+
+`@dimah-form/insights` computes read-side summaries and crosstabs from
+response snapshots. It adds no tables and has no metadata namespace.
+
+```bash
+npm i @dimah-form/insights
+```
+
+```ts title="lib/form.ts"
+import { insightsPlugin } from "@dimah-form/insights";
+
+export const form = dimahForm({
+  database,
+  forms,
+  plugins: [insightsPlugin({ maxRows: 10_000 })],
+});
+```
+
+For a browser client, install `insightsClientPlugin()` from
+`@dimah-form/insights/client`. Authorize `getFormInsights` and
+`getFormCrosstab` as you would `listResponses`.
+
+<Callout>
+  Insights is compute-on-read, not a warehouse. For large datasets, project
+  records with Dataset and aggregate in your own database.
+</Callout>
+
+## Summary
+
+```ts
+const summary = await form.api.getFormInsights({
+  query: {
+    formId: "gad7",
+    status: "submitted",
+    bucket: "day",
+    timeZone: "Asia/Tehran",
+  },
+});
+```
+
+The result includes:
+
+- status counts and visibility-correct completion;
+- categorical values in document order, including unused values with `n: 0`;
+- number statistics for any finite numeric answer and min/max dates;
+- scoring means and band counts when a snapshot has valid `meta.scoring`;
+- optional submitted-day buckets in an IANA time zone.
+
+Use the normal response filters (`respondentId`, `submittedFrom`,
+`submittedTo`, and `updatedAfter`) to constrain the fold. There is no default
+status filter.
+
+## Crosstabs
+
+```ts
+const table = await form.api.getFormCrosstab({
+  query: {
+    formId: "gad7",
+    row: "city",
+    col: "remote",
+    status: "submitted",
+  },
+});
+```
+
+Each axis uses categorical values from the snapshots that contain it. A live
+form edit does not erase a historical category or invalidate an older response.
+
+Walks are capped at 10,000 rows by default. When `truncated` is true, display
+that limit in your application rather than presenting a partial result as a
+complete report.
+
+## Out of scope
+
+Charts, weighted samples, saved summaries, LLM analysis, attachment processing,
+and warehouse storage live in your application. The optional UI package renders
+a respondent fill session; it is not an admin dashboard.
+
+## Next
+
+<Cards>
+  <Card
+    title="Dataset"
+    href="/docs/plugins/dataset"
+    description="Project records to a warehouse-friendly interchange format."
+  />
+  <Card
+    title="Scoring"
+    href="/docs/plugins/scoring"
+    description="Configure the scores shown by this plugin."
+  />
+</Cards>

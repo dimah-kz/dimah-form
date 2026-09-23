@@ -15,7 +15,7 @@ icon: Settings
 | `fieldTypes`         |          | `[]`          | `defineFieldType()` validators for this instance                                                                 |
 | `basePath`           |          | `"/api/form"` | Prefix for `handler`                                                                                             |
 | `guard`              |          | —             | Runs before every operation. Throw to reject                                                                     |
-| `hooks`              |          | `{}`          | `on*` before persist, `after*` after. See [Auth](/docs/auth)                                                     |
+| `hooks`              |          | `{}`          | `on*` before persist, `after*` after. See [Security](/docs/security)                                             |
 | `plugins`            |          | `[]`          | `definePlugin()` results                                                                                         |
 | `metaSchema`         |          | —             | Zod for the whole `meta` bag. Namespaced plugin schemas run first                                                |
 | `validateAnswers`    |          | —             | Cross-field answer checks. Plugin callbacks run first                                                            |
@@ -110,8 +110,8 @@ When `expectedUpdatedAt` is set and does not match, throw `StoreConflictError`. 
     description="HTTP paths for the same operations."
   />
   <Card
-    title="Database"
-    href="/docs/database"
+    title="Persistence"
+    href="/docs/persistence"
     description="SQL schema and the FumaDB client."
   />
   <Card

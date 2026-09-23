@@ -1,0 +1,101 @@
+---
+title: Custom fields
+description: Add a validator and answer type; keep the widget in your application.
+icon: ListPlus
+---
+
+A custom field type is a server and client validator plus an `$Infer` token. It
+is not a React component. Define it in a module both environments can import,
+then render it in your app or register a UI widget separately.
+
+```ts title="lib/field-types/rating.ts"
+import { defineFieldType } from "@dimah-form/core";
+import * as z from "zod";
+
+export const ratingField = defineFieldType({
+  type: "rating",
+  fieldSchema: z.looseObject({
+    type: z.literal("rating"),
+    min: z.number().int().min(1).default(1),
+    max: z.number().int().max(10).default(5),
+  }),
+  isEmpty: (value) => value == null,
+  validate: (value, field) => {
+    if (typeof value !== "number" || !Number.isInteger(value)) {
+      return { code: "EXPECTED_INTEGER", message: "Rating must be an integer" };
+    }
+    if (value < (field.min ?? 1)) {
+      return { code: "TOO_SMALL", message: "Rating is below the minimum" };
+    }
+    if (value > (field.max ?? 5)) {
+      return { code: "TOO_LARGE", message: "Rating exceeds the maximum" };
+    }
+  },
+  $Infer: 0 as number,
+  format: (value, field) =>
+    typeof value === "number" ? `${value}/${field.max ?? 5}` : "",
+});
+
+export const fieldTypes = [ratingField] as const;
+```
+
+## Register it twice
+
+Pass the same list to the server and client. `createFormClient<Form>()` carries
+types only; it does not install runtime validators.
+
+```ts title="lib/form.ts"
+export const form = dimahForm({
+  database,
+  forms,
+  fieldTypes,
+});
+```
+
+```ts title="lib/form-client.ts"
+export const formClient = createFormClient<Form>({
+  basePath: "/api/form",
+  fieldTypes,
+});
+```
+
+Use `createDefineForm({ fieldTypes })` to type custom document keys while
+authoring:
+
+```ts
+const defineAppForm = createDefineForm({ fieldTypes });
+
+export const review = defineAppForm({
+  title: "Review",
+  fields: [{ id: "score", type: "rating", label: "Stars", min: 1, max: 5 }],
+});
+```
+
+## Render it
+
+On the headless path, dispatch on `field.type === "rating"`. With
+`@dimah-form/ui`, register a widget under the same `type`:
+
+```tsx
+<FormUiProvider widgets={{ rating: StarRatingField }}>
+  <FormView form={form} />
+</FormUiProvider>
+```
+
+The widget receives `{ binding, className, mode }`. Put its chrome in
+`FormFieldFrame` so a consumer's field-frame override still applies.
+
+## Next
+
+<Cards>
+  <Card
+    title="Custom rendering"
+    href="/docs/widgets"
+    description="Bind the headless field contract to any design system."
+  />
+  <Card
+    title="Plugins"
+    href="/docs/plugins"
+    description="Bundle field types with optional endpoints and hooks."
+  />
+</Cards>

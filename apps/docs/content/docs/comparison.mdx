@@ -1,0 +1,65 @@
+---
+title: Comparison
+description: Choose dimah-form, a form-state library, a builder, or a hosted service.
+icon: Scale
+---
+
+dimah-form is a server-authoritative questionnaire runtime. It is designed for
+forms that are part of your application, not for every kind of data-entry
+problem.
+
+<Callout>
+  dimah-form is pre-v1. Prefer it when its snapshot and response-lifecycle model
+  are a requirement, and evaluate its API stability before a long-lived
+  integration.
+</Callout>
+
+## Choose by ownership
+
+- Choose **dimah-form** when your app must own auth, data, UI, drafts, and
+  server-side validation against the definition a respondent started with.
+- Choose **React Hook Form** when you need flexible React form state and
+  validation, while your application defines the API, persistence, and
+  multi-session lifecycle.
+- Choose **SurveyJS** when you need a JSON-driven survey renderer or an
+  embeddable drag-and-drop creator that you connect to your backend.
+- Choose **Typeform** when a hosted, no-code, conversational form service and
+  its account-based workflow are the right trade-off.
+
+## Capability model
+
+| Concern                          | dimah-form                                                | React Hook Form                 | SurveyJS                                          | Typeform                             |
+| -------------------------------- | --------------------------------------------------------- | ------------------------------- | ------------------------------------------------- | ------------------------------------ |
+| Primary model                    | Server-authoritative questionnaire library                | React form state and validation | JSON survey runtime; optional self-hosted builder | Hosted form and survey service       |
+| Who renders the form             | Your UI, or optional `@dimah-form/ui`                     | Your React components           | SurveyJS renderer and themes                      | Typeform or its embed SDK            |
+| Per-response definition snapshot | Built in                                                  | Application responsibility      | Application persistence design                    | Platform response model              |
+| Draft, resume, abandon, and CAS  | Built in                                                  | Application responsibility      | Application responsibility                        | Service workflow                     |
+| Auth and data storage            | Your application                                          | Your application                | Your application                                  | Typeform account and APIs            |
+| Drag-and-drop authoring          | Not provided                                              | Not provided                    | Survey Creator                                    | Hosted builder                       |
+| Best fit                         | App-embedded questionnaires with durable response history | Client-side React forms         | Schema-driven surveys and visual authoring        | Fast hosted collection and embedding |
+
+This is a model comparison, not a performance benchmark or a claim that one
+tool replaces another. A project can use a general form library for ordinary
+settings screens and dimah-form for questionnaire flows.
+
+## What dimah-form deliberately leaves out
+
+dimah-form does not provide a visual builder, hosted respondent collection,
+user accounts, file uploads, dashboards, or a data warehouse. Your application
+can add those capabilities around the library. The optional UI package renders
+the existing fill session; it does not replace your product UI.
+
+For the library's concrete boundaries, read [Integration](/docs/integration),
+[Persistence](/docs/persistence), [Security](/docs/security), and
+[Responses](/docs/responses).
+
+## Sources
+
+- [React Hook Form: Get Started](https://react-hook-form.com/get-started) and
+  [useForm](https://react-hook-form.com/docs/useform)
+- [SurveyJS Form Library overview](https://surveyjs.io/form-library/documentation/overview)
+  and [Survey Creator overview](https://surveyjs.io/survey-creator/documentation/overview)
+- [Typeform Create API](https://www.typeform.com/developers/create/) and
+  [Embed SDK](https://typeform.com/developers/embed/)
+
+Last reviewed: 2026-09-24.

@@ -1,0 +1,99 @@
+---
+title: UI
+description: Render an existing fill session with optional shadcn components.
+icon: AppWindow
+---
+
+`@dimah-form/ui` renders a `FormResponseApi` from your existing
+`useFormResponse` call. It never creates or forks a fill session, so you can
+start with headless controls and add this package only when it fits your UI.
+
+```bash
+npm i @dimah-form/ui @dimah-form/react
+```
+
+```css
+@import "@dimah-form/ui/styles.css";
+```
+
+Or copy the source with the shadcn registry:
+
+```bash
+pnpm dlx shadcn@latest add https://form.dimah.dev/r/form.json
+```
+
+## Render the session
+
+```tsx
+import { FormUiProvider, FormView } from "@dimah-form/ui";
+
+export function Questionnaire() {
+  const form = useFormResponse({ snapshot });
+
+  return (
+    <FormUiProvider translations={fa} widgets={{ rating: StarRatingField }}>
+      <FormView form={form} />
+    </FormUiProvider>
+  );
+}
+```
+
+The built-in widgets cover `text`, `email`, `date`, `number`, `boolean`,
+`select`, and `multiSelect`. `file` has no upload widget. Register custom
+widgets by the same type string used by `defineFieldType`, or choose a
+registered widget with `field.meta.widget`.
+
+`layout="auto"` becomes a wizard when fields use `meta.step`; it renders review
+mode for locked responses. Force `fill`, `steps`, or `review` with `layout` or
+`form.meta.layout`.
+
+## Customize safely
+
+Slots—such as `header`, `progress`, `errorSummary`, and `actions`—accept
+`false`, a node, or a wrapper function. `render` replaces the layout; keep
+`FormRoot` inside it so submit and Enter behavior remain intact.
+
+```tsx
+<FormUiProvider
+  components={{ RequiredMark, FieldFrame: MyFieldFrame }}
+  formatIssue={(binding) =>
+    binding.errorCode === "TOO_SMALL" ? "Pick a higher score" : undefined
+  }
+>
+  <FormView form={form} />
+</FormUiProvider>
+```
+
+Use `FormFieldFrame` inside a custom widget so the consuming application's
+`FieldFrame` component and accessibility chrome still apply.
+
+## Type UI metadata
+
+```ts
+import type { FormDefinitionUi } from "@dimah-form/ui/types";
+
+export const onboarding = defineForm({
+  meta: { layout: "steps", steps: { "1": "About you", "2": "Work" } },
+  fields: [{ id: "name", type: "text", meta: { placeholder: "Ada", step: 1 } }],
+} satisfies FormDefinitionUi);
+```
+
+Common field metadata includes `placeholder`, `widget`, `section`, `step`,
+`width`, `help`, `prefix`, and `suffix`. Extra metadata is allowed. Add a
+`metaSchema` to `dimahForm()` when database-authored forms need server-side
+validation of that metadata.
+
+## Next
+
+<Cards>
+  <Card
+    title="React"
+    href="/docs/react"
+    description="Create the headless session this package renders."
+  />
+  <Card
+    title="Custom fields"
+    href="/docs/custom-fields"
+    description="Register a widget for a custom validator."
+  />
+</Cards>

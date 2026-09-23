@@ -1,0 +1,76 @@
+---
+title: Responses
+description: Snapshot definitions, drafts, lifecycle states, and compare-and-swap writes.
+icon: Camera
+---
+
+`startResponse` copies the active form into `response.definition`. Drafts,
+visibility rules, and submit validation use that snapshot—not the current live
+questionnaire.
+
+<Callout>
+  Editing a form never changes an in-flight draft or a submitted response.
+</Callout>
+
+## Lifecycle
+
+| Status      | Meaning                         | Available transitions |
+| ----------- | ------------------------------- | --------------------- |
+| `draft`     | Answers may be incomplete       | Save, submit, abandon |
+| `submitted` | Visible required answers passed | Reopen or delete      |
+| `abandoned` | Closed without submitting       | Reopen or delete      |
+
+| Call              | Effect                                                                             |
+| ----------------- | ---------------------------------------------------------------------------------- |
+| `startResponse`   | Freezes the definition and applies `defaultValue` values                           |
+| `saveDraft`       | Applies an answer patch; `null` removes a key                                      |
+| `submitResponse`  | Strips hidden values, validates visible fields, then locks the response            |
+| `abandonResponse` | Locks an unfinished response                                                       |
+| `reopenResponse`  | Returns a submitted or abandoned response to `draft` without changing its snapshot |
+
+Pass `{ resume: true, respondentId }` to `startResponse` to reuse the latest
+draft for that respondent. The server rejects `resume: true` without a
+`respondentId`.
+
+## Concurrent edits
+
+Draft writes and submits accept the `updatedAt` token from the last read. The
+store writes only if it still matches; otherwise the request fails with
+`STALE_UPDATE`. `useFormResponse` refreshes a session on that conflict.
+
+Do not omit `updatedAt` unless an intentional last-write-wins update is the
+desired behavior.
+
+## Stored record
+
+```ts
+type ResponseRecord = {
+  id: string;
+  formId: string;
+  status: "draft" | "submitted" | "abandoned";
+  definition: FormSnapshot;
+  answers: Record<string, unknown>;
+  respondentId: string | null;
+  submittedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+```
+
+Set `respondentId` on the server in `onStart`; never trust a browser-supplied
+owner id. See [Security](/docs/security).
+
+## Next
+
+<Cards>
+  <Card
+    title="React"
+    href="/docs/react"
+    description="Use the response lifecycle in a fill session."
+  />
+  <Card
+    title="Protocol"
+    href="/docs/protocol"
+    description="Call the same lifecycle over HTTP or form.api."
+  />
+</Cards>

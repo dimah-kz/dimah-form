@@ -1,118 +1,81 @@
 ---
 title: Introduction
-description: Backend-first questionnaires for React — snapshots, drafts, and submit validation. You own the UI.
+description: A backend-first questionnaire engine for React and Node.js.
 icon: House
 ---
 
-dimah-form is a questionnaire engine for React and Node.js.
-It freezes the form onto every response, validates answers against that snapshot, and gives React a headless fill session.
-Rendering is yours, or optional `@dimah-form/ui`.
+dimah-form is a backend-first questionnaire engine for React and Node.js.
+It owns the protocol, per-response definition snapshots, drafts, and submit validation.
+Your application owns authentication, persistence, and rendering.
 
-## Architecture flow
+Use it when a questionnaire belongs inside your product and must keep its original definition after the live form changes.
+It is not a visual builder, hosted survey service, authentication system, or analytics warehouse.
+
+<Callout>
+  **Start here:** complete [Quickstart](/docs/quickstart), then read
+  [Forms](/docs/forms), [Responses](/docs/responses), and
+  [Integration](/docs/integration) in that order.
+</Callout>
+
+## The model
 
 <Flow
-  label="Fill session"
+  label="One response"
   steps={[
-    { name: "Browser", kind: "client", note: "useFormResponse" },
-    { name: "Server", kind: "server", note: "guard, then snapshot check" },
-    { name: "Store", kind: "data", note: "definition + answers" },
+    { name: "Author", kind: "data", note: "Define or save a form" },
+    { name: "Start", kind: "server", note: "Freeze the definition" },
+    { name: "Fill", kind: "client", note: "Draft and validate" },
+    { name: "Submit", kind: "server", note: "Validate the snapshot" },
   ]}
 />
 
-A fill starts from the live form, then keeps that definition.
-Later edits do not change in-flight drafts or submitted rows.
+When a response starts, the server stores a copy of the active form in
+`response.definition`. Later edits to the live questionnaire do not affect
+that draft or submitted response.
 
-**For coding agents** — [llms.txt](/llms.txt) · [llms-full.txt](/llms-full.txt).
+## What you install
 
----
+| Need                                    | Package                                      |
+| --------------------------------------- | -------------------------------------------- |
+| Server instance, handler, and adapters  | `@dimah-form/server`                         |
+| React client and fill session           | `@dimah-form/react`                          |
+| Production SQL adapter                  | `@dimah-form/db`                             |
+| Optional shadcn renderer                | `@dimah-form/ui`                             |
+| Optional scoring, export, and summaries | `@dimah-form/scoring`, `dataset`, `insights` |
 
-## What you get
+`database` is required on `dimahForm()`. SQL is optional: use
+`memoryAdapter()` for tests and local development, or a persistent
+`ResponseStore` in production.
 
-- **Snapshots** — submit checks the definition taken at start
-- **Drafts** — partial saves with `updatedAt` compare-and-swap
-- **Headless client** — `useFormResponse` and field bindings
-- **Optional UI** — shadcn renderer on the same session
-- **Server hooks** — auth in `guard`, ownership and side effects in `on*` / `after*`
-- **Optional SQL** — `memoryAdapter()`, or `@dimah-form/db` when rows must survive a restart
-
-It is not a visual builder or a hosted survey product.
-
-## Packages
-
-| Package                | Role                                               |
-| ---------------------- | -------------------------------------------------- |
-| `@dimah-form/server`   | `dimahForm()` — HTTP handler, `form.api`, adapters |
-| `@dimah-form/react`    | `createFormClient()`, `useFormResponse()`          |
-| `@dimah-form/ui`       | Optional shadcn renderer                           |
-| `@dimah-form/db`       | Optional SQL adapter (FumaDB)                      |
-| `@dimah-form/scoring`  | Optional scores from the snapshot (`meta.scoring`) |
-| `@dimah-form/dataset`  | Optional JSONL + codebook export                   |
-| `@dimah-form/insights` | Optional read-side summaries                       |
-| `@dimah-form/core`     | Protocol. Apps import `server` or `react` instead  |
-
-`database` is required. A SQL database is not.
-
-## Frequently asked questions
-
-<Accordions>
-
-<Accordion title="When should I choose dimah-form?">
-
-When the questionnaire is part of your app: typed definitions, drafts, and server-side submit checks, with your own UI or `@dimah-form/ui`.
-
-Skip it for a drag-and-drop builder or a hosted survey.
-
-</Accordion>
-
-<Accordion title="Does dimah-form render inputs?">
-
-`@dimah-form/react` does not. Bind `q.field(id)` yourself, or add [`@dimah-form/ui`](/docs/ui).
-
-</Accordion>
-
-<Accordion title="Where does authentication live?">
-
-In your `guard`. The library does not ship sessions. See [Auth](/docs/auth).
-
-</Accordion>
-
-<Accordion title="Can someone still submit after the form changes?">
-
-Yes. Drafts and submits use `response.definition`, the snapshot stored at start. See [Snapshots](/docs/snapshots).
-
-</Accordion>
-
-</Accordions>
-
----
-
-## Explore documentation
+## Choose the right tool
 
 <Cards>
   <Card
     title="Quickstart"
     href="/docs/quickstart"
-    description="A working fill session in Next.js."
+    description="Build and mount a working Next.js form."
+  />
+  <Card
+    title="Comparison"
+    href="/docs/comparison"
+    description="Compare the model with form libraries, builders, and SaaS."
   />
   <Card
     title="Forms"
     href="/docs/forms"
-    description="defineForm, showWhen, and $Infer."
+    description="Define a questionnaire and infer answer types."
   />
   <Card
-    title="React"
-    href="/docs/react"
-    description="useFormResponse — visibility, drafts, and submit."
+    title="Responses"
+    href="/docs/responses"
+    description="Understand snapshots, drafts, and concurrency."
   />
   <Card
-    title="Server"
-    href="/docs/server"
-    description="dimahForm(), adapters, and form.api."
-  />
-  <Card title="UI" href="/docs/ui" description="Optional shadcn renderer." />
-  <Card
-    title="Database"
-    href="/docs/database"
-    description="memoryAdapter, or SQL with FumaDB."
+    title="Example app"
+    href="https://github.com/dimah-kz/dimah-form/tree/main/examples/next"
+    description="See scoring, custom fields, SQL, and exports together."
   />
 </Cards>
+
+For coding agents, fetch [llms.txt](/llms.txt) for the decision sheet or
+[llms-full.txt](/llms-full.txt) for the complete Markdown corpus.

@@ -1,0 +1,106 @@
+---
+title: Forms
+description: Define questionnaires, conditional fields, and typed answers.
+icon: FileText
+---
+
+Forms are TypeScript definitions passed through `forms`, or live questionnaire
+rows saved with `saveForm`. Code-authored forms feed `$Infer`; database forms
+are intentionally dynamic.
+
+```ts title="lib/forms/onboarding.ts"
+import { defineForm } from "@dimah-form/server";
+
+export const onboarding = defineForm({
+  title: "Employee onboarding",
+  slug: "onboarding",
+  status: "active",
+  fields: [
+    { id: "name", type: "text", label: "Full name", required: true },
+    {
+      id: "team",
+      type: "select",
+      label: "Team",
+      required: true,
+      options: [
+        { value: "engineering", label: "Engineering" },
+        { value: "design", label: "Design" },
+      ],
+    },
+    {
+      id: "github",
+      type: "text",
+      label: "GitHub username",
+      showWhen: { field: "team", equals: "engineering" },
+    },
+  ],
+});
+```
+
+```ts title="lib/form.ts"
+export const form = dimahForm({
+  database: memoryAdapter(),
+  forms: { onboarding },
+});
+
+export type Form = typeof form;
+```
+
+`id` is the catalog key; `slug` defaults to it. `getForm` and
+`startResponse` accept either value. Only an `"active"` form can start a
+response.
+
+## Conditional fields
+
+`showWhen` is sibling visibility. A hidden field is omitted from
+`visibleFields`, and its answer is stripped on submit.
+
+```ts
+showWhen: { field: "role", equals: "manager" }
+showWhen: { field: "plan", notEquals: "free" }
+showWhen: { field: "stack", includes: "typescript" }
+
+showWhen: {
+  all: [
+    { field: "level", equals: "senior" },
+    { field: "location", equals: "remote" },
+  ],
+}
+```
+
+Use `all` or `any` for nested rules. The referenced field must be a sibling;
+cycles, unknown targets, and invalid values are rejected when the definition
+is validated.
+
+## Code forms and live forms
+
+| Concern              | `forms: {}`                    | `saveForm()`                     |
+| -------------------- | ------------------------------ | -------------------------------- |
+| Authoring            | TypeScript in your application | A live database row              |
+| Answer inference     | `Form["$Infer"]["answers"]`    | `Record<string, unknown>`        |
+| Updating or deleting | Protected as code-authored     | Allowed when no responses remain |
+
+For a code-authored form, optional fields are optional in `$Infer`; a required
+field behind `showWhen` is also optional because it may be invisible.
+
+```ts
+type OnboardingAnswers = Form["$Infer"]["answers"]["onboarding"];
+```
+
+Built-in constraints and answer shapes are in [Field types](/docs/field-types).
+For validators beyond the built-ins, see [Custom fields](/docs/custom-fields).
+
+## Next
+
+<Cards>
+  <Card
+    title="Responses"
+    href="/docs/responses"
+    description="Learn what the server freezes when a response starts."
+  />
+  <Card
+    title="React"
+    href="/docs/react"
+    description="Bind visible fields in the browser."
+  />
+</Cards>

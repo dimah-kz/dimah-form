@@ -48,7 +48,8 @@ List endpoints default to 50 rows and cap at 100.
 
 `submitResponse` evaluates `showWhen`, drops hidden answers, then checks every visible field. Success sets `status: "submitted"` and `submittedAt`.
 
-The success body is a [`ResponseRecord`](/docs/snapshots#record), except list routes, which return a page.
+The success body is a [`ResponseRecord`](/docs/responses#stored-record), except
+list routes, which return a page.
 
 Plugin routes are not in this table. Scoring, dataset, and insights document their own paths.
 
@@ -61,13 +62,13 @@ Plugin routes are not in this table. Scoring, dataset, and insights document the
     description="Status codes on a failed call."
   />
   <Card
-    title="Snapshots"
-    href="/docs/snapshots"
+    title="Responses"
+    href="/docs/responses"
     description="What start, draft, and submit guarantee."
   />
   <Card
-    title="Server"
-    href="/docs/server"
+    title="Integration"
+    href="/docs/integration"
     description="Call the same methods without HTTP."
   />
 </Cards>

@@ -1,4 +1,4 @@
 {
   "title": "Reference",
-  "pages": ["field-types", "configuration", "protocol", "errors"]
+  "pages": ["configuration", "field-types", "protocol", "errors"]
 }

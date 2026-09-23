@@ -1,0 +1,98 @@
+---
+title: Dataset
+description: Export paged JSONL and historical codebooks from response snapshots.
+icon: Sheet
+---
+
+`@dimah-form/dataset` projects stored responses into `dimah.dataset/v1`:
+snapshot-correct records plus a codebook. It has no metadata namespace and adds
+no tables.
+
+```bash
+npm i @dimah-form/dataset
+```
+
+```ts title="lib/form.ts"
+import { datasetPlugin } from "@dimah-form/dataset";
+
+export const form = dimahForm({
+  database,
+  forms,
+  plugins: [
+    datasetPlugin({
+      onProject: async ({ record }) => warehouse.upsert(record.id, record),
+    }),
+  ],
+});
+```
+
+The client companion is `datasetClientPlugin()` from
+`@dimah-form/dataset/client`. The package depends on scoring: a valid scoring
+snapshot adds derived scores to its record, without changing stored answers.
+
+## Fetch pages and codebooks
+
+```ts
+const page = await form.api.getDatasetPage({
+  query: { formId: "gad7", limit: 100 },
+});
+
+const history = await form.api.getDatasetCodebook({
+  query: { formId: "gad7" },
+});
+```
+
+| Call                 | What it describes                                        |
+| -------------------- | -------------------------------------------------------- |
+| `getDatasetPage`     | One page of records and its page codebook                |
+| `getDatasetCodebook` | Historical union of snapshots in a filtered response set |
+| `getLiveCodebook`    | The current live questionnaire only                      |
+
+The history endpoint walks response pages and is capped at 10,000 rows by
+default. `truncated` means the codebook is incomplete; lower the request cap or
+raise the plugin's `maxRows` before creating a full export.
+
+## Build an interchange file
+
+HTTP is deliberately paged. Zip files, timeouts, and object storage belong in
+your application.
+
+```ts
+import {
+  createCsvEncoder,
+  createDatasetReader,
+  toJsonl,
+} from "@dimah-form/dataset";
+
+const reader = createDatasetReader({
+  page: ({ limit, offset }) =>
+    form.api.getDatasetPage({ query: { formId, limit, offset } }),
+  codebook: () => form.api.getDatasetCodebook({ query: { formId } }),
+});
+
+const { records, codebook } = await reader.readAll();
+const jsonl = toJsonl(records);
+const csv = createCsvEncoder(codebook);
+```
+
+Records carry a `snapshotKey`: an RFC 8785 SHA-256 fingerprint of the
+instrument that produced them. Join a record to the matching historical
+codebook entry rather than flattening it against the live form.
+
+`toDataPackage()` produces a Frictionless data package; it returns files, not a
+zip archive.
+
+## Next
+
+<Cards>
+  <Card
+    title="Insights"
+    href="/docs/plugins/insights"
+    description="Read aggregates for an administrative view."
+  />
+  <Card
+    title="Responses"
+    href="/docs/responses"
+    description="Understand why every export is snapshot-based."
+  />
+</Cards>

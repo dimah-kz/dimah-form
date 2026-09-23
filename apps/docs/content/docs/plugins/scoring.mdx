@@ -1,0 +1,99 @@
+---
+title: Scoring
+description: Compute Likert totals, keying, bands, and missing-item policies from snapshots.
+icon: Gauge
+---
+
+`@dimah-form/scoring` computes named scores from a response definition snapshot
+and its answers. It never writes scores into `answers` and adds no tables.
+
+```bash
+npm i @dimah-form/scoring
+```
+
+```ts title="lib/form.ts"
+import { scoringPlugin } from "@dimah-form/scoring";
+
+export const form = dimahForm({
+  database,
+  forms,
+  plugins: [scoringPlugin()],
+});
+```
+
+For browser-side previews and typed plugin endpoints, add the matching
+`scoringClientPlugin()` from `@dimah-form/scoring/client`.
+
+## Author a score
+
+There is no `likert` field type. Use `select`, `multiSelect`, `number`, or
+`boolean`, then configure scoring in `meta.scoring`.
+
+```ts
+const likert = [
+  { value: "0", label: "Not at all", meta: { scoring: { points: 0 } } },
+  { value: "1", label: "Several days", meta: { scoring: { points: 1 } } },
+  { value: "2", label: "More than half", meta: { scoring: { points: 2 } } },
+  { value: "3", label: "Nearly every day", meta: { scoring: { points: 3 } } },
+];
+
+export const gad7 = defineAppForm({
+  title: "GAD-7",
+  meta: {
+    scoring: {
+      variables: [{ id: "gad7", label: "GAD-7", min: 0, max: 21 }],
+      bands: [
+        { variable: "gad7", from: 0, to: 4, label: "Minimal" },
+        { variable: "gad7", from: 5, to: 9, label: "Mild" },
+      ],
+    },
+  },
+  fields: [
+    {
+      id: "q1",
+      type: "select",
+      options: likert,
+      meta: { scoring: { variable: "gad7" } },
+    },
+  ],
+});
+```
+
+`option.points` contributes to a field's `variable`. Use `option.add` when one
+choice contributes to one or more variables; never mix it with `points`.
+`reverse` works for `select`, `number`, and `boolean`, not `multiSelect`.
+
+## Read results
+
+```ts
+import { scoreResponse } from "@dimah-form/scoring/client";
+
+const preview = scoreResponse(session.snapshot, session.answers);
+const stored = await form.api.getResponseScores({ query: { responseId } });
+```
+
+Compute with the session snapshot or stored `response.definition`, never a
+later live form. The result contains each variable's `raw`, `missing`,
+`complete`, optional `band`, and configured bounds.
+
+Missing items default to `"incomplete"`. Set a variable policy to `"zero"` or
+`"omit"` when the scoring instrument requires it. Bands are labels; formulas
+support sums of distinct variables only.
+
+`onScore` runs after submit persistence. It may project scores to your own
+database, but should not mutate `response.answers`.
+
+## Next
+
+<Cards>
+  <Card
+    title="Dataset"
+    href="/docs/plugins/dataset"
+    description="Export snapshot-correct responses and score values."
+  />
+  <Card
+    title="Insights"
+    href="/docs/plugins/insights"
+    description="Aggregate score bands across responses."
+  />
+</Cards>

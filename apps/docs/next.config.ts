@@ -5,22 +5,23 @@ import { PRODUCTION_SITE_ORIGIN } from "./src/lib/site-url";
 const withMDX = createMDX();
 const legacyVercelHost = "dimah-form.vercel.app";
 
-/** Old flat URLs (9a7a91f) and nested IA URLs → current flat pages. */
+/** Retired URLs and pre-reset IA routes → canonical documentation pages. */
 const pageMoves: [string, string][] = [
-  ["/docs/setup", "/docs/server"],
+  ["/docs/setup", "/docs/integration"],
   ["/docs/fill", "/docs/react"],
-  ["/docs/helpers", "/docs/react"],
-  ["/docs/hooks", "/docs/auth"],
-  ["/docs/responses", "/docs/snapshots"],
-  ["/docs/concepts/architecture", "/docs/architecture"],
-  ["/docs/concepts/snapshots", "/docs/snapshots"],
-  ["/docs/concepts", "/docs/architecture"],
-  ["/docs/guides/server", "/docs/server"],
+  ["/docs/helpers", "/docs/widgets"],
+  ["/docs/hooks", "/docs/security"],
+  ["/docs/snapshots", "/docs/responses"],
+  ["/docs/architecture", "/docs"],
+  ["/docs/concepts/architecture", "/docs"],
+  ["/docs/concepts/snapshots", "/docs/responses"],
+  ["/docs/concepts", "/docs"],
+  ["/docs/guides/server", "/docs/integration"],
   ["/docs/guides/forms", "/docs/forms"],
-  ["/docs/guides/database", "/docs/database"],
+  ["/docs/guides/database", "/docs/persistence"],
   ["/docs/guides/react", "/docs/react"],
   ["/docs/guides/custom-fields", "/docs/custom-fields"],
-  ["/docs/guides/auth", "/docs/auth"],
+  ["/docs/guides/auth", "/docs/security"],
   ["/docs/guides/plugins", "/docs/plugins"],
   ["/docs/guides", "/docs"],
   ["/docs/reference/protocol", "/docs/protocol"],
@@ -29,6 +30,12 @@ const pageMoves: [string, string][] = [
   ["/docs/reference/configuration", "/docs/configuration"],
   ["/docs/reference", "/docs/protocol"],
   ["/docs/examples", "/docs"],
+  ["/docs/server", "/docs/integration"],
+  ["/docs/database", "/docs/persistence"],
+  ["/docs/auth", "/docs/security"],
+  ["/docs/scoring", "/docs/plugins/scoring"],
+  ["/docs/dataset", "/docs/plugins/dataset"],
+  ["/docs/insights", "/docs/plugins/insights"],
 ];
 
 const nextConfig: NextConfig = {

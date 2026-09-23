@@ -1,6 +1,6 @@
 ---
-title: React
-description: useFormResponse — visibility, drafts, validation timing, and submit.
+title: Client session
+description: Create a headless fill session with visibility, drafts, and submit.
 icon: PenLine
 ---
 
@@ -22,7 +22,8 @@ export const { useFormResponse } = formClient;
 
 Prefer the bound hook from your client. The unbound `useFormResponse` import needs `formClient.Provider`.
 
-`basePath` must match the server. Cross-origin cookies and auth headers: [Auth](/docs/auth). Full option list: [Configuration](/docs/configuration).
+`basePath` must match the server. Cross-origin cookies and auth headers:
+[Security](/docs/security). Full option list: [Configuration](/docs/configuration).
 
 ## Fill session
 
@@ -131,7 +132,9 @@ Branch on `field.type` yourself, or render with [`FormView`](/docs/ui).
 
 <Accordion title="How do I show a select, checkbox, or number?">
 
-`q.field(id)` is untyped at the DOM boundary — narrow `value` yourself, or use the helpers on [Widgets](/docs/widgets). `@dimah-form/ui` already maps built-in types.
+`q.field(id)` is untyped at the DOM boundary — narrow `value` yourself, or use
+the helpers in [Custom rendering](/docs/widgets). `@dimah-form/ui` already
+maps built-in types.
 
 </Accordion>
 
@@ -152,13 +155,13 @@ Read `binding.errorCode` and `binding.errorParams`. English `binding.error` is t
     description="Optional shadcn renderer for this session."
   />
   <Card
-    title="Widgets"
+    title="Custom rendering"
     href="/docs/widgets"
     description="Bind FormFieldBinding to your own controls."
   />
   <Card
-    title="Auth"
-    href="/docs/auth"
+    title="Security"
+    href="/docs/security"
     description="Send cookies and stamp respondentId on the server."
   />
 </Cards>

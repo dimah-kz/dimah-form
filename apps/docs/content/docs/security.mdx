@@ -1,0 +1,117 @@
+---
+title: Security
+description: Authorize with guard, set ownership in hooks, and run side effects safely.
+icon: Shield
+---
+
+dimah-form does not ship sessions or roles. Your application authorizes each
+operation in `guard`, sets trusted ownership in `onStart`, and runs side effects
+in `after*`.
+
+<Flow
+  label="Authorized write"
+  steps={[
+    { name: "Guard", kind: "server", note: "Reject early" },
+    { name: "Validate", kind: "protocol", note: "Snapshot" },
+    { name: "on*", kind: "server", note: "Set ownership" },
+    { name: "Store", kind: "data", note: "Persist" },
+    { name: "after*", kind: "server", note: "Side effects" },
+  ]}
+/>
+
+## Authorize requests
+
+`guard` runs before form logic. Throw an `APIError` with a stable code to reject
+the request. Use `getResponse()` and `getForm()` for ownership checks; they read
+the store and do not call HTTP or re-enter `guard`.
+
+```ts title="lib/form.ts"
+import {
+  APIError,
+  FORM_ERROR_CODES,
+  dimahForm,
+  memoryAdapter,
+} from "@dimah-form/server";
+
+export const form = dimahForm({
+  database: memoryAdapter(),
+  forms,
+  guard: async ({ request, operation, responseId, getResponse }) => {
+    const session = await getSession(request);
+    if (!session) {
+      throw APIError.from("UNAUTHORIZED", FORM_ERROR_CODES.UNAUTHORIZED);
+    }
+
+    if (operation === "listResponses" && session.user.role !== "admin") {
+      throw APIError.from("FORBIDDEN", FORM_ERROR_CODES.FORBIDDEN);
+    }
+
+    if (!responseId) return;
+    const response = await getResponse(responseId);
+    if (response?.respondentId !== session.user.id) {
+      throw APIError.from("FORBIDDEN", FORM_ERROR_CODES.FORBIDDEN);
+    }
+  },
+});
+```
+
+Plugin endpoints use their endpoint key as `operation`, so apply the same
+authorization policy to them.
+
+## Trust the server, not the browser
+
+Set `respondentId` after validation and before persistence. Do not accept an
+owner sent from client code.
+
+```ts title="lib/form.ts"
+export const form = dimahForm({
+  database,
+  hooks: {
+    onStart: async ({ request, response }) => {
+      const session = await getSession(request);
+      if (session) response.respondentId = session.user.id;
+    },
+    afterSubmit: async ({ response }) => {
+      await sendReceipt(response);
+    },
+  },
+});
+```
+
+`on*` hooks run after validation and before the write; throwing aborts it.
+`after*` hooks run after a successful write. An `after*` failure can make the
+HTTP request fail even though the row is already stored, so design side effects
+to be idempotent.
+
+## Browser credentials
+
+Configure the client for your own session scheme:
+
+```ts title="lib/form-client.ts"
+export const formClient = createFormClient<Form>({
+  basePath: "/api/form",
+  credentials: "include",
+  headers: async () => {
+    const token = await getClientToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  },
+});
+```
+
+`form.api` has no browser context; pass request headers explicitly when its
+`guard` needs them.
+
+## Next
+
+<Cards>
+  <Card
+    title="Errors"
+    href="/docs/errors"
+    description="Use stable error codes in guards and clients."
+  />
+  <Card
+    title="Plugins"
+    href="/docs/plugins"
+    description="Authorize optional plugin endpoints in the same guard."
+  />
+</Cards>

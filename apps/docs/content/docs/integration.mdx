@@ -1,0 +1,107 @@
+---
+title: Integration
+description: Create dimahForm(), mount its handler, and use form.api on the server.
+icon: Server
+---
+
+`@dimah-form/server` creates one instance with an HTTP `handler` and an
+in-process `api`. Persistence is required; SQL is not.
+
+```ts title="lib/form.ts"
+import { dimahForm, memoryAdapter } from "@dimah-form/server";
+import { forms } from "@/lib/forms";
+
+export const form = dimahForm({
+  database: memoryAdapter(),
+  forms,
+  basePath: "/api/form",
+});
+
+export type Form = typeof form;
+```
+
+`basePath` must match `createFormClient()`. Use `memoryAdapter()` for tests and
+local development; choose SQL or a custom `ResponseStore` in
+[Persistence](/docs/persistence).
+
+## Mount the handler
+
+```ts title="app/api/form/[...all]/route.ts"
+import { toNextJsHandler } from "@dimah-form/server/next";
+import { form } from "@/lib/form";
+
+export const { GET, POST, PUT, PATCH, DELETE } = toNextJsHandler(form);
+```
+
+Supported adapters are `next`, `node`, `express`, `hono`, `fastify`, `elysia`,
+and `svelte-kit`. Each receives the same `form` instance:
+
+| Runtime   | Import                                                 |
+| --------- | ------------------------------------------------------ |
+| Express   | `@dimah-form/server/express` → `toExpressHandler`      |
+| Hono      | `@dimah-form/server/hono` → `toHonoHandler`            |
+| Fastify   | `@dimah-form/server/fastify` → `toFastifyHandler`      |
+| Elysia    | `@dimah-form/server/elysia` → `toElysiaHandler`        |
+| SvelteKit | `@dimah-form/server/svelte-kit` → `toSvelteKitHandler` |
+| Node.js   | `@dimah-form/server/node` → `toNodeHandler`            |
+
+For an edge or Fetch runtime, forward the request directly:
+
+```ts
+export default {
+  fetch(request: Request) {
+    return form.handler(request);
+  },
+};
+```
+
+## Call in process
+
+`form.api` exposes the same operations as HTTP without a loopback request.
+Forward request headers when `guard` needs the caller's session.
+
+```tsx title="app/survey/[slug]/page.tsx"
+import { headers } from "next/headers";
+import { notFound } from "next/navigation";
+import { isFormErrorCode } from "@dimah-form/server";
+import { Questionnaire } from "@/components/questionnaire";
+import { form } from "@/lib/form";
+
+export default async function SurveyPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+
+  try {
+    const snapshot = await form.api.getForm({
+      query: { formId: slug },
+      headers: await headers(),
+    });
+    return <Questionnaire form={snapshot} />;
+  } catch (error) {
+    if (isFormErrorCode(error, "UNKNOWN_FORM")) notFound();
+    throw error;
+  }
+}
+```
+
+Route paths and request payloads are documented in [Protocol](/docs/protocol).
+Put authorization and side effects in [Security](/docs/security), not in an
+adapter.
+
+## Next
+
+<Cards>
+  <Card
+    title="Persistence"
+    href="/docs/persistence"
+    description="Choose memory, SQL, or a custom store."
+  />
+  <Card
+    title="Security"
+    href="/docs/security"
+    description="Authorize operations and stamp response ownership."
+  />
+</Cards>

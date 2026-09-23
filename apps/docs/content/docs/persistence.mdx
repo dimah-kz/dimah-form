@@ -1,0 +1,114 @@
+---
+title: Persistence
+description: Store forms and responses in memory, SQL, or a custom ResponseStore.
+icon: Database
+---
+
+`database` is required by `dimahForm()`. It is a first-class instance option,
+not a plugin. `@dimah-form/server` intentionally contains no ORM.
+
+| Adapter                            | Use it for                                     |
+| ---------------------------------- | ---------------------------------------------- |
+| `memoryAdapter()`                  | Tests, examples, and process-local development |
+| `db(formDb)` from `@dimah-form/db` | SQL through FumaDB                             |
+| A custom `ResponseStore`           | Your own persistence implementation            |
+
+## Memory
+
+```ts
+import { dimahForm, memoryAdapter } from "@dimah-form/server";
+
+export const form = dimahForm({
+  database: memoryAdapter(),
+  forms,
+});
+```
+
+The data disappears when the process restarts.
+
+## SQL with FumaDB
+
+```npm
+npm i @dimah-form/db fumadb
+```
+
+Copy the schema for your ORM, or generate it with the CLI and re-add the
+indexes. FumaDB's generator does not emit secondary indexes.
+
+<Tabs items={["Drizzle", "Prisma", "Kysely"]}>
+  <Tab value="Drizzle">
+    <include>../_includes/db/drizzle-schema.mdx</include>
+  </Tab>
+  <Tab value="Prisma">
+    <include>../_includes/db/prisma-schema.mdx</include>
+  </Tab>
+  <Tab value="Kysely">
+    <include>../_includes/db/indexes-sql.mdx</include>
+  </Tab>
+</Tabs>
+
+Create a FumaDB client for your ORM, then pass it to `db()`:
+
+```ts title="lib/form.ts"
+import { db } from "@dimah-form/db";
+import { dimahForm } from "@dimah-form/server";
+import { formDb } from "@/lib/db";
+import { forms } from "@/lib/forms";
+
+export const form = dimahForm({
+  database: db(formDb),
+  forms,
+});
+```
+
+The package README and [example app](https://github.com/dimah-kz/dimah-form/tree/main/examples/next)
+show Drizzle, Prisma, and Kysely client setup.
+
+## Generate the schema
+
+```ts title="scripts/db-cli.mts"
+import { DimahFormDB } from "@dimah-form/db";
+import { runCli } from "@dimah-form/db/cli";
+import { drizzleAdapter } from "fumadb/adapters/drizzle";
+
+void runCli(
+  DimahFormDB.client(drizzleAdapter({ db: {} as never, provider: "sqlite" })),
+);
+```
+
+```bash
+node --import tsx scripts/db-cli.mts generate latest -o ./lib/schema.ts
+```
+
+After generating, retain these indexes:
+
+| Index                                      | Columns                                                     |
+| ------------------------------------------ | ----------------------------------------------------------- |
+| `questionnaire_status_updated_at_idx`      | `status`, `updated_at`                                      |
+| `response_questionnaire_id_updated_at_idx` | `questionnaire_id`, `updated_at`                            |
+| `response_respondent_id_updated_at_idx`    | `respondent_id`, `updated_at`                               |
+| `response_draft_lookup_idx`                | `questionnaire_id`, `respondent_id`, `status`, `updated_at` |
+
+## Custom stores
+
+Pass a `ResponseStore` implementation directly as `database`; do not wrap it
+in `db()`. The store supports form CRUD, response CRUD, list/count operations,
+and draft lookup. When a write receives `expectedUpdatedAt`, throw
+`StoreConflictError` on a mismatch so the HTTP layer returns `STALE_UPDATE`.
+
+The full method contract is in [Configuration](/docs/configuration#responsestore).
+
+## Next
+
+<Cards>
+  <Card
+    title="Responses"
+    href="/docs/responses"
+    description="See why draft lookup and compare-and-swap matter."
+  />
+  <Card
+    title="Security"
+    href="/docs/security"
+    description="Authorize access to the rows your store returns."
+  />
+</Cards>

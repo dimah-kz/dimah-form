@@ -79,7 +79,7 @@ export const form = dimahForm({
 export type Form = typeof form;
 ```
 
-`memoryAdapter()` is process-local. For SQL, see [Database](/docs/database).
+`memoryAdapter()` is process-local. For SQL, see [Persistence](/docs/persistence).
 
 </Step>
 
@@ -94,7 +94,7 @@ import { form } from "@/lib/form";
 export const { GET, POST, PUT, PATCH, DELETE } = toNextJsHandler(form);
 ```
 
-Other runtimes: [Server](/docs/server).
+Other runtimes: [Integration](/docs/integration).
 
 </Step>
 
@@ -243,13 +243,14 @@ export const form = dimahForm({
 });
 ```
 
-See [Auth](/docs/auth).
+See [Security](/docs/security).
 
 </Accordion>
 
 <Accordion title="How do I keep drafts after a restart?">
 
-Replace `memoryAdapter()` with `db()` from `@dimah-form/db`. See [Database](/docs/database).
+Replace `memoryAdapter()` with `db()` from `@dimah-form/db`. See
+[Persistence](/docs/persistence).
 
 </Accordion>
 
@@ -268,3 +269,9 @@ const q = useFormResponse<"feedback">({
 </Accordion>
 
 </Accordions>
+
+## Continue
+
+The complete implementation, including custom fields, scoring, SQL persistence,
+dataset export, and insights, is in the
+[Next.js example](https://github.com/dimah-kz/dimah-form/tree/main/examples/next).

@@ -1,0 +1,104 @@
+---
+title: Overview
+description: Add optional endpoints, hooks, metadata validation, and client methods.
+icon: Puzzle
+---
+
+Plugins are additive application features. They can add endpoints, hooks, field
+types, stable error codes, metadata validation, and answer validation.
+Persistence is not a plugin—pass a `ResponseStore` to `database`.
+
+First-party packages are [Scoring](/docs/plugins/scoring),
+[Dataset](/docs/plugins/dataset), and [Insights](/docs/plugins/insights).
+
+## Server plugin
+
+```ts title="lib/plugins/analytics.ts"
+import { createFormEndpoint, definePlugin } from "@dimah-form/server";
+import * as z from "zod";
+
+export const analyticsPlugin = () =>
+  definePlugin({
+    id: "analytics",
+    endpoints: {
+      getFormStats: createFormEndpoint(
+        "/analytics/stats",
+        { method: "GET", query: z.object({ formId: z.string() }) },
+        async ({ query, context }) => {
+          const total = await context.config.database.countResponses({
+            formId: query.formId,
+          });
+          return { formId: query.formId, total };
+        },
+      ),
+    },
+  });
+```
+
+```ts title="lib/form.ts"
+export const form = dimahForm({
+  database,
+  forms,
+  plugins: [analyticsPlugin()],
+});
+```
+
+The endpoint key is the `guard` operation name. Authorize it as you would any
+admin operation.
+
+## Client companion
+
+Server plugins are not inferred by `createFormClient`. Create a browser-safe
+companion with the same `id`, error catalog, validators, and client endpoint
+methods:
+
+```ts title="lib/plugins/analytics-client.ts"
+import { defineClientPlugin } from "@dimah-form/react";
+
+export const analyticsClientPlugin = () =>
+  defineClientPlugin({
+    id: "analytics",
+    endpoints: ({ $fetch }) => ({
+      getStats: (formId: string) =>
+        $fetch<{ formId: string; total: number }>(
+          `/analytics/stats?formId=${encodeURIComponent(formId)}`,
+        ),
+    }),
+  });
+```
+
+```ts
+const plugins = [analyticsClientPlugin()] as const;
+const client = createFormClient<Form, typeof plugins>({ plugins });
+```
+
+## Plugin surface
+
+| Property                       | Purpose                                      |
+| ------------------------------ | -------------------------------------------- |
+| `endpoints`                    | Adds typed server and client operations      |
+| `hooks`                        | Adds lifecycle behavior                      |
+| `fieldTypes`                   | Adds validators; mirror them on the client   |
+| `metaNamespace` / `metaSchema` | Validates one namespaced metadata bag        |
+| `validateDefinition`           | Runs synchronous cross-field document checks |
+| `validateAnswers`              | Runs after individual field validators       |
+| `$ERROR_CODES`                 | Adds stable errors to the catalog            |
+| `dependsOn`                    | Orders setup, hooks, and validation          |
+
+Use a unique `metaNamespace`, such as `meta.scoring`. `init` is synchronous and
+may return a context that hooks read through `getPluginContext()`.
+
+## Next
+
+<Cards>
+  <Card
+    title="Custom fields"
+    href="/docs/custom-fields"
+    description="Add a validator without making it a plugin."
+  />
+  <Card
+    title="Security"
+    href="/docs/security"
+    description="Authorize plugin endpoint operations."
+  />
+</Cards>
