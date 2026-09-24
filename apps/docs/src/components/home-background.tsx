@@ -5,19 +5,9 @@ export function HomeBackground() {
       className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
     >
       <div className="absolute inset-0 bg-fd-background" />
-
-      {/* Top Ambient Glow */}
-      <div className="absolute -top-40 left-1/2 h-125 w-200 -translate-x-1/2 rounded-full bg-fd-primary/10 blur-[120px]" />
-
-      {/* Subtle secondary glow */}
-      <div className="absolute top-[40%] right-[-10%] h-100 w-125 rounded-full bg-cyan-500/8 blur-[100px]" />
-      <div className="absolute top-[75%] left-[-10%] h-100 w-125 rounded-full bg-fd-primary/5 blur-[100px]" />
-
-      {/* Precision Grid Pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,var(--color-fd-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-fd-border)_1px,transparent_1px)] mask-[linear-gradient(to_bottom,transparent,black_5%,black_90%,transparent)] bg-size-[48px_48px] opacity-25" />
-
-      {/* Radial vignette fade */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,var(--color-fd-background)_90%)]" />
+      <div className="absolute -top-64 left-1/2 h-120 w-208 -translate-x-1/2 rounded-full bg-fd-primary/10 blur-3xl" />
+      <div className="absolute inset-x-0 top-0 h-144 bg-[linear-gradient(to_right,var(--color-fd-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-fd-border)_1px,transparent_1px)] mask-[linear-gradient(to_bottom,black,transparent)] bg-size-[48px_48px] opacity-[0.14]" />
+      <div className="absolute inset-x-0 top-0 h-160 bg-[linear-gradient(to_bottom,transparent_20%,var(--color-fd-background)_100%)]" />
     </div>
   );
 }

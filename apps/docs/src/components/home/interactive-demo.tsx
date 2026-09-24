@@ -66,8 +66,8 @@ export type Form = typeof form;
 export const { GET, POST, PUT, PATCH, DELETE } = toNextJsHandler(form);`;
 
 const codeblock = {
-  className: "my-0 h-full rounded-none border-0 shadow-none",
-  viewportProps: { className: "max-h-[32rem]" },
+  className: "my-0 h-full rounded-none border-0 bg-transparent shadow-none",
+  viewportProps: { className: "max-h-[30rem]" },
 };
 
 const frameworks = [
@@ -78,7 +78,8 @@ const frameworks = [
 ] as const;
 
 export function InteractiveDemo() {
-  const [framework, setFramework] = useState<string>("nextjs");
+  const [framework, setFramework] =
+    useState<(typeof frameworks)[number]["id"]>("nextjs");
   const [rating, setRating] = useState<number>(5);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<string>("");
@@ -136,40 +137,71 @@ export function InteractiveDemo() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl overflow-hidden rounded-xl border bg-fd-card shadow-sm">
-      <div className="grid items-stretch lg:grid-cols-2">
-        <CodeBlockTabs
-          defaultValue="schema"
-          className="my-0 h-full rounded-none border-0 bg-transparent shadow-none"
+    <div className="mx-auto w-full max-w-6xl overflow-hidden rounded-2xl border border-fd-border/80 bg-fd-card/90 shadow-xl shadow-fd-foreground/5 backdrop-blur-sm">
+      <div className="grid items-stretch lg:grid-cols-[1.05fr_0.95fr]">
+        <section
+          aria-labelledby="definition-title"
+          className="min-w-0 border-b lg:border-s lg:border-b-0"
         >
-          <CodeBlockTabsList>
-            <CodeBlockTabsTrigger value="schema" className="font-mono text-xs">
-              lib/forms/feedback.ts
-            </CodeBlockTabsTrigger>
-            <CodeBlockTabsTrigger value="server" className="font-mono text-xs">
-              route.ts
-            </CodeBlockTabsTrigger>
-          </CodeBlockTabsList>
-          <CodeBlockTab value="schema">
-            <DynamicCodeBlock
-              lang="ts"
-              code={schemaCode}
-              codeblock={codeblock}
-            />
-          </CodeBlockTab>
-          <CodeBlockTab value="server">
-            <DynamicCodeBlock
-              lang="ts"
-              code={serverCode}
-              codeblock={codeblock}
-            />
-          </CodeBlockTab>
-        </CodeBlockTabs>
+          <div className="flex h-12 items-center justify-between border-b px-4 sm:px-5">
+            <span
+              id="definition-title"
+              className="text-sm font-medium text-fd-foreground"
+            >
+              Form definition
+            </span>
+            <span className="font-mono text-[0.7rem] text-fd-muted-foreground">
+              TypeScript
+            </span>
+          </div>
 
-        <div className="flex h-full flex-col border-t lg:border-s lg:border-t-0">
-          <div className="flex h-9.5 items-center justify-between border-b px-4 text-sm text-fd-muted-foreground">
-            <span>Fill session</span>
-            <span className="font-mono text-xs">
+          <CodeBlockTabs
+            defaultValue="schema"
+            className="my-0 h-full rounded-none border-0 bg-transparent shadow-none"
+          >
+            <CodeBlockTabsList>
+              <CodeBlockTabsTrigger
+                value="schema"
+                className="font-mono text-xs"
+              >
+                feedback.ts
+              </CodeBlockTabsTrigger>
+              <CodeBlockTabsTrigger
+                value="server"
+                className="font-mono text-xs"
+              >
+                route.ts
+              </CodeBlockTabsTrigger>
+            </CodeBlockTabsList>
+            <CodeBlockTab value="schema">
+              <DynamicCodeBlock
+                lang="ts"
+                code={schemaCode}
+                codeblock={codeblock}
+              />
+            </CodeBlockTab>
+            <CodeBlockTab value="server">
+              <DynamicCodeBlock
+                lang="ts"
+                code={serverCode}
+                codeblock={codeblock}
+              />
+            </CodeBlockTab>
+          </CodeBlockTabs>
+        </section>
+
+        <section
+          aria-labelledby="session-title"
+          className="flex min-w-0 flex-col bg-fd-background/30"
+        >
+          <div className="flex h-12 items-center justify-between border-b px-4 sm:px-5">
+            <span
+              id="session-title"
+              className="text-sm font-medium text-fd-foreground"
+            >
+              Response session
+            </span>
+            <span className="font-mono text-[0.7rem] text-fd-muted-foreground">
               {submittedResponse
                 ? submittedResponse.snapshotId
                 : draftRev > 1
@@ -179,91 +211,146 @@ export function InteractiveDemo() {
           </div>
 
           {submittedResponse ? (
-            <div className="flex flex-1 flex-col px-4 pt-5 pb-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-fd-foreground">
-                <CheckCircle2 className="size-4 text-fd-primary" />
-                Validated against the snapshot
+            <div
+              aria-atomic="true"
+              aria-live="polite"
+              className="flex flex-1 flex-col p-4 sm:p-5"
+            >
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-fd-primary/10 text-fd-primary">
+                  <CheckCircle2 className="size-4" aria-hidden />
+                </span>
+                <div>
+                  <p className="text-sm font-medium text-fd-foreground">
+                    Snapshot preview
+                  </p>
+                  <p className="mt-1 text-sm leading-relaxed text-fd-muted-foreground">
+                    This response keeps the definition it started with.
+                  </p>
+                </div>
               </div>
-              <div className="mt-4">
+              <div className="mt-5">
                 <DynamicCodeBlock
                   lang="json"
                   code={JSON.stringify(submittedResponse.answers, null, 2)}
                   codeblock={{
                     title: submittedResponse.id,
-                    className: "my-0",
+                    className:
+                      "my-0 overflow-hidden rounded-xl border bg-fd-background shadow-none",
                   }}
                 />
               </div>
               <button
                 type="button"
                 onClick={handleReset}
-                className="mt-auto inline-flex h-9 items-center gap-1.5 self-start rounded-lg border bg-fd-background px-3 text-sm text-fd-foreground hover:bg-fd-muted"
+                className="mt-6 inline-flex h-9 items-center gap-1.5 self-start rounded-lg border bg-fd-background px-3 text-sm font-medium text-fd-foreground transition-colors hover:bg-fd-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fd-ring"
               >
-                <RotateCcw className="size-3.5" />
-                Fill again
+                <RotateCcw className="size-3.5" aria-hidden />
+                Start over
               </button>
             </div>
           ) : (
             <form
               onSubmit={handleSubmit}
-              className="flex flex-1 flex-col justify-between gap-5 p-4 sm:p-5"
+              className="flex flex-1 flex-col justify-between gap-6 p-4 sm:p-5"
             >
               <div className="space-y-5">
-                <div className="space-y-2">
-                  <div className="text-sm font-medium text-fd-foreground">
-                    Primary framework <span className="text-rose-500">*</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    {frameworks.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setFramework(item.id)}
-                        className={cn(
-                          "h-9 rounded-lg border px-2 text-center text-sm transition-colors",
-                          framework === item.id
-                            ? "border-fd-primary bg-fd-primary/10 font-medium text-fd-foreground"
-                            : "bg-fd-background text-fd-muted-foreground hover:text-fd-foreground",
-                        )}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <fieldset>
+                  <legend className="text-sm font-medium text-fd-foreground">
+                    Primary framework{" "}
+                    <span aria-hidden className="text-rose-500">
+                      *
+                    </span>
+                    <span className="sr-only">Required</span>
+                  </legend>
+                  <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    {frameworks.map((item) => {
+                      const isSelected = framework === item.id;
 
-                <div className="space-y-2">
-                  <div className="text-sm font-medium text-fd-foreground">
-                    Satisfaction <span className="text-rose-500">*</span>
+                      return (
+                        <div key={item.id} className="relative">
+                          <input
+                            checked={isSelected}
+                            className="peer sr-only"
+                            id={`framework-${item.id}`}
+                            name="framework"
+                            onChange={() => setFramework(item.id)}
+                            required={item.id === "nextjs"}
+                            type="radio"
+                            value={item.id}
+                          />
+                          <label
+                            htmlFor={`framework-${item.id}`}
+                            className={cn(
+                              "flex h-10 cursor-pointer items-center justify-center rounded-lg border px-2 text-sm transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-fd-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-fd-background",
+                              isSelected
+                                ? "border-fd-primary bg-fd-primary/10 font-medium text-fd-foreground"
+                                : "border-fd-border bg-fd-background text-fd-muted-foreground hover:border-fd-primary/40 hover:text-fd-foreground",
+                            )}
+                          >
+                            {item.label}
+                          </label>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        onMouseEnter={() => setHoverRating(star)}
-                        onMouseLeave={() => setHoverRating(null)}
-                        onClick={() => setRating(star)}
-                        className={cn(
-                          "flex size-9 items-center justify-center rounded-lg border transition-colors",
-                          star <= currentDisplayRating
-                            ? "border-fd-primary/50 bg-fd-primary/10 text-fd-primary"
-                            : "bg-fd-background text-fd-muted-foreground hover:text-fd-foreground",
-                        )}
-                      >
-                        <Star
-                          className={cn(
-                            "size-4",
-                            star <= currentDisplayRating && "fill-current",
-                          )}
-                        />
-                      </button>
-                    ))}
-                    <span className="ms-2 font-mono text-xs text-fd-muted-foreground">
+                </fieldset>
+
+                <fieldset>
+                  <legend className="text-sm font-medium text-fd-foreground">
+                    Satisfaction{" "}
+                    <span aria-hidden className="text-rose-500">
+                      *
+                    </span>
+                    <span className="sr-only">Required</span>
+                  </legend>
+                  <div className="mt-2 flex items-center gap-1.5">
+                    {[1, 2, 3, 4, 5].map((star) => {
+                      const isHighlighted = star <= currentDisplayRating;
+
+                      return (
+                        <div key={star} className="relative">
+                          <input
+                            checked={rating === star}
+                            className="peer sr-only"
+                            id={`rating-${star}`}
+                            name="rating"
+                            onChange={() => setRating(star)}
+                            required={star === 1}
+                            type="radio"
+                            value={star}
+                          />
+                          <label
+                            htmlFor={`rating-${star}`}
+                            onMouseEnter={() => setHoverRating(star)}
+                            onMouseLeave={() => setHoverRating(null)}
+                            className={cn(
+                              "flex size-9 cursor-pointer items-center justify-center rounded-lg border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-fd-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-fd-background",
+                              isHighlighted
+                                ? "border-fd-primary/50 bg-fd-primary/10 text-fd-primary"
+                                : "border-fd-border bg-fd-background text-fd-muted-foreground hover:border-fd-primary/40 hover:text-fd-foreground",
+                            )}
+                          >
+                            <Star
+                              aria-hidden
+                              className={cn(
+                                "size-4",
+                                isHighlighted && "fill-current",
+                              )}
+                            />
+                            <span className="sr-only">{star} out of 5</span>
+                          </label>
+                        </div>
+                      );
+                    })}
+                    <span
+                      aria-live="polite"
+                      className="ms-2 font-mono text-xs text-fd-muted-foreground"
+                    >
                       {rating} / 5
                     </span>
                   </div>
-                </div>
+                </fieldset>
 
                 {showFeedback ? (
                   <div className="space-y-2">
@@ -271,7 +358,7 @@ export function InteractiveDemo() {
                       htmlFor="feedback-input"
                       className="text-sm font-medium text-fd-foreground"
                     >
-                      What can we improve?
+                      What could we improve?
                     </label>
                     <input
                       id="feedback-input"
@@ -279,7 +366,7 @@ export function InteractiveDemo() {
                       value={feedback}
                       onChange={(event) => setFeedback(event.target.value)}
                       placeholder="Share your thoughts"
-                      className="h-10 w-full rounded-lg border bg-fd-background px-3 text-sm text-fd-foreground placeholder:text-fd-muted-foreground/60 focus:border-fd-primary focus:ring-1 focus:ring-fd-ring focus:outline-none"
+                      className="h-10 w-full rounded-lg border border-fd-border bg-fd-background px-3 text-sm text-fd-foreground placeholder:text-fd-muted-foreground/60 focus-visible:border-fd-primary focus-visible:ring-2 focus-visible:ring-fd-ring/30 focus-visible:outline-none"
                     />
                   </div>
                 ) : null}
@@ -289,7 +376,7 @@ export function InteractiveDemo() {
                     htmlFor="email-input"
                     className="text-sm font-medium text-fd-foreground"
                   >
-                    Email
+                    Email address
                   </label>
                   <input
                     id="email-input"
@@ -297,7 +384,7 @@ export function InteractiveDemo() {
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder="developer@example.com"
-                    className="h-10 w-full rounded-lg border bg-fd-background px-3 text-sm text-fd-foreground placeholder:text-fd-muted-foreground/60 focus:border-fd-primary focus:ring-1 focus:ring-fd-ring focus:outline-none"
+                    className="h-10 w-full rounded-lg border border-fd-border bg-fd-background px-3 text-sm text-fd-foreground placeholder:text-fd-muted-foreground/60 focus-visible:border-fd-primary focus-visible:ring-2 focus-visible:ring-fd-ring/30 focus-visible:outline-none"
                   />
                 </div>
               </div>
@@ -307,16 +394,17 @@ export function InteractiveDemo() {
                   type="button"
                   onClick={handleSaveDraft}
                   disabled={isSavingDraft || isSubmitting}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-lg border bg-fd-background px-3 text-sm text-fd-muted-foreground hover:text-fd-foreground disabled:opacity-50"
+                  aria-busy={isSavingDraft}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg border bg-fd-background px-3 text-sm text-fd-muted-foreground transition-colors hover:text-fd-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fd-ring disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isSavedRecently ? (
                     <>
-                      <Check className="size-3.5 text-fd-primary" />
+                      <Check className="size-3.5 text-fd-primary" aria-hidden />
                       <span className="text-fd-foreground">Draft saved</span>
                     </>
                   ) : (
                     <>
-                      <Save className="size-3.5" />
+                      <Save className="size-3.5" aria-hidden />
                       {isSavingDraft ? "Saving…" : "Save draft"}
                     </>
                   )}
@@ -325,21 +413,29 @@ export function InteractiveDemo() {
                 <button
                   type="submit"
                   disabled={isSubmitting || isSavingDraft}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-fd-primary px-4 text-sm font-medium text-fd-primary-foreground hover:opacity-90 disabled:opacity-50"
+                  aria-busy={isSubmitting}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-fd-primary px-4 text-sm font-medium text-fd-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fd-ring disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isSubmitting ? (
                     "Validating…"
                   ) : (
                     <>
-                      <Send className="size-3.5" />
-                      Submit
+                      <Send className="size-3.5" aria-hidden />
+                      Submit response
                     </>
                   )}
                 </button>
               </div>
+              <p aria-live="polite" className="sr-only">
+                {isSavingDraft
+                  ? "Saving draft"
+                  : isSavedRecently
+                    ? "Draft saved"
+                    : ""}
+              </p>
             </form>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );

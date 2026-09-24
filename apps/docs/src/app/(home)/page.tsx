@@ -5,17 +5,12 @@ import { MinimalCta } from "@/components/home/minimal-cta";
 
 export default function HomePage() {
   return (
-    <div className="relative isolate min-h-screen w-full overflow-hidden px-4 sm:px-6 lg:px-8">
+    <div className="relative isolate min-h-screen w-full overflow-x-clip px-4 sm:px-6 lg:px-8">
       <HomeBackground />
 
-      <main className="mx-auto max-w-7xl">
-        {/* Minimal Hero with interactive code & live demo */}
+      <main className="mx-auto w-full max-w-7xl">
         <HeroSection />
-
-        {/* 1 Single Minimal Section: Core 3 Pillars */}
         <CoreFeatures />
-
-        {/* Minimal Bottom CTA */}
         <MinimalCta />
       </main>
     </div>

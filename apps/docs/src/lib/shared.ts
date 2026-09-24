@@ -7,10 +7,12 @@ export const docsImageRoute = "/og/docs";
 export const docsContentRoute = "/llms.mdx/docs";
 
 /** Landing H1, browser tab, and Open Graph title — keep these in sync. */
-export const siteTagline = "Backend-first questionnaires for React and Node.js";
+export const siteHeadline = "Questionnaire infrastructure.";
+export const siteHeadlineAccent = "Rendered by you.";
+export const siteTagline = `${siteHeadline} ${siteHeadlineAccent}`;
 export const siteTitle = `${appName} — ${siteTagline}`;
 export const siteDescription =
-  "The library owns the protocol, definition snapshots, drafts, and submit validation. Your application owns authentication, persistence, and rendering.";
+  "Define once. Snapshot every response. Keep your UI, auth, and persistence in your hands.";
 
 /** Site-wide terms for the homepage, layout, and JSON-LD — not copied onto every docs page. */
 export const siteKeywords = [

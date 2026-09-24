@@ -2,7 +2,12 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import { githubRepoUrl, siteDescription, siteTagline } from "@/lib/shared";
+import {
+  githubRepoUrl,
+  siteDescription,
+  siteHeadline,
+  siteHeadlineAccent,
+} from "@/lib/shared";
 import { InteractiveDemo } from "./interactive-demo";
 
 function GitHubIcon() {
@@ -17,33 +22,42 @@ export function HeroSection() {
   const githubUrl = githubRepoUrl();
 
   return (
-    <div className="relative pt-14 pb-6 sm:pt-20 sm:pb-8">
-      <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+    <section
+      aria-labelledby="hero-heading"
+      className="relative pt-16 pb-10 sm:pt-24 sm:pb-12"
+    >
+      <div className="mx-auto flex max-w-4xl flex-col items-center text-center">
         <Link
-          href="/docs"
-          className="group inline-flex items-center gap-2 rounded-full border bg-fd-card px-3 py-1 text-xs font-medium text-fd-muted-foreground shadow-sm transition-colors hover:text-fd-foreground"
+          href="/docs/quickstart"
+          className="group inline-flex items-center gap-2 rounded-full border bg-fd-card/80 px-3.5 py-1.5 text-xs font-medium text-fd-muted-foreground shadow-sm backdrop-blur-sm transition-colors hover:border-fd-primary/40 hover:text-fd-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fd-ring"
         >
-          Questionnaire engine
+          Open source · TypeScript
           <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5 rtl:rotate-180" />
         </Link>
 
         <h1
           id="hero-heading"
-          className="mt-5 text-4xl font-semibold tracking-tight text-balance text-fd-foreground sm:text-5xl"
+          className="mt-7 max-w-4xl text-4xl font-semibold tracking-[-0.04em] text-balance text-fd-foreground sm:text-6xl sm:leading-[1.05]"
         >
-          {siteTagline}
+          <span className="block">{siteHeadline}</span>
+          <span className="block bg-linear-to-r from-fd-primary via-cyan-500 to-teal-500 bg-clip-text text-transparent dark:via-cyan-200 dark:to-teal-200">
+            {siteHeadlineAccent}
+          </span>
         </h1>
 
-        <p className="mt-4 max-w-2xl text-base leading-relaxed text-balance text-fd-muted-foreground sm:text-lg">
+        <p className="mt-5 max-w-2xl text-base leading-relaxed text-balance text-fd-muted-foreground sm:text-lg">
           {siteDescription}
         </p>
 
-        <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link
             href="/docs/quickstart"
-            className={cn(buttonVariants(), "h-10 px-5 text-sm font-medium")}
+            className={cn(
+              buttonVariants(),
+              "h-10 px-5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fd-ring",
+            )}
           >
-            Quickstart
+            Start building
             <ArrowRight className="size-4 rtl:rotate-180" />
           </Link>
 
@@ -53,18 +67,36 @@ export function HeroSection() {
             rel="noreferrer"
             className={cn(
               buttonVariants({ variant: "outline" }),
-              "h-10 px-5 text-sm font-medium",
+              "h-10 px-5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fd-ring",
             )}
           >
             <GitHubIcon />
-            GitHub
+            View on GitHub
           </Link>
         </div>
+
+        <p className="mt-5 text-xs text-fd-muted-foreground">
+          Next.js, Hono, Express, Fastify, Elysia, and SvelteKit.
+        </p>
       </div>
 
-      <div className="mt-12 sm:mt-16">
-        <InteractiveDemo />
+      <div className="relative mt-14 sm:mt-18">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-[15%] -top-8 h-52 rounded-full bg-fd-primary/15 blur-3xl sm:-top-12 sm:h-64"
+        />
+        <div className="relative">
+          <div className="mx-auto mb-4 flex max-w-6xl items-center justify-between gap-4 px-1">
+            <p className="font-mono text-[0.7rem] font-medium tracking-[0.14em] text-fd-muted-foreground uppercase">
+              Response flow
+            </p>
+            <span className="text-xs text-fd-muted-foreground">
+              Interactive preview
+            </span>
+          </div>
+          <InteractiveDemo />
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
