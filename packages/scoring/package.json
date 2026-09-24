@@ -9,8 +9,7 @@
     "scoring",
     "likert",
     "keying",
-    "subscale",
-    "gad-7",
+    "bands",
     "typescript"
   ],
   "homepage": "https://form.dimah.dev/docs/plugins/scoring",

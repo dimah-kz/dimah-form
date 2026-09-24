@@ -1,7 +1,7 @@
 {
   "name": "@dimah-form/react",
   "version": "0.6.1",
-  "description": "Thin React client for dimah-form — typed hooks and protocol access",
+  "description": "Headless React client for dimah-form — typed fill-session hooks",
   "keywords": [
     "form",
     "questionnaire",

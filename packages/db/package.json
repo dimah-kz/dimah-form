@@ -1,7 +1,7 @@
 {
   "name": "@dimah-form/db",
   "version": "0.6.1",
-  "description": "FumaDB adapter for dimah-form — questionnaires and responses",
+  "description": "Optional FumaDB SQL adapter for dimah-form",
   "keywords": [
     "form",
     "questionnaire",
