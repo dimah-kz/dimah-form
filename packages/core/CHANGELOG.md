@@ -1,3 +1,9 @@
+## @dimah-form/core@0.6.1
+
+### Clarify public types
+
+Exported types spell out the shapes consumers already use, including `FieldShowWhenCompare`, `ResponseStatus`, and `DimahFormGuardContext`.
+
 ## @dimah-form/core@0.6.0
 
 ### Add `@dimah-form/dataset`
