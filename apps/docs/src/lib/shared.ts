@@ -7,11 +7,10 @@ export const docsImageRoute = "/og/docs";
 export const docsContentRoute = "/llms.mdx/docs";
 
 /** Landing H1, browser tab, and Open Graph title — keep these in sync. */
-export const siteTagline =
-  "Backend-first questionnaires for the React ecosystem";
+export const siteTagline = "Backend-first questionnaires for React and Node.js";
 export const siteTitle = `${appName} — ${siteTagline}`;
 export const siteDescription =
-  "Server instance, typed protocol client, and FumaDB persistence. You own rendering. The library owns definition snapshots, drafts, and submit validation.";
+  "The library owns the protocol, definition snapshots, drafts, and submit validation. Your application owns authentication, persistence, and rendering.";
 
 /** Site-wide terms for the homepage, layout, and JSON-LD — not copied onto every docs page. */
 export const siteKeywords = [

@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import { githubRepoUrl } from "@/lib/shared";
-import { CopyInstall } from "./copy-install";
+import { githubRepoUrl, siteDescription, siteTagline } from "@/lib/shared";
 import { InteractiveDemo } from "./interactive-demo";
 
 function GitHubIcon() {
@@ -18,47 +17,33 @@ export function HeroSection() {
   const githubUrl = githubRepoUrl();
 
   return (
-    <div className="relative pt-12 pb-10 sm:pt-20 sm:pb-14">
-      {/* Hero Header */}
-      <div className="mx-auto flex max-w-4xl flex-col items-center text-center">
-        {/* Minimal Pill Badge */}
+    <div className="relative pt-14 pb-6 sm:pt-20 sm:pb-8">
+      <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
         <Link
           href="/docs"
-          className="group inline-flex items-center gap-2 rounded-full border border-fd-border/80 bg-fd-card/60 px-3.5 py-1 text-xs font-medium text-fd-muted-foreground backdrop-blur-sm transition-all hover:border-fd-foreground/25 hover:text-fd-foreground"
+          className="group inline-flex items-center gap-2 rounded-full border bg-fd-card px-3 py-1 text-xs font-medium text-fd-muted-foreground shadow-sm transition-colors hover:text-fd-foreground"
         >
-          <Sparkles className="size-3 text-fd-primary" />
-          <span>TypeScript-First Form Infrastructure</span>
-          <ArrowRight className="size-3 text-fd-muted-foreground transition-transform group-hover:translate-x-0.5 rtl:rotate-180" />
+          Questionnaire engine
+          <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5 rtl:rotate-180" />
         </Link>
 
-        {/* Main Headline */}
         <h1
           id="hero-heading"
-          className="mt-6 text-4xl font-extrabold tracking-[-0.035em] text-balance text-fd-foreground sm:text-5xl lg:text-6xl"
+          className="mt-5 text-4xl font-semibold tracking-tight text-balance text-fd-foreground sm:text-5xl"
         >
-          Backend-first questionnaires.{" "}
-          <span className="bg-linear-to-r from-teal-400 via-fd-primary to-cyan-700 bg-clip-text text-transparent">
-            Rendered by you.
-          </span>
+          {siteTagline}
         </h1>
 
-        {/* Subtitle */}
-        <p className="mt-5 max-w-2xl text-base leading-relaxed text-balance text-fd-muted-foreground sm:text-lg">
-          Headless React hooks, immutable snapshot isolation, draft sessions,
-          and typed server validation — without forcing any UI components or
-          styling opinions.
+        <p className="mt-4 max-w-2xl text-base leading-relaxed text-balance text-fd-muted-foreground sm:text-lg">
+          {siteDescription}
         </p>
 
-        {/* Action Buttons & Install Snippet */}
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
           <Link
-            href="/docs"
-            className={cn(
-              buttonVariants(),
-              "h-10 rounded-full px-5 text-xs font-semibold shadow-md shadow-fd-primary/10 sm:h-11 sm:px-6 sm:text-sm",
-            )}
+            href="/docs/quickstart"
+            className={cn(buttonVariants(), "h-10 px-5 text-sm font-medium")}
           >
-            Get Started
+            Quickstart
             <ArrowRight className="size-4 rtl:rotate-180" />
           </Link>
 
@@ -68,22 +53,16 @@ export function HeroSection() {
             rel="noreferrer"
             className={cn(
               buttonVariants({ variant: "outline" }),
-              "h-10 rounded-full px-5 text-xs font-medium sm:h-11 sm:text-sm",
+              "h-10 px-5 text-sm font-medium",
             )}
           >
             <GitHubIcon />
-            View on GitHub
+            GitHub
           </Link>
-        </div>
-
-        {/* Copy Install */}
-        <div className="mt-6 flex justify-center">
-          <CopyInstall />
         </div>
       </div>
 
-      {/* Interactive Code & Live Form Showcase */}
-      <div className="mt-10 sm:mt-14">
+      <div className="mt-12 sm:mt-16">
         <InteractiveDemo />
       </div>
     </div>

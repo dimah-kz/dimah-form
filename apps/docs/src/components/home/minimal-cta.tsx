@@ -16,26 +16,26 @@ export function MinimalCta() {
   const githubUrl = githubRepoUrl();
 
   return (
-    <section className="relative border-t border-fd-border/60 py-16 text-center sm:py-20">
+    <section className="border-t py-16 text-center sm:py-20">
       <div className="mx-auto max-w-xl">
-        <h2 className="text-2xl font-bold tracking-tight text-fd-foreground sm:text-3xl">
-          Ready to build with dimah-form?
+        <h2 className="text-2xl font-semibold tracking-tight text-fd-foreground sm:text-3xl">
+          Mount a handler. Render a fill session.
         </h2>
-        <p className="mt-2.5 text-sm leading-relaxed text-fd-muted-foreground sm:text-base">
-          Start building type-safe forms with Next.js App Router, Hono, Express,
-          Fastify, Elysia, or SvelteKit.
+        <p className="mt-3 text-sm leading-relaxed text-fd-muted-foreground sm:text-base">
+          Next.js, Hono, Express, Fastify, Elysia, or SvelteKit. Persistence is{" "}
+          <code className="font-mono text-[0.9em] text-fd-foreground">
+            memoryAdapter()
+          </code>{" "}
+          or the optional FumaDB adapter.
         </p>
 
         <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
           <Link
-            href="/docs"
-            className={cn(
-              buttonVariants(),
-              "h-10 rounded-full px-5 text-xs font-semibold sm:h-11 sm:px-6 sm:text-sm",
-            )}
+            href="/docs/quickstart"
+            className={cn(buttonVariants(), "h-10 px-5 text-sm font-medium")}
           >
-            Explore Documentation
-            <ArrowRight className="size-3.5 rtl:rotate-180" />
+            Open the quickstart
+            <ArrowRight className="size-4 rtl:rotate-180" />
           </Link>
 
           <Link
@@ -44,11 +44,11 @@ export function MinimalCta() {
             rel="noreferrer"
             className={cn(
               buttonVariants({ variant: "outline" }),
-              "h-10 rounded-full px-5 text-xs font-medium sm:h-11 sm:text-sm",
+              "h-10 px-5 text-sm font-medium",
             )}
           >
             <GitHubIcon />
-            Star on GitHub
+            GitHub
           </Link>
         </div>
       </div>
