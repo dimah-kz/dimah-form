@@ -22,7 +22,9 @@ export const form = dimahForm({
 ```
 
 For browser-side previews and typed plugin endpoints, add the matching
-`scoringClientPlugin()` from `@dimah-form/scoring/client`.
+`scoringClientPlugin()` from `@dimah-form/scoring/client`. Server plugins are
+not inferred by `createFormClient`. Authorize `getResponseScores` as you would
+any other admin operation.
 
 ## Author a score
 

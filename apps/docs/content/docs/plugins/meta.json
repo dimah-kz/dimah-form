@@ -1,4 +1,4 @@
 {
   "title": "Plugins",
-  "pages": ["index", "scoring", "dataset", "insights"]
+  "pages": ["scoring", "dataset", "insights"]
 }

@@ -28,7 +28,6 @@ export const LLM_PAGE_PRIORITY = [
   "/docs/react",
   "/docs/widgets",
   "/docs/ui",
-  "/docs/plugins",
   "/docs/plugins/scoring",
   "/docs/plugins/dataset",
   "/docs/plugins/insights",

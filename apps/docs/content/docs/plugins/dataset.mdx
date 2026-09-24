@@ -27,8 +27,11 @@ export const form = dimahForm({
 ```
 
 The client companion is `datasetClientPlugin()` from
-`@dimah-form/dataset/client`. The package depends on scoring: a valid scoring
-snapshot adds derived scores to its record, without changing stored answers.
+`@dimah-form/dataset/client`. Server plugins are not inferred by
+`createFormClient`. Authorize `getDatasetPage`, `getDatasetCodebook`, and
+`getLiveCodebook` as you would any other admin operation. The package depends
+on scoring: a valid scoring snapshot adds derived scores to its record, without
+changing stored answers.
 
 ## Fetch pages and codebooks
 

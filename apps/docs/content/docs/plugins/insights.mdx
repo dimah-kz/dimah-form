@@ -22,8 +22,9 @@ export const form = dimahForm({
 ```
 
 For a browser client, install `insightsClientPlugin()` from
-`@dimah-form/insights/client`. Authorize `getFormInsights` and
-`getFormCrosstab` as you would `listResponses`.
+`@dimah-form/insights/client`. Server plugins are not inferred by
+`createFormClient`. Authorize `getFormInsights` and `getFormCrosstab` as you
+would `listResponses`.
 
 <Callout>
   Insights is compute-on-read, not a warehouse. For large datasets, project
