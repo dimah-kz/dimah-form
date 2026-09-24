@@ -1,22 +1,18 @@
 {
   "title": "dimah-form",
   "pages": [
+    "---Get started---",
     "index",
     "quickstart",
     "comparison",
-    "forms",
-    "responses",
-    "integration",
-    "persistence",
-    "security",
-    "custom-fields",
-    "---React---",
-    "...(client)",
-    "---UI (optional)---",
+    "---Guides---",
+    "(questionnaires)",
+    "(server)",
+    "---Client---",
+    "(client)",
     "...(ui)",
-    "---Plugins---",
-    "...plugins",
-    "---Reference---",
-    "...(reference)"
+    "---Resources---",
+    "plugins",
+    "(reference)"
   ]
 }
