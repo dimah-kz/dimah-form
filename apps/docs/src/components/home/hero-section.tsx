@@ -28,7 +28,7 @@ export function HeroSection() {
       <div className="mx-auto flex max-w-4xl flex-col items-center text-center">
         <Link
           href="/docs/responses"
-          className="group inline-flex items-center gap-2 rounded-full border border-fd-foreground/10 bg-transparent px-3.5 py-1.5 text-xs font-medium text-fd-muted-foreground backdrop-blur-sm transition-colors hover:border-fd-foreground/20 hover:bg-fd-foreground/[0.03] hover:text-fd-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fd-ring"
+          className="group inline-flex items-center gap-2 rounded-full border border-fd-foreground/10 bg-transparent px-3.5 py-1.5 text-xs font-medium text-fd-muted-foreground backdrop-blur-sm transition-colors hover:border-fd-foreground/20 hover:bg-fd-foreground/3 hover:text-fd-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fd-ring"
         >
           <span className="font-semibold text-fd-primary">Snapshot model</span>
           Form edits never rewrite a response
@@ -73,8 +73,7 @@ export function HeroSection() {
         </div>
 
         <p className="mt-5 text-xs text-fd-muted-foreground">
-          Headless React client · Next.js, Hono, Express, Fastify, Elysia,
-          SvelteKit, and Node.js adapters.
+          One headless React client. Any Node.js server.
         </p>
       </div>
 
