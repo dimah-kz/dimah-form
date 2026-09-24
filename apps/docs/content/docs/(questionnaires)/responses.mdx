@@ -44,18 +44,24 @@ desired behavior.
 ## Stored record
 
 ```ts
-type ResponseRecord = {
-  id: string;
-  formId: string;
-  status: "draft" | "submitted" | "abandoned";
-  definition: FormSnapshot;
-  answers: Record<string, unknown>;
-  respondentId: string | null;
-  submittedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
+import type { ResponseRecord } from "@dimah-form/react";
 ```
+
+<AutoTypeTable
+  path="packages/core/src/schema/protocol.ts"
+  name="ResponseRecord"
+/>
+
+List routes can omit the definition and answers:
+
+```ts
+import type { ResponseSummary } from "@dimah-form/react";
+```
+
+<AutoTypeTable
+  path="packages/core/src/schema/protocol.ts"
+  name="ResponseSummary"
+/>
 
 Set `respondentId` on the server in `onStart`; never trust a browser-supplied
 owner id. See [Security](/docs/security).

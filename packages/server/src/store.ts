@@ -3,26 +3,47 @@ import {
   toResponseSummary,
   type FormSnapshot,
   type FormStatus,
-  type ResponseListFilter,
   type ResponseRecord,
+  type ResponseStatus,
   type ResponseSummary,
 } from "@dimah-form/core";
 
+/** `listForms` filter. Omit `limit` to return every match. */
 export type ListFormsStoreQuery = {
   status?: FormStatus;
   limit?: number;
   offset?: number;
 };
 
-export type ListResponsesStoreQuery = ResponseListFilter & {
-  /** Default `"full"`. `"summary"` omits `definition` / `answers`. */
+/**
+ * `listResponses` / `countResponses` filter.
+ * `countResponses` ignores `limit`, `offset`, and `include`.
+ */
+export type ListResponsesStoreQuery = {
+  formId?: string;
+  respondentId?: string;
+  status?: ResponseStatus;
+  /** Inclusive lower bound on `submittedAt`. Rows with no submit time are excluded. */
+  submittedFrom?: string;
+  /** Inclusive upper bound on `submittedAt`. Rows with no submit time are excluded. */
+  submittedTo?: string;
+  /** Exclusive lower bound on `updatedAt`. */
+  updatedAfter?: string;
+  /**
+   * `"summary"` omits `definition` and `answers`.
+   * @default "full"
+   */
   include?: "summary" | "full";
   limit?: number;
   offset?: number;
 };
 
+/** Compare-and-swap options for `saveForm` and `saveResponse`. */
 export type StoreWriteOptions = {
-  /** When set, the write is a no-op / conflict unless the stored token matches. */
+  /**
+   * When set, throw {@link StoreConflictError} unless the stored
+   * `updatedAt` still matches. Handlers map that to `409 STALE_UPDATE`.
+   */
   expectedUpdatedAt?: string;
 };
 
@@ -52,48 +73,60 @@ export function isStoreConflictError(
  * `getOrCreateDraft` keeps the oldest row by `createdAt` when two starts race.
  */
 export type ResponseStore = {
+  /** Live questionnaire by id, then by slug. */
   getForm: (
     idOrSlug: string,
   ) => FormSnapshot | undefined | Promise<FormSnapshot | undefined>;
+  /** Upsert a live questionnaire. Honor {@link StoreWriteOptions.expectedUpdatedAt}. */
   saveForm: (
     form: FormSnapshot,
     options?: StoreWriteOptions,
   ) => void | Promise<void>;
+  /** Delete a database questionnaire. Callers already refused code-authored ids. */
   deleteForm: (id: string) => void | Promise<void>;
+  /** Questionnaires matching {@link ListFormsStoreQuery}. */
   listForms: (
     query?: ListFormsStoreQuery,
   ) => FormSnapshot[] | Promise<FormSnapshot[]>;
+  /** Insert a response row. Do not overwrite an existing id. */
   createResponse: (row: ResponseRecord) => void | Promise<void>;
+  /** Full response row, including `definition` and `answers`. */
   getResponse: (
     id: string,
   ) => ResponseRecord | undefined | Promise<ResponseRecord | undefined>;
+  /** Replace a response row. Honor {@link StoreWriteOptions.expectedUpdatedAt}. */
   saveResponse: (
     row: ResponseRecord,
     options?: StoreWriteOptions,
   ) => void | Promise<void>;
+  /** Delete a response row. */
   deleteResponse: (id: string) => void | Promise<void>;
+  /**
+   * Page of rows. Default `include` is `"full"`.
+   * `"summary"` omits `definition` and `answers`.
+   */
   listResponses: (
     query?: ListResponsesStoreQuery,
   ) =>
     | (ResponseRecord | ResponseSummary)[]
     | Promise<(ResponseRecord | ResponseSummary)[]>;
   /**
-   * Count of rows matching {@link ListResponsesStoreQuery} filters
-   * (`limit` / `offset` / `include` are ignored).
+   * Count of rows matching {@link ListResponsesStoreQuery} filters.
+   * `limit`, `offset`, and `include` are ignored.
    */
   countResponses: (query?: ListResponsesStoreQuery) => number | Promise<number>;
   /**
-   * Newest draft for this form + respondent (`updatedAt` descending).
-   * Used by `startResponse({ resume: true })` before inserting.
+   * Newest draft for this form and respondent (`updatedAt` descending).
+   * `startResponse({ resume: true })` reads this before inserting.
    */
   findLatestDraft: (query: {
     formId: string;
     respondentId: string;
   }) => ResponseRecord | undefined | Promise<ResponseRecord | undefined>;
   /**
-   * Insert `row` when no draft exists for this form + respondent.
-   * Concurrent creates keep the oldest row (`createdAt`, then `id`) and
-   * drop the loser.
+   * Insert `row` when no draft exists for this form and respondent.
+   * `respondentId` is required. Concurrent creates keep the oldest row
+   * (`createdAt`, then `id`) and drop the loser.
    */
   getOrCreateDraft: (
     row: ResponseRecord,

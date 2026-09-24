@@ -7,6 +7,7 @@ import {
   responseIdSchema,
   responseListFilterFields,
   responseStatusSchema,
+  type ResponseStatus,
 } from "@dimah-form/core";
 
 const nonEmpty = z.string().trim().min(1);
@@ -85,7 +86,23 @@ export const datasetRecordSchema = z.object({
   scores: datasetScoresSchema.optional(),
 });
 
-export type DatasetRecord = z.output<typeof datasetRecordSchema>;
+/** One projected response. Join `snapshotKey` to the historical codebook, not the live form. */
+export type DatasetRecord = {
+  spec: "dimah.dataset/v1";
+  id: string;
+  formId: string;
+  status: ResponseStatus;
+  submittedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  /** SHA-256 of the RFC 8785 instrument slice that produced this row. */
+  snapshotKey: string;
+  /** Omitted unless the projection includes the owner. */
+  respondentId?: string | null;
+  fields: DatasetFieldValue[];
+  /** Omitted when the snapshot has no valid scoring meta. */
+  scores?: DatasetScores;
+};
 
 export const codebookScoringMissingSchema = z.enum([
   "zero",

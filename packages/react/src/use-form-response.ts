@@ -18,6 +18,10 @@ export type UseFormResponseOptions = Omit<
   CreateFormResponseSessionOptions,
   "client"
 > & {
+  /**
+   * Protocol client. Omit on `formClient.useFormResponse` — the bound hook
+   * injects it. Required for the package-level hook unless `Provider` is set.
+   */
   client?: FormResponseSessionClient;
 };
 
@@ -34,7 +38,8 @@ function sessionKey(options: UseFormResponseOptions) {
  * Headless fill session. Bind widgets with `visibleFields` / `field(id)`.
  *
  * Prefer `formClient.useFormResponse` (or a re-export) so the protocol client
- * and field types come from your instance. This unbound hook reads context.
+ * and field types come from your instance. This unbound hook reads context
+ * and then requires {@link UseFormResponseOptions.client}.
  *
  * On the bound hook, pass a catalog key (`useFormResponse<"intake">`) or an
  * answers type (`Form["$Infer"]["answers"]["intake"]`).

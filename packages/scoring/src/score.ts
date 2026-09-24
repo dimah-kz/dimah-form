@@ -35,17 +35,23 @@ export type ScoreDefinition = {
 };
 
 export type ScoreVariableResult = {
+  /** Total, or `null` when the missing policy cannot produce one. */
   raw: number | null;
   min?: number;
   max?: number;
+  /** Visible items that did not score. */
   missing: number;
+  /** Matching band label, when one contains `raw`. */
   band?: string;
+  /** Every visible contributing item scored. */
   complete: boolean;
   label?: string;
 };
 
+/** `scoreResponse` / `getResponseScores` body. */
 export type ScoreResult = {
   variables: Record<string, ScoreVariableResult>;
+  /** Every variable is {@link ScoreVariableResult.complete}. */
   complete: boolean;
 };
 

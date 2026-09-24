@@ -13,6 +13,7 @@ export {
 } from "./dimah-form";
 export type {
   DimahFormGuard,
+  DimahFormGuardContext,
   FormOperation,
   ResolvedDimahFormConfig,
 } from "./types";

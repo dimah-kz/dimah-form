@@ -79,6 +79,8 @@ export type { FormFetchError, ValidationIssue } from "./schema/error";
 export type {
   DocumentMeta,
   FieldShowWhen,
+  FieldShowWhenCompare,
+  FileAnswer,
   FormAnswers,
   FormDefinition,
   FormField,

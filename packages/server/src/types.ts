@@ -18,8 +18,13 @@ import type { ResponseStore } from "./store";
 /** Core operations plus plugin-defined strings. */
 export type FormOperation = FormApiOperation | (string & {});
 
-export type DimahFormGuard = (context: {
+/**
+ * Argument to `dimahForm({ guard })`. Runs before form logic.
+ * Throw an `APIError` to reject the request.
+ */
+export type DimahFormGuardContext = {
   request: Request;
+  /** Core operation, or the plugin endpoint key. */
   operation: FormOperation;
   formId?: string;
   responseId?: string;
@@ -27,17 +32,24 @@ export type DimahFormGuard = (context: {
   getResponse: (responseId: string) => MaybePromise<ResponseRecord | undefined>;
   /** Code-authored catalog first, then `database.getForm`. */
   getForm: (idOrSlug: string) => MaybePromise<FormSnapshot | undefined>;
-}) => MaybePromise<void>;
+};
+
+export type DimahFormGuard = (
+  context: DimahFormGuardContext,
+) => MaybePromise<void>;
 
 type PluginContextLookup = <T = unknown>(id: string) => T | undefined;
 
+/** `on*` / `after*` context for a response write. */
 export type ResponseHookContext = {
   request: Request;
+  /** Mutable until persist. Set `respondentId` here — do not trust the browser. */
   response: ResponseRecord;
   /** Context returned from a plugin `init`. */
   getPluginContext: PluginContextLookup;
 };
 
+/** `onSaveForm` / `onDeleteForm` context. */
 export type FormHookContext = {
   request: Request;
   form: FormSnapshot;
@@ -45,24 +57,42 @@ export type FormHookContext = {
   getPluginContext: PluginContextLookup;
 };
 
+/**
+ * Domain hooks. `on*` runs after validation and before persist — throwing
+ * aborts the write. `after*` runs after a successful write.
+ */
 export type DimahFormHooks = {
-  /** After validation, before persist. May set `response.respondentId`. */
+  /** Before the response row is inserted. May set `response.respondentId`. */
   onStart?: (context: ResponseHookContext) => MaybePromise<void>;
+  /** Before a draft patch is stored. */
   onSaveDraft?: (context: ResponseHookContext) => MaybePromise<void>;
+  /** Before status becomes `"submitted"`. */
   onSubmit?: (context: ResponseHookContext) => MaybePromise<void>;
+  /** Before a live questionnaire upsert. */
   onSaveForm?: (context: FormHookContext) => MaybePromise<void>;
+  /** Before an unfinished response is locked as `"abandoned"`. */
   onAbandon?: (context: ResponseHookContext) => MaybePromise<void>;
+  /** Before a locked response returns to `"draft"`. */
   onReopen?: (context: ResponseHookContext) => MaybePromise<void>;
+  /** Before a response row is deleted. */
   onDeleteResponse?: (context: ResponseHookContext) => MaybePromise<void>;
+  /** Before a database questionnaire is deleted. */
   onDeleteForm?: (context: FormHookContext) => MaybePromise<void>;
-  /** After persist. Skip irreversible I/O in `on*` — use these instead. */
+  /** After the response row is inserted. Side effects belong here. */
   afterStart?: (context: ResponseHookContext) => MaybePromise<void>;
+  /** After the draft patch is stored. */
   afterSaveDraft?: (context: ResponseHookContext) => MaybePromise<void>;
+  /** After submit persist. A throw still fails the HTTP response. */
   afterSubmit?: (context: ResponseHookContext) => MaybePromise<void>;
+  /** After the live questionnaire is stored. */
   afterSaveForm?: (context: FormHookContext) => MaybePromise<void>;
+  /** After the response is locked as `"abandoned"`. */
   afterAbandon?: (context: ResponseHookContext) => MaybePromise<void>;
+  /** After the response returns to `"draft"`. */
   afterReopen?: (context: ResponseHookContext) => MaybePromise<void>;
+  /** After the response row is deleted. */
   afterDeleteResponse?: (context: ResponseHookContext) => MaybePromise<void>;
+  /** After the database questionnaire is deleted. */
   afterDeleteForm?: (context: FormHookContext) => MaybePromise<void>;
 };
 

@@ -22,6 +22,7 @@ export {
   textFieldSchema,
   type DocumentMeta,
   type FieldShowWhen,
+  type FieldShowWhenCompare,
   type FileAnswer,
   type FormDefinition,
   type FormField,

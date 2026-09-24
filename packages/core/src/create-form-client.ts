@@ -1,9 +1,5 @@
 import type { FORM_ERROR_CODES } from "./error";
-import {
-  createFormFetch,
-  type FormClientFetchOptions,
-  type FormFetch,
-} from "./create-form-fetch";
+import { createFormFetch, type FormFetch } from "./create-form-fetch";
 import { chainAnswersValidators, type AnswersValidator } from "./answers";
 import type { FieldTypeDefinition } from "./define";
 import type { InferAnswersMap } from "./infer";
@@ -96,7 +92,19 @@ export type CreateFormClientOptions<
    * session for local checks. Plugin `validateAnswers` callbacks run first.
    */
   validateAnswers?: AnswersValidator;
-} & FormClientFetchOptions;
+  /** Defaults to global `fetch` — override for SSR, tests, or logging. */
+  fetch?: typeof fetch;
+  /**
+   * `"include"` sends cookies on a cross-origin `baseURL`.
+   * @default "same-origin"
+   */
+  credentials?: RequestCredentials;
+  /**
+   * Static headers, or a factory called on every request.
+   * Use the factory for a bearer token.
+   */
+  headers?: HeadersInit | (() => HeadersInit | Promise<HeadersInit>);
+};
 
 type ClientHeaders = {
   headers?: HeadersInit;

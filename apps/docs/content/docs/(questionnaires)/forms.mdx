@@ -72,6 +72,17 @@ Use `all` or `any` for nested rules. The referenced field must be a sibling;
 cycles, unknown targets, and invalid values are rejected when the definition
 is validated.
 
+```ts
+import type { FieldShowWhenCompare } from "@dimah-form/server";
+```
+
+<AutoTypeTable
+  path="packages/core/src/schema/definition.ts"
+  name="FieldShowWhenCompare"
+/>
+
+Group rules with `all` or `any`. Both can nest a comparison or another group.
+
 ## Code forms and live forms
 
 | Concern              | `forms: {}`                    | `saveForm()`                     |

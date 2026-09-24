@@ -172,7 +172,33 @@ export const insightsSummarySchema = z.object({
   truncated: z.boolean(),
 });
 
-export type InsightsSummary = z.output<typeof insightsSummarySchema>;
+/** `getFormInsights` body. Counts come from response snapshots, not the live form. */
+export type InsightsSummary = {
+  formId: string;
+  /** Rows included after filters. */
+  total: number;
+  byStatus: InsightsStatusCounts;
+  /** Set when at least one included row has `submittedAt`. */
+  submittedAt?: { min: string; max: string };
+  completion: {
+    /** Included rows with `status: "submitted"`. */
+    submitted: number;
+    /** Submitted rows whose visible required fields are answered. */
+    complete: number;
+    /** `complete / submitted`, or `null` when nothing was submitted. */
+    rate: number | null;
+  };
+  /** One entry per field id seen on a scanned snapshot. */
+  fields: InsightsField[];
+  /** Present when a scanned snapshot has valid `meta.scoring`. */
+  scores?: { variables: InsightsScoreVariable[] };
+  /** Submitted-day buckets. Omitted unless `bucket` is `"day"`. */
+  series?: InsightsSeries;
+  /** Rows read, including ones past the cap that were not folded. */
+  scanned: number;
+  /** The walk hit `maxRows` before the filter was exhausted. */
+  truncated: boolean;
+};
 
 export const insightsCrosstabAxisSchema = z.object({
   id: fieldIdSchema,

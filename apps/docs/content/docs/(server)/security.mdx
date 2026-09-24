@@ -101,6 +101,25 @@ export const formClient = createFormClient<Form>({
 `form.api` has no browser context; pass request headers explicitly when its
 `guard` needs them.
 
+## Hook context
+
+```ts
+import type {
+  DimahFormGuardContext,
+  DimahFormHooks,
+  ResponseHookContext,
+} from "@dimah-form/server";
+```
+
+<AutoTypeTable
+  path="packages/server/src/types.ts"
+  name="DimahFormGuardContext"
+/>
+
+<AutoTypeTable path="packages/server/src/types.ts" name="DimahFormHooks" />
+
+<AutoTypeTable path="packages/server/src/types.ts" name="ResponseHookContext" />
+
 ## Next
 
 <Cards>

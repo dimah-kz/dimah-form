@@ -40,6 +40,15 @@ List endpoints default to 50 rows and cap at 100.
 `listResponses` returns summaries unless `include` is `"full"`. `total` is the matching count, not the page size.
 `submittedFrom` / `submittedTo` are inclusive and skip rows with no `submittedAt`. `updatedAfter` is an exclusive lower bound on `updatedAt`.
 
+```ts
+import type { ResponseListFilter } from "@dimah-form/server";
+```
+
+<AutoTypeTable
+  path="packages/core/src/schema/protocol.ts"
+  name="ResponseListFilter"
+/>
+
 ## Payloads
 
 `startResponse` freezes the definition and seeds `defaultValue`. `resume: true` needs `respondentId` and returns the latest draft when one exists.

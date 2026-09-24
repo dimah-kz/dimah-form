@@ -33,6 +33,15 @@ The client companion is `datasetClientPlugin()` from
 on scoring: a valid scoring snapshot adds derived scores to its record, without
 changing stored answers.
 
+```ts
+import type { DatasetPluginOptions } from "@dimah-form/dataset";
+```
+
+<AutoTypeTable
+  path="packages/dataset/src/plugin.ts"
+  name="DatasetPluginOptions"
+/>
+
 ## Fetch pages and codebooks
 
 ```ts
@@ -84,6 +93,24 @@ codebook entry rather than flattening it against the live form.
 
 `toDataPackage()` produces a Frictionless data package; it returns files, not a
 zip archive.
+
+```ts
+import type {
+  CreateDatasetReaderOptions,
+  DatasetRecord,
+} from "@dimah-form/dataset";
+```
+
+### DatasetRecord
+
+<AutoTypeTable path="packages/dataset/src/spec.ts" name="DatasetRecord" />
+
+### CreateDatasetReaderOptions
+
+<AutoTypeTable
+  path="packages/dataset/src/reader.ts"
+  name="CreateDatasetReaderOptions"
+/>
 
 ## Next
 

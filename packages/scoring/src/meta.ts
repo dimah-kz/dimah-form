@@ -56,7 +56,21 @@ export const scoringVariableSchema = z
     }
   });
 
-export type ScoringVariable = z.output<typeof scoringVariableSchema>;
+/** Named total. `id` is referenced by fields, bands, and formulas. */
+export type ScoringVariable = {
+  /** Stable id. Unique among variables and formulas. */
+  id: string;
+  label?: string;
+  /** Low end of the scale. Required for `reverse`. */
+  min?: number;
+  /** High end of the scale. Required for `reverse`. */
+  max?: number;
+  /**
+   * How unanswered visible items affect `raw`.
+   * @default "incomplete"
+   */
+  missing?: ScoringMissing;
+};
 
 export const scoringBandSchema = z.object({
   variable: fieldIdSchema,
@@ -65,7 +79,16 @@ export const scoringBandSchema = z.object({
   label: z.string().trim().min(1),
 });
 
-export type ScoringBand = z.output<typeof scoringBandSchema>;
+/** Inclusive label for a score range. `variable` is a variable or formula id. */
+export type ScoringBand = {
+  /** Variable or formula id this band labels. */
+  variable: string;
+  /** Inclusive lower bound. */
+  from?: number;
+  /** Inclusive upper bound. Must be greater than or equal to `from`. */
+  to?: number;
+  label: string;
+};
 
 /** Closed formula AST — never a JS string. Likert sums are the main path. */
 export const scoringFormulaSchema = z.object({
@@ -75,7 +98,16 @@ export const scoringFormulaSchema = z.object({
   vars: z.array(fieldIdSchema).min(1),
 });
 
-export type ScoringFormula = z.output<typeof scoringFormulaSchema>;
+/** Derived total. `op` is only `"sum"` of distinct variable ids. */
+export type ScoringFormula = {
+  /** Id. Must not collide with a variable or another formula. */
+  id: string;
+  label?: string;
+  /** Sum of {@link vars}. */
+  op: "sum";
+  /** Variable ids. Not other formulas. */
+  vars: string[];
+};
 
 export const scoringFormMetaSchema = z.object({
   variables: z.array(scoringVariableSchema).min(1),
@@ -83,21 +115,42 @@ export const scoringFormMetaSchema = z.object({
   formulas: z.array(scoringFormulaSchema).optional(),
 });
 
-export type ScoringFormMeta = z.output<typeof scoringFormMetaSchema>;
+/** `meta.scoring` on the form. */
+export type ScoringFormMeta = {
+  /** Every declared variable must be mapped by a field. */
+  variables: ScoringVariable[];
+  bands?: ScoringBand[];
+  formulas?: ScoringFormula[];
+};
 
 export const scoringFieldMetaSchema = z.object({
   variable: fieldIdSchema,
   reverse: z.boolean().optional(),
 });
 
-export type ScoringFieldMeta = z.output<typeof scoringFieldMetaSchema>;
+/**
+ * `meta.scoring` on a scoreable field (`select`, `multiSelect`, `number`,
+ * `boolean`). Do not combine with `option.add`.
+ */
+export type ScoringFieldMeta = {
+  /** Variable id this field contributes to. */
+  variable: string;
+  /**
+   * Flip points within `min` / `max`. `select`, `number`, and `boolean` only.
+   */
+  reverse?: boolean;
+};
 
 export const scoringAddSchema = z.object({
   variable: fieldIdSchema,
   points: finiteNumber,
 });
 
-export type ScoringAdd = z.output<typeof scoringAddSchema>;
+/** One keying contribution. Used instead of `points`, never with it. */
+export type ScoringAdd = {
+  variable: string;
+  points: number;
+};
 
 /**
  * Likert `{ points }` or keying `{ add }`. Never both — `points` is sugar

@@ -65,6 +65,51 @@ export const gad7 = defineAppForm({
 choice contributes to one or more variables; never mix it with `points`.
 `reverse` works for `select`, `number`, and `boolean`, not `multiSelect`.
 
+```ts
+import type {
+  ScoringAdd,
+  ScoringBand,
+  ScoringFieldMeta,
+  ScoringFormMeta,
+  ScoringFormula,
+  ScoringPluginOptions,
+  ScoringVariable,
+} from "@dimah-form/scoring";
+```
+
+### ScoringPluginOptions
+
+<AutoTypeTable
+  path="packages/scoring/src/plugin.ts"
+  name="ScoringPluginOptions"
+/>
+
+### ScoringFormMeta
+
+<AutoTypeTable path="packages/scoring/src/meta.ts" name="ScoringFormMeta" />
+
+### ScoringVariable
+
+<AutoTypeTable path="packages/scoring/src/meta.ts" name="ScoringVariable" />
+
+### ScoringBand
+
+<AutoTypeTable path="packages/scoring/src/meta.ts" name="ScoringBand" />
+
+### ScoringFormula
+
+<AutoTypeTable path="packages/scoring/src/meta.ts" name="ScoringFormula" />
+
+### ScoringFieldMeta
+
+<AutoTypeTable path="packages/scoring/src/meta.ts" name="ScoringFieldMeta" />
+
+### ScoringAdd
+
+Likert options use `{ points }` on `option.meta.scoring` instead. Never mix `points` and `add`.
+
+<AutoTypeTable path="packages/scoring/src/meta.ts" name="ScoringAdd" />
+
 ## Read results
 
 ```ts
@@ -75,12 +120,17 @@ const stored = await form.api.getResponseScores({ query: { responseId } });
 ```
 
 Compute with the session snapshot or stored `response.definition`, never a
-later live form. The result contains each variable's `raw`, `missing`,
-`complete`, optional `band`, and configured bounds.
+later live form.
 
-Missing items default to `"incomplete"`. Set a variable policy to `"zero"` or
-`"omit"` when the scoring instrument requires it. Bands are labels; formulas
-support sums of distinct variables only.
+```ts
+import type { ScoreResult } from "@dimah-form/scoring";
+```
+
+<AutoTypeTable path="packages/scoring/src/score.ts" name="ScoreResult" />
+
+Missing items default to `"incomplete"`. Set a variable's `missing` policy to
+`"zero"` or `"omit"` when the instrument requires it. Bands are labels;
+formulas support sums of distinct variables only.
 
 `onScore` runs after submit persistence. It may project scores to your own
 database, but should not mutate `response.answers`.

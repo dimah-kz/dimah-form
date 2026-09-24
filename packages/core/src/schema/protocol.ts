@@ -42,12 +42,16 @@ export const responseListFilterFields = {
 
 export type ResponseStatus = z.output<typeof responseStatusSchema>;
 
+/** List query shared by responses, dataset, and insights. */
 export type ResponseListFilter = {
   formId?: string;
   respondentId?: string;
   status?: ResponseStatus;
+  /** Inclusive lower bound on `submittedAt`. Rows with no submit time are excluded. */
   submittedFrom?: string;
+  /** Inclusive upper bound on `submittedAt`. Rows with no submit time are excluded. */
   submittedTo?: string;
+  /** Exclusive lower bound on `updatedAt`. */
   updatedAfter?: string;
 };
 
@@ -146,13 +150,38 @@ export const responseListSchema = z.strictObject({
 });
 
 export type FormAnswers = z.output<typeof answersSchema>;
-export type ResponseRecord = Omit<
-  z.output<typeof responseRecordSchema>,
-  "definition"
-> & {
+
+/** Stored response. `definition` is the questionnaire frozen at start. */
+export type ResponseRecord = {
+  id: string;
+  formId: string;
+  /** `"draft"`, `"submitted"`, or `"abandoned"`. */
+  status: ResponseStatus;
+  /** Copy of the form at `startResponse`. Later edits to the live form do not change it. */
   definition: FormSnapshot;
+  /** Answer map. A missing key is unanswered. Draft patches use `null` to delete a key. */
+  answers: FormAnswers;
+  /**
+   * Owner. Set on the server in `onStart`.
+   * `null` when the response is anonymous.
+   */
+  respondentId: string | null;
+  /** Set when status becomes `"submitted"`. `null` until then. */
+  submittedAt: string | null;
+  createdAt: string;
+  /** Compare-and-swap token. Send it back on the next draft or submit. */
+  updatedAt: string;
 };
-export type ResponseSummary = z.output<typeof responseSummarySchema> & {
+
+/** List row when `include` is `"summary"`. `definition` and `answers` are omitted. */
+export type ResponseSummary = {
+  id: string;
+  formId: string;
+  status: ResponseStatus;
+  respondentId: string | null;
+  submittedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
   answers?: never;
   definition?: never;
 };

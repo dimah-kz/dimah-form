@@ -82,46 +82,40 @@ Branch on `field.type` yourself, or render with [`FormView`](/docs/ui).
 
 ## State
 
-| Property                   |                                                                            |
-| -------------------------- | -------------------------------------------------------------------------- |
-| `visibleFields`            | Fields whose `showWhen` matches current answers                            |
-| `answers`                  | Local answer map                                                           |
-| `status`                   | `"draft"`, `"submitted"`, or `"abandoned"`                                 |
-| `dirty`                    | Local answers differ from the last server row                              |
-| `pending`                  | `"save"`, `"submit"`, `"reopen"`, `"abandon"`, `"refresh"`, or `undefined` |
-| `locked`                   | `status !== "draft"`                                                       |
-| `inactive`                 | No row yet, and the live form is not `"active"`                            |
-| `error` / `errorCode`      | Last failed operation                                                      |
-| `issues` / `issueCodes`    | Field id → message / code (`REQUIRED`, `TOO_SHORT`, …)                     |
-| `completion`               | `{ required, answered, complete }` for visible required fields             |
-| `responseId` / `updatedAt` | Current row. `updatedAt` is the compare-and-swap token                     |
-| `autosave`                 | Debounced save is enabled                                                  |
+```ts
+import type { FormResponseSessionState } from "@dimah-form/react";
+```
+
+<AutoTypeTable
+  path="packages/core/src/create-form-response-session.ts"
+  name="FormResponseSessionState"
+/>
 
 ## Actions
 
-| Call                                         |                                                          |
-| -------------------------------------------- | -------------------------------------------------------- |
-| `field(id)`                                  | Binding for one control. `onChange(null)` clears the key |
-| `setAnswer(id, value)` / `setAnswers(patch)` | Local update. `null` removes a key                       |
-| `saveDraft()`                                | Persist a partial patch                                  |
-| `submit()`                                   | Validate visible fields, then lock as `"submitted"`      |
-| `reopen()` / `abandon()`                     | Unlock a locked row, or close a draft                    |
-| `refresh()`                                  | Replace local state with the server row                  |
-| `validate()`                                 | Run checks without submitting                            |
+`useFormResponse` returns these. `dispose` exists on `createFormResponseSession` only.
 
-`field(id)` returns `{ id, field, value, error, errorCode, errorParams, invalid, visible, required, disabled, onChange }`.
+```ts
+import type { FormResponseActions } from "@dimah-form/react";
+```
+
+<AutoTypeTable
+  path="packages/core/src/create-form-response-session.ts"
+  name="FormResponseActions"
+/>
+
+`field(id)` returns a [`FormFieldBinding`](/docs/widgets).
 
 ## Options
 
-| Option                                                                 |                                                                                      |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `snapshot`                                                             | Required. Live form or `response.definition`                                         |
-| `response`                                                             | Existing row to edit                                                                 |
-| `respondentId`                                                         | `string` or `() => string`                                                           |
-| `resume`                                                               | Reattach the latest draft for that respondent on first save. Requires `respondentId` |
-| `autosave`                                                             | Off by default. `true` debounces at 600ms, or pass `{ debounceMs }`                  |
-| `validate`                                                             | `"submit"` (default) or `"change"`                                                   |
-| `onStarted` / `onSaved` / `onSubmitted` / `onReopened` / `onAbandoned` | After the matching call succeeds                                                     |
+```ts
+import type { UseFormResponseOptions } from "@dimah-form/react";
+```
+
+<AutoTypeTable
+  path="packages/react/src/use-form-response.ts"
+  name="UseFormResponseOptions"
+/>
 
 `"submit"` checks on submit. After a failed submit, edits clear resolved issues.
 `"change"` also checks on each answer change.

@@ -19,15 +19,25 @@ export const documentMetaSchema = z.record(z.string(), z.json());
 
 export type DocumentMeta = z.output<typeof documentMetaSchema>;
 
+/**
+ * One sibling comparison. Set one of `equals`, `notEquals`, or `includes`.
+ * `includes` is for `multiSelect`.
+ */
+export type FieldShowWhenCompare = {
+  /** Sibling field id. Unknown targets and cycles are rejected. */
+  field: string;
+  equals?: unknown;
+  notEquals?: unknown;
+  /** Value is contained in a `multiSelect` answer. */
+  includes?: unknown;
+};
+
+/**
+ * Sibling visibility. A hidden field drops out of `visibleFields`, and submit
+ * strips its answer. `all` / `any` nest the same shape.
+ */
 export type FieldShowWhen =
-  | {
-      field: string;
-      equals?: unknown;
-      notEquals?: unknown;
-      includes?: unknown;
-    }
-  | { all: FieldShowWhen[] }
-  | { any: FieldShowWhen[] };
+  FieldShowWhenCompare | { all: FieldShowWhen[] } | { any: FieldShowWhen[] };
 
 const showWhenLeafSchema = z
   .looseObject({
@@ -203,7 +213,19 @@ export const fileAnswerSchema = z
     }
   });
 
-export type FileAnswer = z.output<typeof fileAnswerSchema>;
+/**
+ * Stored file metadata. At least one of `id`, `url`, or `name` is required.
+ * The protocol does not store bytes.
+ */
+export type FileAnswer = {
+  /** App-owned file id, after your upload finishes. */
+  id?: string;
+  url?: string;
+  name?: string;
+  contentType?: string;
+  /** Size in bytes. */
+  size?: number;
+};
 
 export const fileFieldSchema = z.strictObject({
   ...fieldDocument,
@@ -335,39 +357,60 @@ const formSnapshotDocumentSchema = z.strictObject({
   ...formDocument,
 });
 
+/** One `select` / `multiSelect` choice. `fieldOptions` uses `value` when `label` is omitted. */
 export type SelectOption = {
+  /** Stored answer. `$Infer` is the union of these strings. */
   value: string;
+  /** Display label. Falls back to {@link value}. */
   label?: string;
+  /** Opaque JSON. Plugins and UI read their own keys. */
   meta?: DocumentMeta;
 };
 
+/** One field on a definition or a frozen response snapshot. */
 export type FormField = {
+  /** Stable answer key. Unique within the form. */
   id: string;
+  /** Built-in name, or a `defineFieldType` string. */
   type: string;
+  /**
+   * Visible empty values fail submit. A required field with `showWhen` is
+   * optional in `$Infer` because it may be hidden.
+   */
   required?: boolean;
   label?: string;
   description?: string;
+  /** Seeded into answers by `startResponse`. */
   defaultValue?: unknown;
   /**
    * Sibling visibility. Validated as {@link FieldShowWhen} on define / save.
    * Stored snapshots keep the parsed JSON shape.
    */
   showWhen?: unknown;
+  /** Opaque JSON. Not type configuration. */
   meta?: DocumentMeta;
+  /** Type-specific keys (`min`, `options`, `unsetOnOff`, …). */
   [key: string]: unknown;
 };
 
+/** Code-authored questionnaire. `id` is the `forms` catalog key, not a field. */
 export type FormDefinition = {
   title: string;
   description?: string;
   fields: readonly FormField[];
+  /** Public id. Defaults to the catalog key. */
   slug?: string;
+  /**
+   * Only `"active"` can start a response.
+   * @default "draft"
+   */
   status?: FormStatus;
   createdAt?: string;
   updatedAt?: string;
   meta?: DocumentMeta;
 };
 
+/** Live questionnaire, or the copy frozen on a response at `startResponse`. */
 export type FormSnapshot = {
   id: string;
   slug: string;

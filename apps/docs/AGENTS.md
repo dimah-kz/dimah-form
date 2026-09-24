@@ -2,6 +2,8 @@
 
 Product docs (Fumadocs). Keep examples aligned with published APIs.
 
+AutoTypeTable reads package `src/` via each package tsconfig — do not map `@dimah-form/*` to source in this app's tsconfig (Next.js would compile those files with the docs `@/` alias). Document a public type with `<AutoTypeTable path="packages/…/file.ts" name="TypeName" />` instead of a hand-written property table.
+
 Canonical production origin is https://form.dimah.dev.
 
 <!-- BEGIN:nextjs-agent-rules -->

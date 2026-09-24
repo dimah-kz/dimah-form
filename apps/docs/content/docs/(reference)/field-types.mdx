@@ -21,20 +21,41 @@ Eight built-in types. Each one has a definition schema, a validator, and an `$In
 `file` has no built-in widget. Your app writes the metadata after upload.
 
 ```ts
-type SelectOption = {
-  value: string;
-  label?: string;
-  meta?: Record<string, unknown>;
-};
+import type { FileAnswer, SelectOption } from "@dimah-form/react";
 ```
 
-`fieldOptions` uses `value` when `label` is omitted.
+### SelectOption
+
+<AutoTypeTable
+  path="packages/core/src/schema/definition.ts"
+  name="SelectOption"
+/>
+
+### FileAnswer
+
+<AutoTypeTable
+  path="packages/core/src/schema/definition.ts"
+  name="FileAnswer"
+/>
+
+### FormField
+
+Shared keys on every field. Type-specific keys (`min`, `options`, `pattern`, `unsetOnOff`) stay on the same object.
+
+<AutoTypeTable path="packages/core/src/schema/definition.ts" name="FormField" />
 
 ## showWhen
 
-Operators: `equals`, `notEquals`, `includes` (`multiSelect`), and groups `all` / `any`.
+```ts
+import type { FieldShowWhenCompare } from "@dimah-form/react";
+```
 
-A hidden field is omitted from `visibleFields`. Submit strips its answer. Examples: [Forms](/docs/forms#showwhen).
+<AutoTypeTable
+  path="packages/core/src/schema/definition.ts"
+  name="FieldShowWhenCompare"
+/>
+
+A hidden field is omitted from `visibleFields`. Submit strips its answer. Group rules with `all` (every rule) or `any` (one rule). Examples: [Forms](/docs/forms#showwhen).
 
 ## $Infer
 

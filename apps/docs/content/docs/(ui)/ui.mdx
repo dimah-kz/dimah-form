@@ -37,6 +37,24 @@ export function Questionnaire() {
 }
 ```
 
+```ts
+import type { FormUiProviderProps, FormViewProps } from "@dimah-form/ui";
+```
+
+### FormUiProvider
+
+<AutoTypeTable
+  path="packages/ui/src/components/dimah-form/form-provider.tsx"
+  name="FormUiProviderProps"
+/>
+
+### FormView
+
+<AutoTypeTable
+  path="packages/ui/src/components/dimah-form/form-view.tsx"
+  name="FormViewProps"
+/>
+
 The built-in widgets cover `text`, `email`, `date`, `number`, `boolean`,
 `select`, and `multiSelect`. `file` has no upload widget. Register custom
 widgets by the same type string used by `defineFieldType`, or choose a
@@ -63,6 +81,15 @@ Slots—such as `header`, `progress`, `errorSummary`, and `actions`—accept
 </FormUiProvider>
 ```
 
+```ts
+import type { FormUiComponents } from "@dimah-form/ui";
+```
+
+<AutoTypeTable
+  path="packages/ui/src/components/dimah-form/form-ui-components.tsx"
+  name="FormUiComponents"
+/>
+
 Use `FormFieldFrame` inside a custom widget so the consuming application's
 `FieldFrame` component and accessibility chrome still apply.
 
@@ -77,10 +104,20 @@ export const onboarding = defineForm({
 } satisfies FormDefinitionUi);
 ```
 
-Common field metadata includes `placeholder`, `widget`, `section`, `step`,
-`width`, `help`, `prefix`, and `suffix`. Extra metadata is allowed. Add a
-`metaSchema` to `dimahForm()` when database-authored forms need server-side
-validation of that metadata.
+```ts
+import type { FieldUiMeta, FormUiMeta } from "@dimah-form/ui";
+```
+
+### FieldUiMeta
+
+<AutoTypeTable path="packages/ui/src/lib/field-ui-meta.ts" name="FieldUiMeta" />
+
+### FormUiMeta
+
+<AutoTypeTable path="packages/ui/src/lib/field-ui-meta.ts" name="FormUiMeta" />
+
+Extra metadata is allowed. Add a `metaSchema` to `dimahForm()` when
+database-authored forms need server-side validation of that metadata.
 
 ## Next
 

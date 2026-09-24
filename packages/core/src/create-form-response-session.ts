@@ -56,11 +56,15 @@ export type FormValidateOptions = {
 export type FormResponseAutosave = boolean | { debounceMs?: number };
 
 export type FormResponseSessionHooks = {
-  /** After `startResponse` — do not navigate here if a save/submit follows. */
+  /** After `startResponse`. Do not navigate here if a save or submit follows. */
   onStarted?: (record: ResponseRecord) => void;
+  /** After `saveDraft` succeeds. */
   onSaved?: (record: ResponseRecord) => void;
+  /** After `submitResponse` succeeds. */
   onSubmitted?: (record: ResponseRecord) => void;
+  /** After `reopenResponse` succeeds. */
   onReopened?: (record: ResponseRecord) => void;
+  /** After `abandonResponse` succeeds. */
   onAbandoned?: (record: ResponseRecord) => void;
 };
 
@@ -69,14 +73,21 @@ export type FormResponseFieldTypes =
 
 export const FORM_RESPONSE_AUTOSAVE_MS = 600;
 
+/**
+ * Fill-session options. `useFormResponse` omits a required `client` when the
+ * hook is bound to `createFormClient`.
+ */
 export type CreateFormResponseSessionOptions = {
+  /** Protocol client. Bound `formClient.useFormResponse` injects this. */
   client: FormResponseSessionClient;
+  /** Live form, or `response.definition` when editing a stored row. */
   snapshot: FormSnapshot;
-  /** Existing row — omit when starting a new response. */
+  /** Existing row. Omit to start a new response. The hook does not fetch it. */
   response?: Pick<
     ResponseRecord,
     "id" | "answers" | "status" | "updatedAt" | "definition"
   >;
+  /** Owner id sent on start. A string, or a function read at persist time. */
   respondentId?: string | (() => string);
   /**
    * Extra field types (same list as `dimahForm({ fieldTypes })`). A prepared
@@ -89,21 +100,33 @@ export type CreateFormResponseSessionOptions = {
    */
   validateAnswers?: AnswersValidator;
   /**
-   * `"submit"` validates on submit (and after a failed submit).
-   * `"change"` also validates on each `setAnswer`.
+   * `"submit"` checks on submit. After a failed submit, edits clear resolved
+   * issues. `"change"` also checks on each answer change.
+   * @default "submit"
    */
   validate?: FormResponseValidateMode;
   /**
-   * Attach to the latest draft for `respondentId` on first persist.
-   * Requires `respondentId`. Default false — always create a new row.
+   * Reattach the latest draft for `respondentId` on the first persist.
+   * Requires `respondentId`.
+   * @default false
    */
   resume?: boolean;
   /**
-   * Debounced `saveDraft` after local answer changes. Default off.
-   * `true` uses {@link FORM_RESPONSE_AUTOSAVE_MS}.
+   * Debounced `saveDraft` after local edits. Off unless set.
+   * `true` waits {@link FORM_RESPONSE_AUTOSAVE_MS} (600). Or pass `{ debounceMs }`.
    */
   autosave?: FormResponseAutosave;
-} & FormResponseSessionHooks;
+  /** After `startResponse`. Do not navigate here if a save or submit follows. */
+  onStarted?: (record: ResponseRecord) => void;
+  /** After `saveDraft` succeeds. */
+  onSaved?: (record: ResponseRecord) => void;
+  /** After `submitResponse` succeeds. */
+  onSubmitted?: (record: ResponseRecord) => void;
+  /** After `reopenResponse` succeeds. */
+  onReopened?: (record: ResponseRecord) => void;
+  /** After `abandonResponse` succeeds. */
+  onAbandoned?: (record: ResponseRecord) => void;
+};
 
 type AnswerValue<TAnswers extends FormAnswers, K extends string> = [K] extends [
   keyof TAnswers,
@@ -111,71 +134,110 @@ type AnswerValue<TAnswers extends FormAnswers, K extends string> = [K] extends [
   ? TAnswers[K]
   : unknown;
 
+/** Headless session state. `useFormResponse` returns this plus {@link FormResponseActions}. */
 export type FormResponseSessionState<
   TAnswers extends FormAnswers = FormAnswers,
 > = {
+  /** Definition this session validates against. */
   snapshot: FormSnapshot;
+  /** Current row id. Empty until the first persist. */
   responseId: string | undefined;
+  /** Local answer map. `null` is not stored — a cleared key is absent. */
   answers: TAnswers;
+  /** `"draft"`, `"submitted"`, or `"abandoned"`. */
   status: ResponseStatus;
+  /** Compare-and-swap token from the last server row. */
   updatedAt: string | undefined;
+  /** Field id → English message. */
   issues: Record<string, string>;
+  /** Field id → stable issue code (`REQUIRED`, `TOO_SHORT`, …). */
   issueCodes: Record<string, string>;
+  /** Field id → interpolation values for a localized message. */
   issueParams: Record<string, Record<string, string | number>>;
+  /** Last failed operation, in English. */
   error: string | undefined;
+  /** Stable code for {@link error}. */
   errorCode: string | undefined;
+  /** Interpolation values for {@link errorCode}. */
   errorParams: Record<string, string | number> | undefined;
+  /** In-flight call, or `undefined` when idle. */
   pending: FormResponsePending | undefined;
+  /** `status` is `"submitted"` or `"abandoned"`. */
   locked: boolean;
+  /** Local answers differ from the last server row. */
   dirty: boolean;
   /** Debounced `saveDraft` is enabled on this session. */
   autosave: boolean;
-  /** No existing row and the live form is not `active`. */
+  /** No row yet, and the live form is not `"active"`. */
   inactive: boolean;
+  /** Fields whose `showWhen` matches the current answers. */
   visibleFields: FormField[];
+  /** Visible required fields versus how many are answered. */
   completion: FormCompletion;
   /** Extra field types for local validation and {@link formatAnswer}. */
   fieldTypes: FormResponseFieldTypes | undefined;
 };
 
-/** Headless binding for one field — the contract a UI package would wrap. */
+/**
+ * One control. `q.field(id)` returns this. `onChange(null)` deletes the key.
+ */
 export type FormFieldBinding<TValue = unknown> = {
+  /** Field id. */
   id: string;
+  /** Snapshot field. Absent when `id` is not on the definition. */
   field: FormField | undefined;
+  /** Current answer. `undefined` when the key is unset. */
   value: TValue | undefined;
+  /** English message for this field. */
   error: string | undefined;
+  /** Stable issue code. Localize from this, not from {@link error}. */
   errorCode: string | undefined;
+  /** Interpolation values for {@link errorCode}. */
   errorParams: Record<string, string | number> | undefined;
+  /** This field currently has an issue. */
   invalid: boolean;
   /**
    * Submit would reject an empty value — document `required` and currently
    * visible.
    */
   required: boolean;
+  /** Locked response, or a save/submit is in flight. */
   disabled: boolean;
+  /** `showWhen` matches the current answers. */
   visible: boolean;
+  /** Write the answer. `null` removes the key. */
   onChange: (value: TValue | null) => void;
 };
 
+/** Imperative fill-session API. `dispose` is session-only — the hook omits it. */
 export type FormResponseActions<TAnswers extends FormAnswers = FormAnswers> = {
+  /** Replace one answer. `null` removes the key. */
   setAnswer: <K extends string>(
     fieldId: K,
     value: AnswerValue<TAnswers, K> | null,
   ) => void;
+  /** Apply a patch. A `null` value removes that key. */
   setAnswers: (patch: Partial<TAnswers> & FormAnswers) => void;
+  /** Binding for one control. */
   field: <K extends string>(
     fieldId: K,
   ) => FormFieldBinding<AnswerValue<TAnswers, K>>;
+  /** Run checks without submitting. `options.fields` limits the set. */
   validate: (
     mode?: AnswerValidationMode,
     options?: FormValidateOptions,
   ) => Promise<ValidationIssue[]>;
+  /** Persist a partial patch. */
   saveDraft: () => Promise<ResponseRecord | undefined>;
+  /** Validate visible fields, then lock the row as `"submitted"`. */
   submit: () => Promise<ResponseRecord | undefined>;
+  /** Return a submitted or abandoned row to `"draft"`. */
   reopen: () => Promise<ResponseRecord | undefined>;
+  /** Lock an unfinished response as `"abandoned"`. */
   abandon: () => Promise<ResponseRecord | undefined>;
+  /** Replace local state with the server row. */
   refresh: () => Promise<ResponseRecord | undefined>;
-  /** Cancel a pending autosave timer. */
+  /** Cancel a pending autosave timer. Not returned by `useFormResponse`. */
   dispose: () => void;
 };
 

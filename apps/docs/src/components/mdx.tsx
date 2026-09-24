@@ -4,8 +4,14 @@ import * as TabsComponents from "fumadocs-ui/components/tabs";
 import * as CardComponents from "fumadocs-ui/components/card";
 import * as FilesComponents from "fumadocs-ui/components/files";
 import * as StepsComponents from "fumadocs-ui/components/steps";
+import { TypeTable } from "fumadocs-ui/components/type-table";
+import { AutoTypeTable, type AutoTypeTableProps } from "fumadocs-typescript/ui";
 import { ArchitectureDiagram } from "@/components/architecture-diagram";
 import { Flow } from "@/components/flow";
+import {
+  typeTableBasePath,
+  typeTableGeneratorFor,
+} from "@/lib/type-table-generator";
 import type { MDXComponents } from "mdx/types";
 
 export function getMDXComponents(components?: MDXComponents) {
@@ -18,6 +24,14 @@ export function getMDXComponents(components?: MDXComponents) {
     ...CardComponents,
     ...FilesComponents,
     ...StepsComponents,
+    TypeTable,
+    AutoTypeTable: (props: Partial<AutoTypeTableProps>) => (
+      <AutoTypeTable
+        {...props}
+        generator={typeTableGeneratorFor(props.path)}
+        options={{ basePath: typeTableBasePath, ...props.options }}
+      />
+    ),
     ...components,
   } satisfies MDXComponents;
 }

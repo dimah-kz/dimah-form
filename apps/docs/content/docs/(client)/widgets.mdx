@@ -9,20 +9,13 @@ icon: Blocks
 [`@dimah-form/ui`](/docs/ui) wraps the same binding. This page is the headless path.
 
 ```ts
-type FormFieldBinding = {
-  id: string;
-  field?: FormField;
-  value: unknown;
-  error?: string;
-  errorCode?: string;
-  errorParams?: Record<string, string | number>;
-  invalid: boolean;
-  visible: boolean;
-  required: boolean;
-  disabled: boolean;
-  onChange: (value: unknown) => void; // null clears the key
-};
+import type { FormFieldBinding } from "@dimah-form/react";
 ```
+
+<AutoTypeTable
+  path="packages/core/src/create-form-response-session.ts"
+  name="FormFieldBinding"
+/>
 
 ```tsx title="components/select-field.tsx"
 "use client";

@@ -8,46 +8,59 @@ icon: Settings
 
 `database` is required. `@dimah-form/db` is not — `memoryAdapter()` ships in `@dimah-form/server`.
 
-| Option               | Required | Default       |                                                                                                                  |
-| -------------------- | -------- | ------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `database`           | Yes      | —             | `memoryAdapter()`, `db(formDb)`, or a [`ResponseStore`](#responsestore)                                          |
-| `forms`              |          | `{}`          | Code-authored `defineForm()` catalog. Feeds `$Infer`                                                             |
-| `fieldTypes`         |          | `[]`          | `defineFieldType()` validators for this instance                                                                 |
-| `basePath`           |          | `"/api/form"` | Prefix for `handler`                                                                                             |
-| `guard`              |          | —             | Runs before every operation. Throw to reject                                                                     |
-| `hooks`              |          | `{}`          | `on*` before persist, `after*` after. See [Security](/docs/security)                                             |
-| `plugins`            |          | `[]`          | `definePlugin()` results                                                                                         |
-| `metaSchema`         |          | —             | Zod for the whole `meta` bag. Namespaced plugin schemas run first                                                |
-| `validateAnswers`    |          | —             | Cross-field answer checks. Plugin callbacks run first                                                            |
-| `validateDefinition` |          | —             | Whole-document checks after `metaSchema`. Synchronous. Init, `saveForm`, and live reads — not response snapshots |
+```ts
+import type { DimahFormConfig } from "@dimah-form/server";
+```
+
+<AutoTypeTable
+  path="packages/server/src/dimah-form.ts"
+  name="DimahFormConfig"
+/>
+
+### guard
+
+```ts
+import type { DimahFormGuardContext } from "@dimah-form/server";
+```
+
+<AutoTypeTable
+  path="packages/server/src/types.ts"
+  name="DimahFormGuardContext"
+/>
+
+### hooks
+
+`on*` runs after validation and before the write. `after*` runs after persist — keep side effects there.
+
+```ts
+import type { DimahFormHooks } from "@dimah-form/server";
+```
+
+<AutoTypeTable path="packages/server/src/types.ts" name="DimahFormHooks" />
 
 ## createFormClient()
 
-| Option            | Default            |                                                                                                |
-| ----------------- | ------------------ | ---------------------------------------------------------------------------------------------- |
-| `basePath`        | `"/api/form"`      | Must match the server. Ignored when `baseURL` is set                                           |
-| `baseURL`         | —                  | Absolute prefix, such as `https://api.example.com/api/form`                                    |
-| `credentials`     | `"same-origin"`    | `"include"` sends cookies cross-origin                                                         |
-| `headers`         | —                  | `HeadersInit` or `() => HeadersInit \| Promise<HeadersInit>`                                   |
-| `fetch`           | `globalThis.fetch` | Tests or a custom runtime                                                                      |
-| `fieldTypes`      | `[]`               | Same validators as the server. Required for local checks — `$Infer` does not install them      |
-| `plugins`         | `[]`               | `defineClientPlugin()`. Pass `createFormClient<Form, typeof plugins>` for literal method names |
-| `validateAnswers` | —                  | Same function as `dimahForm({ validateAnswers })`. Plugin callbacks run first                  |
-| `forms`           | —                  | Type-only catalog when you are not using `createFormClient<typeof form>()`                     |
+```ts
+import type { CreateFormClientOptions } from "@dimah-form/react";
+```
+
+<AutoTypeTable
+  path="packages/core/src/create-form-client.ts"
+  name="CreateFormClientOptions"
+/>
+
+Pass `createFormClient<Form, typeof plugins>` when you need literal plugin method names.
 
 ## useFormResponse()
 
-| Option                                                         |                                                                                            |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `snapshot`                                                     | Required                                                                                   |
-| `response`                                                     | Existing row. Omit to start one                                                            |
-| `respondentId`                                                 | `string` or `() => string`                                                                 |
-| `resume`                                                       | Default `false`. Latest draft for `respondentId` on first persist. Requires `respondentId` |
-| `autosave`                                                     | Default off. `true` uses 600ms, or `{ debounceMs }`                                        |
-| `validate`                                                     | `"submit"` (default) or `"change"`                                                         |
-| `fieldTypes`                                                   | Overrides the client registry for this session                                             |
-| `validateAnswers`                                              | Overrides the client validator for this session                                            |
-| `onStarted` `onSaved` `onSubmitted` `onReopened` `onAbandoned` | After that call succeeds                                                                   |
+```ts
+import type { UseFormResponseOptions } from "@dimah-form/react";
+```
+
+<AutoTypeTable
+  path="packages/react/src/use-form-response.ts"
+  name="UseFormResponseOptions"
+/>
 
 Returned state and actions: [React](/docs/react).
 
@@ -56,48 +69,21 @@ Returned state and actions: [React](/docs/react).
 Anything passed as `database` implements this. Methods may be sync or async.
 
 ```ts
-type ResponseStore = {
-  getForm(idOrSlug: string): MaybePromise<FormSnapshot | undefined>;
-  saveForm(
-    form: FormSnapshot,
-    options?: { expectedUpdatedAt?: string },
-  ): MaybePromise<void>;
-  deleteForm(id: string): MaybePromise<void>;
-  listForms(query?: {
-    status?: FormStatus;
-    limit?: number;
-    offset?: number;
-  }): MaybePromise<FormSnapshot[]>;
-
-  createResponse(row: ResponseRecord): MaybePromise<void>;
-  getResponse(id: string): MaybePromise<ResponseRecord | undefined>;
-  saveResponse(
-    row: ResponseRecord,
-    options?: { expectedUpdatedAt?: string },
-  ): MaybePromise<void>;
-  deleteResponse(id: string): MaybePromise<void>;
-  listResponses(
-    query?: ListResponsesStoreQuery,
-  ): MaybePromise<(ResponseRecord | ResponseSummary)[]>;
-  countResponses(query?: ListResponsesStoreQuery): MaybePromise<number>;
-  findLatestDraft(query: {
-    formId: string;
-    respondentId: string;
-  }): MaybePromise<ResponseRecord | undefined>;
-  getOrCreateDraft(
-    row: ResponseRecord,
-  ): MaybePromise<{ row: ResponseRecord; created: boolean }>;
-};
+import type { ResponseStore } from "@dimah-form/server";
 ```
 
-`listResponses` defaults `include` to `"full"`. `"summary"` omits `definition` and `answers`. The HTTP route asks for `"summary"` unless the caller passes `include=full`.
+<AutoTypeTable path="packages/server/src/store.ts" name="ResponseStore" />
 
-`countResponses` ignores `limit`, `offset`, and `include`.
+### ListResponsesStoreQuery
 
-`findLatestDraft` is the newest draft by `updatedAt`. `startResponse({ resume: true })` uses it.
-`getOrCreateDraft` requires `respondentId`. If two starts race, the oldest row (`createdAt`, then `id`) is kept.
+<AutoTypeTable
+  path="packages/server/src/store.ts"
+  name="ListResponsesStoreQuery"
+/>
 
-When `expectedUpdatedAt` is set and does not match, throw `StoreConflictError`. Handlers map it to `409 STALE_UPDATE`. `isStoreConflictError` recognizes that class.
+### StoreWriteOptions
+
+<AutoTypeTable path="packages/server/src/store.ts" name="StoreWriteOptions" />
 
 `memoryAdapter()` is an isolated in-memory store. `db()` from `@dimah-form/db` is the SQL adapter. A custom store is passed to `dimahForm` directly — do not wrap it in `db()`.
 
