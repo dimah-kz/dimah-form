@@ -11,7 +11,7 @@
     "reporting",
     "typescript"
   ],
-  "homepage": "https://form.dimah.dev/docs/insights",
+  "homepage": "https://form.dimah.dev/docs/plugins/insights",
   "bugs": {
     "url": "https://github.com/dimah-kz/dimah-form/issues"
   },

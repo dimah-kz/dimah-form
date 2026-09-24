@@ -1,6 +1,11 @@
 # @dimah-form/server
 
-`dimahForm()` — HTTP `handler` and better-call `api`.
+`dimahForm()` creates the server-authoritative questionnaire instance: a Fetch
+`handler`, an in-process `api`, lifecycle hooks, guards, and plugin support.
+
+**Documentation:** [Quickstart](https://form.dimah.dev/docs/quickstart) ·
+[Integration](https://form.dimah.dev/docs/integration) ·
+[Configuration](https://form.dimah.dev/docs/configuration)
 
 ## Install
 
@@ -8,10 +13,11 @@
 pnpm add @dimah-form/server
 ```
 
-`database` is required. A SQL database is not. `memoryAdapter()` is enough to start; `@dimah-form/db` is optional production SQL.
+`database` is required; SQL is not. `memoryAdapter()` is intended for tests and
+process-local development. Use `@dimah-form/db` or a custom `ResponseStore` for
+durable production data.
 
 ```ts
-import { db, DimahFormDB } from "@dimah-form/db";
 import { dimahForm, defineForm, memoryAdapter } from "@dimah-form/server";
 
 const forms = {
@@ -21,13 +27,8 @@ const forms = {
   }),
 };
 
-const tests = dimahForm({
-  database: memoryAdapter(),
-  forms,
-});
-
 export const form = dimahForm({
-  database: db(DimahFormDB.client(adapter)),
+  database: memoryAdapter(),
   forms,
   guard: async ({ request, operation }) => {
     /* auth */
@@ -45,11 +46,15 @@ export const form = dimahForm({
 export type Form = typeof form;
 ```
 
-Code-authored `forms` are optional. Dynamic questionnaires use `saveForm` / `getForm` against `database`. Snapshots carry `slug` and `status`. List endpoints are paginated. `reopenResponse` returns a submitted or abandoned response to draft without rewriting its snapshot.
+Mount `form.handler` directly in a Fetch runtime, or use an adapter from
+`@dimah-form/server/next`, `/express`, `/hono`, `/fastify`, `/elysia`,
+`/svelte-kit`, or `/node`.
 
 ## Plugins
 
-Feature plugins are factories that return `definePlugin({ ... })`. They add endpoints, hooks, field types, error codes, `metaSchema`, `validateAnswers`, and `validateDefinition` — not persistence. Official Likert scoring is `@dimah-form/scoring`. Official JSONL + codebook interchange is `@dimah-form/dataset`. Official snapshot summaries are `@dimah-form/insights`.
+Feature plugins are additive. They may add endpoints, hooks, field types, error
+codes, metadata schemas, and validators; persistence remains the `database`
+adapter.
 
 ```ts
 import {
@@ -80,7 +85,16 @@ export const form = dimahForm({
 });
 ```
 
-Pair with `defineClientPlugin({ id: "ping", $ERROR_CODES: PING_ERROR_CODES, endpoints, fieldTypes })` on `createFormClient({ plugins })`. The client companion is never inferred from the server instance. Plugin endpoints should throw `errors.*` from this package.
+The endpoint key (`ping`) is the default `guard.operation`. Pair browser
+methods with `defineClientPlugin()` using the same id, routes, error catalog,
+field types, and validators. Client companions are never inferred from the
+server instance.
+
+Official plugins:
+
+- [`@dimah-form/scoring`](https://form.dimah.dev/docs/plugins/scoring)
+- [`@dimah-form/dataset`](https://form.dimah.dev/docs/plugins/dataset)
+- [`@dimah-form/insights`](https://form.dimah.dev/docs/plugins/insights)
 
 ## License
 

@@ -190,6 +190,10 @@ export function Questionnaire({ form }: { form: FormSnapshot }) {
 
 For a shadcn layout, use [`FormView`](/docs/ui) instead of this markup.
 
+`useFormResponse` starts the response lazily on the first draft write, submit,
+or abandon call. Pass an existing `response` when the server has already
+started or resumed the row.
+
 </Step>
 
 <Step>
@@ -256,15 +260,48 @@ Replace `memoryAdapter()` with `db()` from `@dimah-form/db`. See
 
 <Accordion title="How do I resume an existing draft?">
 
-Pass the same respondent and `resume: true` on the hook. The server returns the latest draft instead of inserting another row:
+For an authenticated flow, start or resume on the server with the respondent id
+from the trusted session, then pass that row into the client session. Do not let
+the browser choose another user's `respondentId`.
 
-```tsx
-const q = useFormResponse<"feedback">({
-  snapshot: form,
-  respondentId: session.user.id,
-  resume: true,
-});
+```tsx title="app/page.tsx"
+import { headers } from "next/headers";
+import { Questionnaire } from "@/components/questionnaire";
+import { form } from "@/lib/form";
+
+export default async function Page() {
+  const session = await requireSession();
+  const response = await form.api.startResponse({
+    body: {
+      formId: "feedback",
+      respondentId: session.user.id,
+      resume: true,
+    },
+    headers: await headers(),
+  });
+
+  return <Questionnaire form={response.definition} response={response} />;
+}
 ```
+
+```tsx title="components/questionnaire.tsx"
+import type { FormSnapshot, ResponseRecord } from "@dimah-form/react";
+import { useFormResponse } from "@/lib/form-client";
+
+export function Questionnaire({
+  form,
+  response,
+}: {
+  form: FormSnapshot;
+  response: ResponseRecord;
+}) {
+  const q = useFormResponse<"feedback">({ snapshot: form, response });
+  // Render the same fields and actions as above.
+}
+```
+
+For anonymous flows, `respondentId` can instead be an app-issued opaque resume
+token. Authorization details: [Security](/docs/security).
 
 </Accordion>
 

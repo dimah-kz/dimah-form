@@ -32,11 +32,27 @@ pnpm --filter @dimah-form/core build
 pnpm --filter @dimah-form/core check-types
 ```
 
+## Documentation
+
+Product documentation lives in `apps/docs/content/docs`; its `meta.json` files
+control navigation. Package READMEs are concise npm entry points. Maintainer
+checklists under `docs/agents/` apply when changing published behavior:
+
+- `packages.md` for protocols, endpoints, plugins, and hooks
+- `registry.md` for UI or shadcn registry changes
+- `architecture.md` for package boundaries
+- `release.md` for Tegami and publishing
+
+Do not hand-edit generated registry output, package `CHANGELOG.md` files, or
+`.tegami/publish-lock.yaml`.
+
 ## Issues
 
 Use the **Bug report**, **Feature request**, or **Documentation** forms. Do not file public issues for security problems — see [SECURITY.md](./SECURITY.md).
 
-PRs that touch a published package are labeled `pkg:core`, `pkg:server`, `pkg:db`, `pkg:react`, `pkg:ui`, or `pkg:scoring` from the changed paths.
+PRs that touch a published package are labeled `pkg:core`, `pkg:server`,
+`pkg:db`, `pkg:react`, `pkg:ui`, `pkg:scoring`, `pkg:dataset`, or
+`pkg:insights` from the changed paths.
 
 ## Contribution workflow
 

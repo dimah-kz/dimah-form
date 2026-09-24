@@ -20,13 +20,16 @@ local SQLite (`local.db`).
 
 ```bash
 pnpm install
-pnpm build
-pnpm --filter @dimah-form/example-next db:generate
+pnpm build:packages
 pnpm --filter @dimah-form/example-next db:push
 pnpm --filter @dimah-form/example-next dev
 ```
 
 Open http://localhost:3000 — header toggle switches light / dark (`next-themes`).
+
+`lib/schema.ts` is committed. Run
+`pnpm --filter @dimah-form/example-next db:generate` only after changing the
+canonical schema in `packages/db/src/schema/examples/drizzle.ts`.
 
 - `/` — overview of the demo and live insights
 - `/f/pulse` fills the check-in. Step 1 is identity (`showWhen` on Engineer → team). Step 2 is four scored Likert items plus a custom star rating that is stored but **not** scored

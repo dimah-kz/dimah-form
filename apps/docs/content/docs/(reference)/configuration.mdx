@@ -38,6 +38,19 @@ import type { DimahFormHooks } from "@dimah-form/server";
 
 <AutoTypeTable path="packages/server/src/types.ts" name="DimahFormHooks" />
 
+### plugins
+
+Plugins are additive: endpoints, hooks, field types, error codes, namespaced
+metadata, and validation. Persistence remains the `database` adapter.
+`definePlugin()` preserves endpoint names on `form.api`; a browser companion
+uses `defineClientPlugin()` and is never inferred from the server instance.
+
+```ts
+import type { DimahFormPlugin } from "@dimah-form/server";
+```
+
+<AutoTypeTable path="packages/server/src/types.ts" name="DimahFormPlugin" />
+
 ## createFormClient()
 
 ```ts
@@ -86,6 +99,10 @@ import type { ResponseStore } from "@dimah-form/server";
 <AutoTypeTable path="packages/server/src/store.ts" name="StoreWriteOptions" />
 
 `memoryAdapter()` is an isolated in-memory store. `db()` from `@dimah-form/db` is the SQL adapter. A custom store is passed to `dimahForm` directly — do not wrap it in `db()`.
+
+The HTTP `listResponses` endpoint maps an omitted `include` to `"summary"`.
+Direct `ResponseStore.listResponses()` calls default to `"full"`; custom stores
+must honor the explicit value they receive from the HTTP layer.
 
 ## Next steps
 

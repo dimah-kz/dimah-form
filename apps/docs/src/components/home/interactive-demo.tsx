@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   CodeBlockTab,
   CodeBlockTabs,
@@ -40,19 +40,18 @@ export const feedbackForm = defineForm({
     {
       id: "feedback",
       type: "text",
-      label: "What can we improve?",
-      showWhen: { field: "rating", lte: 3 },
+      label: "What could we improve?",
+      showWhen: { field: "rating", notEquals: [4, 5] },
     },
     {
       id: "email",
       type: "email",
-      label: "Email",
+      label: "Email address",
     },
   ],
 });`;
 
-const serverCode = `import { dimahForm, memoryAdapter } from "@dimah-form/server";
-import { toNextJsHandler } from "@dimah-form/server/next";
+const instanceCode = `import { dimahForm, memoryAdapter } from "@dimah-form/server";
 import { feedbackForm } from "@/lib/forms/feedback";
 
 export const form = dimahForm({
@@ -61,7 +60,10 @@ export const form = dimahForm({
   basePath: "/api/form",
 });
 
-export type Form = typeof form;
+export type Form = typeof form;`;
+
+const routeCode = `import { toNextJsHandler } from "@dimah-form/server/next";
+import { form } from "@/lib/form";
 
 export const { GET, POST, PUT, PATCH, DELETE } = toNextJsHandler(form);`;
 
@@ -84,26 +86,48 @@ export function InteractiveDemo() {
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<string>("");
   const [email, setEmail] = useState<string>("");
-  const [draftRev, setDraftRev] = useState<number>(1);
   const [isSavingDraft, setIsSavingDraft] = useState<boolean>(false);
   const [isSavedRecently, setIsSavedRecently] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submittedResponse, setSubmittedResponse] = useState<{
     id: string;
-    snapshotId: string;
+    status: "submitted";
     answers: Record<string, unknown>;
   } | null>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const submitTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
 
   const showFeedback = rating <= 3;
   const currentDisplayRating = hoverRating ?? rating;
 
+  const clearTimers = () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    if (savedTimer.current) clearTimeout(savedTimer.current);
+    if (submitTimer.current) clearTimeout(submitTimer.current);
+  };
+
+  useEffect(
+    () => () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      if (savedTimer.current) clearTimeout(savedTimer.current);
+      if (submitTimer.current) clearTimeout(submitTimer.current);
+    },
+    [],
+  );
+
   const handleSaveDraft = () => {
     setIsSavingDraft(true);
-    setTimeout(() => {
-      setDraftRev((prev) => prev + 1);
+    saveTimer.current = setTimeout(() => {
       setIsSavingDraft(false);
       setIsSavedRecently(true);
-      setTimeout(() => setIsSavedRecently(false), 2000);
+      savedTimer.current = setTimeout(() => setIsSavedRecently(false), 2000);
     }, 350);
   };
 
@@ -111,10 +135,10 @@ export function InteractiveDemo() {
     event.preventDefault();
     setIsSubmitting(true);
 
-    setTimeout(() => {
+    submitTimer.current = setTimeout(() => {
       setSubmittedResponse({
-        id: `resp_${Math.random().toString(36).slice(2, 8)}`,
-        snapshotId: "snap_8f2a1b9c",
+        id: crypto.randomUUID(),
+        status: "submitted",
         answers: {
           framework,
           rating,
@@ -127,30 +151,33 @@ export function InteractiveDemo() {
   };
 
   const handleReset = () => {
+    clearTimers();
     setFramework("nextjs");
     setRating(5);
     setHoverRating(null);
     setFeedback("");
     setEmail("");
-    setDraftRev(1);
+    setIsSavingDraft(false);
+    setIsSavedRecently(false);
+    setIsSubmitting(false);
     setSubmittedResponse(null);
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl overflow-hidden rounded-2xl border border-fd-border/80 bg-fd-card/90 shadow-xl shadow-fd-foreground/5 backdrop-blur-sm">
+    <div className="mx-auto w-full max-w-6xl overflow-hidden rounded-2xl border border-fd-border/80 bg-fd-card shadow-lg shadow-fd-foreground/5">
       <div className="grid items-stretch lg:grid-cols-[1.05fr_0.95fr]">
         <section
           aria-labelledby="definition-title"
-          className="min-w-0 border-b lg:border-s lg:border-b-0"
+          className="order-2 min-w-0 lg:order-1"
         >
           <div className="flex h-12 items-center justify-between border-b px-4 sm:px-5">
-            <span
+            <h2
               id="definition-title"
               className="text-sm font-medium text-fd-foreground"
             >
               Form definition
-            </span>
-            <span className="font-mono text-[0.7rem] text-fd-muted-foreground">
+            </h2>
+            <span className="font-mono text-xs text-fd-muted-foreground">
               TypeScript
             </span>
           </div>
@@ -167,9 +194,12 @@ export function InteractiveDemo() {
                 feedback.ts
               </CodeBlockTabsTrigger>
               <CodeBlockTabsTrigger
-                value="server"
+                value="instance"
                 className="font-mono text-xs"
               >
+                form.ts
+              </CodeBlockTabsTrigger>
+              <CodeBlockTabsTrigger value="route" className="font-mono text-xs">
                 route.ts
               </CodeBlockTabsTrigger>
             </CodeBlockTabsList>
@@ -180,10 +210,17 @@ export function InteractiveDemo() {
                 codeblock={codeblock}
               />
             </CodeBlockTab>
-            <CodeBlockTab value="server">
+            <CodeBlockTab value="instance">
               <DynamicCodeBlock
                 lang="ts"
-                code={serverCode}
+                code={instanceCode}
+                codeblock={codeblock}
+              />
+            </CodeBlockTab>
+            <CodeBlockTab value="route">
+              <DynamicCodeBlock
+                lang="ts"
+                code={routeCode}
                 codeblock={codeblock}
               />
             </CodeBlockTab>
@@ -192,20 +229,20 @@ export function InteractiveDemo() {
 
         <section
           aria-labelledby="session-title"
-          className="flex min-w-0 flex-col bg-fd-background/30"
+          className="order-1 flex min-w-0 flex-col border-b bg-fd-background/30 lg:order-2 lg:border-s lg:border-b-0"
         >
           <div className="flex h-12 items-center justify-between border-b px-4 sm:px-5">
-            <span
+            <h2
               id="session-title"
               className="text-sm font-medium text-fd-foreground"
             >
               Response session
-            </span>
-            <span className="font-mono text-[0.7rem] text-fd-muted-foreground">
+            </h2>
+            <span className="font-mono text-xs text-fd-muted-foreground">
               {submittedResponse
-                ? submittedResponse.snapshotId
-                : draftRev > 1
-                  ? `draft v${draftRev}`
+                ? submittedResponse.status
+                : isSavedRecently
+                  ? "draft saved"
                   : "draft"}
             </span>
           </div>
@@ -222,17 +259,24 @@ export function InteractiveDemo() {
                 </span>
                 <div>
                   <p className="text-sm font-medium text-fd-foreground">
-                    Snapshot preview
+                    Response submitted
                   </p>
                   <p className="mt-1 text-sm leading-relaxed text-fd-muted-foreground">
-                    This response keeps the definition it started with.
+                    The stored row keeps the definition it started with.
                   </p>
                 </div>
               </div>
               <div className="mt-5">
                 <DynamicCodeBlock
                   lang="json"
-                  code={JSON.stringify(submittedResponse.answers, null, 2)}
+                  code={JSON.stringify(
+                    {
+                      status: submittedResponse.status,
+                      answers: submittedResponse.answers,
+                    },
+                    null,
+                    2,
+                  )}
                   codeblock={{
                     title: submittedResponse.id,
                     className:
@@ -251,11 +295,12 @@ export function InteractiveDemo() {
             </div>
           ) : (
             <form
+              noValidate
               onSubmit={handleSubmit}
               className="flex flex-1 flex-col justify-between gap-6 p-4 sm:p-5"
             >
               <div className="space-y-5">
-                <fieldset>
+                <fieldset aria-required="true">
                   <legend className="text-sm font-medium text-fd-foreground">
                     Primary framework{" "}
                     <span aria-hidden className="text-rose-500">
@@ -275,7 +320,6 @@ export function InteractiveDemo() {
                             id={`framework-${item.id}`}
                             name="framework"
                             onChange={() => setFramework(item.id)}
-                            required={item.id === "nextjs"}
                             type="radio"
                             value={item.id}
                           />
@@ -296,7 +340,7 @@ export function InteractiveDemo() {
                   </div>
                 </fieldset>
 
-                <fieldset>
+                <fieldset aria-required="true">
                   <legend className="text-sm font-medium text-fd-foreground">
                     Satisfaction{" "}
                     <span aria-hidden className="text-rose-500">
@@ -316,7 +360,6 @@ export function InteractiveDemo() {
                             id={`rating-${star}`}
                             name="rating"
                             onChange={() => setRating(star)}
-                            required={star === 1}
                             type="radio"
                             value={star}
                           />

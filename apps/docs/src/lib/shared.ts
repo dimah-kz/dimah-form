@@ -8,11 +8,11 @@ export const docsContentRoute = "/llms.mdx/docs";
 
 /** Landing H1, browser tab, and Open Graph title — keep these in sync. */
 export const siteHeadline = "Questionnaire infrastructure.";
-export const siteHeadlineAccent = "Rendered by you.";
+export const siteHeadlineAccent = "Rendered your way.";
 export const siteTagline = `${siteHeadline} ${siteHeadlineAccent}`;
 export const siteTitle = `${appName} — ${siteTagline}`;
 export const siteDescription =
-  "Define once. Snapshot every response. Keep your UI, auth, and persistence in your hands.";
+  "Typed forms, snapshot-safe responses, and server validation—while your application controls UI, auth, and persistence.";
 
 /** Site-wide terms for the homepage, layout, and JSON-LD — not copied onto every docs page. */
 export const siteKeywords = [
@@ -20,7 +20,9 @@ export const siteKeywords = [
   "dimah form",
   "questionnaire",
   "survey",
-  "form builder",
+  "questionnaire infrastructure",
+  "form backend",
+  "survey infrastructure",
   "headless form",
   "backend-first form",
   "typed form",
@@ -158,13 +160,13 @@ export function siteJsonLd(origin: string) {
           priceCurrency: "USD",
         },
         featureList: [
-          "Backend-first questionnaire engine",
+          "Backend-first questionnaire infrastructure",
           "Typed protocol shared by server and React",
           "Definition snapshots with draft and submit validation",
           "Built-in field types plus defineFieldType",
           "Required persistence adapter: memoryAdapter or optional FumaDB",
           "Headless React fill session — optional @dimah-form/ui, or you own widgets",
-          "Next.js App Router, Hono, Express, Fastify, Elysia, and SvelteKit adapters",
+          "Next.js App Router, Hono, Express, Fastify, Elysia, SvelteKit, and Node.js adapters",
           "Server plugins, domain hooks, and consumer guard auth",
         ],
       },

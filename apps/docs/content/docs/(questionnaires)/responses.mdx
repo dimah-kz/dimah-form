@@ -24,13 +24,18 @@ questionnaire.
 | ----------------- | ---------------------------------------------------------------------------------- |
 | `startResponse`   | Freezes the definition and applies `defaultValue` values                           |
 | `saveDraft`       | Applies an answer patch; `null` removes a key                                      |
-| `submitResponse`  | Strips hidden values, validates visible fields, then locks the response            |
+| `submitResponse`  | Replaces answers when provided, validates visible fields, then locks the response  |
 | `abandonResponse` | Locks an unfinished response                                                       |
 | `reopenResponse`  | Returns a submitted or abandoned response to `draft` without changing its snapshot |
 
+`saveDraft({ answers })` is a patch. `submitResponse({ answers })` treats
+`answers` as the complete replacement; omit it to submit the stored draft as
+is. Submit strips hidden values before validation and persistence.
+
 Pass `{ resume: true, respondentId }` to `startResponse` to reuse the latest
 draft for that respondent. The server rejects `resume: true` without a
-`respondentId`.
+`respondentId`. In authenticated applications, resolve that id on the server
+rather than accepting it from browser input. See [Security](/docs/security).
 
 ## Concurrent edits
 

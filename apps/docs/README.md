@@ -5,29 +5,49 @@ Product documentation site for dimah-form. Built with
 
 Canonical production origin: [form.dimah.dev](https://form.dimah.dev).
 
-## Deploy on Vercel
-
-Same layout as [dimah-s3-docs](https://github.com/dimah-kz/dimah-s3/blob/main/apps/docs/README.md): Git-connected project named `dimah-form-docs`.
-
-1. **Root Directory:** `apps/docs` (enable _Include source files outside of the Root Directory_).
-2. **Node.js:** `24.x` in Vercel (matches `engines.node` `>=24` and CI).
-3. **Domain:** attach `form.dimah.dev` to production. Optional `dimah-form.vercel.app` redirects there.
-4. **Environment variables:** production canonical is always `https://form.dimah.dev` (see [`.env.example`](./.env.example)). Set `NEXT_PUBLIC_SITE_URL` only on preview / local tunnel.
-5. `vercel.json` pins install/build for the monorepo (`turbo run build --filter=@dimah-form/docs` from the repo root) and skips unaffected commits via `ignoreCommand` (`npx turbo-ignore`).
-
-Run development server:
+## Develop
 
 ```bash
 pnpm --filter @dimah-form/docs dev
 ```
 
-Open http://localhost:3000
+Open <http://localhost:3000>. Before submitting changes:
+
+```bash
+pnpm --filter @dimah-form/docs lint
+pnpm --filter @dimah-form/docs check-types
+pnpm --filter @dimah-form/docs build
+```
+
+## Author content
+
+- Product pages live in [`content/docs`](./content/docs); each `meta.json`
+  controls sidebar order.
+- Shared database snippets live in
+  [`content/_includes/db`](./content/_includes/db) and must match
+  `packages/db/src/schema/examples`.
+- Prefer `AutoTypeTable` over hand-maintained property tables for public types.
+- Landing-page components live in [`src/components/home`](./src/components/home).
+- `llms.txt`, `llms-full.txt`, markdown twins, search, sitemap, and Open Graph
+  routes are generated from the same source tree.
+- Do not hand-edit `public/r`; the UI registry build generates it.
 
 ## Explore
 
-| Route                     | Description                    |
-| ------------------------- | ------------------------------ |
-| `app/(home)`              | Landing page                   |
-| `app/docs`                | Documentation layout and pages |
-| `app/api/search/route.ts` | Search index                   |
-| `llms.txt`                | Agent decision sheet           |
+| Path                          | Role                          |
+| ----------------------------- | ----------------------------- |
+| `src/app/(home)`              | Landing page                  |
+| `src/app/docs`                | Documentation shell           |
+| `src/app/api/search/route.ts` | Search index                  |
+| `src/lib/llm-intro.ts`        | Agent decision sheet copy     |
+| `src/app/llms*.txt`           | Generated agent-facing routes |
+| `next.config.ts`              | Legacy redirects and rewrites |
+
+## Deploy on Vercel
+
+1. Set **Root Directory** to `apps/docs` and enable source files outside it.
+2. Use Node.js 24.x.
+3. Attach `form.dimah.dev`; the legacy Vercel host redirects there.
+4. Production always uses the canonical origin. Set `NEXT_PUBLIC_SITE_URL`
+   only for a preview or local tunnel.
+5. `vercel.json` owns the monorepo build and unaffected-commit check.

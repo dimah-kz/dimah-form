@@ -1,8 +1,17 @@
 # @dimah-form/db
 
-Optional production SQL adapter for [dimah-form](https://github.com/dimah-kz/dimah-form). Pass `db(client)` as `database`. Quickstart uses `memoryAdapter()` from `@dimah-form/server` instead.
+Optional FumaDB SQL adapter for
+[dimah-form](https://github.com/dimah-kz/dimah-form). Pass `db(client)` as the
+required `database` option. The Quickstart uses process-local
+`memoryAdapter()` instead.
 
-**Docs:** [Database](https://form.dimah.dev/docs/database)
+**Documentation:** [Persistence](https://form.dimah.dev/docs/persistence)
+
+## Install
+
+```bash
+pnpm add @dimah-form/db fumadb
+```
 
 ```ts
 import { DimahFormDB, db } from "@dimah-form/db";
@@ -17,7 +26,12 @@ const form = dimahForm({
 });
 ```
 
-Schemas: [`drizzle.ts`](./src/schema/examples/drizzle.ts) · [`schema.prisma`](./src/schema/examples/schema.prisma) · [`indexes.sql`](./src/schema/examples/indexes.sql)
+Copy or generate the schema for your ORM, then retain the published secondary
+indexes:
+
+[`drizzle.ts`](./src/schema/examples/drizzle.ts) ·
+[`schema.prisma`](./src/schema/examples/schema.prisma) ·
+[`indexes.sql`](./src/schema/examples/indexes.sql)
 
 ## License
 

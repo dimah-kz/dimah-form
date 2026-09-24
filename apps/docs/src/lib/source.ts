@@ -4,7 +4,11 @@ import { defineDocs } from "fumadocs-mdx/macro";
 import { metaSchema, pageSchema } from "fumadocs-core/source/schema";
 import { docsImageRoute, docsRoute } from "./shared";
 import { getSiteUrl } from "./site-url";
-import { absolutizeMarkdownUrls, LLM_PAGE_PRIORITY } from "./llm-intro";
+import {
+  absolutizeMarkdownUrls,
+  LLM_PAGE_PRIORITY,
+  toMarkdownTwinUrls,
+} from "./llm-intro";
 
 const docs = defineDocs({
   dir: "content/docs",
@@ -44,10 +48,11 @@ export async function getLLMText(page: InferPageType<typeof source>) {
   const processed = await page.data.getText("processed");
   const origin = getSiteUrl().origin;
   const absolute = absolutizeMarkdownUrls(processed, origin);
+  const linked = toMarkdownTwinUrls(absolute, origin);
 
   return `# ${page.data.title} (${origin}${page.url})
 
-${absolute}`;
+${linked}`;
 }
 
 export function orderPagesForLlms<T extends { url: string }>(pages: T[]): T[] {

@@ -6,7 +6,8 @@ icon: FileText
 
 Forms are TypeScript definitions passed through `forms`, or live questionnaire
 rows saved with `saveForm`. Code-authored forms feed `$Infer`; database forms
-are intentionally dynamic.
+are intentionally dynamic. `status` defaults to `"active"`; set it explicitly
+when a form should begin as a draft or remain archived.
 
 ```ts title="lib/forms/onboarding.ts"
 import { defineForm } from "@dimah-form/server";
@@ -57,8 +58,10 @@ response.
 
 ```ts
 showWhen: { field: "role", equals: "manager" }
+showWhen: { field: "role", equals: ["manager", "lead"] }
 showWhen: { field: "plan", notEquals: "free" }
 showWhen: { field: "stack", includes: "typescript" }
+showWhen: { field: "stack", includes: ["typescript", "rust"] }
 
 showWhen: {
   all: [
@@ -70,7 +73,8 @@ showWhen: {
 
 Use `all` or `any` for nested rules. The referenced field must be a sibling;
 cycles, unknown targets, and invalid values are rejected when the definition
-is validated.
+is validated. A scalar list on `equals` or `includes` is a one-of match;
+`notEquals` is its inverse.
 
 ```ts
 import type { FieldShowWhenCompare } from "@dimah-form/server";
@@ -83,16 +87,51 @@ import type { FieldShowWhenCompare } from "@dimah-form/server";
 
 Group rules with `all` or `any`. Both can nest a comparison or another group.
 
+## Cross-field validation
+
+Use `validateAnswers` for checks that depend on more than one field. The server
+is authoritative; pass the same isomorphic validator to the client when you
+also want immediate feedback.
+
+```ts title="lib/validate-answers.ts"
+import type { AnswersValidator } from "@dimah-form/core";
+
+export const validateAnswers: AnswersValidator = (_form, answers) => {
+  if (
+    typeof answers.email === "string" &&
+    typeof answers.confirmEmail === "string" &&
+    answers.email !== answers.confirmEmail
+  ) {
+    return [
+      {
+        field: "confirmEmail",
+        code: "EMAIL_MISMATCH",
+        message: "Email addresses must match",
+      },
+    ];
+  }
+};
+```
+
+```ts
+dimahForm({ database, forms, validateAnswers });
+createFormClient<Form>({ validateAnswers });
+```
+
 ## Code forms and live forms
 
-| Concern              | `forms: {}`                    | `saveForm()`                     |
-| -------------------- | ------------------------------ | -------------------------------- |
-| Authoring            | TypeScript in your application | A live database row              |
-| Answer inference     | `Form["$Infer"]["answers"]`    | `Record<string, unknown>`        |
-| Updating or deleting | Protected as code-authored     | Allowed when no responses remain |
+| Concern          | `forms: {}`                    | `saveForm()`                                       |
+| ---------------- | ------------------------------ | -------------------------------------------------- |
+| Authoring        | TypeScript in your application | A live database row                                |
+| Answer inference | `Form["$Infer"]["answers"]`    | `Record<string, unknown>`                          |
+| Updating         | Edit the source definition     | Allowed; existing response snapshots do not change |
+| Deleting         | Protected from the API         | Allowed only when no responses remain              |
 
 For a code-authored form, optional fields are optional in `$Infer`; a required
 field behind `showWhen` is also optional because it may be invisible.
+
+When updating a live form, send the last `updatedAt` returned by the server.
+Concurrent edits fail with `STALE_UPDATE` instead of overwriting one another.
 
 ```ts
 type OnboardingAnswers = Form["$Infer"]["answers"]["onboarding"];

@@ -1,20 +1,22 @@
 ---
 title: Introduction
-description: A backend-first questionnaire engine for React and Node.js.
+description: Backend-first questionnaire infrastructure for TypeScript servers and React clients.
 icon: House
 ---
 
-dimah-form is a backend-first questionnaire engine for React and Node.js.
-It owns the protocol, per-response definition snapshots, drafts, and submit validation.
-Your application owns authentication, persistence, and rendering.
+dimah-form is backend-first questionnaire infrastructure for product-embedded
+forms. It owns the typed protocol, per-response definition snapshots, drafts,
+and submit validation. Your application owns authentication and rendering and
+supplies the persistence adapter.
 
 Use it when a questionnaire belongs inside your product and must keep its original definition after the live form changes.
 It is not a visual builder, hosted survey service, authentication system, or analytics warehouse.
 
 <Callout>
-  **Start here:** complete [Quickstart](/docs/quickstart), then read
-  [Forms](/docs/forms), [Responses](/docs/responses), and
-  [Integration](/docs/integration) in that order.
+  **Start here:** complete [Quickstart](/docs/quickstart), then prepare for
+  production with [Integration](/docs/integration), [Security](/docs/security),
+  and [Persistence](/docs/persistence). Use [Forms](/docs/forms) and
+  [Responses](/docs/responses) for the data model.
 </Callout>
 
 ## The model
@@ -35,17 +37,17 @@ that draft or submitted response.
 
 ## What you install
 
-| Need                                    | Package                                      |
-| --------------------------------------- | -------------------------------------------- |
-| Server instance, handler, and adapters  | `@dimah-form/server`                         |
-| React client and fill session           | `@dimah-form/react`                          |
-| Production SQL adapter                  | `@dimah-form/db`                             |
-| Optional shadcn renderer                | `@dimah-form/ui`                             |
-| Optional scoring, export, and summaries | `@dimah-form/scoring`, `dataset`, `insights` |
+| Need                                    | Package                                                              |
+| --------------------------------------- | -------------------------------------------------------------------- |
+| Server instance, handler, and adapters  | `@dimah-form/server`                                                 |
+| React client and fill session           | `@dimah-form/react`                                                  |
+| Production SQL adapter                  | `@dimah-form/db`                                                     |
+| Optional shadcn renderer                | `@dimah-form/ui`                                                     |
+| Optional scoring, export, and summaries | `@dimah-form/scoring`, `@dimah-form/dataset`, `@dimah-form/insights` |
 
 `database` is required on `dimahForm()`. SQL is optional: use
 `memoryAdapter()` for tests and local development, or a persistent
-`ResponseStore` in production.
+`ResponseStore` such as `db()` from `@dimah-form/db` in production.
 
 ## Choose the right tool
 

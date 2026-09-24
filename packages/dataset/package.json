@@ -12,7 +12,7 @@
     "csv",
     "typescript"
   ],
-  "homepage": "https://form.dimah.dev/docs/dataset",
+  "homepage": "https://form.dimah.dev/docs/plugins/dataset",
   "bugs": {
     "url": "https://github.com/dimah-kz/dimah-form/issues"
   },

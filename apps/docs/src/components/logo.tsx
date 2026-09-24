@@ -1,6 +1,6 @@
 import { cn } from "@/lib/cn";
 
-/** Keep path geometry in sync with `src/assets/logo.svg`. */
+/** Keep path geometry in sync with `public/logo.svg`. */
 export function Logo({ className }: { className?: string }) {
   return (
     <svg

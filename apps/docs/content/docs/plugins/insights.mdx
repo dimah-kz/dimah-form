@@ -26,6 +26,15 @@ For a browser client, install `insightsClientPlugin()` from
 `createFormClient`. Authorize `getFormInsights` and `getFormCrosstab` as you
 would `listResponses`.
 
+```ts title="lib/form-client.ts"
+import { insightsClientPlugin } from "@dimah-form/insights/client";
+import { createFormClient } from "@dimah-form/react";
+import type { Form } from "@/lib/form";
+
+const plugins = [insightsClientPlugin()] as const;
+export const formClient = createFormClient<Form, typeof plugins>({ plugins });
+```
+
 ```ts
 import type { InsightsPluginOptions } from "@dimah-form/insights";
 ```
@@ -64,6 +73,32 @@ import type { InsightsCrosstab, InsightsSummary } from "@dimah-form/insights";
 Use the normal response filters (`respondentId`, `submittedFrom`,
 `submittedTo`, and `updatedAfter`) to constrain the fold. There is no default
 status filter.
+
+Field summaries include visibility-correct completion, categorical counts,
+finite-number statistics, date ranges, and scoring bands when the snapshot
+contains scoring metadata.
+
+## Segment and cap a query
+
+Use `whereField` and `whereValue` together to fold one segment. Values are
+matched against the stored snapshot answer; numeric values use their string
+form.
+
+```ts
+const summary = await form.api.getFormInsights({
+  query: {
+    formId: "gad7",
+    status: "submitted",
+    whereField: "city",
+    whereValue: "tehran",
+    maxRows: 5_000,
+  },
+});
+```
+
+`maxRows` may lower the plugin cap, not raise it. Results expose `scanned` and
+`truncated`; surface `truncated` in administrative UI instead of presenting a
+partial fold as complete.
 
 ## Crosstabs
 

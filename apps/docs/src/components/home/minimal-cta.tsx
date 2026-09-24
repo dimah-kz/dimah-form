@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/cn";
 
 export function MinimalCta() {
   return (
@@ -10,30 +9,40 @@ export function MinimalCta() {
       className="border-t border-fd-border/80 py-16 text-center sm:py-20"
     >
       <div className="mx-auto max-w-2xl">
-        <p className="font-mono text-[0.7rem] font-medium tracking-[0.14em] text-fd-muted-foreground uppercase">
-          Ready when your forms get real
+        <p className="font-mono text-xs font-medium tracking-[0.12em] text-fd-muted-foreground uppercase">
+          Start with one form
         </p>
         <h2
           id="closing-cta-title"
           className="mt-3 text-2xl font-semibold tracking-tight text-balance text-fd-foreground sm:text-3xl"
         >
-          Keep the protocol. Own the experience.
+          Build the first response flow.
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-fd-muted-foreground sm:text-base">
-          One protocol across Next.js, Hono, Express, Fastify, Elysia, and
-          SvelteKit.
+          Use in-memory persistence locally, then add your guard and durable
+          database adapter before production.
         </p>
 
-        <Link
-          href="/docs/integration"
-          className={cn(
-            buttonVariants({ variant: "outline" }),
-            "mt-7 h-10 px-5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fd-ring",
-          )}
-        >
-          Explore integrations
-          <ArrowRight className="size-4 rtl:rotate-180" />
-        </Link>
+        <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/docs/quickstart"
+            className={buttonVariants({
+              className: "h-10 px-5 text-sm font-medium",
+            })}
+          >
+            Open the quickstart
+            <ArrowRight className="size-4 rtl:rotate-180" />
+          </Link>
+          <Link
+            href="/docs/integration"
+            className={buttonVariants({
+              variant: "outline",
+              className: "h-10 px-5 text-sm font-medium",
+            })}
+          >
+            Choose a runtime
+          </Link>
+        </div>
       </div>
     </section>
   );

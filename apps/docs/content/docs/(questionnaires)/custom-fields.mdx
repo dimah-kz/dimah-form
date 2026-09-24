@@ -63,6 +63,9 @@ Use `createDefineForm({ fieldTypes })` to type custom document keys while
 authoring:
 
 ```ts
+import { createDefineForm } from "@dimah-form/server";
+import { fieldTypes } from "@/lib/field-types/rating";
+
 const defineAppForm = createDefineForm({ fieldTypes });
 
 export const review = defineAppForm({

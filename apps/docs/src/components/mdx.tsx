@@ -6,7 +6,6 @@ import * as FilesComponents from "fumadocs-ui/components/files";
 import * as StepsComponents from "fumadocs-ui/components/steps";
 import { TypeTable } from "fumadocs-ui/components/type-table";
 import { AutoTypeTable, type AutoTypeTableProps } from "fumadocs-typescript/ui";
-import { ArchitectureDiagram } from "@/components/architecture-diagram";
 import { Flow } from "@/components/flow";
 import {
   typeTableBasePath,
@@ -17,7 +16,6 @@ import type { MDXComponents } from "mdx/types";
 export function getMDXComponents(components?: MDXComponents) {
   return {
     ...defaultMdxComponents,
-    ArchitectureDiagram,
     Flow,
     ...AccordionComponents,
     ...TabsComponents,

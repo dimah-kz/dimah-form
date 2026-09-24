@@ -30,6 +30,7 @@ The data disappears when the process restarts.
 
 ```npm
 npm i @dimah-form/db fumadb
+npm i -D tsx
 ```
 
 Copy the schema for your ORM, or generate it with the CLI and re-add the
@@ -77,7 +78,7 @@ void runCli(
 ```
 
 ```bash
-node --import tsx scripts/db-cli.mts generate latest -o ./lib/schema.ts
+node --import tsx scripts/db-cli.mts generate latest -o ./lib/db/schema.ts
 ```
 
 After generating, retain these indexes:
@@ -88,6 +89,11 @@ After generating, retain these indexes:
 | `response_questionnaire_id_updated_at_idx` | `questionnaire_id`, `updated_at`                            |
 | `response_respondent_id_updated_at_idx`    | `respondent_id`, `updated_at`                               |
 | `response_draft_lookup_idx`                | `questionnaire_id`, `respondent_id`, `status`, `updated_at` |
+
+Commit the generated schema and apply it with your ORM's normal migration
+workflow. When upgrading `@dimah-form/db`, regenerate into a temporary file,
+review the diff, restore the secondary indexes above, and create a migration;
+do not replace a production schema blindly.
 
 ## Custom stores
 

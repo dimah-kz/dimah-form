@@ -45,6 +45,67 @@ and `svelte-kit`. Each receives the same `form` instance:
 | SvelteKit | `@dimah-form/server/svelte-kit` → `toSvelteKitHandler` |
 | Node.js   | `@dimah-form/server/node` → `toNodeHandler`            |
 
+<Callout type="warn">
+  Express and Fastify must pass an unread request body to the adapter. Mount the
+  dimah-form route before `express.json()` or configure Fastify so its JSON
+  parser does not consume `/api/form/*` first.
+</Callout>
+
+<Tabs items={["Express", "Hono", "SvelteKit", "Node.js"]}>
+  <Tab value="Express">
+
+```ts
+import express from "express";
+import { toExpressHandler } from "@dimah-form/server/express";
+
+const app = express();
+app.all("/api/form/*", toExpressHandler(form));
+app.use(express.json());
+```
+
+  </Tab>
+  <Tab value="Hono">
+
+```ts
+import { Hono } from "hono";
+import { toHonoHandler } from "@dimah-form/server/hono";
+
+const app = new Hono();
+app.on(
+  ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  "/api/form/*",
+  toHonoHandler(form),
+);
+```
+
+  </Tab>
+  <Tab value="SvelteKit">
+
+```ts title="src/routes/api/form/[...path]/+server.ts"
+import { toSvelteKitHandler } from "@dimah-form/server/svelte-kit";
+import { form } from "$lib/form";
+
+const handler = toSvelteKitHandler(form);
+export const GET = handler;
+export const POST = handler;
+export const PUT = handler;
+export const PATCH = handler;
+export const DELETE = handler;
+```
+
+  </Tab>
+  <Tab value="Node.js">
+
+```ts
+import { createServer } from "node:http";
+import { toNodeHandler } from "@dimah-form/server/node";
+
+createServer(toNodeHandler(form)).listen(3000);
+```
+
+  </Tab>
+</Tabs>
+
 For an edge or Fetch runtime, forward the request directly:
 
 ```ts

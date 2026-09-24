@@ -6,7 +6,8 @@ Optional prebuilt UI for `dimah-form`, on top of `@dimah-form/react` and
 The fill session stays headless. This package wraps `FormResponseApi` /
 `FormFieldBinding` — it does not call `useFormResponse`.
 
-Full documentation: [form.dimah.dev/docs/ui](https://form.dimah.dev/docs/ui) ·
+**Documentation:** [UI](https://form.dimah.dev/docs/ui) ·
+[Custom rendering](https://form.dimah.dev/docs/widgets) ·
 [llms.txt](https://form.dimah.dev/llms.txt)
 
 ## Install
@@ -15,8 +16,7 @@ Full documentation: [form.dimah.dev/docs/ui](https://form.dimah.dev/docs/ui) ·
 pnpm add @dimah-form/ui @dimah-form/react
 ```
 
-Or copy items from the shadcn registry — see
-[UI Setup](https://form.dimah.dev/docs/ui).
+Or copy the source through the shadcn registry:
 
 ```bash
 pnpm dlx shadcn@latest add https://form.dimah.dev/r/form.json
@@ -36,43 +36,34 @@ Colors default to your shadcn theme (`--primary`, `--muted`, …). Override
 ## Quick start
 
 ```tsx
-import { createFormClient } from "@dimah-form/react";
 import { FormUiProvider, FormView } from "@dimah-form/ui";
-
-export const formClient = createFormClient();
-export const { useFormResponse } = formClient;
-
-const widgets = { rating: StarRatingField };
+import { useFormResponse } from "./form-client";
 
 export function IntakeForm({ snapshot }) {
   const form = useFormResponse({ snapshot });
 
   return (
-    <FormUiProvider widgets={widgets}>
+    <FormUiProvider>
       <FormView form={form} />
     </FormUiProvider>
   );
 }
 ```
 
-A widget is `{ binding, className, mode? }`. Wrap the control in `FormFieldFrame`
-(`layout`: `stack` | `choice` | `group`) so `components.FieldFrame` applies. Register custom `defineFieldType`
-widgets once on `FormUiProvider` (or per `FormView` / `FormScope`) — same `type`
-string, or a `meta.widget` key (`radio` / `switch` / `chips` are built-in
-variants, not registry keys). Swap chrome with `components` (`RequiredMark`,
-`FieldFrame`, …) and localize extra issue codes with `formatIssue`. Built-in
-types (`text`, `email`, `date`, `number`, `boolean`, `select`, `multiSelect`)
-ship with the package. `FormView layout="auto"` picks a wizard when `meta.step`
-groups, and widgets in `mode="review"` when locked (`FormReview` is a compact
-`Item` list). Prefix / suffix use shadcn `InputGroup`. `render` / wrap-style
-slots keep the template while you own layout. Presentation lives on `meta`
-(`widget`, `placeholder`, `section`, `step`, `width`, `help`, …) —
-`defineForm({ ... } satisfies FormDefinitionUi)` so those keys autocomplete;
-pass `FormDefinitionUi<typeof fieldTypes, typeof plugins>` when the catalog
-has custom field types or plugin `$Meta` (`createDefineForm` types field keys
-and plugin meta, not this UI bag). Extra keys stay allowed. Import
-`FormDefinitionUi` from `@dimah-form/ui/types` in server form catalogs. Compose
-`FormScope` + primitives when you want every piece by hand.
+Built-in widgets cover `text`, `email`, `date`, `number`, `boolean`, `select`,
+and `multiSelect`; file upload remains application-owned. `layout="auto"` uses
+steps when fields have `meta.step` and review mode when the response is locked.
+
+Customize through:
+
+- `widgets` for custom field types or `meta.widget` variants
+- `components` for field and action chrome
+- slots or `render` for layout
+- `formatIssue`, `formatSessionError`, and `translations` for localized copy
+- `FormScope` plus primitives for fully composed interfaces
+
+Import `FormDefinitionUi` from `@dimah-form/ui/types` in server-side form
+catalogs so UI metadata is typed without loading the UI runtime.
 
 ## License
 

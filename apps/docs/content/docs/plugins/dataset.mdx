@@ -33,6 +33,15 @@ The client companion is `datasetClientPlugin()` from
 on scoring: a valid scoring snapshot adds derived scores to its record, without
 changing stored answers.
 
+```ts title="lib/form-client.ts"
+import { datasetClientPlugin } from "@dimah-form/dataset/client";
+import { createFormClient } from "@dimah-form/react";
+import type { Form } from "@/lib/form";
+
+const plugins = [datasetClientPlugin()] as const;
+export const formClient = createFormClient<Form, typeof plugins>({ plugins });
+```
+
 ```ts
 import type { DatasetPluginOptions } from "@dimah-form/dataset";
 ```
@@ -54,6 +63,11 @@ const history = await form.api.getDatasetCodebook({
 });
 ```
 
+Dataset response queries default to `status: "submitted"`. Pass another status
+explicitly when exporting drafts or abandoned rows. The normal response
+filters—respondent, submitted range, and updated range—apply to pages and
+historical codebooks.
+
 | Call                 | What it describes                                        |
 | -------------------- | -------------------------------------------------------- |
 | `getDatasetPage`     | One page of records and its page codebook                |
@@ -61,8 +75,9 @@ const history = await form.api.getDatasetCodebook({
 | `getLiveCodebook`    | The current live questionnaire only                      |
 
 The history endpoint walks response pages and is capped at 10,000 rows by
-default. `truncated` means the codebook is incomplete; lower the request cap or
-raise the plugin's `maxRows` before creating a full export.
+default. `truncated` means the codebook is incomplete. Narrow the response
+filter or raise the plugin's `maxRows` before creating a full export; query
+`maxRows` can lower that cap, never raise it.
 
 ## Build an interchange file
 
@@ -70,11 +85,7 @@ HTTP is deliberately paged. Zip files, timeouts, and object storage belong in
 your application.
 
 ```ts
-import {
-  createCsvEncoder,
-  createDatasetReader,
-  toJsonl,
-} from "@dimah-form/dataset";
+import { createDatasetReader, toCsv, toJsonl } from "@dimah-form/dataset";
 
 const reader = createDatasetReader({
   page: ({ limit, offset }) =>
@@ -84,7 +95,7 @@ const reader = createDatasetReader({
 
 const { records, codebook } = await reader.readAll();
 const jsonl = toJsonl(records);
-const csv = createCsvEncoder(codebook);
+const csv = toCsv(records, codebook);
 ```
 
 Records carry a `snapshotKey`: an RFC 8785 SHA-256 fingerprint of the
@@ -92,7 +103,8 @@ instrument that produced them. Join a record to the matching historical
 codebook entry rather than flattening it against the live form.
 
 `toDataPackage()` produces a Frictionless data package; it returns files, not a
-zip archive.
+zip archive. Encoders omit `respondentId` by default; include it only for an
+authorized export with `{ includeRespondentId: true }`.
 
 ```ts
 import type {
@@ -111,6 +123,14 @@ import type {
   path="packages/dataset/src/reader.ts"
   name="CreateDatasetReaderOptions"
 />
+
+### EncodeOptions
+
+<AutoTypeTable path="packages/dataset/src/encode.ts" name="EncodeOptions" />
+
+`onProject` runs after a successful submit has been persisted. Reopening and
+submitting again runs it again, so external projections should upsert by
+`record.id`. Do not mutate `response.answers`.
 
 ## Next
 

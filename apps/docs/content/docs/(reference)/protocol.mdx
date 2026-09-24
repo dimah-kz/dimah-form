@@ -23,6 +23,8 @@ List endpoints default to 50 rows and cap at 100.
 `saveForm` and `deleteForm` reject code-authored forms (`CODE_AUTHORED_FORM`).
 `deleteForm` also rejects a form that still has responses (`FORM_HAS_RESPONSES`).
 `listForms` returns `{ forms, limit, offset, nextOffset }`.
+When updating a database-authored form, include its last `updatedAt`; a
+concurrent write fails with `STALE_UPDATE`.
 
 ## Responses
 
@@ -53,14 +55,33 @@ import type { ResponseListFilter } from "@dimah-form/server";
 
 `startResponse` freezes the definition and seeds `defaultValue`. `resume: true` needs `respondentId` and returns the latest draft when one exists.
 
-`saveDraft` and `submitResponse` send a partial `answers` object. `null` deletes that key. Send `updatedAt` from the last read — a mismatch is `409 STALE_UPDATE`.
+`saveDraft.answers` is a patch; `null` deletes that key.
+`submitResponse.answers`, when present, replaces the complete answer map. Omit
+it to submit the stored draft. Send `updatedAt` from the last read — a mismatch
+is `409 STALE_UPDATE`.
 
 `submitResponse` evaluates `showWhen`, drops hidden answers, then checks every visible field. Success sets `status: "submitted"` and `submittedAt`.
 
 The success body is a [`ResponseRecord`](/docs/responses#stored-record), except
 list routes, which return a page.
 
-Plugin routes are not in this table. Scoring, dataset, and insights document their own paths.
+## Plugin routes
+
+Plugin routes use the same `basePath`. Their method name is also the default
+`guard.operation`.
+
+| Package  | Method and path                 | Client and `form.api` method |
+| -------- | ------------------------------- | ---------------------------- |
+| Scoring  | `GET /scoring/response`         | `getResponseScores`          |
+| Dataset  | `GET /dataset/responses`        | `getDatasetPage`             |
+| Dataset  | `GET /dataset/codebook/history` | `getDatasetCodebook`         |
+| Dataset  | `GET /dataset/codebook`         | `getLiveCodebook`            |
+| Insights | `GET /insights/summary`         | `getFormInsights`            |
+| Insights | `GET /insights/crosstab`        | `getFormCrosstab`            |
+
+Install the matching `*ClientPlugin()` to expose these methods in the browser.
+Authorize Dataset and Insights as administrative reads; Scoring reads a stored
+response and should follow the same ownership policy as `getResponse`.
 
 ## Next steps
 

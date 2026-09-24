@@ -15,6 +15,10 @@ npm i @dimah-form/ui @dimah-form/react
 @import "@dimah-form/ui/styles.css";
 ```
 
+The package expects the standard shadcn runtime peers. If your package manager
+does not install peers automatically, add `@base-ui/react`,
+`@fuma-translate/react`, `class-variance-authority`, `cn`, and `lucide-react`.
+
 Or copy the source with the shadcn registry:
 
 ```bash
@@ -23,14 +27,18 @@ pnpm dlx shadcn@latest add https://form.dimah.dev/r/form.json
 
 ## Render the session
 
-```tsx
-import { FormUiProvider, FormView } from "@dimah-form/ui";
+```tsx title="components/questionnaire.tsx"
+"use client";
 
-export function Questionnaire() {
+import type { FormSnapshot } from "@dimah-form/react";
+import { FormUiProvider, FormView } from "@dimah-form/ui";
+import { useFormResponse } from "@/lib/form-client";
+
+export function Questionnaire({ snapshot }: { snapshot: FormSnapshot }) {
   const form = useFormResponse({ snapshot });
 
   return (
-    <FormUiProvider translations={fa} widgets={{ rating: StarRatingField }}>
+    <FormUiProvider>
       <FormView form={form} />
     </FormUiProvider>
   );
@@ -59,6 +67,10 @@ The built-in widgets cover `text`, `email`, `date`, `number`, `boolean`,
 `select`, and `multiSelect`. `file` has no upload widget. Register custom
 widgets by the same type string used by `defineFieldType`, or choose a
 registered widget with `field.meta.widget`.
+
+Built-in presentation variants are `radio` for `select`, `switch` for
+`boolean`, and `chips` for `multiSelect`. They are widget modes, not registry
+keys.
 
 `layout="auto"` becomes a wizard when fields use `meta.step`; it renders review
 mode for locked responses. Force `fill`, `steps`, or `review` with `layout` or
@@ -93,9 +105,61 @@ import type { FormUiComponents } from "@dimah-form/ui";
 Use `FormFieldFrame` inside a custom widget so the consuming application's
 `FieldFrame` component and accessibility chrome still apply.
 
+## Compose from primitives
+
+Use `FormView` for the standard layout. When the application needs full
+control, compose the same session without creating another hook:
+
+```tsx
+import {
+  FormActions,
+  FormFields,
+  FormHeader,
+  FormRoot,
+  FormScope,
+} from "@dimah-form/ui";
+
+<FormUiProvider>
+  <FormScope form={form}>
+    <FormRoot>
+      <FormHeader />
+      <FormFields />
+      <FormActions />
+    </FormRoot>
+  </FormScope>
+</FormUiProvider>;
+```
+
+Keep `FormRoot` in custom compositions so submit, Enter handling, invalid-field
+focus, and step navigation remain connected to the session.
+
+## Localize UI and request errors
+
+English source strings are the fallback. Pass a partial translation map for
+UI copy, `formatIssue` for field codes, and `formatSessionError` for request
+errors.
+
+```tsx
+import type { Translations } from "@dimah-form/ui";
+
+const fa = {
+  "Submit(form action)": "ارسال",
+} satisfies Partial<Translations>;
+
+<FormUiProvider
+  translations={fa}
+  formatSessionError={(session) =>
+    session.errorCode === "UNAUTHORIZED" ? "Please sign in" : undefined
+  }
+>
+  <FormView form={form} />
+</FormUiProvider>;
+```
+
 ## Type UI metadata
 
 ```ts
+import { defineForm } from "@dimah-form/server";
 import type { FormDefinitionUi } from "@dimah-form/ui/types";
 
 export const onboarding = defineForm({

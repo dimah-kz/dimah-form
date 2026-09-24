@@ -1,8 +1,12 @@
 # @dimah-form/dataset
 
-Official dataset plugin. Project stored responses into a versioned **JSON Lines + codebook** interchange. CSV is a convenience encoding. HTTP stays paged; a full-file zip belongs in the consumer app.
+Official dataset plugin. It projects stored response snapshots into versioned
+JSON Lines plus a historical codebook. CSV and Frictionless data-package
+encoders are included; archives and object storage remain application-owned.
 
-Derived data only. The plugin does not add tables or a `meta` namespace. Records are built from the **response definition snapshot**, never the live questionnaire.
+The plugin adds no tables or metadata namespace.
+
+**Documentation:** [Dataset](https://form.dimah.dev/docs/plugins/dataset)
 
 ## Install
 
@@ -10,15 +14,8 @@ Derived data only. The plugin does not add tables or a `meta` namespace. Records
 pnpm add @dimah-form/dataset
 ```
 
-Depends on `@dimah-form/scoring`. Peer-depends on `@dimah-form/core`. The server entry also needs `@dimah-form/server`. Browser modules should import from `@dimah-form/dataset/client` so the server package stays off the client bundle. Isomorphic code imports `@dimah-form/scoring/document`.
-
 ```ts
 import { datasetPlugin } from "@dimah-form/dataset";
-import {
-  datasetClientPlugin,
-  createDatasetReader,
-  toJsonl,
-} from "@dimah-form/dataset/client";
 
 export const form = dimahForm({
   database,
@@ -30,24 +27,39 @@ export const form = dimahForm({
     }),
   ],
 });
+```
 
-const clientPlugins = [datasetClientPlugin()] as const;
-export const formClient = createFormClient<Form, typeof clientPlugins>({
-  plugins: clientPlugins,
+```ts
+import {
+  createDatasetReader,
+  datasetClientPlugin,
+  toJsonl,
+} from "@dimah-form/dataset/client";
+
+const plugins = [datasetClientPlugin()] as const;
+export const formClient = createFormClient<Form, typeof plugins>({
+  plugins,
 });
 ```
 
-Guard operations for `GET /dataset/responses`, `GET /dataset/codebook/history`, and `GET /dataset/codebook` are `getDatasetPage`, `getDatasetCodebook`, and `getLiveCodebook`. Treat them like `listResponses` (admin).
-
-`getLiveCodebook` is the **live** form. `snapshots[0].n` is 0; `snapshots[0].key` is the live instrument hash. Historical views come from `getDatasetCodebook` / `createDatasetReader`. Page codebooks are that page only. Newest `lastSeenAt` is canonical. An earlier snapshot whose field, score variable, band, or formula differs is one `history` entry (full view, keyed by `snapshotKey`). Walks are capped (default 10_000). Query `maxRows` can lower that cap, not raise it. The result includes `truncated`, and `readCodebook()` returns it.
+Dataset queries default to submitted rows. Guard `getDatasetPage`,
+`getDatasetCodebook`, and `getLiveCodebook` like administrative
+`listResponses` access. Historical codebook walks default to a 10,000-row cap;
+query `maxRows` may lower it, not raise it, and results expose `truncated`.
 
 `onProject` runs after submit. Upsert by `record.id` — reopen then submit runs it again.
 
 ## Interchange
 
-`spec: "dimah.dataset/v1"` on every JSON object. `snapshotKey` is SHA-256 of RFC 8785 canonical JSON. Canonical file is `responses.jsonl` plus `codebook.json`. `toDataPackage()` returns a Frictionless tabular data package (`primaryKey`, dialect, and codebook constraints on `responses.csv` only). `attachment` is set only for `type: "file"`.
+Every object uses `spec: "dimah.dataset/v1"`. `snapshotKey` is the RFC 8785
+SHA-256 fingerprint of the instrument that produced the record. Join records
+to historical codebook entries by that key instead of flattening against the
+live form.
 
-A field id that is an identity column (`id`, `formId`, `status`, `submittedAt`, `createdAt`, `updatedAt`, `snapshotKey`, `respondentId`) or starts with `score.` is written as `field.<id>`. If that name is also a field id, encoding throws. Score columns are `score.<id>.raw`, `.band`, `.complete`, and `.missing` (unanswered item count). Variable `missing` policy (`zero` / `omit` / `incomplete`) stays on the codebook; when the form omits it, scoring's default is `incomplete`.
+The canonical pair is `responses.jsonl` plus `codebook.json`.
+`toDataPackage()` returns files, not a zip. Encoders omit `respondentId` by
+default. Reserved field ids are escaped as `field.<id>`; score columns use the
+`score.<id>.*` namespace.
 
 ## License
 

@@ -1,6 +1,12 @@
 # @dimah-form/react
 
-Thin React client for dimah-form. `createFormClient()` returns the protocol API plus bound hooks. Re-export those from the instance so the protocol client, `$Infer`, and field types stay tied to it. Bound hooks do not need `Provider`. Bound `useFormResponse<"catalogKey">` types `answers` from `$Infer`. Fill-session `answers` default to `FormAnswers`. Define shared field types from `@dimah-form/core` (this package is `"use client"`). Pass the same `fieldTypes` as `dimahForm`, or register them on `defineClientPlugin`. No field widgets — you render `visibleFields` / `field(id)`.
+Typed React client and headless fill-session hooks for dimah-form. It manages
+visibility, local answers, drafts, autosave, validation, and submit; it does
+not ship input widgets.
+
+**Documentation:** [Client session](https://form.dimah.dev/docs/react) ·
+[Custom rendering](https://form.dimah.dev/docs/widgets) ·
+[Optional UI](https://form.dimah.dev/docs/ui)
 
 ## Install
 
@@ -13,9 +19,28 @@ import { createFormClient } from "@dimah-form/react";
 import type { Form } from "./form";
 import { fieldTypes } from "./field-types";
 
-export const formClient = createFormClient<Form>({ fieldTypes });
+export const formClient = createFormClient<Form>({
+  basePath: "/api/form",
+  fieldTypes,
+});
 export const { useFormClient, useFormResponse } = formClient;
 ```
+
+Re-export the bound hooks so `$Infer`, plugin methods, and runtime field types
+stay tied to the same instance. Bound hooks do not need `Provider`.
+
+```tsx
+const form = useFormResponse<"onboarding">({ snapshot });
+
+return form.visibleFields.map((field) => {
+  const binding = form.field(field.id);
+  return <MyField key={field.id} binding={binding} />;
+});
+```
+
+Define shared custom field types in an isomorphic module using
+`@dimah-form/core`, then pass the same array to the server and client. For a
+prebuilt renderer, add `@dimah-form/ui`.
 
 ## License
 

@@ -11,13 +11,23 @@ and its answers. It never writes scores into `answers` and adds no tables.
 npm i @dimah-form/scoring
 ```
 
-```ts title="lib/form.ts"
+```ts title="lib/form-plugins.ts"
 import { scoringPlugin } from "@dimah-form/scoring";
+import { createDefineForm } from "@dimah-form/server";
+
+export const plugins = [scoringPlugin()] as const;
+export const defineScoredForm = createDefineForm({ plugins });
+```
+
+```ts title="lib/form.ts"
+import { dimahForm } from "@dimah-form/server";
+import { plugins } from "@/lib/form-plugins";
+import { forms } from "@/lib/forms";
 
 export const form = dimahForm({
   database,
   forms,
-  plugins: [scoringPlugin()],
+  plugins,
 });
 ```
 
@@ -26,12 +36,27 @@ For browser-side previews and typed plugin endpoints, add the matching
 not inferred by `createFormClient`. Authorize `getResponseScores` as you would
 any other admin operation.
 
+```ts title="lib/form-client.ts"
+import { scoringClientPlugin } from "@dimah-form/scoring/client";
+import { createFormClient } from "@dimah-form/react";
+import type { Form } from "@/lib/form";
+
+const plugins = [scoringClientPlugin()] as const;
+export const formClient = createFormClient<Form, typeof plugins>({ plugins });
+```
+
+Use the root entry on the server, `/client` in browser bundles, and
+`@dimah-form/scoring/document` in isomorphic packages that need document
+readers without loading the server plugin.
+
 ## Author a score
 
 There is no `likert` field type. Use `select`, `multiSelect`, `number`, or
 `boolean`, then configure scoring in `meta.scoring`.
 
-```ts
+```ts title="lib/forms/gad7.ts"
+import { defineScoredForm } from "@/lib/form-plugins";
+
 const likert = [
   { value: "0", label: "Not at all", meta: { scoring: { points: 0 } } },
   { value: "1", label: "Several days", meta: { scoring: { points: 1 } } },
@@ -39,7 +64,7 @@ const likert = [
   { value: "3", label: "Nearly every day", meta: { scoring: { points: 3 } } },
 ];
 
-export const gad7 = defineAppForm({
+export const gad7 = defineScoredForm({
   title: "GAD-7",
   meta: {
     scoring: {
@@ -47,6 +72,8 @@ export const gad7 = defineAppForm({
       bands: [
         { variable: "gad7", from: 0, to: 4, label: "Minimal" },
         { variable: "gad7", from: 5, to: 9, label: "Mild" },
+        { variable: "gad7", from: 10, to: 14, label: "Moderate" },
+        { variable: "gad7", from: 15, to: 21, label: "Severe" },
       ],
     },
   },
@@ -57,6 +84,7 @@ export const gad7 = defineAppForm({
       options: likert,
       meta: { scoring: { variable: "gad7" } },
     },
+    // Add q2 through q7 with the same mapping.
   ],
 });
 ```

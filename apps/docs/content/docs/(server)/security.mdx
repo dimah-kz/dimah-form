@@ -83,6 +83,35 @@ export const form = dimahForm({
 HTTP request fail even though the row is already stored, so design side effects
 to be idempotent.
 
+`onStart` stamps newly created rows. When `resume: true` finds an existing
+draft, that row is returned as-is, so the respondent id used for lookup must
+already be trusted.
+
+## Resume authenticated drafts
+
+Resolve authenticated ownership on the server. Call `form.api.startResponse`
+with the respondent id from the session, then pass the returned response to
+`useFormResponse`. This keeps the lookup key out of browser control.
+
+```ts title="app/page.tsx"
+import { headers } from "next/headers";
+import { form } from "@/lib/form";
+
+const session = await requireSession();
+const response = await form.api.startResponse({
+  body: {
+    formId: "feedback",
+    respondentId: session.user.id,
+    resume: true,
+  },
+  headers: await headers(),
+});
+```
+
+For an anonymous flow, use an app-issued, unguessable resume token and treat it
+as a credential. Never use an email address or another predictable identifier
+as a public resume key.
+
 ## Browser credentials
 
 Configure the client for your own session scheme:

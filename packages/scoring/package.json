@@ -13,7 +13,7 @@
     "gad-7",
     "typescript"
   ],
-  "homepage": "https://form.dimah.dev/docs/scoring",
+  "homepage": "https://form.dimah.dev/docs/plugins/scoring",
   "bugs": {
     "url": "https://github.com/dimah-kz/dimah-form/issues"
   },

@@ -402,7 +402,7 @@ export type FormDefinition = {
   slug?: string;
   /**
    * Only `"active"` can start a response.
-   * @default "draft"
+   * @default "active"
    */
   status?: FormStatus;
   createdAt?: string;

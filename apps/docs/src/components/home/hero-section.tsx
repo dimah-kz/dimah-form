@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/cn";
 import {
   githubRepoUrl,
   siteDescription,
@@ -28,10 +27,11 @@ export function HeroSection() {
     >
       <div className="mx-auto flex max-w-4xl flex-col items-center text-center">
         <Link
-          href="/docs/quickstart"
-          className="group inline-flex items-center gap-2 rounded-full border bg-fd-card/80 px-3.5 py-1.5 text-xs font-medium text-fd-muted-foreground shadow-sm backdrop-blur-sm transition-colors hover:border-fd-primary/40 hover:text-fd-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fd-ring"
+          href="/docs/responses"
+          className="group inline-flex items-center gap-2 rounded-full border border-fd-foreground/10 bg-transparent px-3.5 py-1.5 text-xs font-medium text-fd-muted-foreground backdrop-blur-sm transition-colors hover:border-fd-foreground/20 hover:bg-fd-foreground/[0.03] hover:text-fd-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fd-ring"
         >
-          Open source · TypeScript
+          <span className="font-semibold text-fd-primary">Snapshot model</span>
+          Form edits never rewrite a response
           <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5 rtl:rotate-180" />
         </Link>
 
@@ -40,9 +40,7 @@ export function HeroSection() {
           className="mt-7 max-w-4xl text-4xl font-semibold tracking-[-0.04em] text-balance text-fd-foreground sm:text-6xl sm:leading-[1.05]"
         >
           <span className="block">{siteHeadline}</span>
-          <span className="block bg-linear-to-r from-fd-primary via-cyan-500 to-teal-500 bg-clip-text text-transparent dark:via-cyan-200 dark:to-teal-200">
-            {siteHeadlineAccent}
-          </span>
+          <span className="block text-fd-primary">{siteHeadlineAccent}</span>
         </h1>
 
         <p className="mt-5 max-w-2xl text-base leading-relaxed text-balance text-fd-muted-foreground sm:text-lg">
@@ -52,10 +50,9 @@ export function HeroSection() {
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link
             href="/docs/quickstart"
-            className={cn(
-              buttonVariants(),
-              "h-10 px-5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fd-ring",
-            )}
+            className={buttonVariants({
+              className: "h-10 px-5 text-sm font-medium",
+            })}
           >
             Start building
             <ArrowRight className="size-4 rtl:rotate-180" />
@@ -65,10 +62,10 @@ export function HeroSection() {
             href={githubUrl}
             target="_blank"
             rel="noreferrer"
-            className={cn(
-              buttonVariants({ variant: "outline" }),
-              "h-10 px-5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fd-ring",
-            )}
+            className={buttonVariants({
+              variant: "outline",
+              className: "h-10 px-5 text-sm font-medium",
+            })}
           >
             <GitHubIcon />
             View on GitHub
@@ -76,18 +73,15 @@ export function HeroSection() {
         </div>
 
         <p className="mt-5 text-xs text-fd-muted-foreground">
-          Next.js, Hono, Express, Fastify, Elysia, and SvelteKit.
+          Headless React client · Next.js, Hono, Express, Fastify, Elysia,
+          SvelteKit, and Node.js adapters.
         </p>
       </div>
 
       <div className="relative mt-14 sm:mt-18">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-[15%] -top-8 h-52 rounded-full bg-fd-primary/15 blur-3xl sm:-top-12 sm:h-64"
-        />
         <div className="relative">
           <div className="mx-auto mb-4 flex max-w-6xl items-center justify-between gap-4 px-1">
-            <p className="font-mono text-[0.7rem] font-medium tracking-[0.14em] text-fd-muted-foreground uppercase">
+            <p className="font-mono text-xs font-medium tracking-[0.12em] text-fd-muted-foreground uppercase">
               Response flow
             </p>
             <span className="text-xs text-fd-muted-foreground">

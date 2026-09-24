@@ -28,7 +28,7 @@ export function CoreFeatures() {
       className="relative py-16 sm:py-20"
     >
       <div className="mx-auto max-w-2xl text-center">
-        <p className="font-mono text-[0.7rem] font-medium tracking-[0.14em] text-fd-muted-foreground uppercase">
+        <p className="font-mono text-xs font-medium tracking-[0.12em] text-fd-muted-foreground uppercase">
           Built for forms with a lifecycle
         </p>
         <h2
@@ -38,12 +38,13 @@ export function CoreFeatures() {
           Every response keeps its definition.
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-fd-muted-foreground sm:text-base">
-          The protocol stays stable. The UI, auth, and persistence stay yours.
+          The server owns the lifecycle. Your application controls UI, auth, and
+          persistence.
         </p>
       </div>
 
       <div className="mx-auto mt-10 max-w-6xl overflow-hidden rounded-2xl border border-fd-border/80 bg-fd-card/80 shadow-sm">
-        <div className="grid divide-y divide-fd-border md:grid-cols-3 md:divide-x md:divide-y-0">
+        <div className="grid divide-y divide-fd-border lg:grid-cols-3 lg:divide-x lg:divide-y-0">
           {features.map((feature) => {
             const Icon = feature.icon;
 
@@ -53,7 +54,7 @@ export function CoreFeatures() {
                   <span className="flex size-8 items-center justify-center rounded-lg bg-fd-primary/10 text-fd-primary">
                     <Icon className="size-4" aria-hidden />
                   </span>
-                  <span className="font-mono text-[0.7rem] text-fd-muted-foreground">
+                  <span className="font-mono text-xs text-fd-muted-foreground">
                     {feature.kicker}
                   </span>
                 </div>

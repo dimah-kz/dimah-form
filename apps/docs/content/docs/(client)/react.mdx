@@ -17,7 +17,7 @@ export const formClient = createFormClient<Form>({
   basePath: "/api/form",
 });
 
-export const { useFormResponse } = formClient;
+export const { useFormClient, useFormResponse } = formClient;
 ```
 
 Prefer the bound hook from your client. The unbound `useFormResponse` import needs `formClient.Provider`.
@@ -119,6 +119,31 @@ import type { UseFormResponseOptions } from "@dimah-form/react";
 
 `"submit"` checks on submit. After a failed submit, edits clear resolved issues.
 `"change"` also checks on each answer change.
+
+For a stepped custom UI, validate only the current field ids before advancing:
+
+```ts
+const canAdvance = await q.validate("submit", { fields: currentFieldIds });
+```
+
+## Protocol access
+
+The bound `useFormClient()` returns the same typed protocol client outside the
+fill-session workflow:
+
+```tsx
+const client = useFormClient();
+
+async function loadSubmitted() {
+  return client.listResponses({
+    formId: "onboarding",
+    status: "submitted",
+  });
+}
+```
+
+Prefer this bound hook. The package-level hook requires `formClient.Provider`
+and loses the instance-specific inference unless you supply it explicitly.
 
 ## Frequently asked questions
 

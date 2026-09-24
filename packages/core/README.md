@@ -1,6 +1,11 @@
 # @dimah-form/core
 
-Protocol, error catalog, typed fetch client, and headless fill session for dimah-form.
+Protocol, field types, error catalogs, typed fetch client, and framework-neutral
+fill session for dimah-form.
+
+**Documentation:** [Introduction](https://form.dimah.dev/docs) ·
+[Protocol](https://form.dimah.dev/docs/protocol) ·
+[Custom fields](https://form.dimah.dev/docs/custom-fields)
 
 ## Install
 
@@ -8,9 +13,26 @@ Protocol, error catalog, typed fetch client, and headless fill session for dimah
 pnpm add @dimah-form/core
 ```
 
-Most apps should install `@dimah-form/server` and/or `@dimah-form/react` instead. This package is for protocol and plugin authors, and for shared isomorphic modules such as `defineFieldType` catalogs used on both the server and the browser.
+Most applications should install `@dimah-form/server` and
+`@dimah-form/react` instead; they re-export the app-facing protocol. Install
+Core directly for shared isomorphic field-type modules, non-React sessions, or
+plugin/protocol tooling.
 
-`createFormClient<typeof form>({ fieldTypes })` copies server `$Infer` onto the client. `$Infer` is type-only — pass `fieldTypes` or `defineClientPlugin({ fieldTypes })` for local session validation. `$Infer.answers` matches stored payloads: required keys present, optional keys omitted (including required fields with `showWhen`). `createFormClient({ plugins })` merges `defineClientPlugin` endpoints, field types, and `validateAnswers`. `createDefineForm({ fieldTypes, plugins })` is type-only authoring (plugin `$Meta` + field types). Pass `forms` / `fieldTypes` only when you do not have the server instance type.
+```ts
+import { defineFieldType } from "@dimah-form/core";
+
+export const ratingField = defineFieldType({
+  type: "rating",
+  validate: (value) =>
+    typeof value === "number" ? undefined : "Expected a number",
+  $Infer: 0 as number,
+});
+```
+
+`$Infer` is type-only. Pass the same `fieldTypes` or client plugins at runtime
+when the local fill session must validate custom values. Use
+`createDefineForm({ fieldTypes, plugins })` for typed authoring without sending
+the catalog to the browser.
 
 ## License
 

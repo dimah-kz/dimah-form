@@ -55,11 +55,14 @@ import type { FieldShowWhenCompare } from "@dimah-form/react";
   name="FieldShowWhenCompare"
 />
 
-A hidden field is omitted from `visibleFields`. Submit strips its answer. Group rules with `all` (every rule) or `any` (one rule). Examples: [Forms](/docs/forms#showwhen).
+A hidden field is omitted from `visibleFields`. Submit strips its answer. Group
+rules with `all` (every rule) or `any` (one rule). Examples:
+[Forms](/docs/forms#conditional-fields).
 
 ## $Infer
 
-`required: true` makes the key required. Everything else is optional.
+`required: true` makes an unconditional key required. Optional fields and
+fields with `showWhen` are optional because they may be absent.
 
 ```ts
 type ExampleAnswers = Form["$Infer"]["answers"]["example"];

@@ -51,6 +51,8 @@ export function SelectField(binding: FormFieldBinding) {
 Branch the rest on `field.type` inside one dispatcher: checkbox for `boolean`, checkboxes for `multiSelect`, `type="number"` / `type="date"` / `type="email"` for the others. `file` is metadata your app writes after upload — there is no file input in the protocol.
 
 `onChange(null)` deletes the answer. `emptyToNull("")` does that for text controls. An empty `multiSelect` should be `null`, not `[]`, when you want the key removed.
+For `boolean`, write `null` when `field.unsetOnOff === true`; otherwise write
+`false` so a required yes/no field can submit “No.”
 
 ## Helpers
 

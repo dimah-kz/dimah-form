@@ -51,26 +51,37 @@ export function absolutizeMarkdownUrls(markdown: string, origin: string) {
  * HTML `/docs` URLs still work for humans; agents should fetch `.md`.
  */
 export function toMarkdownTwinUrls(markdown: string, origin: string) {
-  const docsBase = `${origin}${docsRoute}`;
-
   return markdown.replaceAll(/\[[^\]]+\]\([^)]+\)/g, (full) => {
     const splitAt = full.indexOf("](");
     const title = full.slice(1, splitAt);
     const url = full.slice(splitAt + 2, -1);
-    if (!url.startsWith(docsBase)) return full;
-    if (/\.(?:md|mdx|txt)$/i.test(url)) return full;
-    return `[${title}](${url}.md)`;
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      return full;
+    }
+    if (parsed.origin !== origin) return full;
+    if (
+      parsed.pathname !== docsRoute &&
+      !parsed.pathname.startsWith(`${docsRoute}/`)
+    ) {
+      return full;
+    }
+    if (/\.(?:md|mdx|txt)$/i.test(parsed.pathname)) return full;
+    parsed.pathname = `${parsed.pathname}.md`;
+    return `[${title}](${parsed.toString()})`;
   });
 }
 
 export function llmDecisionSheet(): string {
   return `# dimah-form
 
-> Backend-first questionnaire engine: the library owns the protocol, definition snapshots, and submit validation. You own UI, auth, and the database adapter. Not a form renderer, and not a hosted survey product.
+> Backend-first questionnaire infrastructure: the library owns the typed protocol, definition snapshots, drafts, and submit validation. Your application owns auth and supplies the database adapter and UI; \`@dimah-form/ui\` is an optional renderer. Not a visual builder or hosted survey product.
 
 TypeScript packages: \`@dimah-form/server\` (\`dimahForm()\` handler and \`api\`), \`@dimah-form/react\` (thin client and \`useFormResponse\`). Optional \`@dimah-form/ui\` is a shadcn renderer on top of the headless session. Optional \`@dimah-form/db\` is the FumaDB SQL adapter. Optional \`@dimah-form/scoring\` is the scoring plugin (Likert and option keying). Optional \`@dimah-form/dataset\` is the dataset plugin (JSONL + codebook interchange). Optional \`@dimah-form/insights\` is the insights plugin (read-side snapshot summaries). Protocol types live in \`@dimah-form/core\`.
 
-HTTP adapters: Next.js App Router, Express, Hono, Fastify, Elysia, SvelteKit, and Node. Persistence is required: \`memoryAdapter()\` from \`@dimah-form/server\` (Quickstart), or optional \`db()\` from \`@dimah-form/db\` for SQL. Built-in field types: text, number, boolean, select, multiSelect, email, date. Extra types are \`defineFieldType\` validators, not components.
+HTTP adapters: Next.js App Router, Express, Hono, Fastify, Elysia, SvelteKit, and Node. Persistence is required: \`memoryAdapter()\` from \`@dimah-form/server\` (Quickstart), or optional \`db()\` from \`@dimah-form/db\` for SQL. Built-in field types: text, number, boolean, select, multiSelect, email, date, and file metadata. Extra types are \`defineFieldType\` validators, not components.
 
 Use it when the app needs typed questionnaires with drafts, snapshots, and submit validation, while keeping widgets in the consumer app or the optional UI package. Skip it when you want a visual form builder or hosted survey SaaS.
 
