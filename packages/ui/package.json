@@ -74,7 +74,7 @@
     "cn": "^0.4.0",
     "eslint": "catalog:",
     "fuma-translate": "^1.0.2",
-    "lucide-react": "^1.47.0",
+    "lucide-react": "^1.48.0",
     "react": "catalog:",
     "shadcn": "^4.21.0",
     "tailwindcss": "^4.3.3",
